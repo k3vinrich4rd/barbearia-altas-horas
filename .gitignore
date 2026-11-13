@@ -1,0 +1,36 @@
+# Java / Maven
+target/
+*.class
+*.log
+hs_err_pid*
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Relatórios locais
+coverage/
+*.hprof
