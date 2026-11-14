@@ -20,6 +20,7 @@ O sistema trata nome, e-mail, WhatsApp, CEP (opcional) e, só no pagamento do gu
 - **Decisão:** a API recebe o CPF em `POST /pagamentos/cobrancas`, valida os dígitos, repassa ao gateway e **não grava** (nem cifrado). Guarda `id_cliente_provedor`.
 - ⚠️ **Divergência com a arquitetura do Alicerce**, que previa "CPF criptografado e mascarado" no módulo `pagamento`. Motivo: o que não é guardado não vaza, e nenhuma regra do beta lê o CPF de volta (a devolução manual é feita no painel do gateway). Ponto explícito para a revisão do Alicerce.
 - **Crítica registrada (Gemini, 13/11/2026):** sem o CPF guardado, a barbearia não emite nota fiscal nem prova titularidade numa disputa; o Gemini sugere CPF cifrado com base em obrigação legal (art. 7º, II). Resposta: o beta não emite nota fiscal e o gateway guarda o CPF da cobrança; se houver obrigação fiscal real, um ADR novo adota CPF cifrado (AES-GCM, chave por variável de ambiente). Decisão final com o Alicerce e o Kevin.
+- **Nem por hash:** a comparação de corpo da idempotência (`cobranca.hash_corpo`) usa **HMAC-SHA256** com o segredo `IDEMPOTENCIA_HMAC_SEGREDO` (variável de ambiente, sem padrão em `prod`). SHA-256 puro de `{reservaId, cpf}` seria revertido por força bruta (são só 10^9 CPFs possíveis). Ajuste da revisão do Alicerce.
 - O value object `Cpf` mascara no `toString()` (`***.***.***-09`), e o teste de log (R30) falha se um CPF aparecer.
 
 ### 3. Retenção e descarte
