@@ -27,7 +27,28 @@ CONSTRAINT reserva_sem_sobreposicao EXCLUDE USING gist (
 - Intervalo meio aberto `[)`: 9h00–9h30 e 9h30–10h00 convivem (R2).
 - `fim_ocupacao = fim + intervalo entre atendimentos` (configurável, H4).
 - A violação (SQLSTATE `23P01`) vira **`409` com `code` `HORARIO_INDISPONIVEL`** no `GlobalExceptionHandler` (pelo nome da constraint, não pela mensagem).
-- **Expiração preguiçosa (R16):** como `now()` não pode entrar no `WHERE` da constraint (precisa ser imutável), o caso de uso de reserva, na mesma transação e antes do `INSERT`, roda `UPDATE reserva SET status = 'EXPIRADO' WHERE barbeiro_id = :b AND status = 'AGUARDANDO_PAGAMENTO' AND expira_em <= :agora AND tstzrange(inicio, fim_ocupacao, '[)') && tstzrange(:inicio, :fimOcupacao, '[)')` e publica `ReservaExpirada` para cada uma. Para evitar deadlock entre duas inserções que tocam as mesmas vencidas, as linhas são travadas em ordem (`SELECT id ... ORDER BY id FOR UPDATE`) antes do `UPDATE`, e um `40P01` (deadlock) é repetido uma vez (crítica 4 do Gemini, [`docs/ia/`](../ia/ataque-arquitetura-gemini-2026-11-13.md)).
+- **Expiração preguiçosa (R16):** como `now()` não pode entrar no `WHERE` da constraint (precisa ser imutável), o caso de uso de reserva, **na mesma transação e antes do `INSERT`**, expira as vencidas que conflitam com o horário pedido, numa instrução só (trava e atualiza juntas, em ordem de `id`):
+
+  ```sql
+  UPDATE reserva
+     SET status = 'EXPIRADO', version = version + 1, atualizado_em = :agora
+   WHERE id IN (SELECT id
+                  FROM reserva
+                 WHERE barbeiro_id = :barbeiroId
+                   AND status = 'AGUARDANDO_PAGAMENTO'
+                   AND expira_em <= :agora
+                   AND tstzrange(inicio, fim_ocupacao, '[)') && tstzrange(:inicio, :fimOcupacao, '[)')
+                 ORDER BY id
+                   FOR UPDATE)
+  RETURNING id;
+  ```
+
+  - **`version` é incrementado**: quem tiver a reserva carregada com a versão antiga (JPA `@Version`) recebe conflito em vez de sobrescrever o `EXPIRADO`.
+  - **`:agora` vem do `Clock` injetado** (ADR 0004), nunca de `now()` do banco, para o teste controlar o tempo e a regra usar o mesmo instante da validação de antecedência.
+  - Para cada `id` devolvido, publica `ReservaExpirada` (mesmo evento do job).
+  - **A remarcação (R19) usa o mesmo caminho**: expira as vencidas que conflitam com o horário novo, na mesma transação, antes de mover a reserva.
+  - **Risco real de deadlock:** dois `INSERT` concorrentes no mesmo horário travam as mesmas linhas na mesma ordem (`ORDER BY id`) e um simplesmente espera o outro. O risco de verdade é com o **job de expiração** (R17), que trava lotes de vencidas de vários barbeiros; por isso o job usa `FOR UPDATE SKIP LOCKED` (pula o que a inserção já travou) e também ordena por `id`.
+  - **Se mesmo assim vier `40P01`** (deadlock detectado), a **transação inteira** é refeita (expirar + inserir), **uma vez só**. Na segunda falha, a API responde `409 HORARIO_INDISPONIVEL` (o cliente tenta outro horário) e registra a métrica. Ajuste da revisão do Alicerce sobre a crítica 4 do Gemini ([`docs/ia/`](../ia/ataque-arquitetura-gemini-2026-11-13.md)).
 - Opção 1 descartada: duas transações passam na verificação ao mesmo tempo. Opção 2 descartada: não protege duas instâncias nem um `INSERT` manual. Opção 3 funciona, mas serializa a agenda inteira do barbeiro e depende de todo caminho lembrar do lock.
 
 ## Prova
