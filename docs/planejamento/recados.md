@@ -25,4 +25,4 @@ O README cita os módulos `identidade`, `endereco` e `compartilhado`. A arquitet
 - Vercel Hobby só serve enquanto o projeto for portfólio (RISC-03).
 
 ### 13/11/2026 · para o Kevin · respostas pendentes
-As HIPÓTESES H1 a H18 do dossiê esperam a conversa com seu pai. As que mais mudam o desenho: **H7** (política do sinal), **H8** (pagamento depois de expirar), **H9** (barbeiro vê só a própria agenda), **H10** (pacote raiz) e **H17** (uso real ou só portfólio).
+As HIPÓTESES H1 a H20 do dossiê esperam a conversa com seu pai. As que mais mudam o desenho: **H7** (política do sinal), **H8** (pagamento depois de expirar), **H9** (barbeiro vê só a própria agenda), **H10** (pacote raiz) e **H17** (uso real ou só portfólio).
