@@ -1,7 +1,7 @@
 # 0002. Comunicação entre módulos: API pública síncrona + eventos com registro de publicação
 
-- Status: **proposta — revisão do Alicerce**
-- Data: 2026-11-13
+- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Data: 2026-11-13 (proposta e aceite)
 - Decisores: Alicerce (dono), Quarteto Dev (texto)
 
 ## Contexto

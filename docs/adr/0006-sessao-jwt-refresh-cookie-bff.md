@@ -1,7 +1,7 @@
 # 0006. Sessão: JWT curto + refresh rotativo em cookie `HttpOnly` via BFF
 
-- Status: **proposta — revisão do Alicerce**
-- Data: 2026-11-13
+- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Data: 2026-11-13 (proposta e aceite)
 - Decisores: Alicerce (dono), Quarteto Dev (texto)
 
 ## Contexto

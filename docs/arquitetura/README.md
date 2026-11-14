@@ -8,7 +8,7 @@
 | 🧰 **Como** | diagramas Mermaid; as regras viram testes (ArchUnit + Spring Modulith) |
 | 🚫 **Não cobre** | colunas ([ERD](../banco/erd.md)) · rotas ([contrato](../contrato/contrato-api.md)) |
 
-> Fonte: proposta do Alicerce de 13/11/2026. Status: **proposta — revisão do Alicerce**. Diagramas mostram o planejado: ainda não há código.
+> Fonte: proposta do Alicerce de 13/11/2026. Status: **aceita** (ADRs 0001 a 0006, revisão do Alicerce, 13/11/2026). Diagramas mostram o planejado: ainda não há código.
 
 ## 1. Contexto (C4 nível 1)
 
