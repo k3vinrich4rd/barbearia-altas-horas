@@ -21,6 +21,8 @@
 [![Arquitetura](https://img.shields.io/badge/🧱_Arquitetura-0A0A0A?style=for-the-badge)](#-arquitetura)
 [![Agendamento](https://img.shields.io/badge/📅_Agendamento-0A0A0A?style=for-the-badge)](#-o-agendamento-por-dentro)
 [![Segurança](https://img.shields.io/badge/🔐_Segurança_e_LGPD-0A0A0A?style=for-the-badge)](#-segurança-e-lgpd)
+[![Painel admin](https://img.shields.io/badge/🛠_Painel_admin-0A0A0A?style=for-the-badge)](#-painel-admin)
+[![Testes](https://img.shields.io/badge/🧪_Guia_de_testes-0A0A0A?style=for-the-badge)](#-testes-de-ponta-a-ponta)
 [![Roadmap](https://img.shields.io/badge/🚧_Roadmap-0A0A0A?style=for-the-badge)](#-roadmap-do-beta)
 [![Template](https://img.shields.io/badge/📦_Usar_como_template-0A0A0A?style=for-the-badge)](#-usar-como-template)
 
@@ -37,7 +39,7 @@
 |---|---|
 | **Problema** | Na barbearia do bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia. |
 | **Solução** | Agendamento online com disponibilidade em tempo real, **sinal de 50%** para quem marca sem conta e confirmação automática por webhook de pagamento. |
-| **Para quem** | Clientes da **Barbearia Altas Horas** (desde 1997) e os barbeiros que cuidam da agenda. |
+| **Para quem** | Clientes da **Barbearia Altas Horas** (desde 1997), os barbeiros que cuidam da agenda e o **administrador**, que gerencia tudo num painel protegido por senha. |
 | **Por que é nível Pleno** | Concorrência resolvida no banco, idempotência de pagamento, degradação graciosa de integração externa, LGPD desde a primeira linha e testes com PostgreSQL real. |
 | **Stack** | Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js |
 | **Deploy planejado** | Vercel (front) · Render (API, Docker) · Aiven (PostgreSQL) — tudo em plano gratuito |
@@ -64,6 +66,22 @@
 
 </details>
 
+## 🛠 Painel admin
+
+Área restrita ao papel `ADMIN`, com login por e-mail e senha, para a barbearia cuidar da operação sem mexer no banco.
+
+| O admin pode | Detalhe |
+|---|---|
+| Ver a agenda do dia e da semana | por barbeiro, com status de cada horário |
+| Gerenciar serviços | nome, duração e preço |
+| Gerenciar barbeiros e horários | jornada, folgas e bloqueio de horários |
+| Fechar o atendimento | marcar `CONCLUIDO` ou `NAO_COMPARECEU`, cancelar com motivo |
+| Acompanhar sinais | pagamentos pendentes, confirmados e expirados |
+| Ver o alcance geográfico | só agregados, pós-beta |
+
+> [!IMPORTANT]
+> **A senha do admin nunca entra no repositório.** O primeiro admin é criado na inicialização a partir das variáveis de ambiente `ADMIN_EMAIL` e `ADMIN_SENHA`, gravado só como hash (BCrypt ou Argon2). Em `prod` essas variáveis não têm valor padrão: sem elas, a API não cria o admin. O login do admin tem limite de tentativas, e toda ação do painel fica registrada com quem fez e quando.
+
 ## 🧱 Arquitetura
 
 **Monólito modular** num monorepo: um deploy só, módulos com fronteiras claras (verificadas por teste de arquitetura) e espaço para extrair um serviço no futuro, se fizer sentido. Linhas tracejadas = planejado para depois do beta.
@@ -81,6 +99,7 @@ flowchart LR
         pagamento[pagamento]
         endereco[endereço / CEP]
         alcance[alcance geográfico]
+        admin[painel admin]
     end
     api --> db[(PostgreSQL<br/>Aiven · SSL)]
     endereco -- "timeout curto + cache" --> viacep[ViaCEP]
@@ -103,6 +122,7 @@ barbearia-altas-horas/
 │       ├── agenda/       # serviços, barbeiros, disponibilidade, agendamentos
 │       ├── pagamento/    # cobrança do sinal, webhook idempotente
 │       ├── endereco/     # CEP com cache e fallback
+│       ├── admin/        # painel: agenda, serviços, barbeiros, sinais
 │       └── compartilhado/# erros RFC 9457, segurança, observabilidade
 ├── frontend/         # Next.js na paleta da barbearia
 ├── docs/             # contrato da API, ADRs, guias, diagramas
@@ -247,6 +267,11 @@ erDiagram
 | `POST` | `/agendamentos/guest` | Agenda sem conta e gera o Pix do sinal | público, com limite |
 | `POST` | `/pagamentos/webhook` | Confirmação do gateway (assinada e idempotente) | gateway |
 | `GET` / `DELETE` | `/me` | Exportar ou excluir os próprios dados (LGPD) | logado |
+| `GET` | `/admin/agenda` | Agenda do dia ou da semana por barbeiro | `ADMIN` |
+| `POST` / `PUT` | `/admin/servicos` | Cria ou altera serviço, duração e preço | `ADMIN` |
+| `POST` / `PUT` | `/admin/barbeiros` | Cria ou altera barbeiro, jornada e folgas | `ADMIN` |
+| `PATCH` | `/admin/agendamentos/{id}/status` | Conclui, marca falta ou cancela | `ADMIN`, `BARBEIRO` |
+| `GET` | `/admin/pagamentos` | Sinais pendentes, pagos e expirados | `ADMIN` |
 | `GET` | `/barbeiro/alcance` | Agregado por bairro e cidade (pós-beta) | `BARBEIRO`, `ADMIN` |
 
 Todo erro responde `application/problem+json` no padrão **RFC 9457**.
@@ -262,7 +287,8 @@ Todo erro responde `application/problem+json` no padrão **RFC 9457**.
 | Login social | Google e Facebook prontos, mas **desligados por flag** no beta; vínculo de conta só com `email_verified` e prova de posse da conta local |
 | CPF | pedido só no pagamento do guest, guardado criptografado, mascarado na tela e **nunca em log** |
 | CEP e marketing | finalidade separada: marketing só com consentimento opcional; painel mostra só agregados e esconde grupos com menos de 5 pessoas |
-| Abuso | limite de tentativas no login, no cadastro e na reserva guest |
+| Admin | login por senha com papel `ADMIN`; senha inicial só por variável de ambiente (`ADMIN_EMAIL`, `ADMIN_SENHA`), guardada como hash; ações do painel auditadas |
+| Abuso | limite de tentativas no login (inclusive do admin), no cadastro e na reserva guest |
 | CORS | só as origens da Vercel vindas de variável de ambiente, sem `*` |
 
 ## 🧭 Decisões técnicas
@@ -280,6 +306,19 @@ Todo erro responde `application/problem+json` no padrão **RFC 9457**.
 
 Os ADRs completos ficarão em `docs/adr/`.
 
+## 🧪 Testes de ponta a ponta
+
+O roteiro passo a passo fica em **[`docs/guia-testes-e2e.md`](docs/guia-testes-e2e.md) (planejado)**: como rodar o projeto e o que testar no backend, no frontend e nos dois juntos, com o resultado esperado de cada passo.
+
+| Camada | Como será testada |
+|---|---|
+| Backend | unitários (JUnit 5 + Mockito), integração com PostgreSQL real (Testcontainers), segurança 401/403/404 e roteiro de chamadas `curl` |
+| Frontend | testes de componentes e roteiro manual das telas do cliente, do guest e do admin |
+| Juntos | jornada completa no navegador contra a API local: cadastro, agendamento, guest com Pix de sandbox, webhook e painel admin |
+
+> [!NOTE]
+> O guia descreve o comportamento **esperado**. As respostas reais e os números de testes entram conforme cada fatia ficar pronta.
+
 ## 🚧 Roadmap do beta
 
 Tudo abaixo está **planejado**. Cada item vira uma fatia pequena, com testes e revisão, na branch `develop`.
@@ -293,6 +332,8 @@ Tudo abaixo está **planejado**. Cada item vira uma fatia pequena, com testes e 
 - [ ] Webhook idempotente e expiração automática dos 15 minutos
 - [ ] CEP com cache, fallback e degradação graciosa
 - [ ] LGPD: consentimento de marketing, exportar e excluir dados, nada pessoal em log
+- [ ] Painel admin: login por senha (`ROLE_ADMIN`), agenda, serviços, barbeiros e sinais
+- [ ] Guia de testes de ponta a ponta (backend, frontend e juntos) validado a cada fatia
 - [ ] Front Next.js na identidade da barbearia
 - [ ] Deploy: Vercel + Render + Aiven
 - [ ] Pós-beta: login social (ligar a flag), painel de alcance geográfico, lembrete por WhatsApp
@@ -300,7 +341,7 @@ Tudo abaixo está **planejado**. Cada item vira uma fatia pequena, com testes e 
 ## 🚀 Rodar o projeto
 
 > [!NOTE]
-> Ainda não há código para rodar. Quando o esqueleto entrar, esta seção terá o `docker compose up` testado do zero, os endereços do Swagger e do front e uma coleção de requisições.
+> Ainda não há código para rodar. Quando o esqueleto entrar, esta seção terá o `docker compose up` testado do zero, os endereços do Swagger e do front e uma coleção de requisições. O passo a passo completo fica em [`docs/guia-testes-e2e.md`](docs/guia-testes-e2e.md) (planejado).
 
 ## 📦 Usar como template
 
@@ -317,7 +358,8 @@ O repositório é pensado para servir de base a outros projetos. Quando o beta e
 <br/>
 
 - Erros RFC 9457 com `code` estável e validação de campos
-- Autenticação JWT + refresh rotativo e login social atrás de flag
+- Autenticação JWT + refresh rotativo, login social atrás de flag e admin criado por variável de ambiente
+- Guia de testes de ponta a ponta reaproveitável
 - Testes com Testcontainers e regras de arquitetura (ArchUnit)
 - Perfis `dev`, `test` e `prod` com variáveis obrigatórias sem valor padrão
 - Dockerfile multi-estágio para o Render e `compose.yaml` local
