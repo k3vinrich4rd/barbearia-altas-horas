@@ -55,6 +55,7 @@ Copie `.env.example` para `.env` e preencha. **Nenhum valor real vai para o repo
 | `DB_URL`, `DB_USUARIO`, `DB_SENHA` | PostgreSQL | sim |
 | `CORS_ORIGENS` | origens do front (só `https://` em `prod`) | sim |
 | `GATEWAY_TOKEN_SANDBOX` | cobrança Pix no sandbox | sim, no fluxo guest |
+| `IDEMPOTENCIA_HMAC_SEGREDO` | segredo do HMAC que compara o corpo da cobrança repetida sem guardar o CPF | sim, no fluxo guest |
 | `GATEWAY_SEGREDO_WEBHOOK` | validar o token do webhook (header `asaas-access-token`, ADR 0007) | sim, no fluxo guest |
 
 A lista completa (só os nomes) está no [`.env.example`](../.env.example).

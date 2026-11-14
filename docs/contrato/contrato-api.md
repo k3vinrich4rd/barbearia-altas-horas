@@ -32,7 +32,7 @@
 | Data e hora | ISO-8601 **com offset** (`2026-12-01T10:00:00-03:00`); datas puras `YYYY-MM-DD` no fuso da barbearia (`America/Sao_Paulo`) |
 | Autenticação | `Authorization: Bearer <accessToken>` (JWT, **HIPÓTESE H15**: 15 min). Refresh opaco, de uso único, guardado pelo BFF em cookie `HttpOnly` (ADR 0006) |
 | Papéis | `CLIENTE`, `BARBEIRO`, `ADMIN`; o guest não tem conta e usa `X-Guest-Token` só na própria reserva |
-| Idempotência | `X-Idempotency-Key` (UUID v4) obrigatória em `POST /pagamentos/cobrancas` (R10). Guardada como hash; mesma chave + mesmo corpo → mesma resposta; corpo diferente → `422` |
+| Idempotência | `X-Idempotency-Key` (UUID v4) obrigatória em `POST /pagamentos/cobrancas` (R10). A chave é guardada como SHA-256 (é aleatória, sem dado pessoal). O corpo é comparado por **HMAC-SHA256** de `reservaId` + CPF normalizado com o segredo `IDEMPOTENCIA_HMAC_SEGREDO` (variável de ambiente), nunca por SHA-256 puro, que permitiria descobrir o CPF por força bruta. Mesma chave + mesmo corpo → mesma resposta; corpo diferente → `422` |
 | Concorrência | recursos do painel com `version` no corpo; versão antiga → `409 CONFLITO_DE_VERSAO` |
 | Paginação | `?pagina=0&tamanho=20` (máximo 50); resposta `{ "itens": [...], "pagina": 0, "tamanho": 20, "total": 3 }` |
 | Campos desconhecidos | recusados com `400 CAMPO_DESCONHECIDO` (`fail-on-unknown-properties=true`, OWASP API3) |
@@ -245,7 +245,7 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
   "cpfMascarado": "***.***.***-09"
 }
 ```
-Repetição com a mesma chave e o mesmo corpo → `200` com a mesma cobrança, sem chamar o gateway de novo. Mesma chave e corpo diferente → `422 IDEMPOTENCIA_CONFLITO`. Reserva vencida → `422 RESERVA_EXPIRADA`. Gateway fora ou lento → `503 GATEWAY_INDISPONIVEL` (a reserva segue até expirar). O CPF é validado pelos dígitos, repassado ao gateway e **não é gravado** (ADR 0009). O QR Code é desenhado no front a partir do `copiaECola`.
+O `cpfMascarado` aparece **só nesta resposta `201`**: ele é montado a partir do CPF que acabou de chegar no corpo, e o CPF não é guardado. Repetição com a mesma chave e o mesmo corpo → `200` com a mesma cobrança **sem** `cpfMascarado`, sem chamar o gateway de novo. A listagem do painel (`GET /admin/pagamentos`) também não traz CPF. Mesma chave e corpo diferente → `422 IDEMPOTENCIA_CONFLITO`. Reserva vencida → `422 RESERVA_EXPIRADA`. Gateway fora ou lento → `503 GATEWAY_INDISPONIVEL` (a reserva segue até expirar). O CPF é validado pelos dígitos, repassado ao gateway e **não é gravado** (ADR 0009). O QR Code é desenhado no front a partir do `copiaECola`.
 
 ### 4.8 Webhook
 
@@ -339,3 +339,4 @@ Só a assinatura; não entram no beta.
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
 | 1.0 (proposta) | 2026-11-13 | primeira versão: catálogo, disponibilidade, CEP, auth, agendamentos, guest, cobrança, webhook, privacidade e painel admin | não (não há front ainda) |
+| 1.0.1 (proposta) | 2026-11-13 | revisão do Alicerce: `cpfMascarado` só no `201` da cobrança (sai da repetição `200` e do painel); `devolucaoPendente` sai de `Cobranca` (o status basta); idempotência compara o corpo por HMAC; `summary` em todas as operações do OpenAPI (`redocly lint` 2.78.0: 0 erros, 14 avisos) | não (não há front ainda) |
