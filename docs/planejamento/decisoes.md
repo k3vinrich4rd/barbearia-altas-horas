@@ -29,6 +29,23 @@ Status: **proposta** = aguarda revisão; **aceita** = aprovada pelo Kevin.
 | D15 | 13/11/2026 | Regras da barbearia como dados (`configuracao_agenda`, serviços, jornada), nunca fixas no código | proposta | prompt aprovado pelo Kevin | [DDL](../banco/V1__agenda.proposta.sql) |
 | D16 | 13/11/2026 | Ordem do trabalho: backend S00 a S16, front F00 a F05, deploy por último | proposta | prompt aprovado pelo Kevin (seção 8) | [plano de fatias](plano-de-fatias.md) |
 
+### Ajustes da revisão do Alicerce (13/11/2026)
+
+O PR #1 foi aprovado com ajustes pelo Alicerce (arquitetura). Cada linha abaixo resolve um item da revisão.
+
+| # | Item | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|---|
+| D17 | 1 | `hash_corpo` passa a ser **HMAC-SHA256** de `reservaId` + CPF com o segredo `IDEMPOTENCIA_HMAC_SEGREDO` (variável de ambiente); SHA-256 puro permitiria achar o CPF por força bruta (10^9 combinações) | proposta | revisão do Alicerce | [DDL](../banco/V1__agenda.proposta.sql), [contrato](../contrato/contrato-api.md#1-convenções), [ADR 0009](../adr/0009-lgpd-marketing-cpf-e-retencao.md) |
+| D18 | 2 | `cpfMascarado` só no `201` da criação da cobrança (schema `CobrancaCriada`); sai da repetição `200` e da listagem do painel | proposta | revisão do Alicerce | [contrato 4.7](../contrato/contrato-api.md#47-pagamento-do-sinal), [OpenAPI](../contrato/openapi.yaml) |
+| D19 | 3 | Expiração preguiçosa numa instrução só (`UPDATE ... WHERE id IN (SELECT id ... ORDER BY id FOR UPDATE)`), incrementando `version`, `:agora` do `Clock`, mesmo caminho na remarcação; `40P01` refaz a transação inteira uma vez; o risco real de deadlock é com o job | proposta | revisão do Alicerce; sintaxe conferida com `EXPLAIN` no PostgreSQL 17.12 | [ADR 0003](../adr/0003-anti-double-booking-no-banco.md) |
+| D20 | 4 | Job de expiração em lotes com `SELECT id ... ORDER BY id LIMIT :lote FOR UPDATE SKIP LOCKED` | proposta | revisão do Alicerce; `EXPLAIN` no PostgreSQL 17.12 | [arquitetura 6.2](../arquitetura/README.md#62-expiração) |
+| D21 | 5 | Cobrança gravada **antes** como `PENDENTE` (chave de idempotência, id do provedor nulo), Asaas chamado com `externalReference = cobranca.id`, depois a linha recebe o id do Asaas. A chave de idempotência é **nossa**: não está confirmado que o Asaas aceite uma | proposta | revisão do Alicerce | [arquitetura 6.1](../arquitetura/README.md#61-guest-com-sinal-caminho-feliz-e-de-erro), [ADR 0007](../adr/0007-gateway-de-pagamento-sandbox.md) |
+| D22 | 6 | Webhook: evento que já existe com `processado_em IS NULL` é **reprocessado** (trava `FOR UPDATE`, marca `processado_em` na mesma transação da cobrança); falha responde `5xx` para o Asaas reenviar; índice parcial para varrer os não processados | proposta | revisão do Alicerce; fila do Asaas pausa após 15 falhas (`https://docs.asaas.com/docs/sobre-os-webhooks`) | [DDL](../banco/V1__agenda.proposta.sql), [ERD](../banco/erd.md#2-constraints-que-protegem-regras), [ADR 0007](../adr/0007-gateway-de-pagamento-sandbox.md) |
+| D23 | 7 | `summary` em todas as operações do OpenAPI. `npx @redocly/cli lint` (2.78.0, regras recomendadas): antes 22 erros e 14 avisos; depois **0 erros e 14 avisos** (licença sem URL, servidor localhost, tags sem descrição, 3 operações sem 4xx, caminho ambíguo `/agendamentos/{id}/...` × `/agendamentos/guest/{id}`) | aceita (verificável) | execução real em 13/11/2026 | [OpenAPI](../contrato/openapi.yaml) |
+| D24 | 8 | ADR 0002 cita o pacote `<modulo>.eventos`, o `@NamedInterface("eventos")` e o `allowedDependencies` | proposta — revisão do Alicerce | arquitetura do Alicerce | [ADR 0002](../adr/0002-comunicacao-entre-modulos.md) |
+| D25 | 9 | O BFF guarda o token de acesso em outro cookie `HttpOnly; Secure; SameSite=Strict; Path=/api` com `Max-Age` igual à validade do JWT (as funções da Vercel não têm estado) | proposta — revisão do Alicerce | — | [ADR 0006](../adr/0006-sessao-jwt-refresh-cookie-bff.md) |
+| D26 | 10 | Sai a coluna `devolucao_pendente`; "a devolver" é o status (`PAGA_APOS_EXPIRACAO` ou `DEVOLUCAO_PENDENTE`), com índice parcial por status | proposta | revisão do Alicerce; DDL reaplicado sem erro no PostgreSQL 17.12 | [DDL](../banco/V1__agenda.proposta.sql), [modelo de domínio](../dominio/modelo-de-dominio.md) |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |
