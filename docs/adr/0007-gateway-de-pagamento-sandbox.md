@@ -44,6 +44,30 @@ Por quê:
 
 Se a API cair entre 2 e 3, a cobrança órfã no Asaas é achada pelo `externalReference` (conciliação na fatia S12). Se o Asaas tiver chave de idempotência própria, ela entra como camada extra, sem trocar a nossa.
 
+**Job de reprocessamento de eventos presos** (ajuste da revisão do Alicerce no PR #2):
+- roda com **ShedLock** (uma execução por vez, mesmo com mais de uma instância), a cada 5 min (configurável) e **também uma vez quando a aplicação sobe**, porque a API hiberna no Render free;
+- pega só eventos com `processado_em IS NULL` e `recebido_em < agora - N minutos` (a coluna `recebido_em` é a data de criação da linha; **N = HIPÓTESE H19**, proposta 10 min), com o `agora` vindo do `Clock` injetado;
+- trabalha em **lotes** com `FOR UPDATE SKIP LOCKED`: pula o evento que um webhook está processando agora, e cada lote é reivindicado numa transação curta que já incrementa `tentativas`:
+
+```sql
+-- 1) Reivindica um lote numa transação curta e conta a tentativa (:agora vem do Clock)
+UPDATE evento_webhook
+   SET tentativas = tentativas + 1, ultima_tentativa_em = :agora
+ WHERE id IN (SELECT id
+                FROM evento_webhook
+               WHERE processado_em IS NULL
+                 AND resultado IS DISTINCT FROM 'REVISAO_MANUAL'
+                 AND recebido_em < :agora - make_interval(mins => :idadeMinimaMin)   -- N (H19)
+               ORDER BY id
+               LIMIT :lote
+                 FOR UPDATE SKIP LOCKED)
+RETURNING id, provedor, id_cobranca_provedor, tentativas;
+```
+
+- cada evento reivindicado segue **o mesmo caminho idempotente do webhook**: reconsulta a cobrança no gateway fora de transação; depois, numa transação, trava o evento (`FOR UPDATE`), confere `processado_em IS NULL`, atualiza a cobrança e marca `processado_em`. Se o webhook original terminar antes, o job vê `processado_em` preenchido e não faz nada;
+- falhou: grava o `code` do erro em `ultimo_erro` (sem payload nem dado pessoal). Ao chegar a **M tentativas (HIPÓTESE H20, proposta 5)**, marca `resultado = 'REVISAO_MANUAL'` e para de repetir; o evento aparece no painel admin, na área de sinais, para o admin conferir a cobrança no Asaas;
+- N, M, o lote e o intervalo são configuração (variáveis de ambiente), não código.
+
 ## Consequências
 - ✅ Fluxo de teste reproduzível por qualquer pessoa com conta sandbox, sem dinheiro.
 - ⚠️ Autenticação do webhook mais fraca que HMAC: mitigada pela reconsulta (risco RISC-05).

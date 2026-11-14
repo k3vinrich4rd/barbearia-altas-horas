@@ -293,13 +293,20 @@ CREATE TABLE evento_webhook (
     processado_em        timestamptz,                    -- NULL = ainda não processado: um reenvio do mesmo
                                                          -- evento (ON CONFLICT) REPROCESSA em vez de ignorar,
                                                          -- para o pagamento não se perder
-    resultado            varchar(30),                    -- PROCESSADO, IGNORADO, PAGO_APOS_EXPIRACAO...
+    resultado            varchar(30),                    -- PROCESSADO, IGNORADO, PAGO_APOS_EXPIRACAO, REVISAO_MANUAL...
+    tentativas           smallint     NOT NULL DEFAULT 0, -- tentativas do job de reprocessamento (H20)
+    ultima_tentativa_em  timestamptz,
+    ultimo_erro          varchar(60),                    -- só o code do erro, nunca payload ou dado pessoal
     CONSTRAINT evento_webhook_provedor_ck CHECK (provedor IN ('ASAAS', 'MERCADO_PAGO')),
+    CONSTRAINT evento_webhook_tentativas_ck CHECK (tentativas >= 0),
     CONSTRAINT evento_webhook_uk UNIQUE (provedor, id_evento_provedor)
 );
 CREATE INDEX evento_webhook_cobranca_ix ON evento_webhook (provedor, id_cobranca_provedor);
--- Varredura de eventos gravados e não processados (reprocessamento de segurança).
-CREATE INDEX evento_webhook_pendente_ix ON evento_webhook (recebido_em) WHERE processado_em IS NULL;
+-- Job de reprocessamento: eventos gravados, não processados e ainda não mandados para revisão manual.
+CREATE INDEX evento_webhook_pendente_ix ON evento_webhook (recebido_em)
+    WHERE processado_em IS NULL AND resultado IS DISTINCT FROM 'REVISAO_MANUAL';
+-- Painel: eventos que esgotaram as tentativas.
+CREATE INDEX evento_webhook_revisao_ix ON evento_webhook (recebido_em) WHERE resultado = 'REVISAO_MANUAL';
 
 -- -----------------------------------------------------------------------------
 -- Módulo privacidade

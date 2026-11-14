@@ -19,6 +19,7 @@
 | Serviços (nome, duração, preço, ativo) | `GET/POST /admin/servicos`, `PUT /admin/servicos/{id}` | ✅ | ❌ |
 | Barbeiros, jornada e folgas | `GET/POST /admin/barbeiros`, `PUT /admin/barbeiros/{id}`, `PUT .../jornada`, `POST/DELETE .../folgas` | ✅ | ❌ |
 | Sinais (pendentes, pagos, expirados, a devolver) | `GET /admin/pagamentos?status=`, `POST /admin/pagamentos/{id}/devolucao` | ✅ | ❌ |
+| Eventos de webhook em revisão manual (esgotaram as M tentativas do job, H20; ADR 0007) | rota a definir na fatia S13 (proposta: `GET /admin/pagamentos/eventos-em-revisao`) | ✅ | ❌ |
 | Regras configuráveis da agenda (H4 a H12) | `GET/PUT /admin/configuracao` | ✅ | ❌ |
 | Auditoria | `GET /admin/auditoria` | ✅ | ❌ |
 | Alcance geográfico (só agregados, k ≥ 5) | `GET /admin/alcance` | pós-beta | pós-beta |

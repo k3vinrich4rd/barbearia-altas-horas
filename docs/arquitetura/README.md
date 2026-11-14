@@ -231,6 +231,30 @@ sequenceDiagram
     PG->>DB: cobrança PENDENTE → CANCELADA (ou PAGA → PAGA_APOS_EXPIRACAO, R14)
 ```
 
+### 6.2.1 Reprocessamento de eventos de webhook presos
+
+Mesmo desenho do job de expiração: **ShedLock**, roda a cada 5 min (configurável) e **uma vez na subida**, `agora` do `Clock`, lotes com `FOR UPDATE SKIP LOCKED`. Pega só eventos com `processado_em IS NULL` e `recebido_em < agora - N min` (**H19**) que ainda não foram para revisão manual. Detalhe no [ADR 0007](../adr/0007-gateway-de-pagamento-sandbox.md).
+
+```mermaid
+sequenceDiagram
+    participant J as Job pagamento (ShedLock, a cada 5 min e na subida)
+    participant DB as PostgreSQL
+    participant GW as Asaas (sandbox)
+    loop lotes até não sobrar evento preso
+        J->>DB: UPDATE evento_webhook SET tentativas = tentativas + 1 WHERE id IN (SELECT id ... processado_em IS NULL AND recebido_em < agora - N ORDER BY id LIMIT lote FOR UPDATE SKIP LOCKED)
+        loop cada evento do lote (mesmo caminho do webhook)
+            J->>GW: reconsulta a cobrança (fora de transação)
+            alt ok
+                J->>DB: trava o evento (FOR UPDATE), confere processado_em IS NULL, atualiza a cobrança, processado_em = agora
+            else falhou e tentativas < M (H20)
+                J->>DB: ultimo_erro = code do erro (tenta de novo na próxima execução)
+            else falhou e tentativas = M
+                J->>DB: resultado = REVISAO_MANUAL (aparece no painel admin)
+            end
+        end
+    end
+```
+
 ### 6.3 Excluir conta
 
 `DELETE /me` → privacidade grava a solicitação e publica `ExclusaoSolicitada` → conta anonimiza o usuário e revoga refresh tokens; agenda cancela reservas futuras e anonimiza; pagamento mantém o registro financeiro pelo prazo de H13 → conta publica `ContaAnonimizada` → privacidade conclui a solicitação.
