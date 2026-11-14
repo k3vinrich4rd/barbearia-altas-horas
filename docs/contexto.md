@@ -123,6 +123,8 @@ Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o *
 | H16 | O guest pode cancelar pelo link? | não no beta (só pela barbearia) | roadmap |
 | H17 | A barbearia vai usar o sistema de verdade (com clientes pagando)? | **não no beta**: portfólio com Pix de sandbox. Uso real exige rever a Vercel Hobby (RISC-03) e trocar o sandbox pela produção do gateway | decisão do Kevin |
 | H18 | Tolerância para pagamento no limite do prazo | nenhuma: expira em `expira_em`; alternativa a decidir: alguns minutos de tolerância e prazo do Pix no gateway igual a `expira_em` (crítica do Gemini) | `configuracao_agenda` (se adotado) |
+| H19 | Depois de quanto tempo um evento de webhook não processado é considerado preso (N) | 10 min desde `recebido_em` | `app.pagamento.webhook.reprocessamento.idade-minima` (variável de ambiente) |
+| H20 | Quantas tentativas o job faz antes de mandar o evento para revisão manual no painel (M) | 5 tentativas | `app.pagamento.webhook.reprocessamento.max-tentativas` (variável de ambiente) |
 
 ## 5. Requisitos não funcionais
 
