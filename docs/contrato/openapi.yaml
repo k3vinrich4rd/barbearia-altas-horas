@@ -1,0 +1,1135 @@
+# RASCUNHO de máquina do contrato v1.0 (proposta, 13/11/2026).
+# O acordo humano é o contrato-api.md. Depois do código, o OpenAPI passa a ser
+# gerado pelo springdoc e comparado com este arquivo (oasdiff) no CI.
+# Dados de exemplo são fictícios.
+openapi: 3.1.0
+info:
+  title: Barbearia Altas Horas API
+  version: 1.0.0-proposta
+  summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
+  description: |
+    Contrato v1.0 em proposta. Erros no padrão RFC 9457 (application/problem+json)
+    com as extensões `code`, `traceId` e `errors`. Dinheiro em centavos (inteiro).
+    Data e hora em ISO-8601 com offset. Valores marcados HIPÓTESE no contrato
+    Markdown são configuráveis.
+  license:
+    name: Uso de portfólio
+servers:
+  - url: http://localhost:8080
+    description: local (docker compose)
+tags:
+  - name: catalogo
+  - name: agenda
+  - name: cep
+  - name: conta
+  - name: guest
+  - name: pagamento
+  - name: privacidade
+  - name: admin
+security:
+  - bearer: []
+paths:
+  /servicos:
+    get:
+      tags: [catalogo]
+      operationId: listarServicos
+      summary: Serviços ativos com duração e preço
+      security: []
+      responses:
+        '200':
+          description: Lista de serviços
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Servico' }
+  /barbeiros:
+    get:
+      tags: [catalogo]
+      operationId: listarBarbeiros
+      summary: Barbeiros ativos
+      security: []
+      responses:
+        '200':
+          description: Lista de barbeiros
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BarbeiroResumo' }
+  /disponibilidade:
+    get:
+      tags: [agenda]
+      operationId: consultarDisponibilidade
+      summary: Horários livres de um dia
+      security: []
+      parameters:
+        - { name: servicoId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: data, in: query, required: true, schema: { type: string, format: date }, example: '2026-12-01' }
+        - { name: barbeiroId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Disponibilidade do dia
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Disponibilidade' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /cep/{cep}:
+    get:
+      tags: [cep]
+      operationId: buscarCep
+      summary: Endereço pelo CEP (ViaCEP com fallback BrasilAPI e cache)
+      security: []
+      parameters:
+        - { name: cep, in: path, required: true, schema: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$' }, example: '01001000' }
+      responses:
+        '200':
+          description: Endereço encontrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Endereco' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '503': { $ref: '#/components/responses/Erro503' }
+  /auth/cadastro:
+    post:
+      tags: [conta]
+      operationId: cadastrar
+      summary: Cria conta de cliente
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastroRequest' }
+      responses:
+        '201':
+          description: Conta criada
+          headers:
+            Location: { schema: { type: string }, example: /me }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Perfil' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '429': { $ref: '#/components/responses/Erro429' }
+  /auth/login:
+    post:
+      tags: [conta]
+      operationId: login
+      summary: Login de cliente, barbeiro ou admin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Tokens emitidos (o refresh é guardado pelo BFF em cookie HttpOnly)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tokens' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '429': { $ref: '#/components/responses/Erro429' }
+  /auth/refresh:
+    post:
+      tags: [conta]
+      operationId: renovarSessao
+      summary: Troca o refresh (uso único, rotativo)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200':
+          description: Novo par de tokens
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tokens' }
+        '401': { $ref: '#/components/responses/Erro401' }
+  /auth/logout:
+    post:
+      tags: [conta]
+      operationId: logout
+      summary: Encerra a família do refresh
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '204': { description: Sessão encerrada }
+  /me:
+    get:
+      tags: [conta]
+      operationId: meuPerfil
+      summary: Meu perfil
+      responses:
+        '200':
+          description: Perfil
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Perfil' }
+        '401': { $ref: '#/components/responses/Erro401' }
+    delete:
+      tags: [privacidade]
+      operationId: excluirConta
+      summary: Excluir minha conta (LGPD)
+      responses:
+        '204': { description: Conta anonimizada }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /me/dados:
+    get:
+      tags: [privacidade]
+      operationId: exportarDados
+      summary: Exportar meus dados (LGPD)
+      responses:
+        '200':
+          description: Exportação em JSON
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExportacaoDados' }
+        '401': { $ref: '#/components/responses/Erro401' }
+  /me/consentimentos:
+    get:
+      tags: [privacidade]
+      operationId: meusConsentimentos
+      responses:
+        '200':
+          description: Consentimentos atuais
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Consentimento' }
+        '401': { $ref: '#/components/responses/Erro401' }
+  /me/consentimentos/marketing:
+    put:
+      tags: [privacidade]
+      operationId: registrarConsentimentoMarketing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsentimentoRequest' }
+      responses:
+        '200':
+          description: Consentimento registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Consentimento' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+  /agendamentos:
+    post:
+      tags: [agenda]
+      operationId: agendarComoCliente
+      summary: Reserva como cliente logado (nasce CONFIRMADO)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgendamentoRequest' }
+      responses:
+        '201':
+          description: Reserva criada
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /me/agendamentos:
+    get:
+      tags: [agenda]
+      operationId: meusAgendamentos
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Tamanho'
+      responses:
+        '200':
+          description: Página de agendamentos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaAgendamentos' }
+        '401': { $ref: '#/components/responses/Erro401' }
+  /agendamentos/{id}:
+    get:
+      tags: [agenda]
+      operationId: meuAgendamento
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Agendamento
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '404': { $ref: '#/components/responses/Erro404' }
+  /agendamentos/{id}/cancelamento:
+    post:
+      tags: [agenda]
+      operationId: cancelarAgendamento
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CancelamentoRequest' }
+      responses:
+        '200':
+          description: Cancelado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /agendamentos/{id}/remarcacao:
+    post:
+      tags: [agenda]
+      operationId: remarcarAgendamento
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RemarcacaoRequest' }
+      responses:
+        '200':
+          description: Remarcado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /agendamentos/guest:
+    post:
+      tags: [guest]
+      operationId: agendarComoGuest
+      summary: Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, expira em 15 min)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgendamentoGuestRequest' }
+      responses:
+        '201':
+          description: Reserva do guest criada; tokenGuest aparece só aqui
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AgendamentoGuest' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '422': { $ref: '#/components/responses/Erro422' }
+        '429': { $ref: '#/components/responses/Erro429' }
+  /agendamentos/guest/{id}:
+    get:
+      tags: [guest]
+      operationId: consultarAgendamentoGuest
+      security: [ { guestToken: [] } ]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Status da reserva do guest
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '404': { $ref: '#/components/responses/Erro404' }
+  /pagamentos/cobrancas:
+    post:
+      tags: [pagamento]
+      operationId: criarCobranca
+      summary: Cria a cobrança Pix do sinal (CPF pedido só aqui)
+      security: [ { guestToken: [] } ]
+      parameters:
+        - name: X-Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CobrancaRequest' }
+      responses:
+        '201':
+          description: Cobrança criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cobranca' }
+        '200':
+          description: Repetição com a mesma chave e o mesmo corpo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cobranca' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '503': { $ref: '#/components/responses/Erro503' }
+  /pagamentos/webhook:
+    post:
+      tags: [pagamento]
+      operationId: receberWebhook
+      summary: Aviso do gateway (Asaas), idempotente pelo id do evento
+      security: [ { webhookAsaas: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WebhookAsaas' }
+      responses:
+        '200': { description: Recebido (primeira vez ou repetição) }
+        '401': { $ref: '#/components/responses/Erro401' }
+  /admin/agenda:
+    get:
+      tags: [admin]
+      operationId: agendaAdmin
+      summary: Agenda do dia ou da semana (BARBEIRO só a própria, HIPÓTESE H9)
+      parameters:
+        - { name: data, in: query, required: true, schema: { type: string, format: date } }
+        - { name: visao, in: query, required: false, schema: { type: string, enum: [DIA, SEMANA], default: DIA } }
+        - { name: barbeiroId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Agenda
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Agendamento' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+  /admin/agendamentos/{id}/status:
+    patch:
+      tags: [admin]
+      operationId: mudarStatusAgendamento
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MudancaStatusRequest' }
+      responses:
+        '200':
+          description: Status alterado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /admin/servicos:
+    get:
+      tags: [admin]
+      operationId: listarServicosAdmin
+      responses:
+        '200':
+          description: Serviços (inclusive inativos)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ServicoAdmin' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+    post:
+      tags: [admin]
+      operationId: criarServico
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServicoRequest' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ServicoAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '409': { $ref: '#/components/responses/Erro409' }
+  /admin/servicos/{id}:
+    put:
+      tags: [admin]
+      operationId: alterarServico
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServicoUpdateRequest' }
+      responses:
+        '200':
+          description: Alterado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ServicoAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+  /admin/barbeiros:
+    get:
+      tags: [admin]
+      operationId: listarBarbeirosAdmin
+      responses:
+        '200':
+          description: Barbeiros
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BarbeiroAdmin' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+    post:
+      tags: [admin]
+      operationId: criarBarbeiro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BarbeiroRequest' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BarbeiroAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/barbeiros/{id}:
+    put:
+      tags: [admin]
+      operationId: alterarBarbeiro
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BarbeiroUpdateRequest' }
+      responses:
+        '200':
+          description: Alterado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BarbeiroAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+  /admin/barbeiros/{id}/jornada:
+    put:
+      tags: [admin]
+      operationId: substituirJornada
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/IntervaloJornada' }
+      responses:
+        '200':
+          description: Jornada substituída
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/IntervaloJornada' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /admin/barbeiros/{id}/folgas:
+    post:
+      tags: [admin]
+      operationId: criarFolga
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FolgaRequest' }
+      responses:
+        '201':
+          description: Folga criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Folga' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /admin/barbeiros/{id}/folgas/{folgaId}:
+    delete:
+      tags: [admin]
+      operationId: removerFolga
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: folgaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Removida }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+  /admin/pagamentos:
+    get:
+      tags: [admin]
+      operationId: listarPagamentosAdmin
+      parameters:
+        - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/StatusCobranca' } }
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Tamanho'
+      responses:
+        '200':
+          description: Página de cobranças
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaCobrancas' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/pagamentos/{id}/devolucao:
+    post:
+      tags: [admin]
+      operationId: registrarDevolucao
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Devolução registrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cobranca' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /admin/configuracao:
+    get:
+      tags: [admin]
+      operationId: lerConfiguracao
+      responses:
+        '200':
+          description: Configuração da agenda
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfiguracaoAgenda' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+    put:
+      tags: [admin]
+      operationId: alterarConfiguracao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfiguracaoAgenda' }
+      responses:
+        '200':
+          description: Alterada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfiguracaoAgenda' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '409': { $ref: '#/components/responses/Erro409' }
+  /admin/auditoria:
+    get:
+      tags: [admin]
+      operationId: listarAuditoria
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Tamanho'
+      responses:
+        '200':
+          description: Página de ações auditadas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaAuditoria' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    guestToken:
+      type: apiKey
+      in: header
+      name: X-Guest-Token
+      description: Token devolvido uma única vez na criação da reserva do guest
+    webhookAsaas:
+      type: apiKey
+      in: header
+      name: asaas-access-token
+      description: Token configurado no webhook do Asaas (variável GATEWAY_SEGREDO_WEBHOOK)
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Pagina:
+      name: pagina
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Tamanho:
+      name: tamanho
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+  responses:
+    Erro400: { description: Pedido inválido, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro401: { description: Não autenticado, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro403: { description: Sem permissão, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro404: { description: Não encontrado ou de outro dono, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro409: { description: Conflito, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro422: { description: Regra de negócio, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro429:
+      description: Limite de tentativas
+      headers:
+        Retry-After: { schema: { type: integer }, description: segundos }
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } }
+    Erro503: { description: Serviço externo indisponível, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+  schemas:
+    Problema:
+      type: object
+      description: RFC 9457 Problem Details com extensões code, traceId e errors
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { $ref: '#/components/schemas/CodigoErro' }
+        traceId: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+      example:
+        type: https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#horario_indisponivel
+        title: Horário indisponível
+        status: 409
+        detail: Este horário acabou de ser reservado. Escolha outro.
+        instance: /agendamentos
+        code: HORARIO_INDISPONIVEL
+        traceId: 4bf92f3577b34da6a3ce929d0e0e4736
+        errors: []
+    CodigoErro:
+      type: string
+      enum: [VALIDACAO_INVALIDA, JSON_MALFORMADO, CAMPO_DESCONHECIDO, CEP_INVALIDO, CPF_INVALIDO,
+             IDEMPOTENCY_KEY_AUSENTE, NAO_AUTENTICADO, CREDENCIAIS_INVALIDAS, REFRESH_INVALIDO,
+             REFRESH_REUTILIZADO, WEBHOOK_NAO_AUTENTICADO, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO,
+             CEP_NAO_ENCONTRADO, FUNCIONALIDADE_DESLIGADA, EMAIL_JA_CADASTRADO, HORARIO_INDISPONIVEL,
+             CONFLITO_DE_VERSAO, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
+             FORA_DO_HORIZONTE, JANELA_CANCELAMENTO_ENCERRADA, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
+             RESERVA_EXPIRADA, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
+             FOLGA_COM_RESERVAS, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL, ERRO_INTERNO]
+    StatusReserva:
+      type: string
+      enum: [AGUARDANDO_PAGAMENTO, CONFIRMADO, CONCLUIDO, NAO_COMPARECEU, CANCELADO, EXPIRADO]
+    StatusCobranca:
+      type: string
+      enum: [PENDENTE, PAGA, PAGA_APOS_EXPIRACAO, CANCELADA, FALHOU, DEVOLUCAO_PENDENTE, DEVOLVIDA]
+    Papel:
+      type: string
+      enum: [CLIENTE, BARBEIRO, ADMIN]
+    Servico:
+      type: object
+      required: [id, nome, duracaoMin, precoCentavos]
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+        duracaoMin: { type: integer }
+        precoCentavos: { type: integer, format: int64 }
+        precoFormatado: { type: string, example: 'R$ 40,00' }
+    ServicoAdmin:
+      allOf:
+        - $ref: '#/components/schemas/Servico'
+        - type: object
+          required: [ativo, version]
+          properties:
+            descricao: { type: [string, 'null'] }
+            ativo: { type: boolean }
+            version: { type: integer, format: int64 }
+    ServicoRequest:
+      type: object
+      additionalProperties: false
+      required: [nome, duracaoMin, precoCentavos]
+      properties:
+        nome: { type: string, minLength: 2, maxLength: 80 }
+        descricao: { type: string, maxLength: 300 }
+        duracaoMin: { type: integer, minimum: 5, maximum: 480 }
+        precoCentavos: { type: integer, format: int64, minimum: 0 }
+    ServicoUpdateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ServicoRequest'
+        - type: object
+          required: [ativo, version]
+          properties:
+            ativo: { type: boolean }
+            version: { type: integer, format: int64 }
+    BarbeiroResumo:
+      type: object
+      required: [id, nomeExibicao]
+      properties:
+        id: { type: string, format: uuid }
+        nomeExibicao: { type: string }
+    BarbeiroAdmin:
+      allOf:
+        - $ref: '#/components/schemas/BarbeiroResumo'
+        - type: object
+          required: [ativo, version]
+          properties:
+            usuarioId: { type: [string, 'null'], format: uuid }
+            ativo: { type: boolean }
+            version: { type: integer, format: int64 }
+            jornada:
+              type: array
+              items: { $ref: '#/components/schemas/IntervaloJornada' }
+    BarbeiroRequest:
+      type: object
+      additionalProperties: false
+      required: [nomeExibicao]
+      properties:
+        nomeExibicao: { type: string, minLength: 2, maxLength: 80 }
+        usuarioId: { type: string, format: uuid }
+    BarbeiroUpdateRequest:
+      allOf:
+        - $ref: '#/components/schemas/BarbeiroRequest'
+        - type: object
+          required: [ativo, version]
+          properties:
+            ativo: { type: boolean }
+            version: { type: integer, format: int64 }
+    IntervaloJornada:
+      type: object
+      additionalProperties: false
+      required: [diaSemana, horaInicio, horaFim]
+      properties:
+        diaSemana: { type: integer, minimum: 1, maximum: 7, description: 'ISO-8601: 1 = segunda' }
+        horaInicio: { type: string, pattern: '^[0-2][0-9]:[0-5][0-9]$', example: '09:00' }
+        horaFim: { type: string, pattern: '^[0-2][0-9]:[0-5][0-9]$', example: '19:00' }
+    FolgaRequest:
+      type: object
+      additionalProperties: false
+      required: [inicio, fim]
+      properties:
+        inicio: { type: string, format: date-time }
+        fim: { type: string, format: date-time }
+        motivo: { type: string, maxLength: 200 }
+    Folga:
+      allOf:
+        - $ref: '#/components/schemas/FolgaRequest'
+        - type: object
+          required: [id]
+          properties:
+            id: { type: string, format: uuid }
+    Disponibilidade:
+      type: object
+      required: [data, fuso, servicoId, duracaoMin, barbeiros]
+      properties:
+        data: { type: string, format: date }
+        fuso: { type: string, example: America/Sao_Paulo }
+        servicoId: { type: string, format: uuid }
+        duracaoMin: { type: integer }
+        barbeiros:
+          type: array
+          items:
+            type: object
+            required: [barbeiroId, nomeExibicao, horarios]
+            properties:
+              barbeiroId: { type: string, format: uuid }
+              nomeExibicao: { type: string }
+              horarios:
+                type: array
+                items: { type: string, format: date-time }
+    Endereco:
+      type: object
+      required: [cep]
+      properties:
+        cep: { type: string, pattern: '^[0-9]{8}$' }
+        logradouro: { type: [string, 'null'] }
+        bairro: { type: [string, 'null'] }
+        cidade: { type: [string, 'null'] }
+        uf: { type: [string, 'null'] }
+        fonte: { type: string, enum: [VIACEP, BRASILAPI, CACHE] }
+    CadastroRequest:
+      type: object
+      additionalProperties: false
+      required: [nome, email, whatsapp, senha]
+      properties:
+        nome: { type: string, minLength: 2, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 254 }
+        whatsapp: { type: string, description: 'aceita máscara; 10 a 13 dígitos depois de sanitizar', example: '(11) 90000-0001' }
+        senha: { type: string, minLength: 10, maxLength: 72, writeOnly: true }
+        cep: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$' }
+        aceitaMarketing: { type: boolean, default: false }
+    Perfil:
+      type: object
+      required: [id, nome, email, papeis]
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+        email: { type: string, format: email }
+        papeis:
+          type: array
+          items: { $ref: '#/components/schemas/Papel' }
+        endereco:
+          type: object
+          properties:
+            cep: { type: [string, 'null'] }
+            bairro: { type: [string, 'null'] }
+            cidade: { type: [string, 'null'] }
+            uf: { type: [string, 'null'] }
+            completo: { type: boolean }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, senha]
+      properties:
+        email: { type: string, format: email }
+        senha: { type: string, writeOnly: true }
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    Tokens:
+      type: object
+      required: [accessToken, tipo, expiraEmSegundos, refreshToken, refreshExpiraEm, usuario]
+      properties:
+        accessToken: { type: string }
+        tipo: { type: string, const: Bearer }
+        expiraEmSegundos: { type: integer, description: 'HIPÓTESE H15: 900' }
+        refreshToken: { type: string, description: 'lido só pelo BFF, que guarda em cookie HttpOnly' }
+        refreshExpiraEm: { type: string, format: date-time }
+        usuario:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            nome: { type: string }
+            papeis:
+              type: array
+              items: { $ref: '#/components/schemas/Papel' }
+    AgendamentoRequest:
+      type: object
+      additionalProperties: false
+      required: [servicoId, barbeiroId, inicio]
+      properties:
+        servicoId: { type: string, format: uuid }
+        barbeiroId: { type: string, format: uuid }
+        inicio: { type: string, format: date-time, example: '2026-12-01T10:00:00-03:00' }
+    AgendamentoGuestRequest:
+      allOf:
+        - $ref: '#/components/schemas/AgendamentoRequest'
+        - type: object
+          required: [nome, email, whatsapp]
+          properties:
+            nome: { type: string, minLength: 2, maxLength: 120 }
+            email: { type: string, format: email }
+            whatsapp: { type: string }
+    Agendamento:
+      type: object
+      required: [id, status, origem, inicio, fim, precoCentavos, sinalCentavos]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/StatusReserva' }
+        origem: { type: string, enum: [CLIENTE, GUEST] }
+        servico:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            nome: { type: string }
+            duracaoMin: { type: integer }
+        barbeiro: { $ref: '#/components/schemas/BarbeiroResumo' }
+        inicio: { type: string, format: date-time }
+        fim: { type: string, format: date-time }
+        precoCentavos: { type: integer, format: int64 }
+        sinalCentavos: { type: integer, format: int64 }
+        expiraEm: { type: [string, 'null'], format: date-time }
+        podeCancelarAte: { type: [string, 'null'], format: date-time }
+        motivoCancelamento: { type: [string, 'null'] }
+        version: { type: integer, format: int64 }
+    AgendamentoGuest:
+      allOf:
+        - $ref: '#/components/schemas/Agendamento'
+        - type: object
+          required: [tokenGuest, expiraEm, politicaSinal]
+          properties:
+            tokenGuest: { type: string, description: 'mostrado uma única vez; o banco guarda só o hash' }
+            politicaSinal: { type: string }
+    PaginaAgendamentos:
+      type: object
+      required: [itens, pagina, tamanho, total]
+      properties:
+        itens:
+          type: array
+          items: { $ref: '#/components/schemas/Agendamento' }
+        pagina: { type: integer }
+        tamanho: { type: integer }
+        total: { type: integer, format: int64 }
+    CancelamentoRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        motivo: { type: string, maxLength: 300 }
+    RemarcacaoRequest:
+      type: object
+      additionalProperties: false
+      required: [inicio]
+      properties:
+        inicio: { type: string, format: date-time }
+        barbeiroId: { type: string, format: uuid }
+    MudancaStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [status, version]
+      properties:
+        status: { type: string, enum: [CONCLUIDO, NAO_COMPARECEU, CANCELADO] }
+        motivo: { type: string, maxLength: 300, description: obrigatório quando status = CANCELADO }
+        version: { type: integer, format: int64 }
+    CobrancaRequest:
+      type: object
+      additionalProperties: false
+      required: [reservaId, cpf]
+      properties:
+        reservaId: { type: string, format: uuid }
+        cpf: { type: string, writeOnly: true, description: 'validado, repassado ao gateway e não gravado (ADR 0009)', example: '123.456.789-09' }
+    Cobranca:
+      type: object
+      required: [id, reservaId, status, valorCentavos]
+      properties:
+        id: { type: string, format: uuid }
+        reservaId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/StatusCobranca' }
+        valorCentavos: { type: integer, format: int64 }
+        pix:
+          type: object
+          properties:
+            copiaECola: { type: string }
+            expiraEm: { type: string, format: date-time }
+        cpfMascarado: { type: string, example: '***.***.***-09' }
+        devolucaoPendente: { type: boolean }
+    PaginaCobrancas:
+      type: object
+      required: [itens, pagina, tamanho, total]
+      properties:
+        itens:
+          type: array
+          items: { $ref: '#/components/schemas/Cobranca' }
+        pagina: { type: integer }
+        tamanho: { type: integer }
+        total: { type: integer, format: int64 }
+    WebhookAsaas:
+      type: object
+      description: Campos que a API lê do evento do Asaas; o resto é ignorado
+      required: [id, event]
+      properties:
+        id: { type: string, example: evt_teste_0001 }
+        event: { type: string, example: PAYMENT_RECEIVED }
+        payment:
+          type: object
+          properties:
+            id: { type: string }
+            billingType: { type: string }
+            status: { type: string }
+    ConfiguracaoAgenda:
+      type: object
+      additionalProperties: false
+      required: [antecedenciaMinimaMin, janelaCancelamentoMin, intervaloEntreAtendimentosMin,
+                 granularidadeMin, horizonteDias, expiracaoGuestMin, percentualSinal, politicaSinal, version]
+      properties:
+        fuso: { type: string, readOnly: true, example: America/Sao_Paulo }
+        antecedenciaMinimaMin: { type: integer, minimum: 0, description: 'HIPÓTESE H5' }
+        janelaCancelamentoMin: { type: integer, minimum: 0, description: 'HIPÓTESE H6' }
+        intervaloEntreAtendimentosMin: { type: integer, minimum: 0, maximum: 120, description: 'HIPÓTESE H4' }
+        granularidadeMin: { type: integer, enum: [5, 10, 15, 20, 30, 60], description: 'HIPÓTESE H11' }
+        horizonteDias: { type: integer, minimum: 1, maximum: 365, description: 'HIPÓTESE H12' }
+        expiracaoGuestMin: { type: integer, minimum: 5, maximum: 60 }
+        percentualSinal: { type: integer, minimum: 0, maximum: 100 }
+        politicaSinal: { type: string, maxLength: 500, description: 'HIPÓTESE H7' }
+        version: { type: integer, format: int64 }
+    Consentimento:
+      type: object
+      required: [finalidade, aceito, versaoTexto, registradoEm]
+      properties:
+        finalidade: { type: string, enum: [MARKETING_CEP] }
+        aceito: { type: boolean }
+        versaoTexto: { type: string }
+        registradoEm: { type: string, format: date-time }
+    ConsentimentoRequest:
+      type: object
+      additionalProperties: false
+      required: [aceito, versaoTexto]
+      properties:
+        aceito: { type: boolean }
+        versaoTexto: { type: string, maxLength: 20 }
+    ExportacaoDados:
+      type: object
+      properties:
+        geradoEm: { type: string, format: date-time }
+        conta: { type: object }
+        consentimentos:
+          type: array
+          items: { $ref: '#/components/schemas/Consentimento' }
+        agendamentos:
+          type: array
+          items: { type: object }
+    PaginaAuditoria:
+      type: object
+      required: [itens, pagina, tamanho, total]
+      properties:
+        itens:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              atorId: { type: string, format: uuid }
+              acao: { type: string }
+              recurso: { type: string }
+              recursoId: { type: [string, 'null'], format: uuid }
+              ocorridoEm: { type: string, format: date-time }
+        pagina: { type: integer }
+        tamanho: { type: integer }
+        total: { type: integer, format: int64 }
