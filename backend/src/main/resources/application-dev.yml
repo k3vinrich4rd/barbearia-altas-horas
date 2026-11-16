@@ -1,0 +1,8 @@
+# Perfil dev: PostgreSQL do compose.yaml e seed fictício (db/dev). Nunca em produção.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORTA:5433}/${POSTGRES_BANCO:altashoras}
+    username: ${POSTGRES_USUARIO:altashoras}
+    password: ${POSTGRES_SENHA:altashoras_dev}
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
