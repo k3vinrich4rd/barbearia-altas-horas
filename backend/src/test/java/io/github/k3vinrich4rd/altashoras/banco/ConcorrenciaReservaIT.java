@@ -30,6 +30,7 @@ import io.github.k3vinrich4rd.altashoras.PostgresTestcontainers;
 /**
  * A7: várias conexões tentam o mesmo horário ao mesmo tempo e só uma vence. Cada thread abre a própria conexão
  * (fora do pool de 5 do Hikari) e todas esperam o mesmo sinal para inserir: a disputa é real, no banco.
+ * O que nunca muda é o resultado: uma reserva só.
  */
 @SpringBootTest
 @Import(PostgresTestcontainers.class)
@@ -45,7 +46,7 @@ class ConcorrenciaReservaIT {
     PostgreSQLContainer postgres;
 
     @RepeatedTest(3)
-    @DisplayName("A7: 12 inserções simultâneas no mesmo horário, exatamente 1 vence e 11 recebem 23P01")
+    @DisplayName("A7: 12 inserções simultâneas no mesmo horário, exatamente 1 vence; as outras recebem 23P01 ou 40P01")
     void somenteUmaVence() throws Exception {
         UUID barbeiro = ReservaSql.novoBarbeiro(jdbc);
         UUID servico = ReservaSql.novoServico(jdbc);
@@ -80,7 +81,9 @@ class ConcorrenciaReservaIT {
         for (Future<String> r : resultados) {
             estados.add(r.get());
         }
-        assertThat(estados).containsOnly("OK", "23P01");
+        // Quem perde recebe violação da constraint (23P01) ou, quando várias esperam umas pelas outras, deadlock
+        // (40P01): o PostgreSQL aborta as perdedoras. A API refaz uma vez e responde 409 (ADR 0003, D27).
+        assertThat(estados).containsAnyOf("OK").isSubsetOf("OK", "23P01", "40P01");
         assertThat(estados).filteredOn("OK"::equals).hasSize(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM reserva WHERE barbeiro_id = ?", Integer.class, barbeiro))
                 .isEqualTo(1);
