@@ -1,0 +1,11 @@
+# Regras padrão do gitleaks + exceções pontuais e justificadas. Nunca liberar arquivo inteiro.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exemplos fictícios do contrato da API: JWT truncado com reticências e chave de idempotência de exemplo"
+regexTarget = "line"
+regexes = [
+  '''"accessToken": "eyJhbGciOiJIUzI1NiJ9\.\.\."''',
+  '''X-Idempotency-Key: 5d0b3f8e-7c1a-4b7e-9f63-2a0d6c1e9b10''',
+]
