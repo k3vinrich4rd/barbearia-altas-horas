@@ -15,7 +15,7 @@ O prompt aprovado pede Java 25 LTS e "Spring Boot 4.x na última versão estáve
 | Não usar | 4.2.0 (em RC2 em 05/11/2026, não é GA) | idem |
 | Demais bibliotecas (Spring Modulith, springdoc, Testcontainers, ShedLock, ArchUnit) | versões compatíveis com o Boot 4.1.2, conferidas e citadas no PR da fatia S00 | a pesquisar na S00 |
 
-Detalhes e divergências com o Gemini: [`docs/ia/verificacao-coordenador-2026-11-13.md`](../ia/verificacao-coordenador-2026-11-13.md).
+Detalhes e divergências com o Gemini: verificação interna da equipe (13/11/2026).
 
 ## Consequências
 - ✅ Versão estável e suportada; Maven Wrapper garante a mesma versão do Maven para todos.

@@ -68,26 +68,26 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 |---|---|---|---|
 | R1 | Um barbeiro não pode ter duas reservas que se sobrepõem entre as que ocupam horário (`AGUARDANDO_PAGAMENTO`, `CONFIRMADO`). Garantido pelo banco (`EXCLUDE USING gist`), não só pelo código. | P, A | `ReservaConcorrenciaIT` (S01, S07) |
 | R2 | O intervalo de uma reserva é meio aberto `[inicio, fim_ocupacao)`: uma reserva que termina às 10h00 não conflita com outra que começa às 10h00. | A | `ReservaConstraintIT` (S01) |
-| R3 | `fim = inicio + duração do serviço`; `fim_ocupacao = fim + intervalo entre atendimentos` (configurável, **H4**). | P, H4 | `CalculoHorarioTest` (S03) |
-| R4 | Só é possível reservar dentro da jornada do barbeiro, fora das folgas, começando em múltiplos da granularidade (**H11**). | P, H11 | `DisponibilidadeTest` (S03) |
-| R5 | Só é possível reservar com antecedência mínima configurável (**H5**) e até um horizonte máximo configurável (**H12**). | H5, H12 | `AntecedenciaTest` (S07) |
-| R6 | Cliente logado reserva direto em `CONFIRMADO`, sem sinal. | P | `AgendarClienteIT` (S07) |
-| R7 | Guest reserva em `AGUARDANDO_PAGAMENTO`, com `expira_em = agora + tempo de expiração` (15 min, configurável). A reserva ocupa o horário enquanto não expira. | P | `AgendarGuestIT` (S11) |
-| R8 | O sinal é **50%** (percentual configurável) do preço do serviço **no momento da reserva**, em centavos, arredondado para cima no centavo. Mudar o preço depois não muda o sinal. | P, A | `SinalTest` (S11) |
-| R9 | O CPF é pedido **só** na criação da cobrança do guest, porque o gateway exige. Não é pedido no cadastro. | P | `CobrancaIT` (S12) |
+| R3 | `fim = inicio + duração do serviço`; `fim_ocupacao = fim + intervalo entre atendimentos` (**0 min**, H4 decidida). Serviço de 60 min ocupa 2 slots seguidos. | P, H4 | `CalculoHorarioTest` (S03) |
+| R4 | Só é possível reservar dentro da jornada (terça a sábado, 07h00 às 20h00, pausa de almoço 12h00 às 13h00 como intervalo editável da jornada), fora das folgas, começando em múltiplos de **30 min** (H1, H11). | P, H1, H11 | `DisponibilidadeTest` (S03) |
+| R5 | Só é possível reservar com antecedência mínima de **2 horas** (configurável, H5) e até **30 dias** à frente (configurável, H12). | H5, H12 | `AntecedenciaTest` (S07) |
+| R6 | **Todo** agendamento, de cliente logado ou de guest, nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` com 100% do valor pago (decisão de 16/11/2026; substitui "cliente logado reserva direto em `CONFIRMADO`"). | P | `AgendarClienteIT` (S07) |
+| R7 | A reserva `AGUARDANDO_PAGAMENTO` tem `expira_em = agora + 15 min` (configurável) e ocupa o horário enquanto não expira. Sem pagamento no prazo, vira `EXPIRADO` e o horário volta. | P | `AgendarGuestIT` (S11) |
+| R8 | A cobrança é de **100%** do preço do serviço **no momento da reserva**, em centavos, por **Pix** ou **cartão de crédito** (checkout hospedado do gateway; o número do cartão nunca passa pela API). Mudar o preço depois não muda a cobrança. | P | `CobrancaValorTest` (S12) |
+| R9 | O CPF é pedido **só** na criação da cobrança, porque o gateway exige. Não é pedido no cadastro nem guardado. | P | `CobrancaIT` (S12) |
 | R10 | A criação de cobrança exige `X-Idempotency-Key`. Mesma chave e mesmo corpo devolvem a mesma cobrança; mesma chave e corpo diferente dão `422`. | P | `CobrancaIdempotenciaIT` (S12) |
 | R11 | O webhook só é aceito com autenticação válida do provedor (ADR 0007); senão `401` e nada muda. | P | `WebhookAssinaturaIT` (S13) |
 | R12 | O id do **evento** do provedor é único (`evento_webhook`). Evento repetido responde `200` sem efeito. | P | `WebhookIdempotenciaIT` (S13) |
 | R13 | Pagamento confirmado de reserva ainda válida → reserva vai para `CONFIRMADO`. | P, A | `ConfirmacaoPagamentoIT` (S13) |
-| R14 | Pagamento confirmado **depois** de a reserva expirar: a reserva **não** volta; a cobrança fica `PAGA_APOS_EXPIRACAO` e aparece no painel para devolução manual (**H8**). | A, H8 | `PagamentoTardioIT` (S13) |
+| R14 | Pagamento confirmado **depois** de a reserva expirar: se o horário ainda estiver livre, a reserva volta de `EXPIRADO` para `CONFIRMADO` (passando pela constraint); se já estiver ocupado, a cobrança fica `PAGA_APOS_EXPIRACAO` e vira **pendência administrativa** no painel (H8 decidida). | P | `PagamentoTardioIT` (S13) |
 | R15 | Reserva `AGUARDANDO_PAGAMENTO` com `expira_em` no passado não ocupa horário na disponibilidade, mesmo antes do job rodar. | P | `DisponibilidadeExpiracaoIT` (S03, S14) |
 | R16 | Antes de inserir uma reserva, as reservas vencidas que conflitam com o horário são expiradas na mesma transação (expiração preguiçosa), para a constraint não recusar um horário que a tela mostrou livre. | A (ADR 0003) | `ExpiracaoPreguicosaIT` (S07) |
 | R17 | Um job com ShedLock marca `EXPIRADO` as reservas vencidas a cada minuto (intervalo configurável) e publica `ReservaExpirada`. | P, A | `ExpiracaoJobIT` (S14) |
-| R18 | O cliente cancela ou remarca a própria reserva só até a janela mínima antes do início (**H6**). Fora da janela: `422`. | P, H6 | `CancelamentoTest` (S08) |
-| R19 | Remarcar é atômico: o horário novo passa pela mesma constraint; se ocupado, a reserva antiga fica como estava. | P | `RemarcacaoIT` (S08) |
+| R18 | O cliente **não** cancela nem remarca: não há botão nem rota pública para isso. Antes de pagar, ele aceita (checkbox obrigatório, `aceitePolitica: true` + versão do texto, gravados na reserva) que não há cancelamento, remarcação ou estorno por desistência ou falta. Sem aceite: `422 ACEITE_POLITICA_OBRIGATORIO`. | P | `AceitePoliticaIT` (S12) |
+| R19 | Falta: o barbeiro marca `NAO_COMPARECEU` no painel e o valor pago fica retido pela barbearia (sem devolução). | P | `FechamentoAtendimentoIT` (S10) |
 | R20 | Transições válidas são só as da [máquina de estados](dominio/modelo-de-dominio.md#2-máquina-de-estados); qualquer outra dá `422 TRANSICAO_INVALIDA`. | P | `ReservaStatusTest` (S10) |
-| R21 | `CONCLUIDO` e `NAO_COMPARECEU` só a partir do início da reserva; quem marca é ADMIN ou o BARBEIRO dono da agenda (**H9**). | P, H9 | `FechamentoAtendimentoIT` (S10) |
-| R22 | Cancelamento pela barbearia exige motivo; o motivo e quem cancelou ficam registrados. | P | `CancelamentoAdminIT` (S10) |
+| R21 | `CONCLUIDO` e `NAO_COMPARECEU` só a partir do início da reserva; quem marca é o ADMIN/BARBEIRO (hoje uma pessoa só, Carlos Eduardo Cândido). | P | `FechamentoAtendimentoIT` (S10) |
+| R22 | Cancelamento **pela barbearia** (único cancelamento possível) exige motivo; o motivo e quem cancelou ficam registrados e a cobrança vai para `DEVOLUCAO_PENDENTE`. | P | `CancelamentoAdminIT` (S10) |
 | R23 | Quem não é dono de uma reserva recebe `404` ao acessá-la (não confirma que o id existe). | P | `ReservaBolaIT` (S08) |
 | R24 | E-mail é único por conta, sem diferença de maiúsculas. | P | `CadastroIT` (S04) |
 | R25 | O primeiro admin é criado na subida a partir de `ADMIN_EMAIL` e `ADMIN_SENHA` só se ainda não existir admin; a senha é gravada só como hash e nunca é sobrescrita por variável depois. | P | `AdminInicialIT` (S06) |
@@ -101,27 +101,29 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 
 ## 4. Hipóteses em aberto
 
+> **16/11/2026:** o Kevin confirmou com a barbearia as regras reais. As linhas marcadas **decidida** deixam de ser hipótese; o valor continua configurável (dado, não código).
+
 Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o **valor provisório**, sempre como dado configurável ou seed fictício do perfil `dev`.
 
 | # | Pergunta | Valor provisório | Onde fica configurado |
 |---|---|---|---|
-| H1 | Dias e horário de funcionamento | terça a sábado, 9h às 19h (fictício) | `jornada` de cada barbeiro (painel) |
-| H2 | Quantos barbeiros atendem | 2 barbeiros fictícios no seed `dev` | cadastro de barbeiros (painel) |
-| H3 | Serviços, duração e preço | seed fictício: Corte 30 min R$ 40,00 · Barba 20 min R$ 30,00 · Corte + barba 50 min R$ 65,00 | cadastro de serviços (painel) |
-| H4 | Intervalo entre atendimentos | 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
-| H5 | Antecedência mínima para agendar | 60 min | `configuracao_agenda.antecedencia_minima_min` |
-| H6 | Janela para cancelar ou remarcar | até 120 min antes | `configuracao_agenda.janela_cancelamento_min` |
-| H7 | Política do sinal em falta ou cancelamento | falta: o sinal fica com a barbearia; cancelamento dentro da janela: devolução **manual** pelo painel; fora da janela: o sinal fica | `configuracao_agenda.politica_sinal` (texto exibido) + status da cobrança |
-| H8 | Pagamento que chega depois de a reserva expirar | registrar, **não** reativar a reserva e marcar para devolução manual no painel | regra R14 |
-| H9 | O barbeiro vê só a própria agenda ou a de todos? | **só a própria** (filtro por dono; `404` na de outro) | regra de autorização do módulo `admin` |
-| H10 | Pacote raiz Java | `io.github.k3vinrich4rd.altashoras` | ADR 0001 |
-| H11 | Granularidade dos horários oferecidos | 30 min | `configuracao_agenda.granularidade_min` |
-| H12 | Até quantos dias à frente dá para agendar | 30 dias | `configuracao_agenda.horizonte_dias` |
+| H1 | Dias e horário de funcionamento | **decidida (16/11)**: terça a sábado, 07h00 às 20h00; almoço 12h00 às 13h00 | `jornada` do barbeiro (painel) |
+| H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Cândido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
+| H3 | Serviços, duração e preço | **decidida (16/11)**: Corte Clássico/Social 30 min R$ 45,00 · Corte Degradê/Fade/Navalhado 30 min R$ 55,00 · Corte Moderno/Visagismo (tesoura) 60 min R$ 60,00 · Barba Completa/Desenhada 30 min R$ 30,00 · Acabamento (pezinho)/Sobrancelha 30 min R$ 20,00 · sem combos | cadastro de serviços (painel) |
+| H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
+| H5 | Antecedência mínima para agendar | **decidida (16/11)**: 120 min | `configuracao_agenda.antecedencia_minima_min` |
+| H6 | Janela para cancelar ou remarcar | **decidida (16/11)**: não existe; o cliente não cancela nem remarca (R18) | — |
+| H7 | Política de pagamento em falta ou cancelamento | **decidida (16/11)**: 100% antecipado; falta retém o valor; sem estorno por desistência | `politica_pagamento` (texto versionado) |
+| H8 | Pagamento que chega depois de a reserva expirar | **decidida (16/11)**: confirma se o horário estiver livre; senão, pendência administrativa (R14) | regra R14 |
+| H9 | O barbeiro vê só a própria agenda ou a de todos? | **sem efeito no beta** (1 barbeiro); a regra "só a própria" fica no código para o template | autorização do módulo `admin` |
+| H10 | Pacote raiz Java | **decidida (16/11)**: `io.github.k3vinrich4rd.altashoras` | ADR 0001 |
+| H11 | Granularidade dos horários oferecidos | **decidida (16/11)**: 30 min | `configuracao_agenda.granularidade_min` |
+| H12 | Até quantos dias à frente dá para agendar | **decidida (16/11)**: 30 dias | `configuracao_agenda.horizonte_dias` |
 | H13 | Retenção dos dados do guest e do histórico do sinal | contato do guest: anonimizar 90 dias após o atendimento; registro financeiro da cobrança: 5 anos (**pendente de fonte legal**) | `app.privacidade.retencao-guest-dias` e ADR 0009 |
 | H14 | Limites de tentativas | login: 5 erros em 15 min por e-mail + IP; cadastro: 5 por hora por IP; reserva guest: 3 por hora por IP | `app.limites.*` |
 | H15 | Validade das sessões | acesso: 15 min; refresh: 7 dias | `app.seguranca.jwt.*` |
-| H16 | O guest pode cancelar pelo link? | não no beta (só pela barbearia) | roadmap |
-| H17 | A barbearia vai usar o sistema de verdade (com clientes pagando)? | **não no beta**: portfólio com Pix de sandbox. Uso real exige rever a Vercel Hobby (RISC-03) e trocar o sandbox pela produção do gateway | decisão do Kevin |
+| H16 | O guest pode cancelar pelo link? | **decidida (16/11)**: não (ninguém cancela pelo app, R18) | — |
+| H17 | A barbearia vai usar o sistema de verdade? | **Fase 1**: deploy gratuito (Vercel + Render + Aiven) com gateway em sandbox; **Fase 2** (produção real e lojas): planejamento interno da equipe | decisão do Kevin |
 | H18 | Tolerância para pagamento no limite do prazo | nenhuma: expira em `expira_em`; alternativa a decidir: alguns minutos de tolerância e prazo do Pix no gateway igual a `expira_em` (crítica do Gemini) | `configuracao_agenda` (se adotado) |
 | H19 | Depois de quanto tempo um evento de webhook não processado é considerado preso (N) | 10 min desde `recebido_em` | `app.pagamento.webhook.reprocessamento.idade-minima` (variável de ambiente) |
 | H20 | Quantas tentativas o job faz antes de mandar o evento para revisão manual no painel (M) | 5 tentativas | `app.pagamento.webhook.reprocessamento.max-tentativas` (variável de ambiente) |
@@ -217,7 +219,7 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 |---|---|---|---|
 | ViaCEP | endereço pelo CEP | sem SLA publicado | tenta a BrasilAPI |
 | BrasilAPI | fallback de CEP | sem SLA publicado | salva o CEP sem bairro e cidade (R31) |
-| Asaas (sandbox) | cobrança Pix do sinal e webhook | eventos guardados 14 dias; fila pausa após 15 falhas seguidas ([fonte](ia/verificacao-coordenador-2026-11-13.md)) | criar cobrança dá `503 GATEWAY_INDISPONIVEL`; a reserva continua até expirar |
+| Asaas (sandbox) | cobrança Pix do sinal e webhook | eventos guardados 14 dias; fila pausa após 15 falhas seguidas (fonte: verificação interna de 13/11/2026) | criar cobrança dá `503 GATEWAY_INDISPONIVEL`; a reserva continua até expirar |
 | Aiven PostgreSQL (free) | banco | 1 GB, 20 conexões, pode desligar por inatividade | API fica fora (health `DOWN`) |
 | Render (free) | API | 512 MB, hiberna após 15 min | front mostra "servidor acordando" |
 | Vercel (Hobby) | front e BFF | uso não comercial | — |
@@ -246,6 +248,5 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 
 ## 12. Roadmap e débitos
 
-- Plano de fatias: [`planejamento/plano-de-fatias.md`](planejamento/plano-de-fatias.md)
+- Roadmap em fatias: [README](../README.md#-roadmap-em-fatias)
 - Decisões pequenas: [`planejamento/decisoes.md`](planejamento/decisoes.md)
-- Recados entre agentes: [`planejamento/recados.md`](planejamento/recados.md)
