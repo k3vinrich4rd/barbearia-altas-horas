@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 **aguarda aprovação do Kevin** (escrita em 16/11/2026) |
+| **Status** | ✅ **aprovada pelo Kevin em 16/11/2026**; em implementação |
 | **Fatias do plano** | S02 (catálogo e configuração) + S03 (disponibilidade) + `GET /politica-pagamento` |
 | **Branch** | `feat/fatia-2-catalogo-disponibilidade` |
 | **Regras** | [R3](../contexto.md#3-regras-de-negócio) (duração e ocupação), R4 (jornada, folga, slots), R5 (antecedência e horizonte), R15 (pendente vencida não ocupa), R1/R2 (o que ocupa horário) |
@@ -44,6 +44,7 @@ Um visitante, sem login, vê os 5 serviços com preço, o texto da política de 
 | E11 | Consistência | a disponibilidade é uma foto: um horário pode ser pego 1 ms depois. **Quem garante é a constraint** na reserva (Fatia 4, `409`) | ler com trava só deixaria a tela lenta sem garantir nada |
 | E12 | Cache HTTP | `/servicos`, `/barbeiros`, `/politica-pagamento`: `Cache-Control: public, max-age=60`; `/disponibilidade`: `no-store` | catálogo muda pouco; disponibilidade muda a cada reserva |
 | E13 | Política vigente | a de **maior `versao`** | mudar o texto = nova versão; a reserva guarda qual foi aceita |
+| E15 | Como ler com JPA sem N+1 | catálogo por **projeção JPQL em DTO** (`SELECT new ...ServicoResumo(...)`), sem carregar a entidade; barbeiros ativos com as jornadas em **uma** consulta (`SELECT DISTINCT b FROM Barbeiro b LEFT JOIN FETCH b.jornadas WHERE b.ativo = true`), com `@OneToMany` LAZY; o dia da semana é filtrado em memória (são no máximo 14 linhas por barbeiro) | `LEFT` para o barbeiro sem jornada continuar aparecendo (E10); filtrar a coleção no `JOIN FETCH` devolveria a entidade com a coleção pela metade |
 | E14 | Módulos | catálogo, configuração e disponibilidade no `agenda`; política no `pagamento` | a política pertence ao checkout |
 
 ## 4. Critérios de aceite
@@ -96,6 +97,7 @@ Nos testes de integração, `agora` é fixado por um `Clock` de teste em **terç
 | A25 | sem `data`; `data=amanha`; `servicoId=abc` | consultar | `400 VALIDACAO_INVALIDA` com `errors[0].field` = `data`, `data` e `servicoId` | `DisponibilidadeIT` |
 | A26 | sem `barbeiroId` | consultar | todos os barbeiros ativos na lista, cada um com seus horários | `DisponibilidadeIT` |
 | A27 | qualquer consulta válida | resposta | `data`, `fuso: "America/Sao_Paulo"`, `servicoId`, `duracaoMin`; horários em ordem crescente, formato `2026-12-01T07:00:00-03:00`; `Cache-Control: no-store` | `DisponibilidadeIT` |
+| A29 | 1 barbeiro ativo, depois 3 | consultar sem `barbeiroId` | o número de consultas SQL do Hibernate é **o mesmo** nos dois casos (sem N+1) | `DisponibilidadeIT` |
 | A28 | perfil `dev` | `GET /servicos` e `GET /disponibilidade` do Corte Degradê numa terça | os 5 serviços reais e 24 horários | `SeedDevIT` (estendido) |
 
 ## 5. Entregas
@@ -119,7 +121,7 @@ Nos testes de integração, `agora` é fixado por um `Clock` de teste em **terç
 
 ## 7. Pronto quando
 
-- [ ] A1 a A28 com teste verde no `./mvnw verify`, nenhum pulado
+- [ ] A1 a A29 com teste verde (`sh scripts/conferir-spec.sh 2 --exigir`) no `./mvnw verify`, nenhum pulado
 - [ ] `redocly lint` com 0 erros no contrato 1.1.2
 - [ ] respostas reais de `/servicos` e `/disponibilidade` (perfil `dev`) no guia de testes
 - [ ] [checklist da PR](checklist-pr.md) completo
