@@ -3,7 +3,7 @@
 - Status: **aceito** (revisão do Alicerce, 13/11/2026)
 - Data: 2026-11-13 (proposta e aceite)
 - Decisores: Alicerce (arquitetura, dono), Quarteto Dev (texto), Kevin (aprovação no release)
-- Consultados: Gemini (`gemini-3.8-flash-medium`, ataque à proposta: [`docs/ia/`](../ia/))
+- Consultados: Gemini (`gemini-3.8-flash-medium`, ataque à proposta: pesquisa interna da equipe)
 
 ## Contexto
 Forças do [perfil arquitetural](../arquitetura/perfil.md): 1 dev, 1 barbearia, 6 subdomínios de negócio, consistência forte na agenda e no pagamento, deploy num Render free com **512 MB** e num Aiven free com **20 conexões** (pool de 5). O código também precisa servir de **template** para outros projetos. Atributos prioritários: segurança, testabilidade, manutenibilidade.

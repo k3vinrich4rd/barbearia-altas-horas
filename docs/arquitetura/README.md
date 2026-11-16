@@ -24,8 +24,8 @@ flowchart LR
     gateway[(Gateway Pix<br/>Asaas sandbox)]
     social[(Google / Facebook<br/>pós-beta, flag)]
 
-    cliente -- "agenda, cancela, remarca" --> sistema
-    guest -- "agenda e paga o sinal" --> sistema
+    cliente -- "agenda e paga 100% (Pix ou cartão)" --> sistema
+    guest -- "agenda e paga 100% (Pix ou cartão)" --> sistema
     barbeiro -- "vê a agenda, fecha atendimento" --> sistema
     admin -- "opera o painel" --> sistema
     sistema -- "CEP (HTTPS, timeout 1 s/2 s)" --> viacep
@@ -68,7 +68,7 @@ io.github.k3vinrich4rd.altashoras
 ├── conta/        cadastro, login, JWT, refresh, papéis
 ├── cep/          ViaCEP + BrasilAPI, cache, degradação
 ├── agenda/       serviços, barbeiros, jornada, folgas, disponibilidade, reservas
-├── pagamento/    sinal de 50%, cobrança Pix sandbox, webhook idempotente
+├── pagamento/    cobrança de 100% (Pix ou cartão), sandbox, webhook idempotente
 ├── privacidade/  consentimentos, exportar/excluir, retenção do guest
 └── admin/        painel /admin/**, auditoria das ações
 ```
@@ -92,7 +92,7 @@ Dentro de cada módulo de negócio:
 | `conta` | cadastro, login, JWT, refresh rotativo, papéis, admin inicial por env, social atrás de flag | `ContaApi`; `ContaCriada`, `ContaAnonimizada` | `usuario`, `usuario_papel`, `refresh_token`, `identidade_social` |
 | `cep` | consulta com timeout 1 s / 2 s, fallback e cache; nunca falha o chamador | `CepApi.buscar(Cep): Optional<Endereco>` | — |
 | `agenda` | catálogo, jornada, folgas, disponibilidade, reservas, estados, job de expiração | `AgendaApi`; `ReservaCriada`, `ReservaCancelada`, `ReservaExpirada` | `configuracao_agenda`, `servico`, `barbeiro`, `jornada`, `folga`, `reserva`, `reserva_guest` |
-| `pagamento` | sinal, cobrança com `X-Idempotency-Key`, autenticação do webhook, idempotência pelo id do evento | `PagamentoApi`; `PagamentoConfirmado`, `PagamentoFalhou` | `cobranca`, `evento_webhook` |
+| `pagamento` | cobrança de 100% (Pix ou checkout de cartão), aceite da política, cobrança com `X-Idempotency-Key`, autenticação do webhook, idempotência pelo id do evento | `PagamentoApi`; `PagamentoConfirmado`, `PagamentoFalhou` | `cobranca`, `evento_webhook` |
 | `privacidade` | consentimento, `GET /me/dados`, `DELETE /me`, retenção do guest, alcance (pós-beta) | `ExclusaoSolicitada` | `consentimento`, `solicitacao_titular` |
 | `admin` | controllers `/admin/**` que orquestram agenda, conta e pagamento; auditoria | nada (folha) | `auditoria_admin` |
 
@@ -149,7 +149,7 @@ O teste `ModularidadeTest` chama `ApplicationModules.of(AltasHorasApplication.cl
 
 ## 6. Fluxos críticos
 
-### 6.1 Guest com sinal (caminho feliz e de erro)
+### 6.1 Reserva com pagamento antecipado (caminho feliz e de erro)
 
 ```mermaid
 sequenceDiagram

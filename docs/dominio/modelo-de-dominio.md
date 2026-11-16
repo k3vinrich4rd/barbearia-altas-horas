@@ -87,7 +87,6 @@ classDiagram
             Instant fimOcupacao
             StatusReserva status
             Dinheiro precoCongelado
-            Dinheiro sinal
             Instant expiraEm
             String motivoCancelamento
             long version
@@ -96,7 +95,7 @@ classDiagram
             +cancelar(Ator ator, String motivo, Instant agora)
             +concluir(Ator ator, Instant agora)
             +marcarFalta(Ator ator, Instant agora)
-            +remarcar(Instant novoInicio, Instant agora)
+            +registrarAceite(int versaoPolitica, Instant agora)
         }
         class ReservaGuest {
             UUID reservaId
@@ -113,8 +112,7 @@ classDiagram
             int granularidadeMin  "HIPÓTESE H11"
             int horizonteDias  "HIPÓTESE H12"
             int expiracaoGuestMin  "15"
-            int percentualSinal  "50"
-            String politicaSinal  "HIPÓTESE H7"
+            int expiracaoPagamentoMin  "15"
         }
         class StatusReserva {
             <<enumeration>>
@@ -203,17 +201,16 @@ classDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> CONFIRMADO: cliente logado reserva (R6)
-    [*] --> AGUARDANDO_PAGAMENTO: guest reserva (R7)
+    [*] --> AGUARDANDO_PAGAMENTO: cliente ou guest reserva (R6, R7)
 
     AGUARDANDO_PAGAMENTO --> CONFIRMADO: PagamentoConfirmado antes de expira_em (R13)
     AGUARDANDO_PAGAMENTO --> EXPIRADO: job ou expiração preguiçosa, expira_em vencido (R16, R17)
     AGUARDANDO_PAGAMENTO --> CANCELADO: admin cancela com motivo (R22)
 
-    CONFIRMADO --> CONFIRMADO: remarcar dentro da janela (R18, R19)
-    CONFIRMADO --> CANCELADO: cliente dentro da janela (R18) ou admin com motivo (R22)
-    CONFIRMADO --> CONCLUIDO: admin ou barbeiro dono, a partir do início (R21)
-    CONFIRMADO --> NAO_COMPARECEU: admin ou barbeiro dono, a partir do início (R21)
+    EXPIRADO --> CONFIRMADO: pagamento tardio com horário ainda livre (R14)
+    CONFIRMADO --> CANCELADO: só a barbearia, com motivo (R22)
+    CONFIRMADO --> CONCLUIDO: barbeiro/admin, a partir do início (R21)
+    CONFIRMADO --> NAO_COMPARECEU: barbeiro/admin, valor retido (R19, R21)
 
     EXPIRADO --> [*]
     CANCELADO --> [*]
@@ -221,9 +218,9 @@ stateDiagram-v2
     NAO_COMPARECEU --> [*]
 
     note right of EXPIRADO
-        Pagamento que chega aqui não reativa a reserva:
-        a cobrança fica PAGA_APOS_EXPIRACAO e vai
-        para devolução manual (HIPÓTESE H8, R14)
+        Pagamento tardio: horário livre volta a
+        CONFIRMADO; horário ocupado deixa a cobrança
+        PAGA_APOS_EXPIRACAO como pendência do admin (R14)
     end note
 ```
 
@@ -231,16 +228,15 @@ stateDiagram-v2
 
 | De | Para | Quem dispara | Condição | Efeito colateral |
 |---|---|---|---|---|
-| — | `CONFIRMADO` | cliente logado (`POST /agendamentos`) | horário livre (R1), dentro da jornada (R4), antecedência (R5) | evento `ReservaCriada` |
-| — | `AGUARDANDO_PAGAMENTO` | guest (`POST /agendamentos/guest`) | idem + limite por IP (R26) | `expira_em = agora + 15 min`; sinal congelado (R8); `ReservaCriada` |
+| — | `AGUARDANDO_PAGAMENTO` | cliente logado (`POST /agendamentos`) ou guest (`POST /agendamentos/guest`, com limite por IP, R26) | horário livre (R1), dentro da jornada (R4), antecedência e horizonte (R5) | `expira_em = agora + 15 min`; preço congelado (R8); `ReservaCriada` |
 | `AGUARDANDO_PAGAMENTO` | `CONFIRMADO` | sistema: listener de `PagamentoConfirmado` | `agora < expira_em` | — |
 | `AGUARDANDO_PAGAMENTO` | `EXPIRADO` | sistema: job com ShedLock ou expiração preguiçosa na inserção | `expira_em <= agora` | `ReservaExpirada` → pagamento cancela a cobrança pendente |
 | `AGUARDANDO_PAGAMENTO` | `CANCELADO` | admin | motivo obrigatório | `ReservaCancelada` → pagamento cancela a cobrança |
-| `CONFIRMADO` | `CONFIRMADO` (novo horário) | cliente dono | dentro da janela (H6) e novo horário livre | `version` incrementa |
-| `CONFIRMADO` | `CANCELADO` | cliente dono | dentro da janela (H6) | `ReservaCancelada`; se houver sinal pago, a cobrança vira `DEVOLUCAO_PENDENTE` (H7) |
-| `CONFIRMADO` | `CANCELADO` | admin | motivo obrigatório | idem |
-| `CONFIRMADO` | `CONCLUIDO` | admin; barbeiro dono (H9) | `agora >= inicio` | auditoria |
-| `CONFIRMADO` | `NAO_COMPARECEU` | admin; barbeiro dono (H9) | `agora >= inicio` | auditoria; sinal pago fica com a barbearia (H7) |
+| `EXPIRADO` | `CONFIRMADO` | sistema: pagamento confirmado depois de `expira_em` | horário ainda livre (a constraint decide) | se ocupado, fica `EXPIRADO` e a cobrança vira `PAGA_APOS_EXPIRACAO` (pendência do admin, R14) |
+| `CONFIRMADO` | `CANCELADO` | só a barbearia (admin) | motivo obrigatório | `ReservaCancelada`; a cobrança paga vira `DEVOLUCAO_PENDENTE` |
+| `CONFIRMADO` | `CONCLUIDO` | barbeiro/admin | `agora >= inicio` | auditoria |
+| `CONFIRMADO` | `NAO_COMPARECEU` | barbeiro/admin | `agora >= inicio` | auditoria; o valor pago fica com a barbearia (R19) |
+| cliente | `CANCELADO` ou novo horário | — | **não existe** (R18) | sem rota pública |
 | qualquer final | qualquer | — | — | `422 TRANSICAO_INVALIDA` |
 
 **Concorrência na transição:** a reserva tem `@Version` (otimista). Duas transições ao mesmo tempo (ex.: webhook confirmando enquanto o job expira) → uma vence e a outra recebe conflito de versão e é reavaliada: se a reserva já expirou, o pagamento cai na regra R14.
