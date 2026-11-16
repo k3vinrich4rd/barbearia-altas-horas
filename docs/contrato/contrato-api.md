@@ -105,15 +105,15 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 `GET /servicos` → `200`
 ```json
 [
-  { "id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte", "duracaoMin": 30, "precoCentavos": 4000, "precoFormatado": "R$ 40,00" },
-  { "id": "6f1c2a8e-0000-4000-8000-000000000002", "nome": "Barba", "duracaoMin": 20, "precoCentavos": 3000, "precoFormatado": "R$ 30,00" }
+  { "id": "6f1c2a8e-0000-4000-8000-000000000005", "nome": "Acabamento (Pezinho) / Sobrancelha", "duracaoMin": 30, "precoCentavos": 2000, "precoFormatado": "R$ 20,00" },
+  { "id": "6f1c2a8e-0000-4000-8000-000000000002", "nome": "Corte Degradê / Fade / Navalhado", "duracaoMin": 30, "precoCentavos": 5500, "precoFormatado": "R$ 55,00" }
 ]
 ```
-`GET /barbeiros` → `200`
+Só os **ativos**, em ordem de nome (sem diferença de maiúsculas). `GET /barbeiros` → `200`
 ```json
-[ { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Barbeiro Teste 1" } ]
+[ { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido" } ]
 ```
-> Serviços e preços do seed são **fictícios** (HIPÓTESE H3).
+As três rotas de catálogo (`/servicos`, `/barbeiros`, `/politica-pagamento`) respondem com `Cache-Control: max-age=60, public`.
 
 ### 4.2 Disponibilidade
 
@@ -129,13 +129,13 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
   "barbeiros": [
     {
       "barbeiroId": "b0000000-0000-4000-8000-000000000001",
-      "nomeExibicao": "Barbeiro Teste 1",
-      "horarios": ["2026-12-01T09:00:00-03:00", "2026-12-01T09:30:00-03:00", "2026-12-01T11:00:00-03:00"]
+      "nomeExibicao": "Carlos Eduardo Cândido",
+      "horarios": ["2026-12-01T07:00:00-03:00", "2026-12-01T07:30:00-03:00", "2026-12-01T08:00:00-03:00"]
     }
   ]
 }
 ```
-Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDANDO_PAGAMENTO` vencidas, R15); passos de `granularidadeMin` (H11); só a partir de `agora + antecedenciaMinimaMin` (H5); até `horizonteDias` (H12, senão `422 FORA_DO_HORIZONTE`). Validação: `data` obrigatória, `servicoId` obrigatório e ativo.
+Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDANDO_PAGAMENTO` vencidas, R15); passos de `granularidadeMin` (H11); só a partir de `agora + antecedenciaMinimaMin` (H5); até `horizonteDias` (H12); `data` **antes de hoje** ou além do horizonte → `422 FORA_DO_HORIZONTE`. Um início só é oferecido se o serviço **inteiro** couber no intervalo da jornada (o de 60 min não aparece às 11h30 nem às 19h30). Serviço inexistente → `404`; inativo → `422 SERVICO_INATIVO`; `barbeiroId` inexistente ou inativo → `404`; `data` ou `servicoId` ausente ou malformado → `400 VALIDACAO_INVALIDA` com o campo em `errors[]`. Horários em ordem crescente, sempre com segundos e offset; barbeiro sem horário vem com `horarios: []`. Resposta com `Cache-Control: no-store`.
 
 ### 4.3 CEP
 
@@ -342,6 +342,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.1.2 (proposta) | 2026-11-16 | Fatia 2: exemplos do catálogo com dados reais; `GET /disponibilidade` detalha `422 FORA_DO_HORIZONTE` para data passada, `422 SERVICO_INATIVO`, `404` de barbeiro, formato fixo dos horários e os cabeçalhos de cache | não (não há front ainda) |
 | 1.1.1 (proposta) | 2026-11-16 | Fatia 1: novos códigos `405 METODO_NAO_PERMITIDO` e `415 MIDIA_NAO_SUPORTADA`, que o tratador global já devolve para erros do Spring MVC | não (códigos novos) |
 | 1.1 (proposta) | 2026-11-16 | regras reais da barbearia: pagamento **100% antecipado** por Pix ou cartão de crédito para cliente e guest; cliente logado nasce `AGUARDANDO_PAGAMENTO`; aceite obrigatório da política (`aceitePolitica`, `versaoPolitica`, `GET /politica-pagamento`); **saem** cancelamento e remarcação pelo cliente (`JANELA_CANCELAMENTO_ENCERRADA` vira `ACEITE_POLITICA_OBRIGATORIO`); sai `sinalCentavos`; pagamento tardio confirma se o horário estiver livre. `redocly lint` 2.78.0: 0 erros, 14 avisos | não (não há front ainda) |
 | 1.0 (proposta) | 2026-11-13 | primeira versão: catálogo, disponibilidade, CEP, auth, agendamentos, guest, cobrança, webhook, privacidade e painel admin | não (não há front ainda) |
