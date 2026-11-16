@@ -61,17 +61,16 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 | `204` | `401`, `403 ACESSO_NEGADO` (admin não se exclui) | [4.9](#49-privacidade) |
 | `GET` | `/me/consentimentos` | meus consentimentos | 👤 | `200` | `401` | [4.9](#49-privacidade) |
 | `PUT` | `/me/consentimentos/marketing` | aceita ou revoga marketing | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
-| `POST` | `/agendamentos` | reserva como cliente (`CONFIRMADO`) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
+| `GET` | `/politica-pagamento` | texto e versão da política (sem cancelamento, remarcação ou estorno) | 🌐 | `200` | — | [4.7](#47-pagamento-100-antecipado) |
+| `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 15 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
-| `POST` | `/agendamentos/{id}/cancelamento` | cancela dentro da janela | 👤 | `200` | `401`, `404`, `422 JANELA_CANCELAMENTO_ENCERRADA`, `422 TRANSICAO_INVALIDA` | [4.5](#45-agendamentos-do-cliente) |
-| `POST` | `/agendamentos/{id}/remarcacao` | remarca dentro da janela | 👤 | `200` | `401`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422` | [4.5](#45-agendamentos-do-cliente) |
 | `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`) | 🌐 (limite por IP) | `201` | `400`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
-| `POST` | `/pagamentos/cobrancas` | cria a cobrança Pix do sinal (pede o CPF) | 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `404`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-do-sinal) |
+| `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
 | `GET` | `/admin/agenda` | agenda do dia ou da semana | 🛠 ✂️ (só a própria, **H9**) | `200` | `401`, `403`, `404` (barbeiro pedindo outro) | [Painel](../admin/painel-admin.md) |
-| `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta ou cancela | 🛠 ✂️ (só a própria) | `200` | `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
+| `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta (valor retido) ou cancela pela barbearia | 🛠 ✂️ | `200` | `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/servicos` | lista (inclusive inativos) e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 NOME_JA_EXISTE` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/servicos/{id}` | altera nome, duração, preço, ativo | 🛠 | `200` | `400`, `401`, `403`, `404`, `409` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/barbeiros` | lista e cria | 🛠 | `200` / `201` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
@@ -184,24 +183,21 @@ Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13
 ```json
 {
   "id": "a0000000-0000-4000-8000-000000000101",
-  "status": "CONFIRMADO",
+  "status": "AGUARDANDO_PAGAMENTO",
   "origem": "CLIENTE",
-  "servico": { "id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte", "duracaoMin": 30 },
-  "barbeiro": { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Barbeiro Teste 1" },
+  "servico": { "id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Degradê / Fade / Navalhado", "duracaoMin": 30 },
+  "barbeiro": { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido" },
   "inicio": "2026-12-01T10:00:00-03:00",
   "fim": "2026-12-01T10:30:00-03:00",
-  "precoCentavos": 4000,
-  "sinalCentavos": 0,
-  "podeCancelarAte": "2026-12-01T08:00:00-03:00"
+  "precoCentavos": 5500,
+  "expiraEm": "2026-11-30T15:15:00-03:00"
 }
 ```
-Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; deadlock que persistiu depois do retry interno → `409 CONFLITO_CONCORRENTE` (o horário pode estar livre: o front **não** o esconde e pode repetir a requisição **uma vez**; vale também para o guest e a remarcação, ADR 0003); fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; antes de `agora + antecedência` → `422 ANTECEDENCIA_INSUFICIENTE`; `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `sinalCentavos` no corpo → `400 CAMPO_DESCONHECIDO`.
+Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; deadlock que persistiu depois do retry interno → `409 CONFLITO_CONCORRENTE` (o horário pode estar livre: o front **não** o esconde e pode repetir a requisição **uma vez**; vale também para o guest, ADR 0003); fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; antes de `agora + antecedência` → `422 ANTECEDENCIA_INSUFICIENTE`; `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `precoCentavos` no corpo → `400 CAMPO_DESCONHECIDO`. O horário fica travado por 15 minutos até o pagamento (R6, R7); o próximo passo é a [cobrança](#47-pagamento-100-antecipado).
 
 `GET /me/agendamentos?pagina=0&tamanho=20` → `200` página do formato acima, mais recentes primeiro.
 
-`POST /agendamentos/{id}/cancelamento` `{ "motivo": "imprevisto" }` (motivo opcional para o cliente) → `200` com `status: "CANCELADO"`. Depois de `podeCancelarAte` → `422 JANELA_CANCELAMENTO_ENCERRADA` (R18).
-
-`POST /agendamentos/{id}/remarcacao` `{ "inicio": "2026-12-01T11:00:00-03:00", "barbeiroId": "b0000000-0000-4000-8000-000000000001" }` → `200` com o novo horário; se ocupado, `409` e nada muda (R19).
+> **Sem cancelamento e sem remarcação pelo cliente (R18).** Não existe rota para isso, de propósito: depois do pagamento de 100%, o horário é do cliente e não há estorno por desistência ou falta. Só a barbearia cancela, pelo painel, com motivo (R22).
 
 ### 4.6 Guest
 
@@ -217,22 +213,22 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
   "origem": "GUEST",
   "inicio": "2026-12-01T11:00:00-03:00",
   "fim": "2026-12-01T11:30:00-03:00",
-  "precoCentavos": 4000,
-  "sinalCentavos": 2000,
+  "precoCentavos": 5500,
   "expiraEm": "2026-11-30T15:15:00-03:00",
-  "tokenGuest": "g1_Qm9...",
-  "politicaSinal": "HIPÓTESE: em caso de falta, o sinal fica com a barbearia. Cancelamento dentro do prazo tem o sinal devolvido manualmente."
+  "tokenGuest": "g1_Qm9..."
 }
 ```
 > O `tokenGuest` aparece **uma vez** (o banco guarda só o hash). É o que permite ao guest consultar a reserva e pagar: sem conta, sem expor a reserva a quem só tem o id. O CPF **não** é pedido aqui (R9).
 
-`GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.
+`GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix ou do checkout do cartão). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.
 
-### 4.7 Pagamento do sinal
+### 4.7 Pagamento 100% antecipado
 
-`POST /pagamentos/cobrancas` com `X-Guest-Token` e `X-Idempotency-Key: 5d0b3f8e-7c1a-4b7e-9f63-2a0d6c1e9b10`
+`GET /politica-pagamento` (🌐) → `200 { "versao": 1, "texto": "Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta." }`. O front mostra esse texto com um checkbox **desmarcado**; o botão de pagar só libera com ele marcado.
+
+`POST /pagamentos/cobrancas` com `Authorization: Bearer` (cliente) **ou** `X-Guest-Token` (guest) e `X-Idempotency-Key: 5d0b3f8e-7c1a-4b7e-9f63-2a0d6c1e9b10`
 ```json
-{ "reservaId": "a0000000-0000-4000-8000-000000000102", "cpf": "123.456.789-09" }
+{ "reservaId": "a0000000-0000-4000-8000-000000000102", "metodo": "PIX", "cpf": "123.456.789-09", "aceitePolitica": true, "versaoPolitica": 1 }
 ```
 `201`
 ```json
@@ -240,12 +236,16 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
   "id": "d0000000-0000-4000-8000-000000000201",
   "reservaId": "a0000000-0000-4000-8000-000000000102",
   "status": "PENDENTE",
-  "valorCentavos": 2000,
-  "pix": { "copiaECola": "00020126580014br.gov.bcb.pix...", "expiraEm": "2026-11-30T15:15:00-03:00" },
+  "metodo": "PIX",
+  "valorCentavos": 5500,
+  "pix": { "copiaECola": "00020126580014br.gov.bcb.pix...", "qrCodeBase64": "iVBORw0KGgo...", "expiraEm": "2026-11-30T15:15:00-03:00" },
+  "cartao": null,
   "cpfMascarado": "***.***.***-09"
 }
 ```
-O `cpfMascarado` aparece **só nesta resposta `201`**: ele é montado a partir do CPF que acabou de chegar no corpo, e o CPF não é guardado. Repetição com a mesma chave e o mesmo corpo → `200` com a mesma cobrança **sem** `cpfMascarado`, sem chamar o gateway de novo. A listagem do painel (`GET /admin/pagamentos`) também não traz CPF. Mesma chave e corpo diferente → `422 IDEMPOTENCIA_CONFLITO`. Reserva vencida → `422 RESERVA_EXPIRADA`. Gateway fora ou lento → `503 GATEWAY_INDISPONIVEL` (a reserva segue até expirar). O CPF é validado pelos dígitos, repassado ao gateway e **não é gravado** (ADR 0009). O QR Code é desenhado no front a partir do `copiaECola`.
+Com `"metodo": "CARTAO_CREDITO"`, a resposta traz `"pix": null` e `"cartao": { "urlCheckout": "https://sandbox.asaas.com/i/...", "expiraEm": "..." }`: o front abre o checkout hospedado do gateway e **o número do cartão nunca passa pela API** (escopo PCI DSS reduzido, ADR 0007). Nos dois casos o valor é **100% do `precoCentavos`** congelado na reserva (R8). Sem `aceitePolitica: true` → `422 ACEITE_POLITICA_OBRIGATORIO`; a API grava a versão e a data do aceite na reserva.
+
+O `cpfMascarado` aparece **só nesta resposta `201`**: ele é montado a partir do CPF que acabou de chegar no corpo, e o CPF não é guardado. Repetição com a mesma chave e o mesmo corpo → `200` com a mesma cobrança **sem** `cpfMascarado`, sem chamar o gateway de novo. A listagem do painel (`GET /admin/pagamentos`) também não traz CPF. Mesma chave e corpo diferente → `422 IDEMPOTENCIA_CONFLITO`. Reserva vencida → `422 RESERVA_EXPIRADA`. Gateway fora ou lento → `503 GATEWAY_INDISPONIVEL` (a reserva segue até expirar). O CPF é validado pelos dígitos, repassado ao gateway e **não é gravado** (ADR 0009). 
 
 ### 4.8 Webhook
 
@@ -254,6 +254,8 @@ O `cpfMascarado` aparece **só nesta resposta `201`**: ele é montado a partir d
 { "id": "evt_teste_0001", "event": "PAYMENT_RECEIVED", "payment": { "id": "pay_teste_0001", "billingType": "PIX", "status": "RECEIVED" } }
 ```
 Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_NAO_AUTENTICADO` com token errado ou ausente, sem gravar nada (R11). O corpo é tratado como **sinal de mudança**: a API reconsulta a cobrança no gateway antes de marcar `PAGA` (OWASP API10). Eventos de tipos que a API não usa → `200` e registro como `IGNORADO`.
+
+**Pagamento tardio (R14).** Se a aprovação chega depois dos 15 minutos: com o horário ainda livre, a reserva volta de `EXPIRADO` para `CONFIRMADO` (passa pela mesma constraint do banco); com o horário já ocupado por outro cliente, a cobrança fica `PAGA_APOS_EXPIRACAO` e aparece no painel como **pendência administrativa** para tratamento manual.
 
 ### 4.9 Privacidade
 
@@ -311,7 +313,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 422 | <a id="fora_do_expediente"></a>`FORA_DO_EXPEDIENTE` | fora da jornada ou em folga | Fora do horário de atendimento |
 | 422 | <a id="antecedencia_insuficiente"></a>`ANTECEDENCIA_INSUFICIENTE` | antes da antecedência mínima (H5) | Antecedência mínima não atendida |
 | 422 | <a id="fora_do_horizonte"></a>`FORA_DO_HORIZONTE` | data além do horizonte (H12) | Data além do permitido |
-| 422 | <a id="janela_cancelamento_encerrada"></a>`JANELA_CANCELAMENTO_ENCERRADA` | cancelar/remarcar fora da janela (H6) | Prazo para alterar encerrado |
+| 422 | <a id="aceite_politica_obrigatorio"></a>`ACEITE_POLITICA_OBRIGATORIO` | cobrança sem `aceitePolitica: true` | Aceite da política obrigatório |
 | 422 | <a id="transicao_invalida"></a>`TRANSICAO_INVALIDA` | transição fora da máquina de estados | Mudança de status não permitida |
 | 422 | <a id="motivo_obrigatorio"></a>`MOTIVO_OBRIGATORIO` | cancelamento pela barbearia sem motivo | Motivo obrigatório |
 | 422 | <a id="reserva_expirada"></a>`RESERVA_EXPIRADA` | cobrança de reserva vencida | Reserva expirada |
@@ -333,12 +335,12 @@ Só a assinatura; não entram no beta.
 | `GET` | `/auth/social/{provedor}` | inicia o login OIDC (Google, Facebook) | 🌐 | **atrás de flag** `app.features.social-login=false` → `404 FUNCIONALIDADE_DESLIGADA` |
 | `GET` | `/auth/social/{provedor}/retorno` | retorno do provedor; vincula conta só com `email_verified=true` **e** prova de posse da conta local | 🌐 | **atrás de flag** |
 | `GET` | `/admin/alcance` | agregados por bairro e cidade, só de quem consentiu, grupos < 5 ocultos | 🛠 ✂️ | **pós-beta** |
-| `POST` | `/agendamentos/guest/{id}/cancelamento` | guest cancela pelo link | 🧾 | **pós-beta** (H16) |
 
 ## 7. Histórico de versões
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.1 (proposta) | 2026-11-16 | regras reais da barbearia: pagamento **100% antecipado** por Pix ou cartão de crédito para cliente e guest; cliente logado nasce `AGUARDANDO_PAGAMENTO`; aceite obrigatório da política (`aceitePolitica`, `versaoPolitica`, `GET /politica-pagamento`); **saem** cancelamento e remarcação pelo cliente (`JANELA_CANCELAMENTO_ENCERRADA` vira `ACEITE_POLITICA_OBRIGATORIO`); sai `sinalCentavos`; pagamento tardio confirma se o horário estiver livre. `redocly lint` 2.78.0: 0 erros, 14 avisos | não (não há front ainda) |
 | 1.0 (proposta) | 2026-11-13 | primeira versão: catálogo, disponibilidade, CEP, auth, agendamentos, guest, cobrança, webhook, privacidade e painel admin | não (não há front ainda) |
 | 1.0.2 (proposta) | 2026-11-13 | novo `409 CONFLITO_CONCORRENTE` em `POST /agendamentos`, `POST /agendamentos/guest` e remarcação (deadlock depois do retry; o front pode repetir uma vez) | não (código novo; nenhum renomeado) |
 | 1.0.1 (proposta) | 2026-11-13 | revisão do Alicerce: `cpfMascarado` só no `201` da cobrança (sai da repetição `200` e do painel); `devolucaoPendente` sai de `Cobranca` (o status basta); idempotência compara o corpo por HMAC; `summary` em todas as operações do OpenAPI (`redocly lint` 2.78.0: 0 erros, 14 avisos) | não (não há front ainda) |
