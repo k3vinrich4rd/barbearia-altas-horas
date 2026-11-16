@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.1.1-proposta
+  version: 1.1.2-proposta
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -68,6 +68,11 @@ paths:
       tags: [agenda]
       operationId: consultarDisponibilidade
       summary: Horários livres de um dia
+      description: |
+        Jornada menos folgas e reservas que ocupam horário (CONFIRMADO, ou AGUARDANDO_PAGAMENTO ainda no prazo),
+        em passos de granularidadeMin, a partir de agora + antecedenciaMinimaMin. `data` antes de hoje ou além
+        do horizonte: 422 FORA_DO_HORIZONTE. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
+        inexistente (ou barbeiro inativo): 404. Resposta com Cache-Control no-store.
       security: []
       parameters:
         - { name: servicoId, in: query, required: true, schema: { type: string, format: uuid } }
@@ -811,7 +816,7 @@ components:
         nome: { type: string }
         duracaoMin: { type: integer }
         precoCentavos: { type: integer, format: int64 }
-        precoFormatado: { type: string, example: 'R$ 40,00' }
+        precoFormatado: { type: string, example: 'R$ 55,00', description: 'espaço normal depois de R$; milhar com ponto' }
     ServicoAdmin:
       allOf:
         - $ref: '#/components/schemas/Servico'
@@ -912,7 +917,8 @@ components:
               nomeExibicao: { type: string }
               horarios:
                 type: array
-                items: { type: string, format: date-time }
+                description: inícios livres em ordem crescente, sempre com segundos e offset; vazio quando não há horário
+                items: { type: string, format: date-time, example: '2026-12-01T07:00:00-03:00' }
     Endereco:
       type: object
       required: [cep]
