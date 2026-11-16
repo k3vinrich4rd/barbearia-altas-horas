@@ -305,6 +305,8 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 404 | <a id="recurso_nao_encontrado"></a>`RECURSO_NAO_ENCONTRADO` | não existe **ou** não pertence a quem pede | Não encontrado |
 | 404 | <a id="cep_nao_encontrado"></a>`CEP_NAO_ENCONTRADO` | CEP válido sem endereço nos provedores | CEP não encontrado |
 | 404 | <a id="funcionalidade_desligada"></a>`FUNCIONALIDADE_DESLIGADA` | rota atrás de flag desligada | Não encontrado |
+| 405 | <a id="metodo_nao_permitido"></a>`METODO_NAO_PERMITIDO` | método HTTP não aceito na rota | Método não permitido |
+| 415 | <a id="midia_nao_suportada"></a>`MIDIA_NAO_SUPORTADA` | corpo sem `Content-Type: application/json` | Tipo de conteúdo não suportado |
 | 409 | <a id="email_ja_cadastrado"></a>`EMAIL_JA_CADASTRADO` | e-mail já em uso | E-mail já cadastrado |
 | 409 | <a id="horario_indisponivel"></a>`HORARIO_INDISPONIVEL` | violação da constraint `reserva_sem_sobreposicao` | Horário indisponível |
 | 409 | <a id="conflito_concorrente"></a>`CONFLITO_CONCORRENTE` | deadlock (`40P01`) que persistiu depois do retry interno da transação; `detail`: "Muitas reservas ao mesmo tempo. Tente de novo." O front pode repetir **uma vez** e não esconde o horário | Conflito momentâneo |
@@ -340,6 +342,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.1.1 (proposta) | 2026-11-16 | Fatia 1: novos códigos `405 METODO_NAO_PERMITIDO` e `415 MIDIA_NAO_SUPORTADA`, que o tratador global já devolve para erros do Spring MVC | não (códigos novos) |
 | 1.1 (proposta) | 2026-11-16 | regras reais da barbearia: pagamento **100% antecipado** por Pix ou cartão de crédito para cliente e guest; cliente logado nasce `AGUARDANDO_PAGAMENTO`; aceite obrigatório da política (`aceitePolitica`, `versaoPolitica`, `GET /politica-pagamento`); **saem** cancelamento e remarcação pelo cliente (`JANELA_CANCELAMENTO_ENCERRADA` vira `ACEITE_POLITICA_OBRIGATORIO`); sai `sinalCentavos`; pagamento tardio confirma se o horário estiver livre. `redocly lint` 2.78.0: 0 erros, 14 avisos | não (não há front ainda) |
 | 1.0 (proposta) | 2026-11-13 | primeira versão: catálogo, disponibilidade, CEP, auth, agendamentos, guest, cobrança, webhook, privacidade e painel admin | não (não há front ainda) |
 | 1.0.2 (proposta) | 2026-11-13 | novo `409 CONFLITO_CONCORRENTE` em `POST /agendamentos`, `POST /agendamentos/guest` e remarcação (deadlock depois do retry; o front pode repetir uma vez) | não (código novo; nenhum renomeado) |

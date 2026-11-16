@@ -71,6 +71,16 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D38 | Deploy em duas fases: **Fase 1** gratuita (Vercel + Render + Aiven, gateway em sandbox); **Fase 2** (produção real e lojas mobile) planejada na área interna da equipe | aceita | Kevin, 16/11/2026 | H17 |
 | D39 | Documentação pública enxuta: o repositório mostra código, README, contrato, ADRs, arquitetura e guia rápido; pesquisas de IA, recados entre agentes, plano de fatias detalhado, credenciais e roteiros completos ficam em `.equipe/` (ignorada pelo Git, padrão do RKF Bank) | aceita | Kevin, 16/11/2026 | [README](../../README.md) |
 
+### Fatia 1 (16/11/2026)
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D40 | PostgreSQL local do `compose.yaml` na porta **5433** (`POSTGRES_PORTA`): a 5432 costuma estar ocupada por um PostgreSQL instalado no Windows, e a API conectava nele sem avisar | aceita | erro real ao subir o perfil `dev` em 16/11/2026 (`autenticação do tipo senha falhou`, mensagem do PostgreSQL local) | [compose.yaml](../../compose.yaml) |
+| D41 | `event_publication` (outbox do Modulith) e uso do ShedLock entram na fatia que publicar o primeiro evento ou agendar o primeiro job, numa `V2`, com o schema oficial da versão fixada no `pom.xml`; a V1 já cria a tabela `shedlock` | aceita | a proposta de 13/11 pedia conferir o schema oficial antes | [V1](../../backend/src/main/resources/db/migration/V1__agenda.sql) |
+| D42 | Erros do Spring MVC (404 de rota, 405, 415, JSON malformado, validação) passam pelo mesmo tratador e saem em RFC 9457 com `code` e `traceId`; códigos novos `METODO_NAO_PERMITIDO` e `MIDIA_NAO_SUPORTADA` (contrato 1.1.1) | aceita | `ErroPadraoTest` | [contrato](../contrato/contrato-api.md#5-erros) |
+| D43 | `traceId` de 32 hex por requisição (MDC, cabeçalho `X-Trace-Id` e corpo do erro); um `X-Trace-Id` recebido só vale no formato W3C, para ninguém injetar texto no log | aceita | `ErroPadraoTest` | `RastreioFilter` |
+| D44 | Banco garante as regras de pagamento além do código: `reserva_aceite_ck` (só confirma quem aceitou a política), `reserva_expiracao_ck` (todo `AGUARDANDO_PAGAMENTO` tem prazo) e `cobranca_metodo_ck` (só PIX ou CARTAO_CREDITO) | aceita | `V1MigracaoIT` | [V1](../../backend/src/main/resources/db/migration/V1__agenda.sql) |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |
