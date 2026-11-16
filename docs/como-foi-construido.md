@@ -65,6 +65,8 @@ sh scripts/buscar-contexto.sh R15      # a regra, a decisão, a spec, o contrato
 ```
 É a "memória" do projeto. Como tudo tem identificador estável (R#, D#, E#, A#, código de erro), a busca exata é mais precisa e mais barata que um RAG com banco vetorial ([por quê](sdd/README.md#por-que-não-um-rag-com-banco-vetorial)).
 
+Irmão dele, o **eval do processo**: `sh scripts/conferir-spec.sh 1 --exigir` confere que cada critério `A#` da spec tem um teste com esse número (Fatia 1: 10 de 10). É o que impede dizer "pronto" com critério sem teste, seja a IA ou eu.
+
 ### 5.3 Skills (`.claude/skills/`)
 Uma skill é uma receita em Markdown que o Claude Code carrega quando o comando é chamado. Cada uma nasceu de um trabalho feito **uma vez à mão** e depois escrito como passo a passo, para a próxima fatia sair igual.
 

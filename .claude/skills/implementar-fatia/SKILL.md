@@ -31,6 +31,7 @@ Você é par de programação do Kevin (dev Java backend, Júnior → Pleno). Sa
 Ensine em cada etapa: o conceito (ex.: intervalo meio aberto, função pura, N+1), o porquê e a pergunta de entrevista que ele responde.
 
 ## Fechar
+1. `sh scripts/conferir-spec.sh N --exigir` (todo `A#` com teste) e inclua a fatia no laço do `backend-ci.yml`.
 1. `./mvnw verify` completo: copie "Tests run / Failures / Errors / Skipped" e a cobertura do JaCoCo.
 2. Varredura de segredos: `MSYS_NO_PATHCONV=1 docker run --rm -v "$(pwd -W):/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 dir /repo --config /repo/.gitleaks.toml --redact --no-banner`.
 3. PR para a `develop` com "O que foi feito · Como testar · Checklist" (`docs/sdd/checklist-pr.md`) e resultados reais.

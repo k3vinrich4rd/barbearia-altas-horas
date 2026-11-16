@@ -47,7 +47,7 @@ flowchart LR
 | Fatia | Spec | Status |
 |---|---|---|
 | 1 · Esqueleto + Flyway V1 + Compose | [fatia-1-esqueleto.md](fatia-1-esqueleto.md) | ✅ implementada (26 testes) |
-| 2 · Catálogo + disponibilidade | [fatia-2-catalogo-disponibilidade.md](fatia-2-catalogo-disponibilidade.md) | 📝 aguarda aprovação |
+| 2 · Catálogo + disponibilidade | [fatia-2-catalogo-disponibilidade.md](fatia-2-catalogo-disponibilidade.md) | ✅ aprovada (16/11), em implementação |
 | 3 a 8 | escritas uma de cada vez, antes da fatia começar | ⏳ |
 
 ## A IA no processo
@@ -57,6 +57,7 @@ flowchart LR
 | **Claude Code** (par de programação do backend) | escreve spec, testes e código com o Kevin; roda `./mvnw verify`, Docker e lint de verdade antes de afirmar qualquer número | terminal / app |
 | **Skills do projeto** | receitas repetíveis: `/especificar-fatia`, `/implementar-fatia`, `/verificar-contrato` | [`.claude/skills/`](../../.claude/skills/) |
 | **Agente `revisor-de-fatia`** | revisão independente, só leitura, do código contra a spec | [`.claude/agents/`](../../.claude/agents/revisor-de-fatia.md) |
+| **Eval do processo** | `scripts/conferir-spec.sh N --exigir`: todo critério `A#` da spec tem teste com esse número; roda no CI para as fatias implementadas | [`scripts/`](../../scripts/conferir-spec.sh) |
 | **Contexto no repositório** | o [`CLAUDE.md`](../../CLAUDE.md) diz onde está cada coisa; `scripts/buscar-contexto.sh R15` traz a regra, a decisão e os testes ligados a ela | raiz do repositório |
 | **IA no frontend** | o Next.js é gerado com IA a partir do contrato OpenAPI e das specs de tela; o Kevin revisa e os testes cobram | Fatia 7 |
 
