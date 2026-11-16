@@ -2,10 +2,10 @@
 
 <img src="docs/assets/logo-altas-horas.png" width="168" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
 
-<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: agendamento online, pagamento 100% antecipado por Pix ou cartão, desde 1997"/>
+<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: a agenda online do Eduardo Cândido, Pix ou cartão 100% antecipado, desde 1997"/>
 
-[![Status](https://img.shields.io/badge/status-Fatia_1_·_esqueleto-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
-[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1.1-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
+[![Status](https://img.shields.io/badge/status-Fatia_2_de_8_·_horários_livres-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
+[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1.2-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Feito em Osasco](https://img.shields.io/badge/📍_Osasco-SP-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-a-barbearia)
 
@@ -20,6 +20,7 @@
 [![Pix](https://img.shields.io/badge/Pix_+_Cartão-100%25_antecipado-0A0A0A?logo=pix&logoColor=white&labelColor=2B2B2B)](#-pagamento-100-antecipado)
 [![Último commit](https://img.shields.io/github/last-commit/k3vinrich4rd/barbearia-altas-horas/develop?color=0A0A0A&labelColor=2B2B2B&label=último%20commit)](https://github.com/k3vinrich4rd/barbearia-altas-horas/commits/develop)
 
+[![A história](https://img.shields.io/badge/📖_A_história-0A0A0A?style=for-the-badge)](#-a-história)
 [![Em 30 segundos](https://img.shields.io/badge/⚡_Em_30_segundos-0A0A0A?style=for-the-badge)](#-em-30-segundos)
 [![A barbearia](https://img.shields.io/badge/💈_A_barbearia-0A0A0A?style=for-the-badge)](#-a-barbearia)
 [![Pagamento](https://img.shields.io/badge/💳_Pagamento-0A0A0A?style=for-the-badge)](#-pagamento-100-antecipado)
@@ -38,7 +39,27 @@
 > [!IMPORTANT]
 > **Projeto individual de Kevin Richard**, feito com **Spec-Driven Development** e IA: o backend é escrito por mim com o Claude Code como par de programação, e o frontend é gerado com IA a partir do contrato ([como](#-como-o-projeto-é-feito-sdd--ia)).
 >
-> **Em construção por fatias.** Domínio, contrato, banco e decisões estão escritos e revisados; o código entra em fatias pequenas, cada uma com testes e revisão na `develop`. **Fatia 1 pronta:** esqueleto, migração V1 com a constraint anti-sobreposição e **26 testes** com PostgreSQL real (0 falhas, 87% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
+> **Em construção por fatias.** Cada fatia começa por uma especificação e só entra com testes verdes. **Fatias 1 e 2 prontas:** esqueleto, banco com a regra anti-sobreposição, catálogo e **horários livres** pela API, com **69 testes** em PostgreSQL real (0 falhas, 96% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
+
+## 📖 A história
+
+<table>
+<tr>
+<td width="200" align="center" valign="top">
+<img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro da Altas Horas, de camisa listrada e gravata borboleta preta"/>
+<br/><b>Eduardo Cândido</b><br/><sub>meu pai · barbeiro desde 1997</sub>
+</td>
+<td valign="top">
+
+Meu pai, **Eduardo Cândido**, corta cabelo na **Barbearia Altas Horas**, em Osasco, desde **1997**. A agenda dele sempre foi o caderno e o WhatsApp: cliente marca, às vezes não aparece, e a cadeira fica vazia.
+
+Eu sou desenvolvedor backend. Este projeto é a **agenda dele**, feita por mim: o cliente escolhe o serviço e o horário, **paga antes** (Pix ou cartão) e o horário fica garantido. Meu pai abre o painel e vê o dia pronto.
+
+Não é um produto para qualquer barbearia. É **a agenda da Altas Horas**, com os serviços, os preços e o horário de trabalho dele. Faço sozinho, com método (especificação antes do código) e com IA como par de programação.
+
+</td>
+</tr>
+</table>
 
 ## ⚡ Em 30 segundos
 
@@ -46,7 +67,7 @@
 |---|---|
 | **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido. |
 | **Solução** | Agendamento online com horários livres em tempo real e **pagamento 100% antecipado** (Pix ou cartão de crédito). O horário só é confirmado quando o gateway avisa que o dinheiro entrou. |
-| **Para quem** | Clientes da **Barbearia Altas Horas** (Osasco, desde 1997) e o barbeiro **Carlos Eduardo Cândido**, que administra tudo num painel protegido. |
+| **Para quem** | Para o **Eduardo Cândido**, meu pai, que atende sozinho e administra tudo num painel protegido, e para os clientes da **Barbearia Altas Horas** (Osasco, desde 1997). |
 | **Quem faz** | Só o **Kevin Richard**: backend com o Claude Code como par de programação; frontend gerado com IA e revisado por mim. Cada fatia começa por uma [spec](docs/sdd/README.md). |
 | **Por que é nível Pleno** | Concorrência resolvida no banco, webhook idempotente, máquina de estados explícita, erros padronizados, LGPD desde a primeira linha e testes com PostgreSQL real. |
 | **Stack** | Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js |
@@ -59,30 +80,46 @@
 
 ## 💈 A barbearia
 
-<table>
-<tr>
-<td width="190" align="center" valign="top">
-
-<img src="docs/assets/eduardo-candido-avatar.png" width="160" alt="Foto de Carlos Eduardo Cândido, barbeiro da Altas Horas, de camisa listrada e gravata borboleta preta"/>
-
-**Carlos Eduardo Cândido**<br/>
-<sub>barbeiro e administrador</sub>
-
-</td>
-<td valign="top">
-
 | | |
 |---|---|
 | 📍 **Endereço** | R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP |
+| 💈 **Quem atende** | Eduardo Cândido (Carlos Eduardo Cândido), em todos os serviços |
 | 🕖 **Funcionamento** | terça a sábado, **07h00 às 20h00** (almoço 12h00 às 13h00) |
-| 🗓 **Agenda** | horários de **30 em 30 min**, antecedência mínima de **2 h**, até **30 dias** à frente |
-| 💈 **Equipe** | 1 barbeiro, que faz todos os serviços |
-| 📸 **Instagram** | [Barbearia](https://instagram.com) · [Carlos Eduardo](https://instagram.com) |
-| 🏆 **Desde** | 1997 |
+| 📸 **Instagram** | [Barbearia](https://instagram.com) · [Eduardo](https://instagram.com) |
 
-</td>
-</tr>
-</table>
+### 🗓 A agenda da semana
+
+<img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h; horários de 30 em 30 minutos, 2 horas de antecedência e até 30 dias à frente"/>
+
+<details>
+<summary><b>📖 Abrir a página de um dia</b> (resposta real da API para uma terça livre)</summary>
+
+<br/>
+
+`GET /disponibilidade` do **Corte Degradê** (30 min): **24 horários**.
+
+| Manhã | | | | | Tarde | | | | | |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| 07:00 | 07:30 | 08:00 | 08:30 | 09:00 | 13:00 | 13:30 | 14:00 | 14:30 | 15:00 | 15:30 |
+| 09:30 | 10:00 | 10:30 | 11:00 | 11:30 | 16:00 | 16:30 | 17:00 | 17:30 | 18:00 | 18:30 |
+| | | | | | 19:00 | 19:30 | | | | |
+
+O **Corte Moderno / Visagismo** (60 min) tem **22**: some o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h). Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 15 min vence, ele volta sozinho.
+
+</details>
+
+<details>
+<summary><b>✂️ Testar agora, no seu terminal</b></summary>
+
+<br/>
+
+```bash
+curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=2026-12-01"
+```
+
+Como subir a API em 2 comandos: [Rodar e testar](#-rodar-e-testar).
+
+</details>
 
 ### Serviços
 
@@ -187,7 +224,7 @@ stateDiagram-v2
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','clusterBkg':'#141414','clusterBorder':'#8A8A8A','edgeLabelBackground':'#1F1F1F','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 flowchart LR
     cliente([Cliente / Visitante]) --> front[Next.js + BFF<br/>Vercel]
-    barbeiro([Carlos · Admin]) --> front
+    barbeiro([Eduardo · Admin]) --> front
     front -- "cookie HttpOnly" --> api
     subgraph api [API Spring Boot · Render · Docker]
         direction TB
@@ -238,6 +275,7 @@ barbearia-altas-horas/
 | **Webhook idempotente** pelo id do evento + reconsulta da cobrança | confiar no corpo do aviso | o gateway entrega "pelo menos uma vez"; o corpo pode ser forjado (OWASP API10) | [0007](docs/adr/0007-gateway-de-pagamento-sandbox.md) |
 | **Erros RFC 9457** (`application/problem+json`) com `code` e `traceId` | JSON de erro próprio | padrão atual (substitui a RFC 7807); o front decide pelo `code`, não pelo texto | [0005](docs/adr/0005-erros-rfc-9457.md) |
 | **Monólito modular** (Spring Modulith) | microsserviços | 1 pessoa, 1 deploy, fronteiras testadas; extrair serviço só com motivo real | [0001](docs/adr/0001-monolito-modular-com-spring-modulith.md) |
+| **Hexagonal só onde paga o custo** (regra difícil pura; sistema externo atrás de porta) | hexagonal completo em todo módulo | CRUD com porta, adaptador e mapeador é cerimônia; a regra dos horários, pura, tem 12 testes em milissegundos | [0011](docs/adr/0011-hexagonal-seletivo-no-monolito-modular.md) |
 | **Tempo em `timestamptz` + `Clock` injetado; dinheiro em centavos (`long`)** | `LocalDateTime` e `double` | fuso `America/Sao_Paulo` explícito e testes que "adiantam o relógio"; sem erro de arredondamento | [0004](docs/adr/0004-tempo-e-dinheiro.md) |
 | **JWT curto + refresh rotativo em cookie `HttpOnly`** via BFF | token no `localStorage` | XSS não rouba sessão; reuso de refresh revoga a família | [0006](docs/adr/0006-sessao-jwt-refresh-cookie-bff.md) |
 | **LGPD**: CPF só em trânsito, marketing por consentimento | guardar CPF cifrado | princípio da necessidade (art. 6º, III): o que não é guardado não vaza | [0009](docs/adr/0009-lgpd-marketing-cpf-e-retencao.md) |
@@ -260,7 +298,7 @@ barbearia-altas-horas/
 
 ## 🛠 Painel admin
 
-Área do papel `ADMIN`/`BARBEIRO` (hoje uma pessoa só, o Carlos). A entidade `Barbeiro` continua no modelo, então o mesmo código atende uma barbearia com mais profissionais.
+Área do papel `ADMIN`/`BARBEIRO` (hoje uma pessoa só, o Eduardo). É onde ele vê o dia, fecha os atendimentos e ajusta preços e horários sem depender de mim.
 
 | O admin pode | Detalhe |
 |---|---|
@@ -283,13 +321,14 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 26 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 69 testes com PostgreSQL real via Testcontainers
 ```
 
 | O que | Endereço local | |
 |---|---|:-:|
 | Health | `http://localhost:8080/actuator/health` | ✅ |
-| Rotas de negócio | `http://localhost:8080/...` | ⏳ Fatia 2 em diante |
+| Serviços, política e horários livres | `/servicos` · `/politica-pagamento` · `/disponibilidade` | ✅ |
+| Conta, agendamento, pagamento e painel | — | ⏳ Fatias 3 a 5 |
 | Front | `http://localhost:3000` | ⏳ Fatia 7 |
 
 O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
@@ -327,6 +366,7 @@ flowchart LR
 | [`CLAUDE.md`](CLAUDE.md) | o índice que a IA lê antes de mexer: onde está cada regra, decisão e padrão |
 | [Skills do projeto](.claude/skills/) | receitas repetíveis: `/especificar-fatia`, `/implementar-fatia`, `/verificar-contrato` |
 | [`scripts/conferir-spec.sh`](scripts/conferir-spec.sh) | *eval* do processo: todo critério da spec precisa de um teste com o número dele (roda no CI) |
+| [GitHub Copilot + Actions](docs/automacao.md) | o Copilot lê as mesmas regras ([instruções](.github/copilot-instructions.md)), revisa PRs e pega tarefas pequenas; as Actions barram o que não cumpre spec, teste ou segurança |
 | [Agente revisor](.claude/agents/revisor-de-fatia.md) | segundo par de olhos, só leitura: confere o código contra a spec antes da PR |
 | [`scripts/buscar-contexto.sh`](scripts/buscar-contexto.sh) | recuperação por identificador (`R15`, `D40`, `A7`): traz a regra, a decisão, a spec e o teste ligados a ela. Para ~40 documentos com IDs estáveis, isso é mais preciso que um RAG vetorial ([por quê](docs/sdd/README.md#por-que-não-um-rag-com-banco-vetorial)) |
 
@@ -338,7 +378,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 
 - [x] **Fatia 0 · Especificação:** domínio, máquina de estados, contrato OpenAPI v1.1, DDL proposto e ADRs
 - [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
-- [ ] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento, horários livres com almoço, folgas, antecedência e reservas pendentes vencidas (📝 [spec escrita](docs/sdd/fatia-2-catalogo-disponibilidade.md), 28 critérios)
+- [x] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes)
 - [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas
 - [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração
 - [ ] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
@@ -360,11 +400,14 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 | [Guia de testes](docs/guia-testes.md) | teste você mesmo, à mão: o banco, os erros e os cenários de visitante, cliente e admin |
 | [Como foi construído](docs/como-foi-construido.md) | o projeto de ponta a ponta: método, linha do tempo, código arquivo por arquivo, skills e agente de IA |
 | [SDD](docs/sdd/README.md) | o processo, o modelo de spec e a spec de cada fatia |
+| [Automação](docs/automacao.md) | por que cada Action existe, o papel do Copilot, como o SDD é cobrado e a regra de recuperação de contexto |
 | [Estudos aplicados](docs/estudos-aplicados.md) | minhas metas de estudo (Java/Spring e IA) ligadas a arquivos e testes deste projeto |
 
-## 📦 Usar como template
+## 🔭 E outros barbeiros?
 
-O pacote é `io.github.k3vinrich4rd.altashoras`, mas o que é transversal (erros RFC 9457, segurança, `Clock`, Testcontainers, CI, perfis, estrutura de `docs/`) serve para qualquer negócio com agenda e pagamento antecipado: troque o pacote, o catálogo e a paleta.
+Hoje, não: o projeto é **a agenda do Eduardo Cândido na Altas Horas**, e todo o esforço vai para ela funcionar bem.
+
+O que fica pronto para o futuro, sem custo agora: o modelo já tem a entidade `Barbeiro` com jornada própria, a disponibilidade responde por barbeiro e preços e horários são dados do banco. Se um dia entrar outro profissional na cadeira ao lado, é cadastro, não reescrita.
 
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
@@ -374,7 +417,7 @@ O pacote é `io.github.k3vinrich4rd.altashoras`, mas o que é transversal (erros
 
 <img src="docs/assets/logo-altas-horas.png" width="96" alt="Logo da Barbearia Altas Horas"/>
 
-**Para o meu pai**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997**.
+**Para o meu pai, Eduardo Cândido**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997**.
 Este projeto é a minha forma de levar para o código o cuidado que ele coloca em cada corte.
 
 **★ 19 ✂ 97 ★**
