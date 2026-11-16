@@ -11,7 +11,7 @@
 > Status: **proposta (13/11/2026)**, aguardando revisão do Alicerce (arquitetura). Os valores iniciais de `configuracao_agenda` são **HIPÓTESES** ([dossiê, seção 4](../contexto.md#4-hipóteses-em-aberto)).
 
 
-> **A alinhar na Fatia 1 (16/11/2026, D31 a D35):** sai `sinal_centavos`, `percentual_sinal`, `politica_sinal` e `janela_cancelamento_min`; entram `metodo` na cobrança, `aceite_politica_versao` e `aceite_politica_em` na reserva e a transição `EXPIRADO → CONFIRMADO`. A migração `V1` real nasce já com o modelo novo.
+> **Alinhado na Fatia 1 (16/11/2026, D31 a D35, D44)** na migração real [`V1__agenda.sql`](../../backend/src/main/resources/db/migration/V1__agenda.sql): sai `sinal_centavos`, `percentual_sinal`, `politica_sinal` e `janela_cancelamento_min`; entram `metodo` na cobrança, `aceite_politica_versao` e `aceite_politica_em` na reserva e a transição `EXPIRADO → CONFIRMADO`. Este ERD ainda mostra a proposta de 13/11 e é redesenhado na Fatia 2.
 
 ## 1. ERD
 
