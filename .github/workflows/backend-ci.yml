@@ -50,7 +50,7 @@ jobs:
       - name: Conferir spec × testes
         working-directory: .
         run: |
-          for fatia in 1; do sh scripts/conferir-spec.sh "$fatia" --exigir; done
+          for fatia in 1 2; do sh scripts/conferir-spec.sh "$fatia" --exigir; done
 
       - name: Publicar relatórios
         if: always()
