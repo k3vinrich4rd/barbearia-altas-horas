@@ -37,6 +37,16 @@ class ArquiteturaTest {
     }
 
     @Test
+    @DisplayName("ADR 0011: o núcleo da regra (Calculadora*) não conhece Spring, JPA nem JDBC")
+    void nucleoDaRegraSemFramework() {
+        noClasses().that().haveSimpleNameStartingWith("Calculadora")
+                .should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "jakarta..", "org.hibernate..",
+                        "java.sql..")
+                .because("regra pura se testa em milissegundos e sobrevive a troca de framework")
+                .check(CLASSES);
+    }
+
+    @Test
     @DisplayName("A10: dinheiro nunca em double ou float (ADR 0004)")
     void dinheiroSemPontoFlutuante() {
         noFields().that().haveNameMatching("(?i).*(preco|valor|centavos).*")
