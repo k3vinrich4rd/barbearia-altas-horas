@@ -32,8 +32,8 @@ Ordem fixa de toda entrega: **regra → spec → OK do Kevin → contrato → te
 | 13/11/2026 | **Revisão de arquitetura** | HMAC na idempotência, expiração com trava ordenada, cobrança gravada antes do gateway, reprocessamento de webhook | [decisões D17–D30](planejamento/decisoes.md) |
 | 16/11/2026 | **Regras reais** | pagamento 100% antecipado (Pix ou cartão), sem cancelamento pelo cliente, aceite obrigatório, catálogo e horário reais; contrato v1.1 | decisões D31–D39, [PR #3](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/3) |
 | 16/11/2026 | **Fatia 1** | esqueleto Spring Boot 4, 8 módulos, erros RFC 9457, `Clock`, Flyway V1 com `EXCLUDE USING gist`, seed, Compose, CI; **26 testes** | [spec](sdd/fatia-1-esqueleto.md), [PR #4](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/4) |
-| 16/11/2026 | **Fatia 2 (spec)** | 14 decisões de desenho e 28 critérios para catálogo e disponibilidade | [spec](sdd/fatia-2-catalogo-disponibilidade.md) |
-| a seguir | Fatias 2 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
+| 16/11/2026 | **Fatia 2** | spec com 15 decisões e 29 critérios, aprovada e implementada: catálogo, política e disponibilidade; hexagonal seletivo (ADR 0011); **69 testes** | [spec](sdd/fatia-2-catalogo-disponibilidade.md), [PR #6](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/6) |
+| a seguir | Fatias 3 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
 
 ## 4. O que existe no código hoje (Fatia 1), arquivo por arquivo
 
@@ -81,10 +81,14 @@ Uma skill é uma receita em Markdown que o Claude Code carrega quando o comando 
 |---|---|---|
 | [`revisor-de-fatia`](../.claude/agents/revisor-de-fatia.md) | segundo par de olhos: confere o diff contra a spec (todo A# tem teste que prova de verdade), contrato, padrões, segurança e LGPD. Só lê | quem escreveu o código tende a não ver o próprio erro; um agente com contexto limpo e só leitura revisa sem esse viés |
 
-### 5.5 Quem fez o quê
+### 5.5 GitHub Copilot e as Actions
+O Copilot lê as mesmas regras pelo [`.github/copilot-instructions.md`](../.github/copilot-instructions.md) e trabalha no ambiente do [`copilot-setup-steps.yml`](../.github/workflows/copilot-setup-steps.yml). O que cada workflow faz e por quê: [`docs/automacao.md`](automacao.md).
+
+### 5.6 Quem fez o quê
 | Ferramenta | Uso |
 |---|---|
 | **Claude Code** | specs, backend, testes, CI e documentação, sempre rodando os comandos de verdade (Maven, Docker, lint, gitleaks) |
+| **GitHub Copilot** | segunda revisão das PRs e tarefas pequenas e bem especificadas (uma issue com o critério da spec), sempre barrado pelo mesmo CI |
 | **Outras IAs** (pesquisa e crítica) | na fundação, pesquisa com fonte e data e ataque à arquitetura; o que foi aceito virou decisão com fonte em [decisoes.md](planejamento/decisoes.md), inclusive os pontos em que a IA errou e a fonte oficial prevaleceu |
 | **IA no frontend** | Fatia 7: telas geradas a partir do contrato; a ferramenta e o processo serão documentados aqui quando acontecer |
 | **Kevin** | decide as regras, aprova cada spec, revisa cada PR, faz o merge e o release |
@@ -96,6 +100,9 @@ Uma skill é uma receita em Markdown que o Claude Code carrega quando o comando 
 | A API conectou num PostgreSQL instalado no Windows em vez do container | erro de senha ao subir o perfil `dev` | porta 5433 no compose (D40) |
 | O gitleaks acusou dois exemplos fictícios do contrato | varredura local antes do push | `.gitleaks.toml` liberando só essas duas strings |
 | Uma regra do ArchUnit não compilou | `./mvnw verify` | regra reescrita com `noFields()` |
+| O Hibernate leu a jornada das 07:00 como 04:00 | teste A27 (`expected 07:00 but was 04:00`) | `java_time_use_direct_jdbc` (D46) |
+| 12 inserções simultâneas terminaram em deadlock (`40P01`) em vez de `23P01` | `ConcorrenciaReservaIT` falhou com a máquina sob carga | o teste passou a aceitar os dois; o invariante (uma vencedora) não mudou (D47) |
+| `SELECT DISTINCT` + `ORDER BY lower(...)` recusado pelo PostgreSQL | 15 testes com `500` na primeira execução | `JOIN FETCH` sem `DISTINCT` (D48) |
 | Uma data de teste quase foi tratada como segunda-feira (era terça) | conferência por código | passo obrigatório na skill `/especificar-fatia` |
 
 ## 7. Como repetir em outro projeto

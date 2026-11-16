@@ -8,7 +8,7 @@
 | 🔒 **Sem segredo** | dados **fictícios** e gateway em **sandbox**; nenhum dinheiro real |
 
 > [!IMPORTANT]
-> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (16/11/2026, Fatia 1).
+> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (16/11/2026, Fatias 1 e 2).
 > **⏳ Fatia N = roteiro já escrito**, que vira ✅ quando a fatia entrar na `develop` (aí ganha o comando e a resposta reais).
 
 ## Mapa
@@ -16,10 +16,10 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 26 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 69 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
-| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, agendar e pagar sem conta | ⏳ Fatias 2 e 4 |
+| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários (✅), agendar e pagar sem conta | ✅ V1 a V3 · ⏳ Fatia 4 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, agendar, pagar com cartão | ⏳ Fatias 3 e 4 |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | agenda, concluir, marcar falta, pagamento tardio | ⏳ Fatias 3 e 5 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
@@ -63,7 +63,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **26 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **87%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **69 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **96%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -72,9 +72,14 @@ cd backend && ./mvnw verify
 | `V1MigracaoIT` | 6 | V1 aplicada, `btree_gist`, constraint e índices; regras reais na configuração; o banco recusa `AGUARDANDO_PAGAMENTO` sem prazo, `CONFIRMADO` sem aceite e método fora de PIX/cartão |
 | `SobreposicaoConstraintIT` | 6 | mesmo horário e sobreposição parcial dão `23P01`; encostadas `[)` passam; `CANCELADO` e `EXPIRADO` não ocupam |
 | `ConcorrenciaReservaIT` | 3 | 12 conexões disputando o mesmo horário: **exatamente 1 vence** (repetido 3 vezes) |
-| `SeedDevIT` | 3 | perfil `dev` com o Carlos, os 5 serviços e a jornada com almoço |
+| `SeedDevIT` | 4 | perfil `dev` com o Carlos, os 5 serviços, a jornada com almoço e 24 horários pela API |
+| `CalculadoraDeHorariosTest` | 12 | a regra dos horários, pura: almoço, serviço de 60 min, antecedência inclusiva, folga, intervalo meio aberto |
+| `DisponibilidadeIT` | 19 | a rota inteira no banco real: o que ocupa, pendente vencida, horizonte, erros 400/404/422, formato e **sem N+1** |
+| `CatalogoIT` · `PoliticaPagamentoIT` · `PrecoFormatadoTest` | 3 · 1 · 6 | só ativos, só os campos do contrato, cache, política vigente, `R$ 1.234,56` |
 | `ModulithTest` | 2 | 8 módulos e fronteiras verificadas |
-| `ArquiteturaTest` | 2 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double` |
+| `ArquiteturaTest` | 3 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double`; o núcleo da regra não conhece framework |
+
+Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 2 --exigir` (29 de 29).
 
 Rodar uma classe só: `./mvnw test -Dtest=ConcorrenciaReservaIT`.
 
@@ -151,16 +156,16 @@ DELETE FROM reserva WHERE inicio >= '2026-12-01' AND inicio < '2026-12-02';
 ## 3. Erros padronizados (RFC 9457)
 
 ```bash
-curl -i http://localhost:8080/servicos
+curl -i http://localhost:8080/rota-que-nao-existe
 ```
 
-✅ Resposta real (a rota `/servicos` chega na Fatia 2; hoje ela mostra o formato de erro de toda a API):
+✅ Resposta real (o mesmo formato vale para todo erro da API):
 
 ```http
 HTTP/1.1 404
 Content-Type: application/problem+json
 
-{"detail":"O recurso pedido não existe.","instance":"/servicos","status":404,"title":"Não encontrado",
+{"detail":"O recurso pedido não existe.","instance":"/rota-que-nao-existe","status":404,"title":"Não encontrado",
  "type":"https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado",
  "code":"RECURSO_NAO_ENCONTRADO","traceId":"bf302b905aa348aabe50c5322f03f4b6","errors":[]}
 ```
@@ -175,19 +180,76 @@ curl -i -X DELETE http://localhost:8080/actuator/health     # 405 METODO_NAO_PER
 
 ## 4. Cenário do visitante (sem conta)
 
-> ⏳ Os passos V1 a V3 chegam na **Fatia 2** ([spec](sdd/fatia-2-catalogo-disponibilidade.md)); V4 a V9, na **Fatia 4**.
+### V1 ✅ Ver os serviços
 
-| # | O que fazer | O que deve acontecer | O que prova | |
-|---|---|---|---|:-:|
-| V1 | `curl http://localhost:8080/servicos` | os 5 serviços com `precoCentavos` e `precoFormatado` (`R$ 55,00`) | catálogo público vindo do banco | ⏳ 2 |
-| V2 | `curl http://localhost:8080/politica-pagamento` | `{ "versao": 1, "texto": "Após o pagamento antecipado de 100%..." }` | o texto que o cliente aceita é versionado | ⏳ 2 |
-| V3 | `curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=<uma terça>"` | 24 horários de 30 em 30 min, **sem** 12h00 e 12h30; hoje, só a partir de agora + 2 h | jornada, almoço e antecedência como dado | ⏳ 2 |
-| V4 | `POST /agendamentos/guest` com serviço, horário, nome, WhatsApp e e-mail fictícios | `201`, `AGUARDANDO_PAGAMENTO`, `expiraEm` (15 min) e `tokenGuest` (mostrado uma vez) | horário travado sem pedir CPF | ⏳ 4 |
-| V5 | repetir o V3 | o horário reservado sumiu | reserva pendente ocupa o horário | ⏳ 4 |
-| V6 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar | ⏳ 4 |
-| V7 | mesma chamada com `"metodo": "PIX"`, CPF fictício e `"aceitePolitica": true` | `201` com QR Code e copia e cola de **100%** do preço | pagamento integral; CPF só aqui | ⏳ 4 |
-| V8 | confirmar a cobrança no painel do **sandbox** do gateway | o webhook chega e `GET /agendamentos/guest/{id}` mostra `CONFIRMADO` | só o gateway confirma | ⏳ 4 |
-| V9 | fazer outra reserva e **não** pagar por 15 min | vira `EXPIRADO` e o horário volta no V3 | ninguém segura horário de graça | ⏳ 4 |
+```bash
+curl -i http://localhost:8080/servicos
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: max-age=60, public
+
+[{"id":"6f1c2a8e-0000-4000-8000-000000000005","nome":"Acabamento (Pezinho) / Sobrancelha","duracaoMin":30,"precoCentavos":2000,"precoFormatado":"R$ 20,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000004","nome":"Barba Completa / Desenhada","duracaoMin":30,"precoCentavos":3000,"precoFormatado":"R$ 30,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000001","nome":"Corte Clássico / Social","duracaoMin":30,"precoCentavos":4500,"precoFormatado":"R$ 45,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000002","nome":"Corte Degradê / Fade / Navalhado","duracaoMin":30,"precoCentavos":5500,"precoFormatado":"R$ 55,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000003","nome":"Corte Moderno / Visagismo (Tesoura)","duracaoMin":60,"precoCentavos":6000,"precoFormatado":"R$ 60,00"}]
+```
+
+**O que prova:** catálogo vindo do banco, em ordem de nome, só com os campos do contrato (nada de `ativo` ou `version`).
+
+### V2 ✅ Ler a política de pagamento
+
+```bash
+curl http://localhost:8080/politica-pagamento
+```
+
+```json
+{"versao":1,"texto":"Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta."}
+```
+
+### V3 ✅ Ver os horários livres
+
+Corte Moderno / Visagismo (60 min) na terça 01/12/2026. Use uma data **de hoje até 30 dias à frente**; troque se já passou.
+
+```bash
+curl -i "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000003&data=2026-12-01"
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store
+
+{"data":"2026-12-01","fuso":"America/Sao_Paulo","servicoId":"6f1c2a8e-0000-4000-8000-000000000003","duracaoMin":60,
+ "barbeiros":[{"barbeiroId":"b0000000-0000-4000-8000-000000000001","nomeExibicao":"Carlos Eduardo Cândido",
+ "horarios":["2026-12-01T07:00:00-03:00","2026-12-01T07:30:00-03:00", "...", "2026-12-01T11:00:00-03:00",
+             "2026-12-01T13:00:00-03:00", "...", "2026-12-01T19:00:00-03:00"]}]}
+```
+
+**O que prova:** 22 horários; depois das 11:00 vem 13:00 (às 11:30 o serviço de 60 min invadiria o almoço) e o último é 19:00 (às 19:30 passaria das 20h). Com o Corte Degradê (`...000002`, 30 min) são 24.
+
+Agora mexa e veja a regra reagir:
+
+| Faça | Tem que voltar |
+|---|---|
+| a mesma chamada com `data=2026-12-06` (domingo) | `200` com `"horarios":[]` |
+| sem o parâmetro `data` | `400 VALIDACAO_INVALIDA` com `"errors":[{"message":"obrigatório","field":"data"}]` |
+| `data=2027-03-01` | `422 FORA_DO_HORIZONTE` · "A agenda aceita datas de hoje até 30 dias à frente." |
+| `servicoId` com um UUID qualquer | `404 RECURSO_NAO_ENCONTRADO` |
+| ocupe um horário pelo `psql` (parte 2.2) e repita | o horário some; apague a reserva e ele volta |
+| data de **hoje** | só horários a partir de agora + 2 horas |
+
+### V4 em diante ⏳ Fatia 4
+
+| # | O que fazer | O que deve acontecer | O que prova |
+|---|---|---|---|
+| V4 | `POST /agendamentos/guest` com serviço, horário, nome, WhatsApp e e-mail fictícios | `201`, `AGUARDANDO_PAGAMENTO`, `expiraEm` (15 min) e `tokenGuest` (mostrado uma vez) | horário travado sem pedir CPF |
+| V5 | repetir o V3 | o horário reservado sumiu | reserva pendente ocupa o horário |
+| V6 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar |
+| V7 | mesma chamada com `"metodo": "PIX"`, CPF fictício e `"aceitePolitica": true` | `201` com QR Code e copia e cola de **100%** do preço | pagamento integral; CPF só aqui |
+| V8 | confirmar a cobrança no painel do **sandbox** do gateway | o webhook chega e `GET /agendamentos/guest/{id}` mostra `CONFIRMADO` | só o gateway confirma |
+| V9 | fazer outra reserva e **não** pagar por 15 min | vira `EXPIRADO` e o horário volta no V3 | ninguém segura horário de graça |
 
 ## 5. Cenário do cliente (com conta)
 
@@ -262,4 +324,4 @@ curl -i -X DELETE http://localhost:8080/actuator/health     # 405 METODO_NAO_PER
 | o enforcer reclama do Java | JDK diferente do 25 | aponte o `JAVA_HOME` para um JDK 25 |
 | migração falha depois de você mexer no banco | banco local sujo | `docker compose down -v` e suba de novo |
 
-Contrato da API (v1.1.1): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ 16/11/2026).
+Contrato da API (v1.1.2): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ 16/11/2026).

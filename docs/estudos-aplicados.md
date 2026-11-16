@@ -10,9 +10,9 @@
 
 | Tema de estudo | Aplicação neste projeto | Onde conferir | |
 |---|---|---|:-:|
-| **Arquiteturas de software** (monólito modular, BFF) | 8 módulos do Spring Modulith com fronteiras testadas; BFF no Next.js guardando os tokens | [`ModulithTest`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/ModulithTest.java), [ADR 0001](adr/0001-monolito-modular-com-spring-modulith.md), [ADR 0006](adr/0006-sessao-jwt-refresh-cookie-bff.md) | ✅ Fatia 1 (BFF: 🔜 7) |
-| **JPQL e JOIN FETCH** | catálogo por projeção JPQL direto em DTO; barbeiros com as jornadas num `LEFT JOIN FETCH` só | [spec da Fatia 2](sdd/fatia-2-catalogo-disponibilidade.md) (E15) | 🔜 Fatia 2 |
-| **N+1 consultas** | teste que prova que o número de consultas da disponibilidade **não cresce** com o número de barbeiros | spec da Fatia 2 (A29) | 🔜 Fatia 2 |
+| **Arquiteturas de software** (monólito modular, hexagonal, BFF) | 8 módulos com fronteiras testadas; portas e adaptadores onde paga o custo (`CalculadoraDeHorarios` pura + porta `FonteDeBloqueios`) | [ADR 0001](adr/0001-monolito-modular-com-spring-modulith.md), [ADR 0011](adr/0011-hexagonal-seletivo-no-monolito-modular.md), [`ArquiteturaTest`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/ArquiteturaTest.java) | ✅ Fatias 1 e 2 (BFF: 🔜 7) |
+| **JPQL e JOIN FETCH** | catálogo por projeção JPQL direto em DTO; barbeiros com as jornadas num `LEFT JOIN FETCH` só (e a lição do `DISTINCT` que o PostgreSQL recusou) | [`ServicoRepository`](../backend/src/main/java/io/github/k3vinrich4rd/altashoras/agenda/catalogo/ServicoRepository.java), [`BarbeiroRepository`](../backend/src/main/java/io/github/k3vinrich4rd/altashoras/agenda/catalogo/BarbeiroRepository.java) | ✅ Fatia 2 |
+| **N+1 consultas** | teste que conta as consultas do Hibernate e prova que o número **não cresce** com mais barbeiros | [`DisponibilidadeIT`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/agenda/disponibilidade/DisponibilidadeIT.java) (A29) | ✅ Fatia 2 |
 | **Paginação e `countQuery`** | listas do painel (`/admin/pagamentos`, `/admin/auditoria`, `/me/agendamentos`) paginadas no banco | [contrato](contrato/contrato-api.md) | 🔜 Fatias 4 e 5 |
 | **OAuth2 e OIDC** | a API como Resource Server (JWT); login social por OIDC atrás de flag | [ADR 0006](adr/0006-sessao-jwt-refresh-cookie-bff.md) | 🔜 Fatia 3 (social: pós-beta) |
 | **Síncrono e assíncrono** | gateway chamado de forma síncrona **fora** da transação; confirmação assíncrona por webhook; CEP com timeout curto | [arquitetura, seção 6](arquitetura/README.md) | 🔜 Fatias 4 e 6 |
