@@ -1,0 +1,7 @@
+# Finais de linha estáveis entre Windows (PC do Kevin) e Linux (CI e containers).
+* text=auto
+backend/mvnw text eol=lf
+*.cmd text eol=crlf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
