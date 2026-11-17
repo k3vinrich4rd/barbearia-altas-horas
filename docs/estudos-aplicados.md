@@ -1,0 +1,45 @@
+# 🎓 O que eu estudo × onde aplico neste projeto
+
+| | |
+|---|---|
+| 🎯 **Para que serve** | ligar as minhas metas de estudo (trilhas de Java/Spring e de IA) a evidências neste repositório: o que já foi praticado aqui e em qual fatia entra o resto |
+| 🧭 **Origem** | as trilhas do meu caderno de estudos (as mesmas que aparecem no [README do meu perfil](https://github.com/k3vinrich4rd)) |
+| ✅ / 🔜 | ✅ aplicado, com arquivo ou teste para conferir · 🔜 planejado, com a fatia |
+
+## Trilha 1 · Java e Spring: o que ainda estava em andamento
+
+| Tema de estudo | Aplicação neste projeto | Onde conferir | |
+|---|---|---|:-:|
+| **Arquiteturas de software** (monólito modular, BFF) | 8 módulos do Spring Modulith com fronteiras testadas; BFF no Next.js guardando os tokens | [`ModulithTest`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/ModulithTest.java), [ADR 0001](adr/0001-monolito-modular-com-spring-modulith.md), [ADR 0006](adr/0006-sessao-jwt-refresh-cookie-bff.md) | ✅ Fatia 1 (BFF: 🔜 7) |
+| **JPQL e JOIN FETCH** | catálogo por projeção JPQL direto em DTO; barbeiros com as jornadas num `LEFT JOIN FETCH` só | [spec da Fatia 2](sdd/fatia-2-catalogo-disponibilidade.md) (E15) | 🔜 Fatia 2 |
+| **N+1 consultas** | teste que prova que o número de consultas da disponibilidade **não cresce** com o número de barbeiros | spec da Fatia 2 (A29) | 🔜 Fatia 2 |
+| **Paginação e `countQuery`** | listas do painel (`/admin/pagamentos`, `/admin/auditoria`, `/me/agendamentos`) paginadas no banco | [contrato](contrato/contrato-api.md) | 🔜 Fatias 4 e 5 |
+| **OAuth2 e OIDC** | a API como Resource Server (JWT); login social por OIDC atrás de flag | [ADR 0006](adr/0006-sessao-jwt-refresh-cookie-bff.md) | 🔜 Fatia 3 (social: pós-beta) |
+| **Síncrono e assíncrono** | gateway chamado de forma síncrona **fora** da transação; confirmação assíncrona por webhook; CEP com timeout curto | [arquitetura, seção 6](arquitetura/README.md) | 🔜 Fatias 4 e 6 |
+| **Mensageria e Outbox** | `event_publication` do Spring Modulith: o evento é gravado na mesma transação da mudança | [ADR 0002](adr/0002-comunicacao-entre-modulos.md), decisão D41 | 🔜 Fatia 4 |
+| **Pub-Sub e DLQ** | evento de webhook que falha é reprocessado com limite de tentativas e, esgotado, vai para `REVISAO_MANUAL` (o papel de uma DLQ, sem broker) | [ADR 0007](adr/0007-gateway-de-pagamento-sandbox.md), decisão D28 | 🔜 Fatia 4 |
+
+Temas que eu já tinha praticado e que aqui subiram de nível:
+
+| Tema | O passo a mais neste projeto | Onde conferir |
+|---|---|---|
+| SQL e constraints | `EXCLUDE USING gist` com `tstzrange`, índice parcial, `CHECK` protegendo regra de pagamento | [`V1__agenda.sql`](../backend/src/main/resources/db/migration/V1__agenda.sql) |
+| Concorrência | 12 conexões reais disputando o mesmo horário | [`ConcorrenciaReservaIT`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/banco/ConcorrenciaReservaIT.java) |
+| Testcontainers | PostgreSQL 18 como bean com `@ServiceConnection`, reaproveitado entre as classes | [`PostgresTestcontainers`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/PostgresTestcontainers.java) |
+| Tratamento de erros REST | RFC 9457 com `code` e `traceId`, inclusive para os erros do próprio Spring MVC | [`TratadorGlobalDeErros`](../backend/src/main/java/io/github/k3vinrich4rd/altashoras/plataforma/web/TratadorGlobalDeErros.java) |
+| Dinheiro | centavos em `long` e regra de arquitetura que proíbe `double` | [`ArquiteturaTest`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/ArquiteturaTest.java) |
+
+## Trilha 2 · IA
+
+| Tema de estudo | Aplicação neste projeto | Onde conferir | |
+|---|---|---|:-:|
+| **Spec-Driven Development** | toda fatia começa por uma spec com critérios numerados | [`docs/sdd/`](sdd/README.md) | ✅ |
+| **Prompt e engenharia de contexto** | `CLAUDE.md` como índice: a IA lê onde está cada regra em vez de receber tudo no prompt | [`CLAUDE.md`](../CLAUDE.md) | ✅ |
+| **Skills** | três procedimentos carregados sob demanda | [`.claude/skills/`](../.claude/skills/) | ✅ |
+| **Agentes de IA** | agente revisor só de leitura, com contexto separado de quem escreveu o código | [`revisor-de-fatia`](../.claude/agents/revisor-de-fatia.md) | ✅ |
+| **RAG** (a ideia: recuperar antes de gerar) | recuperação **por identificador**, sem embeddings: `buscar-contexto.sh R15` | [`scripts/buscar-contexto.sh`](../scripts/buscar-contexto.sh), [por que não vetorial](sdd/README.md#por-que-não-um-rag-com-banco-vetorial) | ✅ (sem vetor) |
+| **Testes de aplicações com IA (evals)** | checagem determinística da saída da IA: todo critério `A#` da spec precisa de um teste com esse número; roda no CI | [`scripts/conferir-spec.sh`](../scripts/conferir-spec.sh) | ✅ |
+| **Embeddings e banco vetorial** | ainda não: o projeto não tem texto livre que justifique | — | honestamente não aplicado |
+| **Tool Calling, MCP, Spring AI, Design Doc para IA** | pós-beta: um assistente de agendamento que consulta `GET /disponibilidade` como ferramenta (`@Tool`), só leitura, com design doc e evals antes do código | [roadmap](../README.md#-roadmap-em-fatias) | 🔜 pós-beta |
+
+> **Regra que eu sigo:** só marco ✅ o que tem arquivo ou teste para abrir. O que é plano fica como 🔜 com a fatia.
