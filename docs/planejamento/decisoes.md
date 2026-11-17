@@ -6,7 +6,7 @@
 | 👥 **Quem usa** | o Kevin, o Alicerce (arquitetura) e quem pega a próxima fatia |
 | ⏰ **Quando usar** | antes de rediscutir algo já decidido; ao abrir um ADR novo |
 | 🧰 **Como** | uma linha por decisão; o porquê completo está no ADR ou no documento citado |
-| 🚫 **Não cobre** | regras da barbearia ainda em aberto: estão como HIPÓTESE (H1 a H20) no [dossiê](../contexto.md#4-hipóteses-em-aberto) |
+| 🚫 **Não cobre** | regras ainda em aberto: H13 a H15 e H18 a H20 no [dossiê](../contexto.md#4-hipóteses-em-aberto) |
 
 Status: **proposta** = aguarda revisão; **aceita** = aprovada pelo Kevin.
 
@@ -23,11 +23,11 @@ Status: **proposta** = aguarda revisão; **aceita** = aprovada pelo Kevin.
 | D9 | 13/11/2026 | CEP: ViaCEP → BrasilAPI, cache Caffeine, nunca derruba o cadastro | proposta | — | [ADR 0008](../adr/0008-cep-com-cache-e-degradacao.md) |
 | D10 | 13/11/2026 | CPF **não é guardado** (só em trânsito para o gateway); marketing por consentimento opcional | proposta (diverge do Alicerce) | LGPD art. 6º, III (necessidade) | [ADR 0009](../adr/0009-lgpd-marketing-cpf-e-retencao.md) |
 | D11 | 13/11/2026 | Java 25 LTS + **Spring Boot 4.1.2** (GA de 22/10/2026); a 4.2.0 ainda é RC | proposta | `https://api.github.com/repos/spring-projects/spring-boot/releases` (consultado em 13/11/2026) | [ADR 0010](../adr/0010-versoes-da-plataforma.md) |
-| D12 | 13/11/2026 | Pool Hikari de **5** conexões (Aiven free: `max_connections` 20, 3 a 6 reservadas) e nenhuma chamada HTTP dentro de transação | proposta | `https://aiven.io/docs/products/postgresql/reference/pg-connection-limits` | [verificação](../ia/verificacao-coordenador-2026-11-13.md) |
-| D13 | 13/11/2026 | Render free hiberna em 15 min: job de expiração roda também na subida; correção não depende dele (R15, R16) | proposta | `https://render.com/docs/free` | [arquitetura](../arquitetura/README.md), [ataque do Gemini](../ia/ataque-arquitetura-gemini-2026-11-13.md) |
+| D12 | 13/11/2026 | Pool Hikari de **5** conexões (Aiven free: `max_connections` 20, 3 a 6 reservadas) e nenhuma chamada HTTP dentro de transação | proposta | `https://aiven.io/docs/products/postgresql/reference/pg-connection-limits` | verificação interna (13/11/2026) |
+| D13 | 13/11/2026 | Render free hiberna em 15 min: job de expiração roda também na subida; correção não depende dele (R15, R16) | proposta | `https://render.com/docs/free` | [arquitetura](../arquitetura/README.md), ataque interno de arquitetura |
 | D14 | 13/11/2026 | Vercel Hobby só para o beta de portfólio (uso não comercial); uso real com clientes pagando exige rever (RISC-03, H17) | proposta | `https://vercel.com/docs/limits/fair-use-guidelines`, `https://vercel.com/legal/terms` | [dossiê](../contexto.md#7-riscos-e-ameaças) |
 | D15 | 13/11/2026 | Regras da barbearia como dados (`configuracao_agenda`, serviços, jornada), nunca fixas no código | proposta | prompt aprovado pelo Kevin | [DDL](../banco/V1__agenda.proposta.sql) |
-| D16 | 13/11/2026 | Ordem do trabalho: backend S00 a S16, front F00 a F05, deploy por último | proposta | prompt aprovado pelo Kevin (seção 8) | [plano de fatias](plano-de-fatias.md) |
+| D16 | 13/11/2026 | Ordem do trabalho: backend S00 a S16, front F00 a F05, deploy por último | proposta | prompt aprovado pelo Kevin (seção 8) | [roadmap](../../README.md#-roadmap-em-fatias) |
 
 ### Ajustes da revisão do Alicerce (13/11/2026)
 
@@ -54,6 +54,22 @@ O PR #1 foi aprovado com ajustes pelo Alicerce (arquitetura). Cada linha abaixo 
 | D28 | Job de reprocessamento de eventos de webhook presos: ShedLock, a cada 5 min e na subida; só `processado_em IS NULL` e `recebido_em < agora - N` (`agora` do `Clock`); lotes com `FOR UPDATE SKIP LOCKED`; mesmo caminho idempotente do webhook; conta `tentativas` e, na M-ésima falha, marca `REVISAO_MANUAL` para o painel. N e M são as HIPÓTESES **H19** (10 min) e **H20** (5) | aceita (revisão do Alicerce); N e M em aberto | revisão do Alicerce; DDL e instrução de lote conferidos no PostgreSQL 17.12 (Docker), inclusive o `SKIP LOCKED` com outra sessão segurando a trava | [ADR 0007](../adr/0007-gateway-de-pagamento-sandbox.md), [arquitetura 6.2.1](../arquitetura/README.md#621-reprocessamento-de-eventos-de-webhook-presos), [DDL](../banco/V1__agenda.proposta.sql), [ERD](../banco/erd.md) |
 | D29 | ADRs 0001 a 0006 passam a **aceito**, em 13/11/2026, pela revisão do Alicerce | aceita | revisão do Alicerce no PR #2 | [ADRs](../adr/README.md) |
 | D30 | Verificação do OpenAPI depois destes ajustes: `npx @redocly/cli lint` 2.78.0 (regras recomendadas) com **0 erros e 14 avisos** (os mesmos 14 de D23); `openapi-spec-validator` 0.9.0: **OK** | aceita (verificável) | execução real em 13/11/2026 | [OpenAPI](../contrato/openapi.yaml) |
+
+### Definições oficiais da barbearia (16/11/2026)
+
+O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 a H8, H10 a H12, H16 e H17 do [dossiê](../contexto.md#4-hipóteses-em-aberto).
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D31 | **Pagamento 100% antecipado** para todo agendamento (cliente logado e guest), por **Pix** ou **cartão de crédito**; o conceito de "sinal" sai do modelo. Cliente logado também nasce `AGUARDANDO_PAGAMENTO` | aceita | Kevin, 16/11/2026 | [contrato 4.7](../contrato/contrato-api.md#47-pagamento-100-antecipado), R6 a R8 |
+| D32 | Cartão de crédito só pelo **checkout hospedado do gateway** (`urlCheckout`): o número do cartão nunca passa pela API nem pelo front próprio, o que tira o projeto do escopo pesado do PCI DSS | proposta | decisão técnica do Claude (orquestração) | [OpenAPI](../contrato/openapi.yaml) `Cobranca.cartao` |
+| D33 | **Sem cancelamento e sem remarcação pelo cliente**: as rotas `/agendamentos/{id}/cancelamento` e `/remarcacao` saem do contrato; só a barbearia cancela, com motivo | aceita | Kevin, 16/11/2026 | R18, R22 |
+| D34 | **Aceite obrigatório** antes do pagamento: `aceitePolitica: true` + `versaoPolitica` no corpo da cobrança; a reserva guarda versão e data do aceite (prova para o caso de contestação); sem aceite → `422 ACEITE_POLITICA_OBRIGATORIO` | aceita | Kevin, 16/11/2026 | R18, [contrato](../contrato/contrato-api.md#aceite_politica_obrigatorio) |
+| D35 | **Pagamento tardio**: com o horário livre, a reserva volta de `EXPIRADO` para `CONFIRMADO` pela mesma constraint; com o horário ocupado, `PAGA_APOS_EXPIRACAO` vira pendência administrativa | aceita | Kevin, 16/11/2026 | R14 |
+| D36 | Agenda: terça a sábado, 07h00 às 20h00, almoço 12h00 às 13h00 (intervalo editável da jornada), slots de 30 min, sem intervalo entre clientes, antecedência de 2 h, horizonte de 30 dias; 1 barbeiro (Carlos Eduardo Cândido, ADMIN + BARBEIRO) sem apagar a entidade `Barbeiro` | aceita | Kevin, 16/11/2026 | R3 a R5, H1 a H5, H11, H12 |
+| D37 | Catálogo real com 5 serviços e sem combos; "Corte Moderno / Visagismo" dura 60 min (2 slots) | aceita | Kevin, 16/11/2026 | H3 |
+| D38 | Deploy em duas fases: **Fase 1** gratuita (Vercel + Render + Aiven, gateway em sandbox); **Fase 2** (produção real e lojas mobile) planejada na área interna da equipe | aceita | Kevin, 16/11/2026 | H17 |
+| D39 | Documentação pública enxuta: o repositório mostra código, README, contrato, ADRs, arquitetura e guia rápido; pesquisas de IA, recados entre agentes, plano de fatias detalhado, credenciais e roteiros completos ficam em `.equipe/` (ignorada pelo Git, padrão do RKF Bank) | aceita | Kevin, 16/11/2026 | [README](../../README.md) |
 
 ## Pontos em que uma IA discordou da fonte oficial
 

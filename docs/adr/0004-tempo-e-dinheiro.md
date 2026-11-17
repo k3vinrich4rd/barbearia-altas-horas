@@ -4,6 +4,9 @@
 - Data: 2026-11-13 (proposta e aceite)
 - Decisores: Alicerce (dono), Quarteto Dev (texto)
 
+
+> **Atualização 16/11/2026 (D31 a D35):** a barbearia definiu pagamento **100% antecipado** por Pix ou cartão para todos, sem cancelamento ou remarcação pelo cliente. Onde este registro fala em "sinal" ou remarcação, vale a regra nova; o ADR fica como histórico da decisão.
+
 ## Contexto
 A agenda mistura instantes (reserva às 10h de 01/12) com regras de calendário local (jornada de terça a sábado, 9h às 19h, em `America/Sao_Paulo`). O sinal é dinheiro e não pode ter arredondamento de ponto flutuante.
 

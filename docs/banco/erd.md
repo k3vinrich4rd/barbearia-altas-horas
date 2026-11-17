@@ -10,6 +10,9 @@
 
 > Status: **proposta (13/11/2026)**, aguardando revisão do Alicerce (arquitetura). Os valores iniciais de `configuracao_agenda` são **HIPÓTESES** ([dossiê, seção 4](../contexto.md#4-hipóteses-em-aberto)).
 
+
+> **A alinhar na Fatia 1 (16/11/2026, D31 a D35):** sai `sinal_centavos`, `percentual_sinal`, `politica_sinal` e `janela_cancelamento_min`; entram `metodo` na cobrança, `aceite_politica_versao` e `aceite_politica_em` na reserva e a transição `EXPIRADO → CONFIRMADO`. A migração `V1` real nasce já com o modelo novo.
+
 ## 1. ERD
 
 Cada cor de módulo é dona das próprias tabelas (arquitetura do Alicerce, seção 3). FKs entre tabelas de módulos diferentes são permitidas no banco; no código, a referência é só pelo id.
