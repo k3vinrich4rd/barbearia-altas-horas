@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 **aguarda aprovação do Kevin** (escrita em 17/11/2026) |
+| **Status** | ✅ **aprovada pelo Kevin em 17/11/2026**, com o ajuste do beta sem gateway real (D59); em implementação, começando pela 4A |
 | **Fatias do plano** | S07 (reserva do cliente) + S08 sem cancelar/remarcar (leitura) + S11 (reserva do visitante) + S12 (cobrança) + S13 (webhook e pagamento tardio) + S14 (job de expiração) |
 | **Entrega em duas PRs** | **4A** · reserva e expiração (`feat/fatia-4a-reserva`) · **4B** · cobrança, webhook e conciliação (`feat/fatia-4b-pagamento`). A 4B só começa com a 4A na `main` |
 | **Regras** | [R1, R2](../contexto.md#3-regras-de-negócio) (constraint), R5 (antecedência e horizonte), R6 a R8 (todo agendamento paga 100% antes), R9 e R10 (CPF e idempotência), R11 a R14 (webhook e pagamento tardio), R15 a R17 (expiração), R18 (sem cancelar ou remarcar, aceite obrigatório), R23 (recurso alheio → 404), R26 (limite do visitante), R30 (nada pessoal em log) |
@@ -32,7 +32,7 @@ O cliente, com conta ou sem conta, escolhe um horário livre, o horário fica **
 | `POST` | `/pagamentos/cobrancas` | dono da reserva (bearer ou `X-Guest-Token`) | `201` (`200` na repetição) | `400 CPF_INVALIDO` · `400 IDEMPOTENCY_KEY_AUSENTE` · `401` · `404` · `409 COBRANCA_EM_ANDAMENTO` · `422 ACEITE_POLITICA_OBRIGATORIO` · `422 RESERVA_EXPIRADA` · `422 IDEMPOTENCIA_CONFLITO` · `429` · `503 GATEWAY_INDISPONIVEL` |
 | `POST` | `/pagamentos/webhook` | o gateway (`asaas-access-token`) | `200` | `401 WEBHOOK_NAO_AUTENTICADO` · `5xx` (para o gateway reenviar) |
 
-**Ajustes no contrato (v1.3.0), aplicados depois da aprovação:** código novo `409 COBRANCA_EM_ANDAMENTO` (E21); `GET /agendamentos/guest/{id}` passa a conciliar com o gateway (E25); `POST /agendamentos/guest` documenta o limite de 3 por hora por IP.
+**Ajustes no contrato (v1.3.0), aplicados depois da aprovação:** código novo `409 COBRANCA_EM_ANDAMENTO` (E21); rota `POST /pagamentos/simulacao/{cobrancaId}/confirmar`, existente só no modo simulado (E28); `GET /agendamentos/guest/{id}` passa a conciliar com o gateway (E25); `POST /agendamentos/guest` documenta o limite de 3 por hora por IP.
 
 ## 3. Decisões de desenho
 
@@ -72,7 +72,7 @@ O cliente, com conta ou sem conta, escolhe um horário livre, o horário fica **
 | E25 | Conciliação | `GET /agendamentos/guest/{id}` e `GET /agendamentos/{id}` com cobrança `PENDENTE` reconsultam o gateway **no máximo a cada 10 s** por cobrança e aplicam o mesmo fluxo do webhook | se o webhook atrasar (API hibernando), a tela do cliente ainda vira "Confirmado" |
 | E26 | Eventos presos | job com ShedLock a cada 5 min e na subida: `processado_em IS NULL` há mais de 10 min (H19), lotes com `SKIP LOCKED`, até 5 tentativas (H20) e depois `REVISAO_MANUAL` | ADR 0007, D28 |
 | E27 | Chamadas externas | sempre fora de `@Transactional`; timeout de conexão 2 s e de leitura 5 s; falha → `503 GATEWAY_INDISPONIVEL` | pool de 5 conexões (D12) não fica preso esperando a rede |
-| E28 | Configuração | `GATEWAY_URL_BASE`, `GATEWAY_TOKEN_SANDBOX`, `GATEWAY_SEGREDO_WEBHOOK`, `IDEMPOTENCIA_HMAC_SEGREDO` só por ambiente; em `dev` sem token, o adaptador **falso** fica ativo e um endpoint só do perfil `dev` simula o pagamento | dá para testar ponta a ponta sem conta no Asaas; com a conta, troca-se para o sandbox real |
+| E28 | Beta sem gateway real (D59) | `app.pagamento.modo` = **`simulado`** (padrão em todo o beta, inclusive no deploy gratuito) ou `asaas` (só na produção). No modo simulado, o `GatewaySimulado` gera um Pix de demonstração e um link de checkout que leva à confirmação simulada; a rota `POST /pagamentos/simulacao/{cobrancaId}/confirmar` (só o dono da reserva) dispara **o mesmo fluxo do webhook**. No modo `asaas` essa rota não existe (`404`). O `AsaasGateway` é escrito e testado com `MockRestServiceServer`, mas fica desligado até a produção | beta sem custo, sem conta em serviço externo e sem dinheiro real, e o caminho de confirmação testado é o mesmo da produção |
 
 ## 4. Critérios de aceite
 
@@ -146,7 +146,7 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 |---|---|---|---|---|
 | A43 | fluxo inteiro (reservar, cobrar com CPF, webhook) | ler o log | nenhum CPF, e-mail, WhatsApp ou token no log (R30) | `SemDadoPessoalNoLogPagamentoIT` |
 | A44 | módulos | `./mvnw verify` | `agenda` e `pagamento` só se falam pela API pública e por eventos; `GatewayDePagamento` e o núcleo de estados sem framework | `ModulithTest`, `ArquiteturaTest` |
-| A45 | perfil `dev` sem conta no Asaas | reservar, cobrar e simular o pagamento pela rota de desenvolvimento | reserva `CONFIRMADO`; a rota de simulação **não existe** fora do perfil `dev` (`404`) | `SimulacaoDevIT` |
+| A45 | modo `simulado` (padrão), sem nenhuma conta externa | reservar, cobrar e chamar a confirmação simulada como dono · como outro usuário · com `app.pagamento.modo=asaas` | reserva `CONFIRMADO` pelo mesmo fluxo do webhook · `404` · `404` (a rota não existe) | `SimulacaoPagamentoIT` |
 
 ## 5. Entregas
 
@@ -157,27 +157,27 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 | `comum` | — | `Cpf` (valida e mascara) |
 | banco | `V3__eventos.sql` (`event_publication` oficial do Modulith 2.1.2) | — |
 | dependências | `spring-modulith-starter-jdbc`, `shedlock-spring` + `shedlock-provider-jdbc-template` 7.10.1 | — |
-| docs | contrato 1.3.0 (`COBRANCA_EM_ANDAMENTO`) · guia de testes: visitante V4 a V9 e cliente C8 a C12 com saída real · roteiro privado com o sandbox · README e "como foi construído" |
+| docs | contrato 1.3.0 (`COBRANCA_EM_ANDAMENTO` e rota de confirmação simulada) · guia de testes: visitante V4 a V9 e cliente C8 a C12 com saída real, no modo simulado · README e "como foi construído" |
 
 ## 6. Riscos e cuidados
 
-- **Formato real do Asaas:** os campos da seção E15 seguem a documentação lida em 13/11/2026; no começo da 4B, o adaptador é conferido contra o sandbox de verdade antes de fechar os testes do `MockRestServiceServer`.
-- **Conta no sandbox:** precisa ser criada por você (é cadastro de conta). Sem ela, tudo funciona com o adaptador falso, e só o teste manual contra o Asaas fica pendente.
+- **Formato real do Asaas:** os campos da seção E15 seguem a documentação lida em 13/11/2026; no beta o adaptador é provado só com `MockRestServiceServer`; a conferência contra o sandbox de verdade fica para a saída do beta (D59).
+- **Sem conta externa no beta (D59):** o gateway real não é usado até a produção; o adaptador do Asaas é validado contra o sandbox só na saída do beta (roteiro privado `.equipe/saida-do-beta.md`).
 - **Outbox:** o schema de `event_publication` muda entre versões do Modulith; a V3 copia o da 2.1.2 e o `ContextoSobeIT` com `ddl-auto: validate` quebra se não bater.
-- **Webhook em `localhost`:** o Asaas não alcança a sua máquina. Para o teste manual: túnel temporário (ex.: o recurso de webhook do Postman ou `cloudflared`), documentado no roteiro privado.
+- **Webhook em `localhost`:** no beta não há webhook externo (a confirmação simulada usa o mesmo caminho); o túnel só será necessário na validação contra o sandbox, na saída do beta.
 - **Deadlock entre job e reserva:** coberto por E4 e pelo `SKIP LOCKED` do job.
 
-## 7. Dúvidas para o Kevin
+## 7. Dúvidas respondidas (17/11/2026)
 
-| # | Dúvida | Minha proposta |
+| # | Dúvida | Decisão |
 |---|---|---|
-| D-1 | Dividir a fatia em duas PRs (4A reserva e expiração; 4B pagamento)? | sim: cada uma fecha um pedaço testável, e a 4A já entrega valor sozinha (reservar e expirar) |
-| D-2 | Conta no sandbox do Asaas | você cria a conta e anota o token em `.equipe/credenciais-sandbox.md`; até lá, o adaptador falso cobre os testes |
-| D-3 | Rota de simulação de pagamento no perfil `dev` (E28) | sim, só no perfil `dev`, para testar ponta a ponta sem conta e sem túnel |
+| D-1 | Dividir em duas PRs | sim: **4A** reserva e expiração, **4B** pagamento |
+| D-2 | Conta no sandbox do Asaas | **não no beta**: nenhum serviço externo nem custo até a produção (D59) |
+| D-3 | Simulação de pagamento | sim, como **modo padrão do beta** (não só no perfil `dev`), para o Eduardo ver o fluxo completo no app publicado sem dinheiro real |
 
 ## 8. Pronto quando
 
 - [ ] A1 a A21 verdes na PR 4A e A22 a A45 verdes na PR 4B (`sh scripts/conferir-spec.sh 4 --exigir` na 4B)
 - [ ] `redocly lint` com 0 erros no contrato 1.3.0
-- [ ] fluxo rodado à mão no perfil `dev` (com o adaptador falso) e, com a conta criada, contra o sandbox do Asaas
+- [ ] fluxo rodado à mão no perfil `dev` em modo simulado, do horário à reserva confirmada
 - [ ] [checklist da PR](checklist-pr.md) completo
