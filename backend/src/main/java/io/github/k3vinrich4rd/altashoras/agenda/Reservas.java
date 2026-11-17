@@ -5,6 +5,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
@@ -158,6 +162,52 @@ public class Reservas {
             }
             throw falha;
         }
+    }
+
+    /**
+     * O que o painel de pagamentos mostra de cada reserva (E12): quando, qual serviço, em que pé está e quem pagou
+     * (nome e WhatsApp, para o Eduardo saber para quem fazer o Pix de volta). Em lote, uma consulta para N reservas.
+     * O toString não imprime o contato (R30).
+     */
+    public record Resumo(UUID id, Instant inicio, String servico, String status, @Nullable String motivoCancelamento,
+            String contatoNome, @Nullable String contatoWhatsapp) {
+
+        @Override
+        public String toString() {
+            return "Resumo[" + id + ", " + status + "]";
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, Resumo> resumos(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        List<Resumo> linhas = jdbc.sql("""
+                SELECT r.id, r.inicio, s.nome AS servico, r.status, r.motivo_cancelamento,
+                       COALESCE(g.nome, u.nome) AS contato_nome, COALESCE(g.whatsapp, u.whatsapp) AS contato_whatsapp
+                FROM reserva r
+                JOIN servico s ON s.id = r.servico_id
+                LEFT JOIN usuario u ON u.id = r.cliente_id
+                LEFT JOIN reserva_guest g ON g.reserva_id = r.id
+                WHERE r.id IN (:ids)
+                """)
+                .param("ids", ids)
+                .query((rs, n) -> new Resumo(rs.getObject("id", UUID.class),
+                        rs.getObject("inicio", OffsetDateTime.class).toInstant(), rs.getString("servico"),
+                        rs.getString("status"), rs.getString("motivo_cancelamento"), rs.getString("contato_nome"),
+                        rs.getString("contato_whatsapp")))
+                .list();
+        Map<UUID, Resumo> porId = new HashMap<>();
+        linhas.forEach(linha -> porId.put(linha.id(), linha));
+        return porId;
+    }
+
+    /** O pagamento pergunta, depois de marcar a cobrança paga, se a barbearia cancelou a reserva no meio (D77). */
+    @Transactional(readOnly = true)
+    public boolean estaCancelada(UUID reservaId) {
+        return jdbc.sql("SELECT count(*) FROM reserva WHERE id = :id AND status = 'CANCELADO'").param("id", reservaId)
+                .query(Long.class).single() > 0;
     }
 
     private static ExcecaoDeNegocio naoEncontrada() {

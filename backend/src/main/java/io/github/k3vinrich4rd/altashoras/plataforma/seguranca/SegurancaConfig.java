@@ -80,6 +80,10 @@ class SegurancaConfig {
                                 "/pagamentos/simulacao/*/confirmar").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/cadastro", "/auth/login", "/auth/refresh",
                                 "/auth/logout").permitAll()
+                        // Só ADMIN (E2): pagamentos, auditoria e, na 5B, os cadastros. A senha inicial continua barrada.
+                        .requestMatchers("/admin/pagamentos/**", "/admin/pagamentos", "/admin/auditoria",
+                                "/admin/servicos/**", "/admin/servicos", "/admin/barbeiros/**", "/admin/barbeiros",
+                                "/admin/configuracao").access(soAdmin())
                         .requestMatchers("/admin/**").access(painel())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(servidor -> servidor
@@ -107,14 +111,33 @@ class SegurancaConfig {
     private static AuthorizationManager<RequestAuthorizationContext> painel() {
         return (autenticacao, contexto) -> {
             Authentication quem = autenticacao.get();
-            boolean logado = quem != null && quem.isAuthenticated() && !(quem instanceof AnonymousAuthenticationToken);
-            boolean temPapel = logado && quem.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_BARBEIRO"));
-            if (temPapel && quem.getPrincipal() instanceof Jwt jwt && Boolean.TRUE.equals(jwt.getClaim("trocar"))) {
-                throw new TrocaDeSenhaObrigatoriaException();
-            }
+            boolean temPapel = temAlgumPapel(quem, "ROLE_ADMIN", "ROLE_BARBEIRO");
+            barrarSenhaInicial(quem, temPapel);
             return new AuthorizationDecision(temPapel);
         };
+    }
+
+    /**
+     * Rotas só do ADMIN (dinheiro, auditoria e cadastros, E2): o BARBEIRO recebe 403 ACESSO_NEGADO. Quem tem os dois
+     * papéis (o Eduardo) vale como ADMIN. Com a senha inicial ainda em uso, o painel inteiro continua barrado.
+     */
+    private static AuthorizationManager<RequestAuthorizationContext> soAdmin() {
+        return (autenticacao, contexto) -> {
+            Authentication quem = autenticacao.get();
+            barrarSenhaInicial(quem, temAlgumPapel(quem, "ROLE_ADMIN", "ROLE_BARBEIRO"));
+            return new AuthorizationDecision(temAlgumPapel(quem, "ROLE_ADMIN"));
+        };
+    }
+
+    private static boolean temAlgumPapel(Authentication quem, String... papeis) {
+        boolean logado = quem != null && quem.isAuthenticated() && !(quem instanceof AnonymousAuthenticationToken);
+        return logado && quem.getAuthorities().stream().anyMatch(a -> Arrays.asList(papeis).contains(a.getAuthority()));
+    }
+
+    private static void barrarSenhaInicial(Authentication quem, boolean temPapelDoPainel) {
+        if (temPapelDoPainel && quem.getPrincipal() instanceof Jwt jwt && Boolean.TRUE.equals(jwt.getClaim("trocar"))) {
+            throw new TrocaDeSenhaObrigatoriaException();
+        }
     }
 
     /** Só as origens de CORS_ORIGENS; nunca "*". Vazio = nenhum navegador de outra origem chama a API (E15). */

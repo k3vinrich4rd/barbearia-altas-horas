@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.3.0
+  version: 1.4.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -446,7 +446,11 @@ paths:
     get:
       tags: [admin]
       operationId: agendaAdmin
-      summary: Agenda do dia ou da semana (BARBEIRO só a própria, HIPÓTESE H9)
+      summary: Agenda do dia ou da semana (BARBEIRO só a própria, H9)
+      description: |
+        Dia civil no fuso da barbearia; a semana vai de segunda a domingo. Não traz reservas EXPIRADO nem
+        AGUARDANDO_PAGAMENTO já vencidas (não ocupam horário, R15). Ordem: início, depois id. Sem paginação.
+        Barbeiro inexistente, alheio ou conta BARBEIRO sem vínculo: 404.
       parameters:
         - { name: data, in: query, required: true, schema: { type: string, format: date } }
         - { name: visao, in: query, required: false, schema: { type: string, enum: [DIA, SEMANA], default: DIA } }
@@ -458,7 +462,8 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Agendamento' }
+                items: { $ref: '#/components/schemas/AgendamentoAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
@@ -467,6 +472,11 @@ paths:
       tags: [admin]
       operationId: mudarStatusAgendamento
       summary: Conclui, marca falta (NAO_COMPARECEU, valor retido) ou cancela pela barbearia
+      description: |
+        CONCLUIDO e NAO_COMPARECEU: ADMIN ou BARBEIRO (só da própria agenda), a partir do horário de início.
+        CANCELADO: só ADMIN (BARBEIRO recebe 403), com `motivo`; a cobrança paga vira DEVOLUCAO_PENDENTE e a
+        pendente vira CANCELADA. Ordem das checagens: 404, 403, 422 MOTIVO_OBRIGATORIO, 409 CONFLITO_DE_VERSAO e
+        422 TRANSICAO_INVALIDA (máquina de estados e "antes do início").
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -478,7 +488,8 @@ paths:
           description: Status alterado
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Agendamento' }
+              schema: { $ref: '#/components/schemas/AgendamentoAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
@@ -622,6 +633,22 @@ paths:
         '404': { $ref: '#/components/responses/Erro404' }
         '422': { $ref: '#/components/responses/Erro422' }
   /admin/barbeiros/{id}/folgas:
+    get:
+      tags: [admin]
+      operationId: listarFolgas
+      summary: Folgas do barbeiro de hoje em diante (sem listar, a tela não sabe o que remover)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Folgas de hoje em diante
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Folga' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
     post:
       tags: [admin]
       operationId: criarFolga
@@ -661,6 +688,10 @@ paths:
       tags: [admin]
       operationId: listarPagamentosAdmin
       summary: Cobranças por status, inclusive pagas depois de expirar (pendência administrativa)
+      description: |
+        Só ADMIN. Sem `status`: as pendências (PAGA_APOS_EXPIRACAO e DEVOLUCAO_PENDENTE), as mais antigas primeiro.
+        Com `status`: aquele status, as mais recentes primeiro. `status` desconhecido, `pagina` negativa ou
+        `tamanho` fora de 1 a 50: 400.
       parameters:
         - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/StatusCobranca' } }
         - $ref: '#/components/parameters/Pagina'
@@ -671,6 +702,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PaginaCobrancas' }
+        '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
   /admin/pagamentos/{id}/devolucao:
@@ -678,6 +710,9 @@ paths:
       tags: [admin]
       operationId: registrarDevolucao
       summary: Registra devolução manual feita (só cancelamento pela barbearia ou pagamento tardio sem horário)
+      description: |
+        No beta o estorno é feito fora do app (no Pix de volta do Eduardo); a API só registra. DEVOLUCAO_PENDENTE ou
+        PAGA_APOS_EXPIRACAO viram DEVOLVIDA. Repetir a devolução é 422 e não altera a data original.
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       responses:
         '200':
@@ -685,6 +720,40 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Cobranca' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /admin/pagamentos/eventos:
+    get:
+      tags: [admin]
+      operationId: listarEventosEmRevisao
+      summary: Eventos do gateway que esgotaram as tentativas (REVISAO_MANUAL), os mais antigos primeiro
+      description: Sem payload e sem dado pessoal. Só ADMIN.
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Tamanho'
+      responses:
+        '200':
+          description: Página de eventos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaEventos' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/pagamentos/eventos/{id}/revisao:
+    post:
+      tags: [admin]
+      operationId: marcarEventoRevisado
+      summary: Marca o evento como revisado (tira da fila; não reprocessa)
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Evento revisado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventoWebhookAdmin' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
@@ -725,7 +794,8 @@ paths:
     get:
       tags: [admin]
       operationId: listarAuditoria
-      summary: Ações do painel (paginado)
+      summary: Ações do painel (paginado, as mais recentes primeiro)
+      description: Só ADMIN. O IP da requisição fica guardado no banco e não sai na API.
       parameters:
         - $ref: '#/components/parameters/Pagina'
         - $ref: '#/components/parameters/Tamanho'
@@ -735,6 +805,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PaginaAuditoria' }
+        '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
 components:
@@ -846,7 +917,7 @@ components:
              CONFLITO_DE_VERSAO, CONFLITO_CONCORRENTE, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
              FORA_DO_HORIZONTE, ACEITE_POLITICA_OBRIGATORIO, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
              RESERVA_EXPIRADA, COBRANCA_EM_ANDAMENTO, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
-             FOLGA_COM_RESERVAS, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL, ERRO_INTERNO]
+             FOLGA_COM_RESERVAS, USUARIO_JA_VINCULADO, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL, ERRO_INTERNO]
     StatusReserva:
       type: string
       enum: [AGUARDANDO_PAGAMENTO, CONFIRMADO, CONCLUIDO, NAO_COMPARECEU, CANCELADO, EXPIRADO]
@@ -1082,6 +1153,25 @@ components:
         expiraEm: { type: [string, 'null'], format: date-time, description: 'prazo do pagamento (15 min); nulo depois de CONFIRMADO' }
         motivoCancelamento: { type: [string, 'null'], description: 'só em cancelamento pela barbearia' }
         version: { type: integer, format: int64 }
+    AgendamentoAdmin:
+      description: |
+        O Agendamento visto pelo painel: mais o contato de quem vem (nome e WhatsApp, nunca e-mail nem CPF) e o status
+        da cobrança (nulo quando a reserva não tem cobrança).
+      allOf:
+        - $ref: '#/components/schemas/Agendamento'
+        - type: object
+          required: [cliente]
+          properties:
+            cliente:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string }
+                whatsapp: { type: [string, 'null'], description: 'só dígitos, com DDD', example: '11988880001' }
+            cobrancaStatus:
+              oneOf:
+                - { $ref: '#/components/schemas/StatusCobranca' }
+                - { type: 'null' }
     AgendamentoGuest:
       allOf:
         - $ref: '#/components/schemas/Agendamento'
@@ -1131,6 +1221,7 @@ components:
         status: { $ref: '#/components/schemas/StatusCobranca' }
         metodo: { $ref: '#/components/schemas/MetodoPagamento' }
         valorCentavos: { type: integer, format: int64, description: '100% do precoCentavos da reserva' }
+        devolvidaEm: { type: [string, 'null'], format: date-time, description: 'só na resposta de POST /admin/pagamentos/{id}/devolucao e nas cobranças devolvidas' }
         pix:
           type: [object, 'null']
           description: preenchido quando metodo = PIX
@@ -1173,7 +1264,57 @@ components:
       properties:
         itens:
           type: array
-          items: { $ref: '#/components/schemas/Cobranca' }
+          items: { $ref: '#/components/schemas/CobrancaAdmin' }
+        pagina: { type: integer }
+        tamanho: { type: integer }
+        total: { type: integer, format: int64 }
+    CobrancaAdmin:
+      description: |
+        A Cobranca para o painel: sem `pix` e sem `cartao` (o painel não precisa do copia e cola nem do link) e com o resumo da
+        reserva e o contato de quem pagou, para o Eduardo saber para quem fazer o Pix de volta. Nunca CPF nem e-mail.
+      type: object
+      required: [id, reservaId, status, valorCentavos]
+      properties:
+        id: { type: string, format: uuid }
+        reservaId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/StatusCobranca' }
+        metodo: { $ref: '#/components/schemas/MetodoPagamento' }
+        valorCentavos: { type: integer, format: int64 }
+        criadoEm: { type: string, format: date-time }
+        devolvidaEm: { type: [string, 'null'], format: date-time }
+        reserva:
+          type: [object, 'null']
+          properties:
+            id: { type: string, format: uuid }
+            inicio: { type: string, format: date-time }
+            servico: { type: string }
+            statusReserva: { $ref: '#/components/schemas/StatusReserva' }
+            motivoCancelamento: { type: [string, 'null'] }
+        contato:
+          type: [object, 'null']
+          properties:
+            nome: { type: string }
+            whatsapp: { type: [string, 'null'], example: '11988880001' }
+    EventoWebhookAdmin:
+      description: Evento do gateway que esgotou as tentativas. Sem payload e sem dado pessoal; `ultimoErro` é só o código do erro.
+      type: object
+      required: [id, tipo, recebidoEm, tentativas, resultado]
+      properties:
+        id: { type: string, format: uuid }
+        tipo: { type: string, example: PAYMENT_RECEIVED }
+        recebidoEm: { type: string, format: date-time }
+        tentativas: { type: integer }
+        ultimoErro: { type: [string, 'null'], example: SEM_COBRANCA }
+        idCobrancaProvedor: { type: [string, 'null'] }
+        resultado: { type: string, enum: [REVISAO_MANUAL, REVISADO] }
+        processadoEm: { type: [string, 'null'], format: date-time }
+    PaginaEventos:
+      type: object
+      required: [itens, pagina, tamanho, total]
+      properties:
+        itens:
+          type: array
+          items: { $ref: '#/components/schemas/EventoWebhookAdmin' }
         pagina: { type: integer }
         tamanho: { type: integer }
         total: { type: integer, format: int64 }
@@ -1196,7 +1337,7 @@ components:
       required: [antecedenciaMinimaMin, intervaloEntreAtendimentosMin, granularidadeMin, horizonteDias,
                  expiracaoPagamentoMin, version]
       properties:
-        fuso: { type: string, readOnly: true, example: America/Sao_Paulo }
+        fuso: { type: string, readOnly: true, example: America/Sao_Paulo, description: 'só leitura: mandar o campo no PUT é 400 CAMPO_DESCONHECIDO' }
         antecedenciaMinimaMin: { type: integer, minimum: 0, example: 120, description: 'H5: 2 horas' }
         intervaloEntreAtendimentosMin: { type: integer, minimum: 0, maximum: 120, example: 0, description: 'H4: sem intervalo' }
         granularidadeMin: { type: integer, enum: [5, 10, 15, 20, 30, 60], example: 30, description: 'H11: 30 min' }
@@ -1243,6 +1384,7 @@ components:
               acao: { type: string }
               recurso: { type: string }
               recursoId: { type: [string, 'null'], format: uuid }
+              detalhe: { type: [object, 'null'], description: 'campos técnicos (de/para do status, ids); nunca motivo, nome, WhatsApp, e-mail ou token', additionalProperties: { type: string } }
               ocorridoEm: { type: string, format: date-time }
         pagina: { type: integer }
         tamanho: { type: integer }

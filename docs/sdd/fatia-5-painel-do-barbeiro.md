@@ -282,9 +282,10 @@ Massa: cobrança `PAGA` (criada 08:00), `DEVOLUCAO_PENDENTE` (criada 10:00), `PA
 
 ## 8. Pronto quando
 
-- [ ] A1 a A40 verdes na PR 5A e A41 a A71 na PR 5B (`scripts/conferir-spec.sh 5 --exigir`)
-- [ ] `./mvnw verify` verde, com A9 da Fatia 4 (`ReservaConcorrenteIT`) ainda passando depois do `FOR SHARE`
-- [ ] `redocly lint` com 0 erros no contrato 1.4.0
+- [x] **5A:** A1 a A40 verdes (214 testes no `./mvnw verify`, `scripts/conferir-spec.sh 5`: 40 de 71 com teste) · [ ] **5B:** A41 a A71 na PR 5B (`scripts/conferir-spec.sh 5 --exigir`)
+- [x] **5A:** `./mvnw verify` verde (214 testes, 0 falhas) · [ ] **5B:** com A9 da Fatia 4 (`ReservaConcorrenteIT`) ainda passando depois do `FOR SHARE`
+- [x] **5A:** `redocly lint` com 0 erros no contrato 1.4.0 (parte da 5A; o item 5 da seção 2 entra na 5B)
 - [ ] rotina do Eduardo rodada à mão no perfil `dev`: ver o dia, fechar, cancelar uma reserva paga, devolver, criar folga, mudar a antecedência (saídas em `docs/guia-testes.md`)
-- [ ] decisões novas registradas em `decisoes.md` (D70 em diante: matriz de papéis, auditoria na mesma transação, `ReservaCancelada`, `FOR SHARE`)
+  - [x] **5A** rodada à mão em 17/11/2026 (AD4 a AD9: agenda, fechar com a regra do relógio, cancelar com motivo, pendência, devolução e auditoria; `grep` do log: 0) · [ ] **5B** folga e antecedência
+- [x] **5A:** D70 a D76 registradas em `decisoes.md` (matriz de papéis, auditoria na mesma transação, `ReservaCancelada`, trava da reserva, testes de falha injetada) · [ ] **5B:** `FOR SHARE` (D77 em diante) · decisões originais: matriz de papéis, auditoria na mesma transação, `ReservaCancelada`, `FOR SHARE`)
 - [ ] [checklist da PR](checklist-pr.md) completo

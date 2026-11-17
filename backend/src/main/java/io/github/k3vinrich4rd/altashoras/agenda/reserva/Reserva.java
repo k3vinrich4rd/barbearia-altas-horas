@@ -65,6 +65,18 @@ public class Reserva {
     @Column(name = "motivo_cancelamento")
     private @Nullable String motivoCancelamento;
 
+    @Column(name = "cancelado_por")
+    private @Nullable UUID canceladoPor;
+
+    @Column(name = "cancelado_em")
+    private @Nullable Instant canceladoEm;
+
+    @Column(name = "finalizado_por")
+    private @Nullable UUID finalizadoPor;
+
+    @Column(name = "finalizado_em")
+    private @Nullable Instant finalizadoEm;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -109,8 +121,38 @@ public class Reserva {
         this.atualizadoEm = agora;
     }
 
+    /**
+     * Fechamento do atendimento (R19 a R21): CONCLUIDO ou NAO_COMPARECEU, só a partir do início (inclusivo, E7).
+     * A máquina de estados responde primeiro; "antes do início" reaproveita TRANSICAO_INVALIDA com texto próprio.
+     */
+    public void fechar(StatusReserva destino, UUID por, Instant agora) {
+        if (status.podeIrPara(destino) && agora.isBefore(inicio)) {
+            throw new ExcecaoDeNegocio(CodigoErro.TRANSICAO_INVALIDA,
+                    "O atendimento só pode ser fechado a partir do horário de início.");
+        }
+        mudarPara(destino, agora);
+        this.finalizadoPor = por;
+        this.finalizadoEm = agora;
+    }
+
+    /** Cancelamento pela barbearia (R22): o motivo é obrigatório e fica na reserva, que já é o registro (E9, E11). */
+    public void cancelarPelaBarbearia(String motivo, UUID por, Instant agora) {
+        mudarPara(StatusReserva.CANCELADO, agora);
+        this.motivoCancelamento = motivo;
+        this.canceladoPor = por;
+        this.canceladoEm = agora;
+    }
+
     public UUID getId() {
         return id;
+    }
+
+    public UUID getBarbeiroId() {
+        return barbeiroId;
+    }
+
+    public long getVersion() {
+        return version == null ? 0 : version;
     }
 
     public StatusReserva getStatus() {

@@ -8,7 +8,7 @@
 | 🔒 **Sem segredo** | dados **fictícios** e gateway em **sandbox**; nenhum dinheiro real |
 
 > [!IMPORTANT]
-> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (Fatias 1 a 3, 16 e 17/11/2026).
+> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (Fatias 1 a 5A, 16 e 17/11/2026).
 > **⏳ Fatia N = roteiro já escrito**, que vira ✅ quando a fatia entrar na `develop` (aí ganha o comando e a resposta reais).
 
 ## Mapa
@@ -16,12 +16,12 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 172 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 216 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
-| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial (✅), agenda e fechamento | ✅ AD1 a AD3 · ⏳ Fatia 5 |
+| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver e auditoria | ✅ AD1 a AD9 · ⏳ 5B (AD10 em diante) |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
 | [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **172 testes, 0 falhas, 0 pulados** (17/11/2026, com a Fatia 4B), `BUILD SUCCESS`, cobertura de instruções **95,3%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **216 testes, 0 falhas, 0 pulados** (17/11/2026, com a Fatia 5A), `BUILD SUCCESS`, cobertura de instruções **95,3%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -540,17 +540,131 @@ curl -i -X PUT http://localhost:8080/me/senha -H "Authorization: Bearer $ACESSO"
 
 → `204`. Entre de novo com a senha nova: `deveTrocarSenha` vem `false` e `/admin/agenda` responde `404` (a rota chega na Fatia 5; o importante é que deixou de ser `403`).
 
-### AD4 em diante ⏳ Fatia 5
+### AD4 ✅ Ver a agenda do dia
+
+Com o token do admin (AD3) e três reservas pagas na quarta 02/12 (visitante às 10h, cliente A às 11h, cliente B às 14h, como no V8/C12):
+
+```bash
+curl -s "localhost:8080/admin/agenda?data=2026-12-02" -H "Authorization: Bearer $ADMIN"
+curl -s "localhost:8080/admin/agenda?data=2026-12-02&visao=SEMANA" -H "Authorization: Bearer $ADMIN"
+curl -s -i "localhost:8080/admin/agenda" -H "Authorization: Bearer $ADMIN"
+```
+
+Saída real (17/11/2026, 16h31), resumida:
+
+```text
+200  3 itens: 10:00 CONFIRMADO version 2 cliente {"nome":"Visitante Teste","whatsapp":"11900000002"} cobrancaStatus PAGA
+              11:00 CONFIRMADO ... "Cliente Teste A" ... PAGA · 14:00 CONFIRMADO ... "Cliente Teste B" ... PAGA
+200  visao=SEMANA: 5 itens (as 2 de 01/12 mais as 3 de 02/12)
+400  VALIDACAO_INVALIDA   (sem o parâmetro data)
+```
+
+**O que prova:** o dia vem na ordem do relógio, com o nome e o WhatsApp para o Eduardo avisar o cliente e o status da cobrança; **não** vem e-mail, token nem CPF. A visão `SEMANA` vai de segunda a domingo.
+
+### AD5 ✅ Fechar o atendimento (a regra do relógio)
+
+```bash
+curl -s -i -X PATCH localhost:8080/admin/agendamentos/<id>/status -H "Authorization: Bearer $ADMIN"   -H "Content-Type: application/json" -d '{"status":"CONCLUIDO","version":2}'
+```
+
+Saída real (17/11/2026, 16h31; o relógio do `dev` é o real, e as reservas são de 02/12):
+
+```text
+422  TRANSICAO_INVALIDA  "O atendimento só pode ser fechado a partir do horário de início."
+```
+
+**O que prova:** não dá para marcar `CONCLUIDO` nem `NAO_COMPARECEU` antes de a hora chegar (critério A12; a reserva e o `version` ficam como estavam). Para ver o `200`, rode o mesmo comando em uma reserva cujo horário já passou.
+
+### AD6 ✅ Falta retém o valor
+
+O mesmo `PATCH` com `{"status":"NAO_COMPARECEU","version":2}` na reserva das 10h:
+
+```text
+422  TRANSICAO_INVALIDA  (mesma regra: a reserva ainda é do futuro)
+```
+
+Com a hora já passada, a resposta é `200` e a cobrança **continua `PAGA`** (o valor fica com a barbearia, R19); isso é provado pelo teste `FechamentoAtendimentoIT` (A11).
+
+### AD7 ✅ Cancelar pela barbearia: sem motivo e com motivo
+
+```bash
+curl -s -i -X PATCH localhost:8080/admin/agendamentos/<id>/status -H "Authorization: Bearer $ADMIN"   -H "Content-Type: application/json" -d '{"status":"CANCELADO","version":2}'
+curl -s -i -X PATCH localhost:8080/admin/agendamentos/<id>/status -H "Authorization: Bearer $ADMIN"   -H "Content-Type: application/json" -d '{"status":"CANCELADO","motivo":"Barbeiro com imprevisto de saude","version":2}'
+```
+
+Saída real (17/11/2026, 16h31), na reserva paga da cliente A (11h):
+
+```text
+422  MOTIVO_OBRIGATORIO   (sem motivo)
+422  MOTIVO_OBRIGATORIO   (motivo só com espaços)
+409  CONFLITO_DE_VERSAO   (version desatualizada)
+200  {"status":"CANCELADO","version":3,"motivoCancelamento":"Barbeiro com imprevisto de saude", ...}
+```
+
+**O que prova:** só a barbearia cancela, e sempre com motivo; o cliente vê o motivo em `GET /me/agendamentos`. A resposta do `PATCH` ainda mostra `cobrancaStatus: PAGA`, porque a cobrança é tratada logo depois, por um evento (próximo passo).
+
+### AD8 ✅ Pendência de devolução e devolver
+
+```bash
+curl -s "localhost:8080/admin/pagamentos" -H "Authorization: Bearer $ADMIN"
+curl -s -i -X POST localhost:8080/admin/pagamentos/<cobrancaId>/devolucao -H "Authorization: Bearer $ADMIN"
+curl -s -i -X POST localhost:8080/admin/pagamentos/<cobrancaId>/devolucao -H "Authorization: Bearer $ADMIN"
+curl -s "localhost:8080/admin/pagamentos?status=DEVOLVIDA" -H "Authorization: Bearer $ADMIN"
+```
+
+Saída real (17/11/2026, 16h31):
+
+```text
+200  total=1  {"status":"DEVOLUCAO_PENDENTE","valorCentavos":5500,
+              "reserva":{"inicio":"2026-12-02T11:00:00-03:00","servico":"Corte Degradê / Fade / Navalhado",
+                         "statusReserva":"CANCELADO","motivoCancelamento":"Barbeiro com imprevisto de saude"},
+              "contato":{"nome":"Cliente Teste A","whatsapp":"11900000002"}}
+200  {"status":"DEVOLVIDA","devolvidaEm":"2026-11-17T16:31:08-03:00"}
+422  TRANSICAO_INVALIDA   (devolver de novo)
+200  total=0 pendências · ?status=DEVOLVIDA lista a de R$ 55,00
+400  VALIDACAO_INVALIDA   (?status=XYZ)
+```
+
+**O que prova:** cancelar uma reserva paga cria sozinho a pendência `DEVOLUCAO_PENDENTE`, com o WhatsApp de quem pagou para o Eduardo fazer o Pix de volta por fora. Marcar como devolvida é uma vez só, e a pendência some. Não aparece Pix, cartão, CPF nem e-mail.
+
+### AD9 ✅ Auditoria: quem fez o quê
+
+```bash
+curl -s "localhost:8080/admin/auditoria" -H "Authorization: Bearer $ADMIN"
+curl -s -i "localhost:8080/admin/auditoria?tamanho=51" -H "Authorization: Bearer $ADMIN"
+```
+
+Saída real (17/11/2026, 16h31):
+
+```text
+200  total=2 pagina=0 tamanho=20
+     DEVOLUCAO_REGISTRADA   cobranca     16:31:08  detalhe {"para":"DEVOLVIDA","reservaId":"2dc16414-…"}
+     AGENDAMENTO_CANCELADO  agendamento  16:31:06  detalhe {"de":"CONFIRMADO","para":"CANCELADO"}
+400  VALIDACAO_INVALIDA   (tamanho acima de 50)
+```
+
+**O que prova:** cada ação do painel vira uma linha (as recusadas, `422`/`409`, não deixam rastro), com o `atorId` e o horário, e o `detalhe` guarda só campos técnicos: **o motivo, o nome e o WhatsApp não estão lá**. O mesmo vale para o log: depois de todo o fluxo, `grep` por CPF, e-mail, WhatsApp, token e o texto do motivo no log da API deu **0** ocorrências.
+
+### AD9b ✅ Quem não é admin
+
+```bash
+curl -s -i "localhost:8080/admin/agenda?data=2026-12-02" -H "Authorization: Bearer <accessToken de um cliente>"
+curl -s -i "localhost:8080/admin/agenda?data=2026-12-02"
+```
+
+```text
+403  ACESSO_NEGADO     (cliente comum: agenda, pagamentos, auditoria e PATCH)
+401  NAO_AUTENTICADO   (sem token)
+```
+
+### ⏳ 5B: AD10 em diante
 
 | # | O que fazer | O que deve acontecer | O que prova |
 |---|---|---|---|
-| AD4 | `GET /admin/agenda?data=...` | as reservas do dia com status | agenda do barbeiro |
-| AD5 | `PATCH /admin/agendamentos/{id}/status` → `CONCLUIDO` | `200` | atendimento fechado |
-| AD6 | o mesmo com `NAO_COMPARECEU` em outra reserva | `200`; a cobrança continua `PAGA` | falta retém o valor |
-| AD7 | cancelar pela barbearia **sem** motivo | `422 MOTIVO_OBRIGATORIO` | só a barbearia cancela, e com motivo |
-| AD8 | `POST /admin/servicos` e depois `GET /admin/auditoria` | `201` e uma linha de auditoria com quem fez | toda ação do painel é registrada |
-| AD9 | mudar o almoço na jornada e repetir o V3 | os horários mudam sem deploy | regra como dado |
-| AD10 | deixar uma reserva expirar, outro cliente pega o horário, e só então pagar a primeira no sandbox | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência | pagamento tardio sem horário vira pendência |
+| AD10 | `POST /admin/servicos` e depois `GET /admin/auditoria` | `201` e uma linha de auditoria com quem fez | cadastros do painel também são registrados |
+| AD11 | mudar o almoço na jornada e repetir o V3 | os horários mudam sem deploy | regra como dado |
+| AD12 | criar uma folga com reservas no período, e mudar a antecedência em `PUT /admin/configuracao` | a folga avisa dos conflitos; a nova antecedência vale já | regra como dado |
+| AD13 | deixar uma reserva expirar, outro cliente pega o horário, e só então pagar a primeira no sandbox | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência (testado em A24; falta rodar no sandbox) | pagamento tardio sem horário vira pendência |
 
 ## 7. As telas (frontend)
 
