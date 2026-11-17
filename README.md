@@ -54,7 +54,7 @@
 <table>
 <tr>
 <td width="200" align="center" valign="top">
-<img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro da Altas Horas, de camisa listrada e gravata borboleta preta"/>
+<img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
 <br/><b>Eduardo Cândido</b><br/><sub>barbeiro e professor<br/>na ativa desde 1997</sub>
 </td>
 <td valign="top">
