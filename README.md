@@ -4,8 +4,9 @@
 
 <img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: agendamento online, pagamento 100% antecipado por Pix ou cartão, desde 1997"/>
 
-[![Status](https://img.shields.io/badge/status-especificação_SDD-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
-[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
+[![Status](https://img.shields.io/badge/status-Fatia_1_·_esqueleto-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
+[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1.1-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
+[![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Feito em Osasco](https://img.shields.io/badge/📍_Osasco-SP-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-a-barbearia)
 
 [![Java](https://img.shields.io/badge/Java-25_LTS-0A0A0A?logo=openjdk&logoColor=white&labelColor=2B2B2B)](https://openjdk.org/projects/jdk/25/)
@@ -34,7 +35,7 @@
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
 > [!IMPORTANT]
-> **Projeto em especificação (Spec-Driven Development).** Domínio, contrato da API, banco e decisões de arquitetura estão escritos e revisados; o código entra em fatias pequenas, cada uma com testes e revisão na `develop`. Números (testes, cobertura, desempenho) só aparecem aqui depois de sair de uma execução real.
+> **Em construção por fatias (Spec-Driven Development).** Domínio, contrato, banco e decisões estão escritos e revisados; o código entra em fatias pequenas, cada uma com testes e revisão na `develop`. **Fatia 1 pronta:** esqueleto, migração V1 com a constraint anti-sobreposição e **26 testes** com PostgreSQL real (0 falhas, 87% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
 
 ## ⚡ Em 30 segundos
 
@@ -202,7 +203,7 @@ flowchart LR
 ```
 
 <details>
-<summary><b>Estrutura do monorepo (planejada)</b></summary>
+<summary><b>Estrutura do monorepo</b></summary>
 
 <br/>
 
@@ -220,7 +221,7 @@ barbearia-altas-horas/
 │       └── admin/        # painel: agenda, catálogo, pagamentos, auditoria
 ├── frontend/             # Next.js (BFF guarda os tokens em cookie HttpOnly)
 ├── docs/                 # contrato, ADRs, domínio, banco, guia de testes
-└── compose.yaml          # PostgreSQL + API + front com 1 comando
+└── compose.yaml          # PostgreSQL 18 local (API e front entram na Fatia 8)
 ```
 
 </details>
@@ -268,21 +269,24 @@ barbearia-altas-horas/
 
 ## 🧪 Rodar e testar
 
-> [!NOTE]
-> O esqueleto (Fatia 1) é a próxima entrega. Os comandos abaixo são o **alvo**; cada um vira "testado" com a saída real quando a fatia entrar na `develop`.
+Precisa de **Docker Desktop** e **JDK 25**. Sem `.env`: o perfil `dev` usa os padrões locais.
 
 ```bash
 git clone https://github.com/k3vinrich4rd/barbearia-altas-horas.git
 cd barbearia-altas-horas
-cp .env.example .env          # preencha só com valores de teste
-docker compose up --build     # PostgreSQL + API + front
+docker compose up -d                                         # PostgreSQL 18 (porta 5433)
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-| O que | Endereço local |
-|---|---|
-| Front | `http://localhost:3000` |
-| API + Swagger (perfil `dev`) | `http://localhost:8080/swagger-ui.html` |
-| Health | `http://localhost:8080/actuator/health` |
+```bash
+cd backend && ./mvnw verify      # 26 testes com PostgreSQL real via Testcontainers
+```
+
+| O que | Endereço local | |
+|---|---|:-:|
+| Health | `http://localhost:8080/actuator/health` | ✅ |
+| Rotas de negócio | `http://localhost:8080/...` | ⏳ Fatia 2 em diante |
+| Front | `http://localhost:3000` | ⏳ Fatia 7 |
 
 O passo a passo para testar **o backend, o frontend e os dois juntos** (inclusive pagar no sandbox e ver o webhook confirmar) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**.
 
@@ -291,7 +295,7 @@ O passo a passo para testar **o backend, o frontend e os dois juntos** (inclusiv
 Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (regras, contrato e critérios de aceite) e só depois como código.
 
 - [x] **Fatia 0 · Especificação:** domínio, máquina de estados, contrato OpenAPI v1.1, DDL proposto e ADRs
-- [ ] **Fatia 1 · Esqueleto:** Maven, módulos, RFC 9457, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, CI
+- [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
 - [ ] **Fatia 2 · Catálogo e disponibilidade:** serviços, jornada com almoço, slots de 30 min, teste de concorrência da constraint
 - [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas
 - [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração
