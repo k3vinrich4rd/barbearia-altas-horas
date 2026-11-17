@@ -100,7 +100,7 @@ public class Reserva {
     }
 
     /** Muda o status só se a máquina de estados permitir; qualquer outra mudança é 422 TRANSICAO_INVALIDA. */
-    void mudarPara(StatusReserva destino, Instant agora) {
+    public void mudarPara(StatusReserva destino, Instant agora) {
         if (!status.podeIrPara(destino)) {
             throw new ExcecaoDeNegocio(CodigoErro.TRANSICAO_INVALIDA,
                     "Uma reserva " + status + " não pode ir para " + destino + ".");
