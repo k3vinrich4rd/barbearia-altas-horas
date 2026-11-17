@@ -4,8 +4,8 @@
 
 <img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: barbearia e academy em Osasco, agenda online com horário garantido, desde 1997"/>
 
-[![Status](https://img.shields.io/badge/status-Fatia_2_de_8_·_horários_livres-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
-[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1.2-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
+[![Status](https://img.shields.io/badge/status-Fatia_3_de_8_·_conta_e_acesso-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
+[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.2.0-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Feito em Osasco](https://img.shields.io/badge/📍_Osasco-SP-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-a-barbearia)
 
@@ -37,7 +37,7 @@
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
 > [!IMPORTANT]
-> **Onde o projeto está.** A agenda já responde, pela API, quais horários estão livres de verdade (descontando almoço, folgas e reservas), e o banco já impede dois clientes no mesmo horário. São **69 testes** rodando em PostgreSQL real, com 0 falhas. Conta, pagamento, painel e telas chegam nas próximas fatias: o [roadmap](#-roadmap-em-fatias) mostra o que está pronto e o que falta.
+> **Onde o projeto está.** A agenda já responde, pela API, quais horários estão livres de verdade (descontando almoço, folgas e reservas), o banco já impede dois clientes no mesmo horário e as contas já funcionam: cadastro, login com sessão que se renova, e um administrador que nasce sem senha no repositório. São **115 testes** rodando em PostgreSQL real, com 0 falhas. Agendamento com pagamento, painel e telas chegam nas próximas fatias: o [roadmap](#-roadmap-em-fatias) mostra o que está pronto e o que falta.
 >
 > Cada entrega nasce de uma **especificação** e só entra com teste para cada critério. Os números desta página saem sempre de execução real.
 
@@ -391,13 +391,14 @@ barbearia-altas-horas/
 
 | Tema | Decisão |
 |---|---|
-| Sessão | JWT de acesso curto + refresh rotativo guardado com hash, em cookie `HttpOnly; Secure; SameSite` pelo BFF |
+| Sessão | JWT de acesso de 15 min, validado como Resource Server; refresh rotativo guardado só como hash: usado duas vezes, a sessão inteira cai. ✅ |
 | Recurso alheio | busca já filtrada pelo dono; responde **404** em vez de confirmar que o id existe (OWASP API1, BOLA) |
 | Pagamento | webhook só com o token do gateway; cobrança com `X-Idempotency-Key`; cartão só no checkout do gateway |
 | CPF | pedido só no pagamento, validado, repassado e **nunca gravado nem logado** |
 | Aceite da política | versão do texto e data gravadas na reserva (prova em caso de contestação) |
-| Admin | criado na subida por `ADMIN_EMAIL` / `ADMIN_SENHA` (variáveis de ambiente, hash), com limite de tentativas e auditoria de cada ação |
-| Abuso | limite de tentativas no login, no cadastro e na reserva sem conta (`429` com `Retry-After`) |
+| Admin | criado na subida por `ADMIN_EMAIL` / `ADMIN_SENHA` (variáveis de ambiente, só hash), com **troca obrigatória** da senha inicial antes de abrir o painel. ✅ |
+| Abuso | limite de tentativas no login (por e-mail + IP e por IP) e no cadastro: `429` com `Retry-After`. ✅ |
+| Negar por padrão | só as rotas listadas são públicas; rota nova nasce protegida mesmo que alguém esqueça de pensar em segurança. ✅ |
 | Titular | exporta e exclui os próprios dados; marketing só com consentimento opcional e desmarcado |
 
 ## 🛠 Painel admin
@@ -425,14 +426,15 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 69 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 115 testes com PostgreSQL real via Testcontainers
 ```
 
 | O que | Endereço local | |
 |---|---|:-:|
 | Health | `http://localhost:8080/actuator/health` | ✅ |
 | Serviços, política e horários livres | `/servicos` · `/politica-pagamento` · `/disponibilidade` | ✅ |
-| Conta, agendamento, pagamento e painel | — | ⏳ Fatias 3 a 5 |
+| Conta e sessão | `/auth/cadastro` · `/auth/login` · `/auth/refresh` · `/auth/logout` · `/me` · `/me/senha` | ✅ |
+| Agendamento, pagamento e painel | — | ⏳ Fatias 4 e 5 |
 | Front | `http://localhost:3000` | ⏳ Fatia 7 |
 
 O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
@@ -484,7 +486,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 0 · Especificação:** domínio, máquina de estados, contrato OpenAPI v1.1, DDL proposto e ADRs
 - [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
 - [x] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes)
-- [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas (📝 [spec escrita](docs/sdd/fatia-3-conta-e-acesso.md), 39 critérios)
+- [x] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo com detecção de reuso, troca de senha, admin inicial com troca obrigatória, limite de tentativas e negar por padrão ([spec](docs/sdd/fatia-3-conta-e-acesso.md): 44 critérios, 44 testes)
 - [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração
 - [ ] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
 - [ ] **Fatia 6 · CEP e privacidade:** ViaCEP/BrasilAPI com degradação, LGPD

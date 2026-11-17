@@ -6,3 +6,10 @@ spring:
     password: ${POSTGRES_SENHA:altashoras_dev}
   flyway:
     locations: classpath:db/migration,classpath:db/dev
+
+app:
+  seguranca:
+    jwt:
+      # Só para rodar na sua máquina; em prod o segredo vem obrigatoriamente do ambiente.
+      segredo: ${JWT_SEGREDO:somente-desenvolvimento-local-nao-usar-em-producao}
+    cors-origens: ${CORS_ORIGENS:http://localhost:3000}
