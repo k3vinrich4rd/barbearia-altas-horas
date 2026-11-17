@@ -19,6 +19,18 @@
 | **Mensageria e Outbox** | `event_publication` do Spring Modulith: o evento é gravado na mesma transação da mudança | [ADR 0002](adr/0002-comunicacao-entre-modulos.md), decisão D41 | 🔜 Fatia 4 |
 | **Pub-Sub e DLQ** | evento de webhook que falha é reprocessado com limite de tentativas e, esgotado, vai para `REVISAO_MANUAL` (o papel de uma DLQ, sem broker) | [ADR 0007](adr/0007-gateway-de-pagamento-sandbox.md), decisão D28 | 🔜 Fatia 4 |
 
+### Arquitetura: o que eu estudei por último
+
+| Estilo | Onde aparece neste projeto | Onde conferir | |
+|---|---|---|:-:|
+| **Arquitetura em camadas** | catálogo e política: controller → repositório Spring Data com projeção em DTO, sem cerimônia | [`CatalogoController`](../backend/src/main/java/io/github/k3vinrich4rd/altashoras/agenda/catalogo/CatalogoController.java) | ✅ Fatia 2 |
+| **Arquitetura hexagonal** | disponibilidade: núcleo puro (`CalculadoraDeHorarios`), porta de saída (`FonteDeBloqueios`), adaptador SQL (`BloqueiosJdbc`) e adaptador de entrada HTTP | [ADR 0011](adr/0011-hexagonal-seletivo-no-monolito-modular.md), [`disponibilidade/`](../backend/src/main/java/io/github/k3vinrich4rd/altashoras/agenda/disponibilidade) | ✅ Fatia 2 |
+| **Clean Architecture** (a regra de dependência: o centro não conhece a borda) | regra do ArchUnit que proíbe o núcleo de importar Spring, JPA, Hibernate ou JDBC | [`ArquiteturaTest`](../backend/src/test/java/io/github/k3vinrich4rd/altashoras/ArquiteturaTest.java) | ✅ Fatia 2 |
+| **Arquitetura orientada a eventos** | `PagamentoConfirmado` → agenda confirma a reserva; `ReservaExpirada` → pagamento cancela a cobrança; publicação com outbox do Spring Modulith | [ADR 0002](adr/0002-comunicacao-entre-modulos.md) | 🔜 Fatia 4 |
+| **BFF (Backend for Frontend)** | rotas do Next.js guardam os tokens em cookie `HttpOnly` e falam com a API; o navegador nunca vê o JWT | [ADR 0006](adr/0006-sessao-jwt-refresh-cookie-bff.md) | 🔜 Fatia 7 |
+
+> Por que não um estilo só: cada um responde a um problema. Usar hexagonal no catálogo seria custo sem retorno; usar só camadas na disponibilidade deixaria a regra presa ao banco. O critério está no ADR 0011.
+
 Temas que eu já tinha praticado e que aqui subiram de nível:
 
 | Tema | O passo a mais neste projeto | Onde conferir |
@@ -38,8 +50,10 @@ Temas que eu já tinha praticado e que aqui subiram de nível:
 | **Skills** | três procedimentos carregados sob demanda | [`.claude/skills/`](../.claude/skills/) | ✅ |
 | **Agentes de IA** | agente revisor só de leitura, com contexto separado de quem escreveu o código | [`revisor-de-fatia`](../.claude/agents/revisor-de-fatia.md) | ✅ |
 | **RAG** (a ideia: recuperar antes de gerar) | recuperação **por identificador**, sem embeddings: `buscar-contexto.sh R15` | [`scripts/buscar-contexto.sh`](../scripts/buscar-contexto.sh), [por que não vetorial](sdd/README.md#por-que-não-um-rag-com-banco-vetorial) | ✅ (sem vetor) |
-| **Testes de aplicações com IA (evals)** | checagem determinística da saída da IA: todo critério `A#` da spec precisa de um teste com esse número; roda no CI | [`scripts/conferir-spec.sh`](../scripts/conferir-spec.sh) | ✅ |
+| **Testes de aplicações com IA (evals)** | checagem determinística da saída da IA: todo critério `A#` da spec precisa de um teste com esse número; roda no CI (Fatia 1: 10/10 · Fatia 2: 29/29) | [`scripts/conferir-spec.sh`](../scripts/conferir-spec.sh) | ✅ |
+| **Guardrails** | travas que valem para a IA e para mim: skill que **para** sem spec aprovada, CI que barra critério sem teste, ArchUnit, gitleaks e instruções do Copilot com o que nunca pode ser feito (rota de cancelamento, número de cartão na API) | [`docs/automacao.md`](automacao.md), [`copilot-instructions.md`](../.github/copilot-instructions.md) | ✅ (de processo) |
+| **Structured output** | o agente revisor termina com um JSON de formato fixo (testes, critérios, achados, `pode_abrir_pr`), legível por script | [`revisor-de-fatia`](../.claude/agents/revisor-de-fatia.md) | ✅ |
 | **Embeddings e banco vetorial** | ainda não: o projeto não tem texto livre que justifique | — | honestamente não aplicado |
-| **Tool Calling, MCP, Spring AI, Design Doc para IA** | pós-beta: um assistente de agendamento que consulta `GET /disponibilidade` como ferramenta (`@Tool`), só leitura, com design doc e evals antes do código | [roadmap](../README.md#-roadmap-em-fatias) | 🔜 pós-beta |
+| **Tool Calling, MCP, Spring AI, Design Doc para IA** | pós-beta: um assistente de agendamento que consulta `GET /disponibilidade` como ferramenta (`@Tool`), só leitura, com design doc, guardrail de saída, resposta em `record` (structured output) e evals antes do código | [roadmap](../README.md#-roadmap-em-fatias) | 🔜 pós-beta |
 
 > **Regra que eu sigo:** só marco ✅ o que tem arquivo ou teste para abrir. O que é plano fica como 🔜 com a fatia.
