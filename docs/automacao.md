@@ -85,8 +85,8 @@ sh scripts/buscar-contexto.sh R15     # a regra, a decisão, a spec, o contrato 
 
 | Estratégia | Acertos (documento certo entre os 3 primeiros) |
 |---|:-:|
-| Só vetor | 9 de 17 (errou os 5 identificadores) |
-| **Híbrida**: exata para identificador, vetor para pergunta | **14 de 17** |
+| Só vetor | 10 de 17 (errou os 5 identificadores) |
+| **Híbrida**: exata para identificador, vetor para pergunta | **15 de 17** |
 
 A regra que saiu da medição: **identificador vai por busca exata; pergunta em linguagem natural vai por vetor.**
 

@@ -65,4 +65,4 @@ flowchart LR
 
 Para o dia a dia, a **recuperação por identificador** continua sendo a regra: o conhecimento cabe em ~40 arquivos com identificadores estáveis (R1 a R32, D1 a D50, códigos de erro, A1 a A29), e `buscar-contexto.sh` encontra a linha exata, de graça.
 
-Depois eu montei o RAG vetorial mesmo assim, para **medir** em vez de opinar ([`docs/ia/rag-vetorial.md`](../ia/rag-vetorial.md)): numa lista de 17 perguntas, o vetor sozinho acertou 9 e errou **todos** os identificadores; a busca híbrida (exata para identificador, vetor para pergunta em linguagem natural) acertou 14. Conclusão: as duas se completam, e o identificador estável segue sendo o que mais ajuda a IA.
+Depois eu montei o RAG vetorial mesmo assim, para **medir** em vez de opinar ([`docs/ia/rag-vetorial.md`](../ia/rag-vetorial.md)): numa lista de 17 perguntas, o vetor sozinho acertou 10 e errou **todos** os identificadores; a busca híbrida (exata para identificador, vetor para pergunta em linguagem natural) acertou 15. Conclusão: as duas se completam, e o identificador estável segue sendo o que mais ajuda a IA.

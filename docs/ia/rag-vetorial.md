@@ -13,7 +13,7 @@
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 flowchart LR
     subgraph indexar [1 · Indexar, uma vez]
-        MD[36 arquivos .md] --> DIV[DivisorDeMarkdown<br/>379 trechos]
+        MD[37 arquivos .md] --> DIV[DivisorDeMarkdown<br/>390 trechos]
         DIV --> EMB1[Modelo de embeddings<br/>texto → vetor de 384 números]
         EMB1 --> PG[(pgvector<br/>índice HNSW)]
     end
@@ -44,7 +44,7 @@ cd ferramentas/rag
 
 Na primeira execução o Spring AI baixa o modelo (118 MB) e o tokenizador (9 MB) para `ferramentas/rag/.cache/` (fora do Git).
 
-Saída real da indexação (17/11/2026): `indexados 379 trechos de 36 arquivos` em 26 s.
+Saída real da indexação (17/11/2026): `indexados 390 trechos de 37 arquivos`, em menos de 30 s.
 
 ## As peças
 
@@ -60,22 +60,23 @@ Saída real da indexação (17/11/2026): `indexados 379 trechos de 36 arquivos` 
 
 ## O que a avaliação mostrou (números reais, 17/11/2026)
 
-17 perguntas em [`avaliacao.tsv`](../../ferramentas/rag/src/main/resources/avaliacao.tsv): 12 em linguagem natural e 5 identificadores.
+17 perguntas em [`avaliacao.tsv`](../../ferramentas/rag/src/main/resources/avaliacao.tsv): 12 em linguagem natural e 5 identificadores. Medição com 390 trechos de 37 arquivos.
 
 | Estratégia | Linguagem natural (12) | Identificadores (5) | Total |
 |---|:-:|:-:|:-:|
-| Só vetor | 9 | **0** | 9 de 17 |
-| **Híbrida** (exata para identificador, vetor para o resto) | 9 | **5** | **14 de 17** |
+| Só vetor | 10 | **0** | 10 de 17 |
+| **Híbrida** (exata para identificador, vetor para o resto) | 10 | **5** | **15 de 17** |
 
 **A lição:** para o modelo, `R15` e `R16` são textos quase idênticos, então o vetor sozinho errou **todos** os identificadores. E a busca exata não responde "o cliente pode cancelar depois de pagar?". Nenhuma das duas resolve sozinha; **a combinação resolve**. É a medição que sustenta a regra do projeto: identificador estável + busca exata para o que tem código, vetor para o que é pergunta.
 
-Os 3 erros que ficaram (registrados como estão, sem ajustar a avaliação para parecer melhor):
+> O número oscila quando a documentação muda (na primeira medição, com 379 trechos, foi 9 e 14 de 17): por isso a avaliação é um comando, não uma frase. Mudou os documentos ou o modelo? Rode `indexar` e `avaliar` de novo.
 
-| Pergunta | Esperado | O que veio | Leitura |
-|---|---|---|---|
-| como o sistema impede dois clientes de marcarem o mesmo horário? | ADR 0003 | guia de testes (2×) e README | os três explicam a regra; o ADR ficou em 4º |
-| como eu rodo os testes do projeto? | guia de testes | como-foi-construido e checklist de PR | trechos curtos que falam de "testes" ganharam do guia, que é longo e dividido |
-| qual é o horário de funcionamento da barbearia? | dossiê | README, ADR 0003 e decisões | o README também traz a resposta certa; a expectativa era estreita |
+Os 2 erros que ficaram (registrados como estão, sem ajustar a avaliação para parecer melhor):
+
+| Pergunta | Esperado | Leitura |
+|---|---|---|
+| como eu rodo os testes do projeto? | guia de testes | trechos curtos que falam de "testes" (checklist de PR, como-foi-construído) ganharam do guia, que é longo e dividido em muitos trechos |
+| qual é o horário de funcionamento da barbearia? | dossiê | o README, que veio em primeiro, também traz a resposta certa; a expectativa era estreita |
 
 ## Limites e próximos passos
 
