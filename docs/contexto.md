@@ -120,8 +120,8 @@ Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o *
 | H11 | Granularidade dos horários oferecidos | **decidida (16/11)**: 30 min | `configuracao_agenda.granularidade_min` |
 | H12 | Até quantos dias à frente dá para agendar | **decidida (16/11)**: 30 dias | `configuracao_agenda.horizonte_dias` |
 | H13 | Retenção dos dados do guest e do histórico do sinal | contato do guest: anonimizar 90 dias após o atendimento; registro financeiro da cobrança: 5 anos (**pendente de fonte legal**) | `app.privacidade.retencao-guest-dias` e ADR 0009 |
-| H14 | Limites de tentativas | login: 5 erros em 15 min por e-mail + IP; cadastro: 5 por hora por IP; reserva guest: 3 por hora por IP | `app.limites.*` |
-| H15 | Validade das sessões | acesso: 15 min; refresh: 7 dias | `app.seguranca.jwt.*` |
+| H14 | Limites de tentativas | **decidida (17/11)**: login 5 erros em 15 min por e-mail + IP e 20 por IP; cadastro 5 por hora por IP; reserva guest: 3 por hora por IP (Fatia 4) | `app.limites.*` |
+| H15 | Validade das sessões | **decidida (17/11)**: acesso 15 min; refresh 7 dias, renovado a cada uso | `app.seguranca.jwt.*`, `app.sessao.*` |
 | H16 | O guest pode cancelar pelo link? | **decidida (16/11)**: não (ninguém cancela pelo app, R18) | — |
 | H17 | A barbearia vai usar o sistema de verdade? | **Fase 1**: deploy gratuito (Vercel + Render + Aiven) com gateway em sandbox; **Fase 2** (produção real e lojas): planejamento interno da equipe | decisão do Kevin |
 | H18 | Tolerância para pagamento no limite do prazo | nenhuma: expira em `expira_em`; alternativa a decidir: alguns minutos de tolerância e prazo do Pix no gateway igual a `expira_em` (crítica do Gemini) | `configuracao_agenda` (se adotado) |

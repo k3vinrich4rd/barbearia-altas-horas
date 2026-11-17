@@ -8,7 +8,7 @@
 | 🔒 **Sem segredo** | dados **fictícios** e gateway em **sandbox**; nenhum dinheiro real |
 
 > [!IMPORTANT]
-> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (16/11/2026, Fatias 1 e 2).
+> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (Fatias 1 a 3, 16 e 17/11/2026).
 > **⏳ Fatia N = roteiro já escrito**, que vira ✅ quando a fatia entrar na `develop` (aí ganha o comando e a resposta reais).
 
 ## Mapa
@@ -16,12 +16,12 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 69 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 114 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários (✅), agendar e pagar sem conta | ✅ V1 a V3 · ⏳ Fatia 4 |
-| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, agendar, pagar com cartão | ⏳ Fatias 3 e 4 |
-| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | agenda, concluir, marcar falta, pagamento tardio | ⏳ Fatias 3 e 5 |
+| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão e senha (✅), agendar e pagar | ✅ C1 a C7 · ⏳ Fatia 4 |
+| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial (✅), agenda e fechamento | ✅ AD1 a AD3 · ⏳ Fatia 5 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
 | [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **69 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **96%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **114 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **97%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -77,10 +77,15 @@ cd backend && ./mvnw verify
 | `CalculadoraDeHorariosTest` | 12 | a regra dos horários, pura: almoço, serviço de 60 min, antecedência inclusiva, folga, intervalo meio aberto |
 | `DisponibilidadeIT` | 19 | a rota inteira no banco real: o que ocupa, pendente vencida, horizonte, erros 400/404/422, formato e **sem N+1** |
 | `CatalogoIT` · `PoliticaPagamentoIT` · `PrecoFormatadoTest` | 3 · 1 · 6 | só ativos, só os campos do contrato, cache, política vigente, `R$ 1.234,56` |
-| `ModulithTest` | 2 | 8 módulos e fronteiras verificadas |
+| `CadastroIT` · `LoginIT` · `MeIT` | 9 · 5 · 2 | conta criada com senha só em hash, campo a mais recusado, mesma resposta para e-mail inexistente, token vencido pelo relógio |
+| `RefreshRotativoIT` · `LogoutIT` · `TrocaDeSenhaIT` | 5 · 1 · 2 | rotação, reuso derruba a família, 8 renovações simultâneas com no máximo uma vencedora, troca de senha encerra as sessões |
+| `LimiteTentativasIT` · `LimitadorDeTentativasTest` | 5 · 3 | 429 com `Retry-After` por e-mail + IP e por IP; janela deslizante |
+| `AdminInicialIT` · `MatrizAcessoIT` · `SegurancaWebIT` | 5 · 3 · 2 | admin criado por variável sem sobrescrever, troca obrigatória, 401/403/404, negar por padrão, CORS |
+| `SemDadoPessoalNoLogIT` · `ValueObjectsTest` | 1 · 1 | nenhum e-mail, telefone, CEP, senha ou token no log |
+| `ModulithTest` | 3 | 8 módulos e fronteiras verificadas |
 | `ArquiteturaTest` | 3 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double`; o núcleo da regra não conhece framework |
 
-Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 2 --exigir` (29 de 29).
+Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (43 de 43; fatias 1 e 2: 10 e 29).
 
 Rodar uma classe só: `./mvnw test -Dtest=ConcorrenciaReservaIT`.
 
@@ -157,25 +162,23 @@ DELETE FROM reserva WHERE inicio >= '2026-12-01' AND inicio < '2026-12-02';
 ## 3. Erros padronizados (RFC 9457)
 
 ```bash
-curl -i http://localhost:8080/rota-que-nao-existe
+curl -i "http://localhost:8080/disponibilidade?servicoId=00000000-0000-4000-8000-000000000000&data=2026-12-01"
 ```
 
-✅ Resposta real (o mesmo formato vale para todo erro da API):
+✅ O mesmo formato vale para todo erro da API. Exemplo real de uma rota que exige login, chamada sem token:
 
 ```http
-HTTP/1.1 404
-Content-Type: application/problem+json
+HTTP/1.1 401
+WWW-Authenticate: Bearer
 
-{"detail":"O recurso pedido não existe.","instance":"/rota-que-nao-existe","status":404,"title":"Não encontrado",
- "type":"https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado",
- "code":"RECURSO_NAO_ENCONTRADO","traceId":"bf302b905aa348aabe50c5322f03f4b6","errors":[]}
+{"detail":"Faça login para continuar.","instance":"/me","status":401,"title":"Não autenticado",
+ "type":"https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#nao_autenticado",
+ "code":"NAO_AUTENTICADO","traceId":"a8cef819f9a74aad85179e1b65f0e1fd","errors":[]}
 ```
 
 **O que prova:** o front decide pelo `code` (estável), e o `traceId` da tela é o mesmo do log da API. Confira: procure o `traceId` da sua resposta no terminal onde a API está rodando.
 
-```bash
-curl -i -X DELETE http://localhost:8080/actuator/health     # 405 METODO_NAO_PERMITIDO, mesmo formato
-```
+> Desde a Fatia 3 a API **nega por padrão**: rota que ninguém declarou responde `401` a quem não está logado (e `404` só a quem tem login). Assim, uma rota nova nunca nasce aberta por esquecimento.
 
 ---
 
@@ -254,36 +257,156 @@ Agora mexa e veja a regra reagir:
 
 ## 5. Cenário do cliente (com conta)
 
-> ⏳ **Fatia 3** (conta) e **Fatia 4** (agendamento e pagamento).
+Use um e-mail fictício seu (`@exemplo.test`). Os tokens abaixo estão cortados; os seus serão longos.
+
+### C1 ✅ Criar a conta
+
+```bash
+curl -i -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json" \
+  -d '{"nome":"Cliente Teste A","email":"cliente.a@exemplo.test","whatsapp":"(11) 90000-0001","senha":"Senha-de-teste-123","cep":"01001-000"}'
+```
+
+```http
+HTTP/1.1 201
+Location: /me
+
+{"id":"55b5325b-8484-455c-bf58-1059f3a136bf","nome":"Cliente Teste A","email":"cliente.a@exemplo.test","papeis":["CLIENTE"],
+ "endereco":{"cep":"01001000","bairro":null,"cidade":null,"uf":null,"completo":false},"deveTrocarSenha":false}
+```
+
+**O que prova:** o CPF não é pedido; a resposta não tem senha; o CEP fica guardado e o endereço completo chega na Fatia 6.
+
+### C2 ✅ Repetir o cadastro
+
+A mesma chamada de novo (ou com o e-mail em MAIÚSCULAS) → `409` com `"code":"EMAIL_JA_CADASTRADO"`.
+Mande `"papeis":["ADMIN"]` no corpo → `400 CAMPO_DESCONHECIDO`: ninguém se cadastra como admin.
+
+### C3 ✅ Entrar
+
+```bash
+curl -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"cliente.a@exemplo.test","senha":"Senha-de-teste-123"}'
+```
+
+```json
+{"accessToken":"eyJhbGciOiJI...","tipo":"Bearer","expiraEmSegundos":900,"refreshToken":"r1_wws-...",
+ "refreshExpiraEm":"2026-11-24T03:40:11-03:00",
+ "usuario":{"id":"55b5325b-8484-455c-bf58-1059f3a136bf","nome":"Cliente Teste A","papeis":["CLIENTE"]},"deveTrocarSenha":false}
+```
+
+Guarde os dois valores para os próximos passos:
+
+```bash
+ACESSO="cole aqui o accessToken"
+REFRESH="cole aqui o refreshToken"
+```
+
+### C4 ✅ Ver o próprio perfil
+
+```bash
+curl http://localhost:8080/me -H "Authorization: Bearer $ACESSO"
+```
+
+Volta o mesmo perfil do C1. Sem o cabeçalho → `401 NAO_AUTENTICADO` com `WWW-Authenticate: Bearer`.
+
+### C5 ✅ Bater na porta do painel
+
+```bash
+curl http://localhost:8080/admin/agenda -H "Authorization: Bearer $ACESSO"
+```
+
+→ `403` com `"code":"ACESSO_NEGADO"`. Sem token seria `401`.
+
+### C6 ✅ Renovar a sessão, e ver o que acontece com um token copiado
+
+```bash
+curl -X POST http://localhost:8080/auth/refresh -H "Content-Type: application/json" -d "{\"refreshToken\":\"$REFRESH\"}"
+```
+
+Primeira vez: `200` com um par **novo**. Rode **o mesmo comando de novo**, com o refresh antigo:
+
+```text
+"status":401, "code":"REFRESH_REUTILIZADO"
+```
+
+**O que prova:** cada refresh serve uma vez. Se o mesmo aparece duas vezes, alguém copiou: a sessão inteira é derrubada, inclusive o token novo.
+
+### C7 ✅ Errar a senha seis vezes
+
+Repita o login do C3 com a senha errada. Resultado real:
+
+```text
+401 401 401 401 401 429
+HTTP/1.1 429
+Retry-After: 898
+```
+
+**O que prova:** depois de 5 erros em 15 minutos, nem a senha certa entra; o `Retry-After` diz em quantos segundos libera.
+
+Para sair: `POST /auth/logout` com o refresh → `204`. Para trocar a senha: `PUT /me/senha` com `senhaAtual` e `novaSenha` → `204` (as outras sessões param de renovar).
+
+### C8 em diante ⏳
 
 | # | O que fazer | O que deve acontecer | O que prova | |
 |---|---|---|---|:-:|
-| C1 | `POST /auth/cadastro` com dados fictícios | `201`; CPF **não** é pedido | cadastro mínimo (LGPD) | ⏳ 3 |
-| C2 | repetir com o mesmo e-mail em MAIÚSCULAS | `409 EMAIL_JA_CADASTRADO` | e-mail único | ⏳ 3 |
-| C3 | `POST /auth/login` | `200` com token de acesso | autenticação | ⏳ 3 |
-| C4 | `POST /agendamentos` com o token | `201`, `AGUARDANDO_PAGAMENTO` (cliente logado **também** paga antes) | regra R6 | ⏳ 4 |
-| C5 | `POST /pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"` e aceite | `201` com `cartao.urlCheckout`; pagar com o cartão de teste do sandbox | a API nunca vê o número do cartão | ⏳ 4 |
-| C6 | `GET /me/agendamentos` | a reserva `CONFIRMADO` | "meus horários" | ⏳ 4 |
-| C7 | `POST /agendamentos/{id}/cancelamento` | `404` | **não existe** cancelamento pelo cliente | ⏳ 4 |
-| C8 | outro cliente lê `GET /agendamentos/{id}` do primeiro | `404` (não `403`) | não confirma que o id existe | ⏳ 4 |
-| C9 | `GET /admin/agenda` com token de cliente | `403 ACESSO_NEGADO` | painel só para o admin | ⏳ 3 |
-| C10 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
+| C8 | `POST /agendamentos` com o token | `201`, `AGUARDANDO_PAGAMENTO` (cliente logado **também** paga antes) | regra R6 | ⏳ 4 |
+| C9 | `POST /pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"` e aceite | `201` com `cartao.urlCheckout`; pagar com o cartão de teste do sandbox | a API nunca vê o número do cartão | ⏳ 4 |
+| C10 | `GET /me/agendamentos` | a reserva `CONFIRMADO` | "meus horários" | ⏳ 4 |
+| C11 | `POST /agendamentos/{id}/cancelamento` | `404` | **não existe** cancelamento pelo cliente | ⏳ 4 |
+| C12 | outro cliente lê `GET /agendamentos/{id}` do primeiro | `404` (não `403`) | não confirma que o id existe | ⏳ 4 |
+| C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
 
 ## 6. Cenário do admin (o barbeiro)
 
-> ⏳ **Fatia 3** (login do admin) e **Fatia 5** (painel). O admin é criado na subida a partir de `ADMIN_EMAIL` e `ADMIN_SENHA` do **seu** `.env`: você escolhe os valores de teste; nenhuma senha fica no repositório.
+O admin **não** existe no repositório: ele nasce na subida a partir de duas variáveis que você define, só quando ainda não há nenhum admin.
 
-| # | O que fazer | O que deve acontecer | O que prova | |
-|---|---|---|---|:-:|
-| AD1 | `POST /auth/login` com o admin do seu `.env` | `200` com os papéis `ADMIN` e `BARBEIRO` | admin por variável de ambiente | ⏳ 3 |
-| AD2 | errar a senha várias vezes | `429 LIMITE_EXCEDIDO` com `Retry-After` | força bruta bloqueada | ⏳ 3 |
-| AD3 | `GET /admin/agenda?data=...` | as reservas do dia com status | agenda do barbeiro | ⏳ 5 |
-| AD4 | `PATCH /admin/agendamentos/{id}/status` → `CONCLUIDO` | `200` | atendimento fechado | ⏳ 5 |
-| AD5 | o mesmo com `NAO_COMPARECEU` em outra reserva | `200`; a cobrança continua `PAGA` | falta retém o valor | ⏳ 5 |
-| AD6 | cancelar pela barbearia **sem** motivo | `422 MOTIVO_OBRIGATORIO` | só a barbearia cancela, e com motivo | ⏳ 5 |
-| AD7 | `POST /admin/servicos` (novo serviço) e depois `GET /admin/auditoria` | `201` e uma linha de auditoria com quem fez | toda ação do painel é registrada | ⏳ 5 |
-| AD8 | mudar o almoço na jornada e repetir o V3 | os horários mudam sem deploy | regra como dado | ⏳ 5 |
-| AD9 | deixar uma reserva expirar, outro cliente pega o horário, e só então pagar a primeira no sandbox | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência | pagamento tardio sem horário vira pendência | ⏳ 5 |
+### AD1 ✅ Criar o primeiro admin
+
+Pare a API e suba de novo com as variáveis (escolha seu e-mail e uma senha de teste de 10 caracteres ou mais):
+
+```bash
+cd backend
+ADMIN_EMAIL="admin.local@exemplo.test" ADMIN_SENHA="troque-esta-senha-123" ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+No log aparece `Primeiro admin criado (id ...). A troca de senha é obrigatória no primeiro acesso.` (sem e-mail e sem senha). Subir de novo com **outra** `ADMIN_SENHA` não muda nada: a variável nunca sobrescreve um admin que já existe.
+
+### AD2 ✅ Entrar e encontrar a porta fechada
+
+Login igual ao do cliente (C3), com o e-mail e a senha do admin. Resposta real, resumida:
+
+```text
+['ADMIN', 'BARBEIRO'] deveTrocarSenha= True
+```
+
+Com esse token, `GET /admin/agenda` responde:
+
+```text
+"status":403, "code":"TROCA_DE_SENHA_OBRIGATORIA"
+```
+
+**O que prova:** quem configurou o servidor conhece a senha inicial, então ela não dá acesso ao painel. O admin é também o barbeiro (o usuário é vinculado ao cadastro do Eduardo).
+
+### AD3 ✅ Trocar a senha e entrar de verdade
+
+```bash
+curl -i -X PUT http://localhost:8080/me/senha -H "Authorization: Bearer $ACESSO" -H "Content-Type: application/json" \
+  -d '{"senhaAtual":"troque-esta-senha-123","novaSenha":"uma-senha-so-minha-456"}'
+```
+
+→ `204`. Entre de novo com a senha nova: `deveTrocarSenha` vem `false` e `/admin/agenda` responde `404` (a rota chega na Fatia 5; o importante é que deixou de ser `403`).
+
+### AD4 em diante ⏳ Fatia 5
+
+| # | O que fazer | O que deve acontecer | O que prova |
+|---|---|---|---|
+| AD4 | `GET /admin/agenda?data=...` | as reservas do dia com status | agenda do barbeiro |
+| AD5 | `PATCH /admin/agendamentos/{id}/status` → `CONCLUIDO` | `200` | atendimento fechado |
+| AD6 | o mesmo com `NAO_COMPARECEU` em outra reserva | `200`; a cobrança continua `PAGA` | falta retém o valor |
+| AD7 | cancelar pela barbearia **sem** motivo | `422 MOTIVO_OBRIGATORIO` | só a barbearia cancela, e com motivo |
+| AD8 | `POST /admin/servicos` e depois `GET /admin/auditoria` | `201` e uma linha de auditoria com quem fez | toda ação do painel é registrada |
+| AD9 | mudar o almoço na jornada e repetir o V3 | os horários mudam sem deploy | regra como dado |
+| AD10 | deixar uma reserva expirar, outro cliente pega o horário, e só então pagar a primeira no sandbox | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência | pagamento tardio sem horário vira pendência |
 
 ## 7. As telas (frontend)
 
@@ -387,6 +510,9 @@ Parar o banco do RAG: `docker compose --profile rag stop rag-db`.
 | `autenticação do tipo senha falhou para o usuário "altashoras"` | a API conectou num PostgreSQL **instalado na máquina**, não no do compose | o compose usa a porta **5433** por isso; confira `docker compose ps` e se não há `POSTGRES_PORTA` trocada no ambiente |
 | `Connection refused` na 5433 | o banco não subiu | `docker compose up -d` e `docker compose ps` (precisa estar `healthy`) |
 | `Port 8080 was already in use` | outra API rodando | feche a outra ou suba com `-Dspring-boot.run.arguments=--server.port=8081` |
+| a API não sobe: `JWT_SEGREDO ausente ou com menos de 32 bytes` | subiu sem o perfil `dev` e sem a variável | use `-Dspring-boot.run.profiles=dev` (tem um segredo só para uso local) ou defina `JWT_SEGREDO` |
+| login responde `429` | 5 erros em 15 minutos para o mesmo e-mail e IP | espere o tempo do `Retry-After` ou reinicie a API (o contador fica em memória) |
+| o admin não foi criado | já existe um admin no banco, ou faltou `ADMIN_EMAIL`/`ADMIN_SENHA` | `SELECT u.email FROM usuario u JOIN usuario_papel p ON p.usuario_id = u.id WHERE p.papel = 'ADMIN';` no `psql` |
 | `./mvnw verify` falha com "Could not find a valid Docker environment" | Docker Desktop fechado | abra o Docker Desktop e espere ficar pronto |
 | o enforcer reclama do Java | JDK diferente do 25 | aponte o `JAVA_HOME` para um JDK 25 |
 | migração falha depois de você mexer no banco | banco local sujo | `docker compose down -v` e suba de novo |
@@ -394,4 +520,4 @@ Parar o banco do RAG: `docker compose --profile rag stop rag-db`.
 | RAG: `relation "vector_store" does not exist` | primeira execução foi `buscar` antes de `indexar` | rode `indexar` primeiro |
 | RAG: demora na primeira vez | está baixando o modelo de 118 MB para `ferramentas/rag/.cache/` | esperar; da segunda vez em diante usa o cache |
 
-Contrato da API (v1.1.2): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ 16/11/2026).
+Contrato da API (v1.2.0): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ 16/11/2026).
