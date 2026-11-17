@@ -50,7 +50,7 @@ jobs:
       - name: Conferir spec × testes
         working-directory: .
         run: |
-          for fatia in 1 2 3; do sh scripts/conferir-spec.sh "$fatia" --exigir; done
+          for fatia in 1 2 3 4; do sh scripts/conferir-spec.sh "$fatia" --exigir; done
 
       # Ferramenta de RAG da documentação: só os testes unitários (o divisor de Markdown), sem banco nem modelo.
       - name: Testar a ferramenta de RAG

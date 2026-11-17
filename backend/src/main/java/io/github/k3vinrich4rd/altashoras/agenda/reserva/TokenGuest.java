@@ -13,20 +13,20 @@ import org.jspecify.annotations.Nullable;
  * O "login" do visitante numa reserva só (E7): 32 bytes aleatórios, prefixo g1_ (versão do formato), guardado
  * como SHA-256. Comparação em tempo constante, para o tempo de resposta não dizer quantos caracteres acertaram.
  */
-final class TokenGuest {
+public final class TokenGuest {
 
     private static final SecureRandom ALEATORIO = new SecureRandom();
 
     private TokenGuest() {
     }
 
-    static String novo() {
+    public static String novo() {
         byte[] bytes = new byte[32];
         ALEATORIO.nextBytes(bytes);
         return "g1_" + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    static String hash(String token) {
+    public static String hash(String token) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
@@ -35,7 +35,7 @@ final class TokenGuest {
         }
     }
 
-    static boolean confere(@Nullable String token, String hashGuardado) {
+    public static boolean confere(@Nullable String token, String hashGuardado) {
         if (token == null || token.isBlank()) {
             return false;
         }

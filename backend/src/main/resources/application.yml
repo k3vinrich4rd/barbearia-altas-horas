@@ -60,6 +60,18 @@ app:
     cadastro-janela: 1h
     guest-max: 3          # reservas de visitante por IP (R26, E9)
     guest-janela: 1h
+  pagamento:
+    # simulado (padrão em todo o beta, D59): sem conta externa e sem dinheiro real; asaas só na produção.
+    modo: simulado
+    # Segredo do HMAC da idempotência (R10): obrigatório, a API não sobe sem ele.
+    idempotencia-segredo: ${IDEMPOTENCIA_HMAC_SEGREDO:}
+    # Token do webhook (cabeçalho asaas-access-token). Vazio = o webhook responde sempre 401.
+    webhook-token: ${GATEWAY_SEGREDO_WEBHOOK:}
+    # Para onde o link de checkout simulado leva (a tela de pagamento simulado do front).
+    url-checkout-simulado: ${URL_CHECKOUT_SIMULADO:http://localhost:3000/pagamento-simulado}
+    asaas:
+      url: ${GATEWAY_URL:https://api-sandbox.asaas.com/v3}
+      token: ${GATEWAY_TOKEN:}
   admin:
     # Primeiro admin: criado na subida só se ainda não existir nenhum (R25). Nunca commitar valores.
     email: ${ADMIN_EMAIL:}

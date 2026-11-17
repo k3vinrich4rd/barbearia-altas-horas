@@ -26,6 +26,16 @@ class ModulithTest {
     }
 
     @Test
+    @DisplayName("A44: agenda e pagamento só se falam pela API pública e por eventos; a agenda não depende do pagamento")
+    void agendaEPagamentoSoPelaApiPublica() {
+        modulos.verify();
+        assertThat(modulos.getModuleByName("agenda").orElseThrow().getDirectDependencies(modulos).uniqueModules()
+                .map(m -> m.getIdentifier().toString())).doesNotContain("pagamento");
+        assertThat(modulos.getModuleByName("pagamento").orElseThrow().getDirectDependencies(modulos).uniqueModules()
+                .map(m -> m.getIdentifier().toString())).contains("agenda");
+    }
+
+    @Test
     @DisplayName("A39: conta, plataforma, privacidade e agenda só se falam pela API pública e por eventos")
     void contaNaoAtravessaFronteiras() {
         modulos.verify();
