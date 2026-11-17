@@ -16,7 +16,7 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 114 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 115 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários (✅), agendar e pagar sem conta | ✅ V1 a V3 · ⏳ Fatia 4 |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **114 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **97%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **115 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **97%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -80,12 +80,12 @@ cd backend && ./mvnw verify
 | `CadastroIT` · `LoginIT` · `MeIT` | 9 · 5 · 2 | conta criada com senha só em hash, campo a mais recusado, mesma resposta para e-mail inexistente, token vencido pelo relógio |
 | `RefreshRotativoIT` · `LogoutIT` · `TrocaDeSenhaIT` | 5 · 1 · 2 | rotação, reuso derruba a família, 8 renovações simultâneas com no máximo uma vencedora, troca de senha encerra as sessões |
 | `LimiteTentativasIT` · `LimitadorDeTentativasTest` | 5 · 3 | 429 com `Retry-After` por e-mail + IP e por IP; janela deslizante |
-| `AdminInicialIT` · `MatrizAcessoIT` · `SegurancaWebIT` | 5 · 3 · 2 | admin criado por variável sem sobrescrever, troca obrigatória, 401/403/404, negar por padrão, CORS |
+| `AdminInicialIT` · `MatrizAcessoIT` · `SegurancaWebIT` | 5 · 3 · 3 | admin criado por variável sem sobrescrever, troca obrigatória, 401/403/404, negar por padrão, CORS e CSRF onde há cookie |
 | `SemDadoPessoalNoLogIT` · `ValueObjectsTest` | 1 · 1 | nenhum e-mail, telefone, CEP, senha ou token no log |
 | `ModulithTest` | 3 | 8 módulos e fronteiras verificadas |
 | `ArquiteturaTest` | 3 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double`; o núcleo da regra não conhece framework |
 
-Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (43 de 43; fatias 1 e 2: 10 e 29).
+Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (44 de 44; fatias 1 e 2: 10 e 29).
 
 Rodar uma classe só: `./mvnw test -Dtest=ConcorrenciaReservaIT`.
 
