@@ -16,11 +16,11 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 137 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 172 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
-| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta (✅), pagar | ✅ V1 a V6 · ⏳ Fatia 4B |
-| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar e listar (✅), pagar | ✅ C1 a C11 · ⏳ Fatia 4B |
+| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
+| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial (✅), agenda e fechamento | ✅ AD1 a AD3 · ⏳ Fatia 5 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **137 testes, 0 falhas, 0 pulados** (17/11/2026, com a Fatia 4A), `BUILD SUCCESS`, cobertura de instruções **97%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **172 testes, 0 falhas, 0 pulados** (17/11/2026, com a Fatia 4B), `BUILD SUCCESS`, cobertura de instruções **95,3%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -279,16 +279,65 @@ Saída real (17/11/2026, 11h48; token encurtado aqui):
 
 Repita o V3 para a mesma data. Saída real, entre 9h e 11h30: `['09:00', '09:30', '11:00', '11:30']`. As 10h (reservada pelo cliente do C8) e as 10h30 (do V4) saíram. Se ninguém pagar em 15 minutos, o job de expiração libera os dois de novo.
 
-### V7 em diante ⏳ Fatia 4B (pagamento simulado)
+### V7 ✅ Pagar sem aceitar a política
 
-No beta o pagamento é **simulado** (D59): nenhuma conta em gateway e nenhum dinheiro real, mas o caminho de confirmação é o mesmo do webhook de produção.
+No beta o pagamento é **simulado** (D59): nenhuma conta em gateway e nenhum dinheiro real, mas o caminho de confirmação é o mesmo do webhook de produção. Use o `id` e o `tokenGuest` de uma reserva do V4 (aqui, uma nova, terça 01/12 às 10h) e o CPF fictício `123.456.789-09`.
 
-| # | O que fazer | O que deve acontecer | O que prova |
-|---|---|---|---|
-| V7 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar |
-| V8 | mesma chamada com `"metodo": "PIX"`, CPF fictício e `"aceitePolitica": true` | `201` com o Pix de demonstração e **100%** do preço | pagamento integral; CPF só em trânsito |
-| V9 | `POST /pagamentos/simulacao/{cobrancaId}/confirmar` com o token do visitante | `GET /agendamentos/guest/{id}` mostra `CONFIRMADO` | a confirmação passa pelo mesmo fluxo do webhook |
-| V10 | fazer outra reserva e **não** pagar por 15 min | vira `EXPIRADO` e o horário volta no V3 | ninguém segura horário de graça |
+```bash
+curl -s -i -X POST localhost:8080/pagamentos/cobrancas -H "Content-Type: application/json" \
+  -H "X-Guest-Token: g1_..." -H "X-Idempotency-Key: $(uuidgen)" \
+  -d '{ "reservaId": "<id da reserva>", "metodo": "PIX", "cpf": "123.456.789-09" }'
+```
+
+Saída real (17/11/2026, 13h31):
+
+```
+422  {"title":"Aceite da política obrigatório","status":422,"code":"ACEITE_POLITICA_OBRIGATORIO",
+      "detail":"Aceite a política de pagamento para continuar.","traceId":"8d520969…","errors":[]}
+```
+
+**O que prova:** ninguém paga sem aceitar a política; sem o campo, o erro é `422` e não `400`.
+
+### V8 ✅ Gerar o Pix (e repetir sem cobrar duas vezes)
+
+```bash
+CHAVE=$(uuidgen)
+curl -s -i -X POST localhost:8080/pagamentos/cobrancas -H "Content-Type: application/json" \
+  -H "X-Guest-Token: g1_..." -H "X-Idempotency-Key: $CHAVE" \
+  -d '{ "reservaId": "<id>", "metodo": "PIX", "cpf": "123.456.789-09", "aceitePolitica": true, "versaoPolitica": 1 }'
+# repita o mesmo comando, com a mesma $CHAVE
+```
+
+Saída real (17/11/2026, 13h31; copia e cola encurtado aqui):
+
+```
+201  {"id":"1ef0b1ad-c4ad-4ee5-a0b8-b6b906005f03","status":"PENDENTE","metodo":"PIX","valorCentavos":5500,
+      "pix":{"copiaECola":"SIMULADO-1ef0b1ad-c4…(45 caracteres)","expiraEm":"2026-11-17T13:45:39-03:00"},
+      "cpfMascarado":"***.***.***-09"}
+200  (mesma chave) o mesmo "id", sem "cpfMascarado"
+```
+
+**O que prova:** o Pix cobra **100%** do preço (`5500` = R$ 55,00). O CPF só trafega nesta chamada: a API devolve apenas `***.***.***-09`, e a repetição com a mesma `X-Idempotency-Key` devolve a **mesma** cobrança (`200`), nunca uma segunda.
+
+### V9 ✅ Confirmar o pagamento (simulado)
+
+```bash
+curl -s -i -X POST localhost:8080/pagamentos/simulacao/<cobrancaId>/confirmar -H "X-Guest-Token: g1_..."
+curl -s localhost:8080/agendamentos/guest/<id da reserva> -H "X-Guest-Token: g1_..."
+```
+
+Saída real (17/11/2026, 13h31):
+
+```
+200  {"id":"1ef0b1ad-…","status":"PAGA","metodo":"PIX","valorCentavos":5500, ...}
+200  {"id":"76d3d50a-…","status":"CONFIRMADO","inicio":"2026-12-01T10:00:00-03:00","origem":"GUEST"}
+```
+
+**O que prova:** a confirmação passa pelo **mesmo** fluxo do webhook (evento gravado, gateway reconsultado, reserva confirmada). Prova também a porta de entrada real: `POST /pagamentos/webhook` sem o cabeçalho `asaas-access-token` responde `401 WEBHOOK_NAO_AUTENTICADO`. No modo real (`asaas`) a rota de simulação deixa de existir.
+
+### V10 ⏳ Não pagar em 15 minutos
+
+Faça outra reserva e **não** pague: em 15 minutos ela vira `EXPIRADO` e o horário volta no V3. A expiração já foi provada na Fatia 4A (job a cada minuto); aqui só repete o caminho.
 
 ## 5. Cenário do cliente (com conta)
 
@@ -420,11 +469,35 @@ Outro cliente pede `GET /agendamentos/20b31b02-…` → `404 RECURSO_NAO_ENCONTR
 
 `POST /agendamentos/{id}/cancelamento` com o token do dono → `404`. **Não existe** cancelamento nem remarcação pelo cliente (R18); a reserva continua `AGUARDANDO_PAGAMENTO`.
 
-### C12 em diante ⏳
+### C12 ✅ Pagar com cartão (simulado)
+
+Com o token do cliente (C2) e uma reserva dele (C8, aqui terça 01/12 às 11h):
+
+```bash
+curl -s -i -X POST localhost:8080/pagamentos/cobrancas -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" -H "X-Idempotency-Key: $(uuidgen)" \
+  -d '{ "reservaId": "<id>", "metodo": "CARTAO_CREDITO", "cpf": "123.456.789-09", "aceitePolitica": true, "versaoPolitica": 1 }'
+curl -s -i -X POST localhost:8080/pagamentos/simulacao/<cobrancaId>/confirmar -H "Authorization: Bearer <token de outro cliente>"
+curl -s -i -X POST localhost:8080/pagamentos/simulacao/<cobrancaId>/confirmar -H "Authorization: Bearer <accessToken do dono>"
+curl -s localhost:8080/me/agendamentos -H "Authorization: Bearer <accessToken do dono>"
+```
+
+Saída real (17/11/2026, 13h31):
+
+```
+201  {"id":"dfab5416-…","status":"PENDENTE","metodo":"CARTAO_CREDITO","valorCentavos":5500,
+      "cartao":{"urlCheckout":"http://localhost:3000/pagamento-simulado…(77 caracteres)"},"cpfMascarado":"***.***.***-09"}
+404  RECURSO_NAO_ENCONTRADO   (outro cliente tentando confirmar a cobrança alheia)
+200  {"id":"dfab5416-…","status":"PAGA", ...}   (o dono)
+200  total=1 itens=[('2026-12-01T11:00:00-03:00', 'CONFIRMADO')]
+```
+
+**O que prova:** a API nunca vê o número do cartão, só devolve a `urlCheckout` onde ele seria digitado. Quem não é dono da reserva recebe `404` (não `403`), e depois do pagamento a reserva aparece `CONFIRMADO` em "meus agendamentos".
+
+### C13 ⏳ Fatia 6: dados e exclusão da conta
 
 | # | O que fazer | O que deve acontecer | O que prova | |
 |---|---|---|---|:-:|
-| C12 | `POST /pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"` e aceite, depois a confirmação simulada | `201` com `cartao.urlCheckout`; a reserva vira `CONFIRMADO` | a API nunca vê o número do cartão | ⏳ 4B |
 | C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
 
 ## 6. Cenário do admin (o barbeiro)
