@@ -92,6 +92,19 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D49 | Foco do produto: a agenda é **da Barbearia Altas Horas e do Eduardo Cândido**. O modelo aceita mais de um barbeiro (entidade `Barbeiro`), mas nada é construído para outras barbearias agora | aceita | Kevin, 16/11/2026 | [README](../../README.md) |
 | D50 | GitHub Copilot entra no fluxo como **revisor e executor de tarefas pequenas**, guiado por `.github/copilot-instructions.md` (as mesmas regras do `CLAUDE.md`) e com o ambiente do agente definido em `copilot-setup-steps.yml` | aceita | Kevin, 16/11/2026 | [automação](../automacao.md) |
 
+### Fatia 3 (17/11/2026)
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D51 | "Esqueci minha senha" por e-mail fica para depois do beta; nesta fatia entra a **troca de senha logado** (`PUT /me/senha`) | aceita | Kevin, 17/11/2026 | [spec da Fatia 3](../sdd/fatia-3-conta-e-acesso.md) |
+| D52 | Limites e validades adotados (fecham H14 e H15): login 5 erros em 15 min por e-mail + IP e 20 por IP; cadastro 5 por hora por IP; acesso 15 min; refresh 7 dias, renovado a cada uso | aceita | Kevin, 17/11/2026 | `application.yml` (`app.limites.*`, `app.sessao.*`) |
+| D53 | Admin inicial = o Eduardo, com `ADMIN` e `BARBEIRO`, vinculado ao cadastro de barbeiro por **evento** (`AdminInicialCriado`), e com troca obrigatória da senha inicial (`403 TROCA_DE_SENHA_OBRIGATORIA`) | aceita | Kevin, 17/11/2026 | `AdminInicial`, `VinculoDoBarbeiro` |
+| D54 | **Negar por padrão**: só as rotas listadas são públicas; rota não declarada responde `401` a quem não está logado. Consequência: o `404` de rota inexistente só aparece para quem tem login | aceita | spec da Fatia 3 (E13) | `SegurancaConfig` |
+| D55 | JWT validado pelo Resource Server do Spring Security com o **`Clock` injetado** (o validador padrão usa o relógio do sistema e o teste de expiração dependeria da data do dia) | aceita | implementação | `JwtConfig` |
+| D56 | O refresh é opaco e não carrega a versão da credencial: senha trocada **revoga todos os refresh do usuário** em vez de comparar versões na renovação (ajuste de E8) | aceita | implementação | `Sessoes.trocarSenha` |
+| D58 | CSRF **ligado** e exigido para requisição que altera dados e chega com cookie, em vez de desligado. O CodeQL acusou o CSRF desligado; o Kevin pediu que o alerta deixasse de existir em vez de ser dispensado. Para o uso normal da API (token no cabeçalho) nada muda; qualquer fluxo futuro com cookie já nasce protegido | aceita | alerta `java/spring-disabled-csrf-protection` na PR #16 | `SegurancaConfig`, teste A44 |
+| D57 | Fluxo de entrega: feature → `develop` → `main` automático, com CI verde, sem aguardar aprovação do merge; a spec de cada fatia continua precisando do OK | aceita | Kevin, 17/11/2026 | [SDD](../sdd/README.md) |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |

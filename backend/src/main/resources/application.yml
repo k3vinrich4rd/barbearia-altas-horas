@@ -28,6 +28,10 @@ spring:
           java_time_use_direct_jdbc: true
   flyway:
     locations: classpath:db/migration
+  jackson:
+    deserialization:
+      # Campo que o contrato não prevê é erro (400 CAMPO_DESCONHECIDO): ninguém manda "papeis" no cadastro.
+      fail-on-unknown-properties: true
   threads:
     virtual:
       enabled: true
@@ -38,6 +42,27 @@ spring:
 
 app:
   fuso: America/Sao_Paulo
+  seguranca:
+    jwt:
+      # Sem valor padrão de propósito: sem JWT_SEGREDO (32 bytes ou mais) a API não sobe.
+      segredo: ${JWT_SEGREDO:}
+      validade: 15m
+    bcrypt-custo: 12
+    # Origens do front, separadas por vírgula. Vazio = nenhuma origem de navegador é aceita.
+    cors-origens: ${CORS_ORIGENS:}
+  sessao:
+    refresh-validade: 7d
+  limites:
+    login-max: 5
+    login-ip-max: 20
+    login-janela: 15m
+    cadastro-max: 5
+    cadastro-janela: 1h
+  admin:
+    # Primeiro admin: criado na subida só se ainda não existir nenhum (R25). Nunca commitar valores.
+    email: ${ADMIN_EMAIL:}
+    senha: ${ADMIN_SENHA:}
+    nome: ${ADMIN_NOME:Administrador}
 
 management:
   endpoints:
