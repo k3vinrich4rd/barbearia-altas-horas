@@ -1,182 +1,81 @@
 <div align="center">
 
-<img src="docs/assets/logo-altas-horas.png" width="168" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
+<img src="docs/assets/logo-altas-horas.png" width="200" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
 
-<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: barbearia e academy em Osasco, agenda online com horário garantido, desde 1997"/>
+<img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Cândido, com horário garantido."/>
 
-[![Status](https://img.shields.io/badge/status-Fatia_3_de_8_·_conta_e_acesso-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
-[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.2.0-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
+[![Status](https://img.shields.io/badge/status-Fatia_3_de_8_·_conta_e_acesso-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
-[![Feito em Osasco](https://img.shields.io/badge/📍_Osasco-SP-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-a-barbearia)
+[![Java](https://img.shields.io/badge/Java-25-0A0A0A?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
+[![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Testes](https://img.shields.io/badge/testes-115_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
 
-[![Java](https://img.shields.io/badge/Java-25_LTS-0A0A0A?logo=openjdk&logoColor=white&labelColor=2B2B2B)](https://openjdk.org/projects/jdk/25/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?logo=springboot&logoColor=white&labelColor=2B2B2B)](https://spring.io/projects/spring-boot)
-[![Spring Security](https://img.shields.io/badge/Security-JWT_+_refresh-0A0A0A?logo=springsecurity&logoColor=white&labelColor=2B2B2B)](https://docs.spring.io/spring-security/reference/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-EXCLUDE_gist-0A0A0A?logo=postgresql&logoColor=white&labelColor=2B2B2B)](docs/adr/0003-anti-double-booking-no-banco.md)
-[![Flyway](https://img.shields.io/badge/Flyway-migrações-0A0A0A?logo=flyway&logoColor=white&labelColor=2B2B2B)](docs/banco/erd.md)
-[![Testcontainers](https://img.shields.io/badge/Testcontainers-Postgres_real-0A0A0A?logo=testcontainers&logoColor=white&labelColor=2B2B2B)](https://testcontainers.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-front_+_BFF-0A0A0A?logo=nextdotjs&logoColor=white&labelColor=2B2B2B)](https://nextjs.org/)
-[![RFC 9457](https://img.shields.io/badge/erros-RFC_9457-0A0A0A?labelColor=2B2B2B)](docs/adr/0005-erros-rfc-9457.md)
-[![Pix](https://img.shields.io/badge/Pix_+_Cartão-100%25_antecipado-0A0A0A?logo=pix&logoColor=white&labelColor=2B2B2B)](#-pagamento-100-antecipado)
-[![Último commit](https://img.shields.io/github/last-commit/k3vinrich4rd/barbearia-altas-horas/develop?color=0A0A0A&labelColor=2B2B2B&label=último%20commit)](https://github.com/k3vinrich4rd/barbearia-altas-horas/commits/develop)
-
-[![A história](https://img.shields.io/badge/📖_A_história-0A0A0A?style=for-the-badge)](#-a-história)
-[![Em 30 segundos](https://img.shields.io/badge/⚡_Em_30_segundos-0A0A0A?style=for-the-badge)](#-em-30-segundos)
-[![A barbearia](https://img.shields.io/badge/💈_A_barbearia-0A0A0A?style=for-the-badge)](#-a-barbearia)
-[![Pagamento](https://img.shields.io/badge/💳_Pagamento-0A0A0A?style=for-the-badge)](#-pagamento-100-antecipado)
-[![Arquitetura](https://img.shields.io/badge/🧱_Arquitetura-0A0A0A?style=for-the-badge)](#-arquitetura)
-<br/>
-[![Decisões](https://img.shields.io/badge/🧭_Decisões_(ADRs)-0A0A0A?style=for-the-badge)](#-decisões-de-arquitetura-adrs)
-[![Segurança](https://img.shields.io/badge/🔐_Segurança_e_LGPD-0A0A0A?style=for-the-badge)](#-segurança-e-lgpd)
-[![Testes](https://img.shields.io/badge/🧪_Rodar_e_testar-0A0A0A?style=for-the-badge)](#-rodar-e-testar)
-[![SDD + IA](https://img.shields.io/badge/📐_SDD_+_IA-0A0A0A?style=for-the-badge)](#-como-o-projeto-é-feito-sdd--ia)
-[![Roadmap](https://img.shields.io/badge/🗺_Roadmap-0A0A0A?style=for-the-badge)](#-roadmap-em-fatias)
+<b><a href="#-a-história">A história</a></b> ·
+<a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
+<a href="#-a-barbearia">A barbearia</a> ·
+<a href="#-o-que-a-agenda-resolve">O que a agenda resolve</a> ·
+<a href="#-arquitetura">Arquitetura</a> ·
+<a href="#-rodar-e-testar">Rodar e testar</a> ·
+<a href="#-roadmap-em-fatias">Roadmap</a>
 
 </div>
 
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
-> [!IMPORTANT]
-> **Onde o projeto está.** A agenda já responde, pela API, quais horários estão livres de verdade (descontando almoço, folgas e reservas), o banco já impede dois clientes no mesmo horário e as contas já funcionam: cadastro, login com sessão que se renova, e um administrador que nasce sem senha no repositório. São **115 testes** rodando em PostgreSQL real, com 0 falhas. Agendamento com pagamento, painel e telas chegam nas próximas fatias: o [roadmap](#-roadmap-em-fatias) mostra o que está pronto e o que falta.
->
-> Cada entrega nasce de uma **especificação** e só entra com teste para cada critério. Os números desta página saem sempre de execução real.
-
-<table>
-<tr>
-<td align="center" width="33%"><b>👀 Tenho 2 minutos</b><br/><a href="#-a-história">A história</a> · <a href="#-em-30-segundos">Em 30 segundos</a></td>
-<td align="center" width="33%"><b>🧑‍💻 Quero ver a engenharia</b><br/><a href="#-as-regras-da-casa-e-quem-garante-cada-uma">Regras e garantias</a> · <a href="#-decisões-de-arquitetura-adrs">ADRs</a> · <a href="#-como-o-projeto-é-feito-sdd--ia">SDD + IA</a></td>
-<td align="center" width="33%"><b>⌨️ Quero rodar</b><br/><a href="#-rodar-e-testar">2 comandos</a> · <a href="docs/guia-testes.md">guia de testes</a></td>
-</tr>
-</table>
-
 ## 📖 A história
 
+<img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
+
+O **Eduardo Cândido** pegou na tesoura pela primeira vez em 1995, aprendendo com o primeiro mestre dele. Dois anos depois, em **1997**, abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então é ele quem está na cadeira, de terça a sábado, das sete da manhã às oito da noite.
+
+Com o tempo, o ofício virou também sala de aula. Formado instrutor pela Ibel Formação, hoje ele ensina na **Altas Horas Barbearia Academy**, onde forma os próximos barbeiros. Em 2017, o trabalho de duas décadas foi reconhecido duas vezes: o **Prêmio Barbeiros do Brasil** e o **Prêmio Master Barber, Êxito Profissional**.
+
+O Eduardo é o meu pai. E a agenda dele, até hoje, coube num caderno e no WhatsApp. Entre um corte e uma aula, ele responde mensagem, anota horário, confirma quem vem. Quando o cliente marca e não aparece, aquela meia hora não volta: para quem atende sozinho, cadeira vazia é trabalho que ninguém paga. É um problema que se repete em quase toda barbearia de bairro.
+
+**Sou desenvolvedor backend e decidi resolver isso com o que eu sei fazer.** Esta é a agenda online da Altas Horas: o cliente vê os horários livres, escolhe o serviço, **paga antes** por Pix ou cartão e só então o horário é dele. Quem não paga em 15 minutos libera a vaga. E o Eduardo começa o dia com a agenda pronta, cada horário confirmado e pago.
+
+> [!NOTE]
+> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. São **115 testes** em PostgreSQL real, 0 falhas. Agendamento com pagamento, painel e telas chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
+
+<br clear="right"/>
+
+## 🏆 Trajetória e prêmios
+
 <table>
 <tr>
-<td width="200" align="center" valign="top">
-<img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
-<br/><b>Eduardo Cândido</b><br/><sub>barbeiro e professor<br/>na ativa desde 1997</sub>
+<td align="center" width="50%">
+<img src="docs/assets/premios/premio-barbeiros-do-brasil-2017.jpg" width="100%" alt="Eduardo Cândido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro"/>
+<br/><b>Prêmio Barbeiros do Brasil</b><br/><sub>2017 · trazido para Osasco</sub>
 </td>
-<td valign="top">
-
-A **Barbearia Altas Horas** está aberta desde **1997** no Jardim Bonança, em Osasco. Quem comanda a cadeira é o **Eduardo Cândido**, meu pai: são quase três décadas de terça a sábado, das sete da manhã às oito da noite, do corte social ao degradê navalhado. Além de atender, ele ensina: é professor na **Altas Horas Barbearia Academy**, onde forma novos barbeiros.
-
-Com a cadeira e as aulas dividindo o mesmo dia, a agenda dele sempre coube num caderno e no WhatsApp. E é aí que mora um problema que se repete em quase toda barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta. Para quem atende sozinho, **cadeira vazia é meia hora de trabalho que ninguém paga**.
-
-Criei esta agenda para resolver isso.
-
-O cliente escolhe o serviço e o horário, **paga antes**, por Pix ou cartão, e só então o horário é dele. Quem não paga em 15 minutos libera a vaga para o próximo. No fim, o Eduardo abre o painel de manhã e encontra o dia já organizado, com cada horário confirmado e pago. É para esse dia que o projeto está sendo construído, uma fatia de cada vez.
-
+<td align="center" width="50%">
+<img src="docs/assets/premios/premio-master-barber-2017.jpg" width="100%" alt="Eduardo Cândido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber"/>
+<br/><b>Prêmio Master Barber · Êxito Profissional</b><br/><sub>2017</sub>
 </td>
 </tr>
 </table>
 
-<details>
-<summary><b>📒 Antes: o caderno e o WhatsApp</b></summary>
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#FFFFFF','lineColor':'#7A7A7A','fontFamily':'Georgia, serif'}}}%%
+timeline
+    1995 : primeiros cortes, aprendendo com o primeiro mestre
+    1997 : abre a Barbearia Altas Horas no Jardim Bonança, Osasco
+    2017 : Prêmio Barbeiros do Brasil
+         : Prêmio Master Barber · Êxito Profissional
+    Hoje : barbeiro na cadeira e professor na Altas Horas Barbearia Academy
+         : a agenda sai do caderno e vai para a internet
+```
 
-<br/>
-
-| Momento | O que acontecia |
-|---|---|
-| Cliente quer marcar | manda mensagem e espera o Eduardo terminar um corte para responder |
-| Dois clientes querem o mesmo horário | quem respondeu primeiro leva; o outro descobre depois |
-| Cliente desiste | às vezes avisa, às vezes não |
-| Cliente falta | cadeira vazia, sem receita, e sem tempo de encaixar outra pessoa |
-| Fim do dia | a agenda de amanhã está espalhada entre o caderno e as conversas |
-
-</details>
-
-<details open>
-<summary><b>💈 Agora: a agenda online</b></summary>
-
-<br/>
-
-| Momento | O que acontece | Quem garante |
-|---|---|---|
-| Cliente quer marcar | vê os horários livres na hora, a qualquer hora | a API calcula jornada, almoço, folgas e reservas |
-| Dois clientes querem o mesmo horário | só um consegue, mesmo clicando no mesmo instante | o PostgreSQL, com uma regra no próprio banco |
-| Cliente reserva | o horário fica guardado por 15 minutos enquanto ele paga | prazo gravado na reserva |
-| Cliente paga | a confirmação é automática | o aviso do meio de pagamento, aceito uma vez só |
-| Cliente falta | o valor já foi pago: a cadeira vazia não vira prejuízo | regra do produto, aceita pelo cliente antes de pagar |
-| Começo do dia | o Eduardo vê a agenda pronta no painel | painel do barbeiro |
-
-<sub>✅ Já roda: horários livres pela API e a trava contra horário duplicado. 🚧 Em construção: reserva, pagamento e painel ([roadmap](#-roadmap-em-fatias)).</sub>
-
-</details>
-
-## ⚡ Em 30 segundos
-
-| | |
-|---|---|
-| **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido, e isso se repete toda semana. |
-| **Solução** | Agendamento online com horários livres em tempo real e **pagamento 100% antecipado** (Pix ou cartão de crédito). O horário só é confirmado quando o gateway avisa que o dinheiro entrou. |
-| **Para quem** | Para o **Eduardo Cândido**, meu pai, que atende sozinho e administra tudo num painel protegido, e para os clientes da **Barbearia Altas Horas** (Osasco, desde 1997). |
-| **Como é construído** | Especificação antes do código, um teste para cada critério e CI barrando o que não cumpre. Backend em Java e Spring; IA como par de programação e na geração do frontend. [Como funciona](#-como-o-projeto-é-feito-sdd--ia). |
-| **Por que é nível Pleno** | Concorrência resolvida no banco, webhook idempotente, máquina de estados explícita, erros padronizados, LGPD desde a primeira linha e testes com PostgreSQL real. |
-| **Stack** | Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js |
-| **Deploy (Fase 1)** | Vercel (front) · Render (API em Docker) · Aiven (PostgreSQL) |
-
-### ✂️ As regras da casa, e quem garante cada uma
-
-Cada regra do negócio tem uma garantia de engenharia por trás. Abra para ver.
-
-<details>
-<summary><b>1. Dois clientes nunca ficam com o mesmo horário</b></summary>
-
-<br/>
-
-Quem garante é o banco, não um `if` no código: uma constraint `EXCLUDE USING gist` com `tstzrange '[)'` no PostgreSQL. Com duas requisições no mesmo milissegundo, ou duas instâncias da API no ar, o banco deixa passar só uma. O teste coloca 12 conexões disputando o mesmo horário e confere que exatamente uma vence. [ADR 0003](docs/adr/0003-anti-double-booking-no-banco.md)
-
-</details>
-
-<details>
-<summary><b>2. Horário só é confirmado com o dinheiro na conta</b></summary>
-
-<br/>
-
-A reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` quando o meio de pagamento avisa. Esse aviso pode chegar repetido, então o id do evento é chave única: o mesmo aviso duas vezes não confirma duas vezes. E a API não confia só no corpo do aviso: consulta a cobrança antes de confirmar. [ADR 0007](docs/adr/0007-gateway-de-pagamento-sandbox.md)
-
-</details>
-
-<details>
-<summary><b>3. Quem não paga em 15 minutos libera a vaga</b></summary>
-
-<br/>
-
-A reserva guarda o prazo. Passou dele, o horário volta a aparecer como livre **na mesma hora**, sem esperar nenhuma rotina de limpeza rodar: a consulta de horários já ignora reserva vencida. Importa porque a hospedagem gratuita hiberna, e uma rotina agendada atrasaria.
-
-</details>
-
-<details>
-<summary><b>4. O número do cartão nunca passa pela API</b></summary>
-
-<br/>
-
-O pagamento com cartão acontece na página do próprio meio de pagamento. A API só recebe o resultado, o que tira o projeto do escopo pesado do PCI DSS. O CPF, exigido para gerar a cobrança, é validado, repassado e não fica guardado. [ADR 0009](docs/adr/0009-lgpd-marketing-cpf-e-retencao.md)
-
-</details>
-
-<details>
-<summary><b>5. Preço, horário e regra mudam sem mexer no código</b></summary>
-
-<br/>
-
-Serviços, preços, jornada, almoço, antecedência mínima e prazo de pagamento são dados no banco. O Eduardo muda o horário de almoço no painel e a agenda acompanha, sem depender de uma nova versão do sistema.
-
-</details>
+<div align="center">
+<sub><i>"Amor na ponta da tesoura!"</i> · Eduardo Cândido, ao receber o Prêmio Barbeiros do Brasil</sub>
+</div>
 
 ## 💈 A barbearia
 
-| | |
-|---|---|
-| 📍 **Endereço** | R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP |
-| 💈 **Quem atende** | Eduardo Cândido (Carlos Eduardo Cândido), em todos os serviços |
-| 🎓 **Academy** | o Eduardo também é professor na **Altas Horas Barbearia Academy** |
-| 🏁 **Desde** | 1997 |
-| 🕖 **Funcionamento** | terça a sábado, **07h00 às 20h00** (almoço 12h00 às 13h00) |
-| 📸 **Instagram** | [@altashorascabeleireiros](https://www.instagram.com/altashorascabeleireiros/) · [@eduardo_candido_barber](https://www.instagram.com/eduardo_candido_barber/) |
+📍 R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP &nbsp;·&nbsp; 🕖 terça a sábado, 07h às 20h (almoço 12h às 13h) &nbsp;·&nbsp; 📸 [@altashorascabeleireiros](https://www.instagram.com/altashorascabeleireiros/) · [@eduardo_candido_barber](https://www.instagram.com/eduardo_candido_barber/)
 
-### 🗓 A agenda da semana
+Um barbeiro só, que faz todos os serviços. É para esse ritmo que a agenda foi pensada:
 
 <img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h e exemplos de horários confirmados e aguardando pagamento; horários de 30 em 30 minutos, 2 horas de antecedência e até 30 dias à frente"/>
 
@@ -197,35 +96,26 @@ Serviços, preços, jornada, almoço, antecedência mínima e prazo de pagamento
 
 O **Corte Moderno / Visagismo** (60 min) tem **22**: some o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h). Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 15 min vence, ele volta sozinho.
 
-</details>
-
-<details>
-<summary><b>✂️ Testar agora, no seu terminal</b></summary>
-
-<br/>
-
 ```bash
 curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=2026-12-01"
 ```
 
-Como subir a API em 2 comandos: [Rodar e testar](#-rodar-e-testar).
-
 </details>
 
-### 💈 Quadro de serviços
+### Quadro de serviços
 
 <table>
 <tr><th align="left">Serviço</th><th>Tempo</th><th align="right">Valor</th></tr>
 <tr><td>✂️ Corte Clássico / Social</td><td align="center">30 min</td><td align="right"><kbd>R$ 45,00</kbd></td></tr>
 <tr><td>✂️ Corte Degradê / Fade / Navalhado</td><td align="center">30 min</td><td align="right"><kbd>R$ 55,00</kbd></td></tr>
-<tr><td>✂️ Corte Moderno / Visagismo (tesoura)</td><td align="center">60 min · 2 horários</td><td align="right"><kbd>R$ 60,00</kbd></td></tr>
+<tr><td>✂️ Corte Moderno / Visagismo (tesoura)</td><td align="center">60 min</td><td align="right"><kbd>R$ 60,00</kbd></td></tr>
 <tr><td>🪒 Barba Completa / Desenhada</td><td align="center">30 min</td><td align="right"><kbd>R$ 30,00</kbd></td></tr>
 <tr><td>🪒 Acabamento (pezinho) / Sobrancelha</td><td align="center">30 min</td><td align="right"><kbd>R$ 20,00</kbd></td></tr>
 </table>
 
-<sub>Sem combos. Preços, horários e regras são **dados** que o Eduardo edita no painel, nunca valores fixos no código.</sub>
+<sub>Sem combos. Preços, horários e regras são dados que o Eduardo muda no painel, sem mexer no código.</sub>
 
-### 📷 Da cadeira
+### Da cadeira
 
 <table>
 <tr>
@@ -245,7 +135,77 @@ Como subir a API em 2 comandos: [Rodar e testar](#-rodar-e-testar).
 
 </details>
 
-<sub>🎨 A identidade deste README segue o salão: preto, branco e prata, o vermelho das cadeiras e o xadrez da parede do logo. Fotos do acervo da barbearia.</sub>
+<sub>Preto e branco, como o logo e a parede xadrez do salão. Fotos do acervo da barbearia e do Instagram do Eduardo.</sub>
+
+## ✂️ O que a agenda resolve
+
+Na prática, a diferença aparece no dia do Eduardo:
+
+| No caderno e no WhatsApp | Na agenda online |
+|---|---|
+| o cliente manda mensagem e espera o fim de um corte para ter resposta | vê os horários livres na hora, a qualquer hora |
+| dois clientes no mesmo horário: quem respondeu primeiro leva | só um consegue, mesmo clicando no mesmo instante |
+| o cliente desiste e nem sempre avisa | o horário só é dele depois de pagar; sem pagar em 15 min, a vaga volta |
+| a falta vira cadeira vazia e prejuízo | o valor já foi pago antes do corte |
+| a agenda de amanhã está espalhada entre caderno e conversas | o Eduardo abre o painel e o dia está pronto |
+
+Por trás de cada linha dessa tabela há uma decisão de engenharia. Abra para ver como cada regra é garantida:
+
+<details>
+<summary><b>Dois clientes nunca ficam com o mesmo horário</b></summary>
+
+<br/>
+
+Quem garante é o banco, não um `if` no código: uma constraint `EXCLUDE USING gist` com `tstzrange '[)'` no PostgreSQL. Com duas requisições no mesmo milissegundo, ou duas instâncias da API no ar, o banco deixa passar só uma. O teste coloca 12 conexões disputando o mesmo horário e confere que exatamente uma vence. [ADR 0003](docs/adr/0003-anti-double-booking-no-banco.md)
+
+</details>
+
+<details>
+<summary><b>O horário só é confirmado com o dinheiro na conta</b></summary>
+
+<br/>
+
+A reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` quando o meio de pagamento avisa. Esse aviso pode chegar repetido, então o id do evento é chave única: o mesmo aviso duas vezes não confirma duas vezes. E a API não confia só no corpo do aviso: consulta a cobrança antes de confirmar. [ADR 0007](docs/adr/0007-gateway-de-pagamento-sandbox.md)
+
+</details>
+
+<details>
+<summary><b>Quem não paga em 15 minutos libera a vaga</b></summary>
+
+<br/>
+
+A reserva guarda o prazo. Passou dele, o horário volta a aparecer como livre na mesma hora, sem esperar nenhuma rotina de limpeza rodar: a consulta de horários já ignora reserva vencida. Importa porque a hospedagem gratuita hiberna, e uma rotina agendada atrasaria.
+
+</details>
+
+<details>
+<summary><b>O número do cartão nunca passa pela API</b></summary>
+
+<br/>
+
+O pagamento com cartão acontece na página do próprio meio de pagamento. A API só recebe o resultado, o que tira o projeto do escopo pesado do PCI DSS. O CPF, exigido para gerar a cobrança, é validado, repassado e não fica guardado. [ADR 0009](docs/adr/0009-lgpd-marketing-cpf-e-retencao.md)
+
+</details>
+
+<details>
+<summary><b>Preço, horário e regra mudam sem mexer no código</b></summary>
+
+<br/>
+
+Serviços, preços, jornada, almoço, antecedência mínima e prazo de pagamento são dados no banco. O Eduardo muda o horário de almoço no painel e a agenda acompanha, sem depender de uma nova versão do sistema.
+
+</details>
+
+<details>
+<summary><b>A senha do administrador nunca passa pelo repositório</b></summary>
+
+<br/>
+
+O primeiro acesso do Eduardo nasce de variáveis de ambiente na hora em que a API sobe, e a senha inicial precisa ser trocada antes de o painel abrir. Sessões se renovam sem pedir senha, e um token de renovação usado duas vezes derruba a sessão inteira: sinal de que alguém copiou. [spec da Fatia 3](docs/sdd/fatia-3-conta-e-acesso.md)
+
+</details>
+
+**Em uma linha, para quem avalia código:** concorrência resolvida no banco, pagamento idempotente, máquina de estados explícita, erros em RFC 9457, LGPD desde a primeira linha e testes com PostgreSQL real, tudo especificado antes de ser escrito ([Spec-Driven Development](#-como-o-projeto-é-feito-sdd--ia)). Stack: Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js; deploy planejado em Vercel, Render e Aiven.
 
 ## 💳 Pagamento 100% antecipado
 
