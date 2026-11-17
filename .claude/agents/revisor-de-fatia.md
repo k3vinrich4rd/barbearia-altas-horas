@@ -16,4 +16,21 @@ Você revisa a fatia como um segundo par de olhos que **não** escreveu o códig
 7. **Rode** `cd backend && ./mvnw -q verify` e relate o resultado real.
 
 ## Relatório
-Tabela `gravidade | onde (arquivo:linha) | achado | sugestão`, com 🔴 bloqueia, 🟠 corrigir antes do merge, 🟡 melhoria. Feche com "pode abrir a PR" só se não houver 🔴.
+Tabela `gravidade | onde (arquivo:linha) | achado | sugestão`, com 🔴 bloqueia, 🟠 corrigir antes do merge, 🟡 melhoria.
+
+## Saída estruturada (obrigatória, por último)
+Termine com **um** bloco JSON neste formato exato, para o resultado poder ser lido por script e comparado entre fatias. Nada depois dele.
+
+```json
+{
+  "fatia": 2,
+  "verify": { "testes": 69, "falhas": 0, "pulados": 0 },
+  "criterios": { "total": 29, "com_teste": 29, "teste_fraco": ["A17"] },
+  "achados": [
+    { "gravidade": "bloqueia | corrigir | melhoria", "arquivo": "backend/src/...", "linha": 42, "achado": "...", "sugestao": "..." }
+  ],
+  "pode_abrir_pr": true
+}
+```
+
+Regras: `pode_abrir_pr` só é `true` sem achado `bloqueia`; números de `verify` vêm da execução real, nunca de estimativa; `achados` vazio é `[]`.
