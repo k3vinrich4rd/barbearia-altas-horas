@@ -16,13 +16,16 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
+import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
 /**
  * Todo erro da API sai em application/problem+json (RFC 9457, ADR 0005) com as extensões "code" (estável, para o
@@ -33,6 +36,14 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(TratadorGlobalDeErros.class);
+
+    /** Erro previsto pelo contrato (404, 409, 422...): o código e o detalhe vêm da própria exceção. */
+    @ExceptionHandler(ExcecaoDeNegocio.class)
+    ResponseEntity<ProblemDetail> erroDeNegocio(ExcecaoDeNegocio ex, HttpServletRequest request) {
+        ProblemDetail corpo = problema(ex.codigo(), request.getRequestURI());
+        corpo.setDetail(ex.getMessage());
+        return ResponseEntity.status(corpo.getStatus()).body(corpo);
+    }
 
     /** Erro não previsto: 500 sem detalhe técnico na resposta; a pilha fica só no log, ligada pelo traceId. */
     @ExceptionHandler(Exception.class)
@@ -53,6 +64,10 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
                     .map(erro -> Map.of("field", erro.getField(),
                             "message", erro.getDefaultMessage() == null ? "inválido" : erro.getDefaultMessage()))
                     .toList());
+        } else if (ex instanceof MissingServletRequestParameterException ausente) {
+            corpo.setProperty("errors", List.of(Map.of("field", ausente.getParameterName(), "message", "obrigatório")));
+        } else if (ex instanceof MethodArgumentTypeMismatchException tipoErrado) {
+            corpo.setProperty("errors", List.of(Map.of("field", tipoErrado.getName(), "message", "formato inválido")));
         }
         return ResponseEntity.status(statusCode).headers(headers).body(corpo);
     }

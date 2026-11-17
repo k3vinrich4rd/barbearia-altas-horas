@@ -81,6 +81,17 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D43 | `traceId` de 32 hex por requisição (MDC, cabeçalho `X-Trace-Id` e corpo do erro); um `X-Trace-Id` recebido só vale no formato W3C, para ninguém injetar texto no log | aceita | `ErroPadraoTest` | `RastreioFilter` |
 | D44 | Banco garante as regras de pagamento além do código: `reserva_aceite_ck` (só confirma quem aceitou a política), `reserva_expiracao_ck` (todo `AGUARDANDO_PAGAMENTO` tem prazo) e `cobranca_metodo_ck` (só PIX ou CARTAO_CREDITO) | aceita | `V1MigracaoIT` | [V1](../../backend/src/main/resources/db/migration/V1__agenda.sql) |
 
+### Fatia 2 (16/11/2026)
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D45 | Arquitetura: **manter o monólito modular** e usar portas e adaptadores só onde há regra difícil ou sistema externo (disponibilidade, reserva, pagamento, CEP); CRUD fica em camadas simples | aceita | pergunta do Kevin sobre reescrever em hexagonal | [ADR 0011](../adr/0011-hexagonal-seletivo-no-monolito-modular.md) |
+| D46 | `hibernate.type.java_time_use_direct_jdbc: true`: com `jdbc.time_zone: UTC`, o Hibernate aplicava o fuso também às colunas `time` e a jornada das 07:00 era lida como 04:00 | aceita | falha real do teste A27 (`expected 07:00 but was 04:00`) | `application.yml` |
+| D47 | No teste de concorrência, quem perde a disputa pode receber `23P01` **ou** `40P01` (deadlock entre as que esperam); o que não muda é **uma** reserva vencedora. Confirma na prática o retry + `409 CONFLITO_CONCORRENTE` previsto em D27 | aceita | falha real do `ConcorrenciaReservaIT` com a máquina sob carga | [ADR 0003](../adr/0003-anti-double-booking-no-banco.md) |
+| D48 | `JOIN FETCH` sem `DISTINCT`: o Hibernate 6+ já devolve cada entidade uma vez, e o PostgreSQL recusa `SELECT DISTINCT` com `ORDER BY lower(...)` | aceita | erro real do PostgreSQL na primeira execução | `BarbeiroRepository` |
+| D49 | Foco do produto: a agenda é **da Barbearia Altas Horas e do Eduardo Cândido**. O modelo aceita mais de um barbeiro (entidade `Barbeiro`), mas nada é construído para outras barbearias agora | aceita | Kevin, 16/11/2026 | [README](../../README.md) |
+| D50 | GitHub Copilot entra no fluxo como **revisor e executor de tarefas pequenas**, guiado por `.github/copilot-instructions.md` (as mesmas regras do `CLAUDE.md`) e com o ambiente do agente definido em `copilot-setup-steps.yml` | aceita | Kevin, 16/11/2026 | [automação](../automacao.md) |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |
