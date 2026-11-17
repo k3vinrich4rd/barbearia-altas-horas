@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ✅ **aprovada pelo Kevin em 17/11/2026**, com o ajuste do beta sem gateway real (D59); em implementação, começando pela 4A |
+| **Status** | ✅ **aprovada pelo Kevin em 17/11/2026**, com o ajuste do beta sem gateway real (D59) · **4A pronta** (A1 a A21) · 4B em seguida |
 | **Fatias do plano** | S07 (reserva do cliente) + S08 sem cancelar/remarcar (leitura) + S11 (reserva do visitante) + S12 (cobrança) + S13 (webhook e pagamento tardio) + S14 (job de expiração) |
 | **Entrega em duas PRs** | **4A** · reserva e expiração (`feat/fatia-4a-reserva`) · **4B** · cobrança, webhook e conciliação (`feat/fatia-4b-pagamento`). A 4B só começa com a 4A na `main` |
 | **Regras** | [R1, R2](../contexto.md#3-regras-de-negócio) (constraint), R5 (antecedência e horizonte), R6 a R8 (todo agendamento paga 100% antes), R9 e R10 (CPF e idempotência), R11 a R14 (webhook e pagamento tardio), R15 a R17 (expiração), R18 (sem cancelar ou remarcar, aceite obrigatório), R23 (recurso alheio → 404), R26 (limite do visitante), R30 (nada pessoal em log) |
@@ -11,7 +11,7 @@
 
 ## 1. Objetivo
 
-O cliente, com conta ou sem conta, escolhe um horário livre, o horário fica **travado por 15 minutos**, ele aceita a política e **paga 100%** por Pix ou cartão, e a reserva vira `CONFIRMADO` quando o gateway avisa. Quem não paga libera o horário sozinho. É o coração do produto: depois desta fatia, o Eduardo já poderia receber agendamentos pagos (no sandbox).
+O cliente, com conta ou sem conta, escolhe um horário livre, o horário fica **travado por 15 minutos**, ele aceita a política e **paga 100%** por Pix ou cartão, e a reserva vira `CONFIRMADO` quando o gateway avisa. Quem não paga libera o horário sozinho. É o coração do produto: depois desta fatia, o Eduardo já vê agendamentos pagos de ponta a ponta (no beta, com o pagamento simulado, D59).
 
 ## 2. Contrato
 
@@ -48,7 +48,7 @@ O cliente, com conta ou sem conta, escolhe um horário livre, o horário fica **
 | E6 | Preço | `preco_centavos` copiado do serviço na reserva | mudar o preço depois não muda o que o cliente vai pagar (R8) |
 | E7 | Token do visitante | 32 bytes aleatórios (`g1_` + base64url), guardado só como SHA-256 em `reserva_guest.token_hash`; comparado em tempo constante; token errado ou ausente → `404` | vazou o banco, não vazou o acesso; `404` não confirma que a reserva existe |
 | E8 | Dados do visitante | `nome`, `email`, `whatsapp` em `reserva_guest` (tabela separada da reserva); **sem CPF aqui** (R9) | facilita anonimizar depois (Fatia 6) e mantém a reserva sem dado pessoal |
-| E9 | Limite do visitante (R26) | 3 reservas por hora por IP, pela mesma porta `LimitadorDeTentativas` da Fatia 3 | evita alguém travar a agenda inteira com reservas sem pagar |
+| E9 | Limite do visitante (R26) | 3 reservas **criadas** por hora por IP (409 e 422 não gastam a cota; D65), pela mesma porta `LimitadorDeTentativas` da Fatia 3 | evita alguém travar a agenda inteira com reservas sem pagar |
 | E10 | Job de expiração (R17) | `@Scheduled` a cada 1 min **e na subida**, com **ShedLock** (`shedlock` já existe na V1), lotes de 100 com `FOR UPDATE SKIP LOCKED` | o Render free hiberna; a disponibilidade já ignora vencidas (R15), então o job só arruma o status |
 | E11 | Eventos entre módulos | `ReservaExpirada` publicado pela agenda; **outbox do Spring Modulith** (`spring-modulith-starter-jdbc`) com a tabela `event_publication` numa migração `V3`, usando o schema oficial da versão 2.1.2 (D41) | o evento fica gravado na mesma transação da mudança: se a API cair entre o commit e o listener, ele é reenviado |
 | E12 | Leitura dos meus agendamentos | `GET /me/agendamentos` paginado (`pagina`, `tamanho` até 50), mais recentes primeiro, com **projeção** (sem N+1), filtrado pelo `sub` do token | o id do dono nunca vem de parâmetro |
@@ -152,8 +152,8 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 
 | Módulo | 4A | 4B |
 |---|---|---|
-| `agenda` | `Reserva` (+ `StatusReserva`), `ReservaGuest`, `ReservarHorario` (caso de uso com E1 a E4), `AgendamentosController`, `GuestController`, `ExpiracaoJob`, API pública `Reservas` (dados para cobrança, registrar aceite, confirmar), evento `ReservaExpirada`, listener de `PagamentoConfirmado` | — |
-| `pagamento` | — | `Cobranca`, `EventoWebhook`, porta `GatewayDePagamento` + `AsaasGateway` + `GatewayFalso` (dev), `CriarCobranca`, `WebhookController`, `ProcessarPagamento` (webhook, conciliação e job), `ReprocessamentoJob`, evento `PagamentoConfirmado`, listener de `ReservaExpirada` |
+| `agenda` | `Reserva` (+ `StatusReserva`), `ReservaGuest`, `ReservarHorario` (caso de uso com E1 a E4), `AgendamentosController` (cliente e visitante na mesma classe), `ConsultaAgendamentos`, `ExpiracaoJob`, evento `ReservaExpirada` | API pública `Reservas` (dados para cobrança, registrar aceite, confirmar), listener de `PagamentoConfirmado` |
+| `pagamento` | listener de `ReservaExpirada` (D63) | `Cobranca`, `EventoWebhook`, porta `GatewayDePagamento` + `AsaasGateway` + `GatewayFalso` (dev), `CriarCobranca`, `WebhookController`, `ProcessarPagamento` (webhook, conciliação e job), `ReprocessamentoJob`, evento `PagamentoConfirmado` |
 | `comum` | — | `Cpf` (valida e mascara) |
 | banco | `V3__eventos.sql` (`event_publication` oficial do Modulith 2.1.2) | — |
 | dependências | `spring-modulith-starter-jdbc`, `shedlock-spring` + `shedlock-provider-jdbc-template` 7.10.1 | — |
@@ -177,7 +177,8 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 
 ## 8. Pronto quando
 
-- [ ] A1 a A21 verdes na PR 4A e A22 a A45 verdes na PR 4B (`sh scripts/conferir-spec.sh 4 --exigir` na 4B)
+- [x] A1 a A21 verdes na PR 4A (17/11/2026: 21/21, 137 testes no total)
+- [ ] A22 a A45 verdes na PR 4B (`sh scripts/conferir-spec.sh 4 --exigir` na 4B)
 - [ ] `redocly lint` com 0 erros no contrato 1.3.0
 - [ ] fluxo rodado à mão no perfil `dev` em modo simulado, do horário à reserva confirmada
 - [ ] [checklist da PR](checklist-pr.md) completo
