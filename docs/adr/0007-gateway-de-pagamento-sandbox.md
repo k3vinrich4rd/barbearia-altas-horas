@@ -3,7 +3,10 @@
 - Status: **proposta** (dono: Quarteto Dev; o Alicerce revisa só o impacto na arquitetura)
 - Data: 2026-11-13
 - Decisores: Quarteto Dev; consultados: Gemini (pesquisa) e documentação oficial (conferida pelo coordenador)
-- Fontes: [`docs/ia/verificacao-coordenador-2026-11-13.md`](../ia/verificacao-coordenador-2026-11-13.md) (consulta em 13/11/2026)
+- Fontes: verificação interna da equipe (13/11/2026) (consulta em 13/11/2026)
+
+
+> **Atualização 16/11/2026 (D31 a D35):** a barbearia definiu pagamento **100% antecipado** por Pix ou cartão para todos, sem cancelamento ou remarcação pelo cliente. Onde este registro fala em "sinal" ou remarcação, vale a regra nova; o ADR fica como histórico da decisão.
 
 ## Contexto
 O guest paga 50% de sinal por Pix. O beta é portfólio e **custo zero**: precisa de sandbox gratuito com Pix de teste, webhook que dê para disparar sem dinheiro real, e algo que justifique pedir o CPF só no pagamento.

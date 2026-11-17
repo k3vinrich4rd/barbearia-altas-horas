@@ -1,17 +1,23 @@
-# RASCUNHO de máquina do contrato v1.0 (proposta, 13/11/2026).
+# RASCUNHO de máquina do contrato v1.1 (proposta, 16/11/2026: pagamento 100% antecipado).
 # O acordo humano é o contrato-api.md. Depois do código, o OpenAPI passa a ser
 # gerado pelo springdoc e comparado com este arquivo (oasdiff) no CI.
 # Dados de exemplo são fictícios.
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.0.0-proposta
+  version: 1.1.0-proposta
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
-    Contrato v1.0 em proposta. Erros no padrão RFC 9457 (application/problem+json)
+    Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
     com as extensões `code`, `traceId` e `errors`. Dinheiro em centavos (inteiro).
-    Data e hora em ISO-8601 com offset. Valores marcados HIPÓTESE no contrato
-    Markdown são configuráveis.
+    Data e hora em ISO-8601 com offset.
+
+    Política de pagamento (R6 a R8, R18): todo agendamento, de cliente logado ou de
+    guest, nasce `AGUARDANDO_PAGAMENTO`, trava o horário por 15 minutos e só vira
+    `CONFIRMADO` pelo webhook do gateway com 100% do valor pago (Pix ou cartão de
+    crédito). Antes de pagar, o cliente aceita que não há cancelamento, remarcação
+    nem estorno por desistência ou falta (`aceitePolitica: true`). Não existe rota
+    de cancelamento ou remarcação para o cliente.
   license:
     name: Uso de portfólio
 servers:
@@ -231,11 +237,23 @@ paths:
               schema: { $ref: '#/components/schemas/Consentimento' }
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
+  /politica-pagamento:
+    get:
+      tags: [catalogo]
+      operationId: politicaPagamento
+      summary: Texto e versão da política de pagamento exibidos antes do checkout
+      security: []
+      responses:
+        '200':
+          description: Política vigente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PoliticaPagamento' }
   /agendamentos:
     post:
       tags: [agenda]
       operationId: agendarComoCliente
-      summary: Reserva como cliente logado (nasce CONFIRMADO)
+      summary: Reserva como cliente logado (nasce AGUARDANDO_PAGAMENTO, trava o horário por 15 min)
       requestBody:
         required: true
         content:
@@ -243,7 +261,7 @@ paths:
             schema: { $ref: '#/components/schemas/AgendamentoRequest' }
       responses:
         '201':
-          description: Reserva criada
+          description: Reserva criada; o próximo passo é POST /pagamentos/cobrancas
           headers:
             Location: { schema: { type: string } }
           content:
@@ -284,52 +302,11 @@ paths:
               schema: { $ref: '#/components/schemas/Agendamento' }
         '401': { $ref: '#/components/responses/Erro401' }
         '404': { $ref: '#/components/responses/Erro404' }
-  /agendamentos/{id}/cancelamento:
-    post:
-      tags: [agenda]
-      operationId: cancelarAgendamento
-      summary: Cancela dentro da janela (HIPÓTESE H6)
-      parameters: [ { $ref: '#/components/parameters/Id' } ]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CancelamentoRequest' }
-      responses:
-        '200':
-          description: Cancelado
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Agendamento' }
-        '401': { $ref: '#/components/responses/Erro401' }
-        '404': { $ref: '#/components/responses/Erro404' }
-        '422': { $ref: '#/components/responses/Erro422' }
-  /agendamentos/{id}/remarcacao:
-    post:
-      tags: [agenda]
-      operationId: remarcarAgendamento
-      summary: Remarca dentro da janela, de forma atômica
-      parameters: [ { $ref: '#/components/parameters/Id' } ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/RemarcacaoRequest' }
-      responses:
-        '200':
-          description: Remarcado
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Agendamento' }
-        '401': { $ref: '#/components/responses/Erro401' }
-        '404': { $ref: '#/components/responses/Erro404' }
-        '409': { $ref: '#/components/responses/Erro409Agendamento' }
-        '422': { $ref: '#/components/responses/Erro422' }
   /agendamentos/guest:
     post:
       tags: [guest]
       operationId: agendarComoGuest
-      summary: Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, expira em 15 min)
+      summary: Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, trava o horário por 15 min)
       security: []
       requestBody:
         required: true
@@ -365,8 +342,12 @@ paths:
     post:
       tags: [pagamento]
       operationId: criarCobranca
-      summary: Cria a cobrança Pix do sinal (CPF pedido só aqui)
-      security: [ { guestToken: [] } ]
+      summary: Cria a cobrança de 100% do serviço por Pix ou cartão de crédito (CPF pedido só aqui)
+      description: |
+        Cliente logado usa o bearer; guest usa o X-Guest-Token. Pix devolve QR Code e copia e cola;
+        cartão devolve a URL do checkout do gateway (os dados do cartão nunca passam pela API).
+        Exige `aceitePolitica: true`; sem ele, 422 ACEITE_POLITICA_OBRIGATORIO.
+      security: [ { bearer: [] }, { guestToken: [] } ]
       parameters:
         - name: X-Idempotency-Key
           in: header
@@ -389,6 +370,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Cobranca' }
         '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
         '404': { $ref: '#/components/responses/Erro404' }
         '422': { $ref: '#/components/responses/Erro422' }
         '429': { $ref: '#/components/responses/Erro429' }
@@ -431,7 +413,7 @@ paths:
     patch:
       tags: [admin]
       operationId: mudarStatusAgendamento
-      summary: Conclui, marca falta ou cancela (BARBEIRO só a própria agenda, H9)
+      summary: Conclui, marca falta (NAO_COMPARECEU, valor retido) ou cancela pela barbearia
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -625,7 +607,7 @@ paths:
     get:
       tags: [admin]
       operationId: listarPagamentosAdmin
-      summary: Sinais por status, inclusive a devolver
+      summary: Cobranças por status, inclusive pagas depois de expirar (pendência administrativa)
       parameters:
         - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/StatusCobranca' } }
         - $ref: '#/components/parameters/Pagina'
@@ -642,7 +624,7 @@ paths:
     post:
       tags: [admin]
       operationId: registrarDevolucao
-      summary: Registra devolução manual feita
+      summary: Registra devolução manual feita (só cancelamento pela barbearia ou pagamento tardio sem horário)
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       responses:
         '200':
@@ -740,7 +722,7 @@ components:
     Erro409: { description: Conflito, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
     Erro409Agendamento:
       description: |
-        Conflito ao reservar ou remarcar. HORARIO_INDISPONIVEL = horário ocupado (o front esconde o horário).
+        Conflito ao reservar. HORARIO_INDISPONIVEL = horário ocupado (o front esconde o horário).
         CONFLITO_CONCORRENTE = deadlock que persistiu depois do retry interno; o horário pode estar livre,
         o front não o esconde e pode repetir a mesma requisição uma vez (ADR 0003).
       content:
@@ -809,7 +791,7 @@ components:
              REFRESH_REUTILIZADO, WEBHOOK_NAO_AUTENTICADO, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO,
              CEP_NAO_ENCONTRADO, FUNCIONALIDADE_DESLIGADA, EMAIL_JA_CADASTRADO, HORARIO_INDISPONIVEL,
              CONFLITO_DE_VERSAO, CONFLITO_CONCORRENTE, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
-             FORA_DO_HORIZONTE, JANELA_CANCELAMENTO_ENCERRADA, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
+             FORA_DO_HORIZONTE, ACEITE_POLITICA_OBRIGATORIO, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
              RESERVA_EXPIRADA, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
              FOLGA_COM_RESERVAS, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL, ERRO_INTERNO]
     StatusReserva:
@@ -1019,7 +1001,7 @@ components:
             whatsapp: { type: string }
     Agendamento:
       type: object
-      required: [id, status, origem, inicio, fim, precoCentavos, sinalCentavos]
+      required: [id, status, origem, inicio, fim, precoCentavos]
       properties:
         id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/StatusReserva' }
@@ -1033,20 +1015,17 @@ components:
         barbeiro: { $ref: '#/components/schemas/BarbeiroResumo' }
         inicio: { type: string, format: date-time }
         fim: { type: string, format: date-time }
-        precoCentavos: { type: integer, format: int64 }
-        sinalCentavos: { type: integer, format: int64 }
-        expiraEm: { type: [string, 'null'], format: date-time }
-        podeCancelarAte: { type: [string, 'null'], format: date-time }
-        motivoCancelamento: { type: [string, 'null'] }
+        precoCentavos: { type: integer, format: int64, description: 'congelado na reserva; é o valor cobrado (100%)' }
+        expiraEm: { type: [string, 'null'], format: date-time, description: 'prazo do pagamento (15 min); nulo depois de CONFIRMADO' }
+        motivoCancelamento: { type: [string, 'null'], description: 'só em cancelamento pela barbearia' }
         version: { type: integer, format: int64 }
     AgendamentoGuest:
       allOf:
         - $ref: '#/components/schemas/Agendamento'
         - type: object
-          required: [tokenGuest, expiraEm, politicaSinal]
+          required: [tokenGuest, expiraEm]
           properties:
             tokenGuest: { type: string, description: 'mostrado uma única vez; o banco guarda só o hash' }
-            politicaSinal: { type: string }
     PaginaAgendamentos:
       type: object
       required: [itens, pagina, tamanho, total]
@@ -1057,18 +1036,6 @@ components:
         pagina: { type: integer }
         tamanho: { type: integer }
         total: { type: integer, format: int64 }
-    CancelamentoRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        motivo: { type: string, maxLength: 300 }
-    RemarcacaoRequest:
-      type: object
-      additionalProperties: false
-      required: [inicio]
-      properties:
-        inicio: { type: string, format: date-time }
-        barbeiroId: { type: string, format: uuid }
     MudancaStatusRequest:
       type: object
       additionalProperties: false
@@ -1080,10 +1047,18 @@ components:
     CobrancaRequest:
       type: object
       additionalProperties: false
-      required: [reservaId, cpf]
+      required: [reservaId, metodo, cpf, aceitePolitica, versaoPolitica]
       properties:
         reservaId: { type: string, format: uuid }
+        metodo: { $ref: '#/components/schemas/MetodoPagamento' }
         cpf: { type: string, writeOnly: true, description: 'validado, repassado ao gateway e não gravado (ADR 0009)', example: '123.456.789-09' }
+        aceitePolitica:
+          type: boolean
+          const: true
+          description: |
+            Checkbox obrigatório: "Após o pagamento antecipado de 100%, não há cancelamento,
+            remarcação ou estorno em caso de desistência ou falta." Ausente ou false: 422 ACEITE_POLITICA_OBRIGATORIO.
+        versaoPolitica: { type: integer, minimum: 1, description: 'versão do texto exibido (GET /politica-pagamento); a API grava versão e data do aceite' }
     Cobranca:
       type: object
       required: [id, reservaId, status, valorCentavos]
@@ -1091,11 +1066,20 @@ components:
         id: { type: string, format: uuid }
         reservaId: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/StatusCobranca' }
-        valorCentavos: { type: integer, format: int64 }
+        metodo: { $ref: '#/components/schemas/MetodoPagamento' }
+        valorCentavos: { type: integer, format: int64, description: '100% do precoCentavos da reserva' }
         pix:
-          type: object
+          type: [object, 'null']
+          description: preenchido quando metodo = PIX
           properties:
             copiaECola: { type: string }
+            qrCodeBase64: { type: string, description: 'PNG em base64' }
+            expiraEm: { type: string, format: date-time, description: 'igual ao expiraEm da reserva' }
+        cartao:
+          type: [object, 'null']
+          description: preenchido quando metodo = CARTAO_CREDITO
+          properties:
+            urlCheckout: { type: string, format: uri, description: 'checkout hospedado do gateway; a API nunca recebe número de cartão (escopo PCI DSS reduzido)' }
             expiraEm: { type: string, format: date-time }
     CobrancaCriada:
       description: Resposta 201 da criação. Só aqui existe cpfMascarado.
@@ -1105,6 +1089,17 @@ components:
           required: [cpfMascarado]
           properties:
             cpfMascarado: { type: string, example: '***.***.***-09' }
+    MetodoPagamento:
+      type: string
+      enum: [PIX, CARTAO_CREDITO]
+    PoliticaPagamento:
+      type: object
+      required: [versao, texto]
+      properties:
+        versao: { type: integer, example: 1 }
+        texto:
+          type: string
+          example: Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta.
     PaginaCobrancas:
       type: object
       required: [itens, pagina, tamanho, total]
@@ -1131,18 +1126,15 @@ components:
     ConfiguracaoAgenda:
       type: object
       additionalProperties: false
-      required: [antecedenciaMinimaMin, janelaCancelamentoMin, intervaloEntreAtendimentosMin,
-                 granularidadeMin, horizonteDias, expiracaoGuestMin, percentualSinal, politicaSinal, version]
+      required: [antecedenciaMinimaMin, intervaloEntreAtendimentosMin, granularidadeMin, horizonteDias,
+                 expiracaoPagamentoMin, version]
       properties:
         fuso: { type: string, readOnly: true, example: America/Sao_Paulo }
-        antecedenciaMinimaMin: { type: integer, minimum: 0, description: 'HIPÓTESE H5' }
-        janelaCancelamentoMin: { type: integer, minimum: 0, description: 'HIPÓTESE H6' }
-        intervaloEntreAtendimentosMin: { type: integer, minimum: 0, maximum: 120, description: 'HIPÓTESE H4' }
-        granularidadeMin: { type: integer, enum: [5, 10, 15, 20, 30, 60], description: 'HIPÓTESE H11' }
-        horizonteDias: { type: integer, minimum: 1, maximum: 365, description: 'HIPÓTESE H12' }
-        expiracaoGuestMin: { type: integer, minimum: 5, maximum: 60 }
-        percentualSinal: { type: integer, minimum: 0, maximum: 100 }
-        politicaSinal: { type: string, maxLength: 500, description: 'HIPÓTESE H7' }
+        antecedenciaMinimaMin: { type: integer, minimum: 0, example: 120, description: 'H5: 2 horas' }
+        intervaloEntreAtendimentosMin: { type: integer, minimum: 0, maximum: 120, example: 0, description: 'H4: sem intervalo' }
+        granularidadeMin: { type: integer, enum: [5, 10, 15, 20, 30, 60], example: 30, description: 'H11: 30 min' }
+        horizonteDias: { type: integer, minimum: 1, maximum: 365, example: 30, description: 'H12: 30 dias' }
+        expiracaoPagamentoMin: { type: integer, minimum: 5, maximum: 60, example: 15 }
         version: { type: integer, format: int64 }
     Consentimento:
       type: object
