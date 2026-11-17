@@ -50,7 +50,7 @@ flowchart LR
 | 2 · Catálogo + disponibilidade | [fatia-2-catalogo-disponibilidade.md](fatia-2-catalogo-disponibilidade.md) | ✅ implementada (69 testes no total) |
 | 3 · Conta e acesso | [fatia-3-conta-e-acesso.md](fatia-3-conta-e-acesso.md) | ✅ implementada (115 testes no total) |
 | 4 · Agendamento e pagamento | [fatia-4-agendamento-e-pagamento.md](fatia-4-agendamento-e-pagamento.md) | ✅ aprovada (17/11) · 4A pronta (A1 a A21) · 4B em seguida |
-| 5 · Painel do barbeiro e do admin | [fatia-5-painel-do-barbeiro.md](fatia-5-painel-do-barbeiro.md) | ✅ aprovada (17/11) · 5A em implementação |
+| 5 · Painel do barbeiro e do admin | [fatia-5-painel-do-barbeiro.md](fatia-5-painel-do-barbeiro.md) | ✅ concluída (17/11): 5A e 5B, 71/71 critérios |
 | 6 a 8 | escritas uma de cada vez, antes da fatia começar | ⏳ |
 
 ## A IA no processo

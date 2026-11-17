@@ -500,6 +500,8 @@ paths:
       tags: [admin]
       operationId: listarServicosAdmin
       summary: Lista serviços, inclusive inativos
+      description: |
+        Só ADMIN. Inclui `ativo` e `version`. O serviço nunca é apagado: sai de cena com `ativo = false` e some de `GET /servicos`.
       responses:
         '200':
           description: Serviços (inclusive inativos)
@@ -514,6 +516,9 @@ paths:
       tags: [admin]
       operationId: criarServico
       summary: Cria serviço
+      description: |
+        Só ADMIN. Preço de 1 centavo para cima, duração de 5 a 480 min. Nome único sem diferença de maiúsculas
+        (`409 NOME_JA_EXISTE`, inclusive na corrida de dois pedidos). Campo fora do contrato (`id`, `ativo`) é `400 CAMPO_DESCONHECIDO`.
       requestBody:
         required: true
         content:
@@ -522,6 +527,8 @@ paths:
       responses:
         '201':
           description: Criado
+          headers:
+            Location: { schema: { type: string }, description: '/admin/servicos/{id}' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ServicoAdmin' }
@@ -534,6 +541,10 @@ paths:
       tags: [admin]
       operationId: alterarServico
       summary: Altera nome, duração, preço ou ativo
+      description: |
+        Só ADMIN. Substitui os campos e exige a `version` que a tela viu (`409 CONFLITO_DE_VERSAO` se mudou).
+        Preço e duração novos valem só para as reservas novas: reserva e cobrança antigas não são reescritas.
+        Desativar não cancela reserva futura.
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -570,6 +581,9 @@ paths:
       tags: [admin]
       operationId: criarBarbeiro
       summary: Cria barbeiro
+      description: |
+        Só ADMIN. `usuarioId`, se vier, é de uma conta ativa com o papel BARBEIRO (senão `400` no campo `usuarioId`) e
+        que ainda não é de outro barbeiro (`409 USUARIO_JA_VINCULADO`).
       requestBody:
         required: true
         content:
@@ -578,17 +592,24 @@ paths:
       responses:
         '201':
           description: Criado
+          headers:
+            Location: { schema: { type: string }, description: '/admin/barbeiros/{id}' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/BarbeiroAdmin' }
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
+        '409': { $ref: '#/components/responses/Erro409' }
   /admin/barbeiros/{id}:
     put:
       tags: [admin]
       operationId: alterarBarbeiro
       summary: Altera nome, ativo ou login vinculado
+      description: |
+        Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta) e exige a `version` que a tela viu.
+        Inativar tira o barbeiro de `GET /barbeiros` e da disponibilidade, mas não cancela reserva futura.
+        A conta ligada passa a ver a própria agenda em `GET /admin/agenda`.
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -611,6 +632,10 @@ paths:
       tags: [admin]
       operationId: substituirJornada
       summary: Substitui a jornada semanal
+      description: |
+        Só ADMIN. Substitui a semana inteira numa transação; no máximo 28 intervalos; lista vazia é válida (sem expediente).
+        Dois intervalos do mesmo dia que se sobrepõem são `422 JORNADA_SOBREPOSTA`; encostar (12:00 e 12:00) não é sobrepor.
+        Hora inválida (`25:00`), fim antes do início ou dia fora de 1 a 7 é `400`. Reservas já feitas fora da nova jornada continuam válidas.
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -653,6 +678,10 @@ paths:
       tags: [admin]
       operationId: criarFolga
       summary: Cria folga
+      description: |
+        Só ADMIN. Período meio aberto [inicio, fim): `fim` depois de `inicio` e não toda no passado (`400`); `motivo` até 200 caracteres.
+        Com reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) no período: `422 FOLGA_COM_RESERVAS`.
+        Folga e reserva simultâneas nunca passam juntas: a transação trava a linha do barbeiro.
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -662,6 +691,8 @@ paths:
       responses:
         '201':
           description: Folga criada
+          headers:
+            Location: { schema: { type: string }, description: '/admin/barbeiros/{id}/folgas/{folgaId}' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Folga' }
@@ -775,6 +806,9 @@ paths:
       tags: [admin]
       operationId: alterarConfiguracao
       summary: Altera as regras configuráveis da agenda
+      description: |
+        Só ADMIN. Exige a `version` que a tela viu (`409 CONFLITO_DE_VERSAO`). Valores fora dos limites são `400` com o campo em
+        `errors[]`; mandar `fuso` é `400 CAMPO_DESCONHECIDO` (só leitura). Vale na próxima requisição e não reescreve reservas existentes.
       requestBody:
         required: true
         content:
@@ -953,7 +987,7 @@ components:
         nome: { type: string, minLength: 2, maxLength: 80 }
         descricao: { type: string, maxLength: 300 }
         duracaoMin: { type: integer, minimum: 5, maximum: 480 }
-        precoCentavos: { type: integer, format: int64, minimum: 0 }
+        precoCentavos: { type: integer, format: int64, minimum: 1, description: 'pelo menos 1 centavo: a reserva exige preço maior que zero' }
     ServicoUpdateRequest:
       allOf:
         - $ref: '#/components/schemas/ServicoRequest'
@@ -986,7 +1020,7 @@ components:
       required: [nomeExibicao]
       properties:
         nomeExibicao: { type: string, minLength: 2, maxLength: 80 }
-        usuarioId: { type: string, format: uuid }
+        usuarioId: { type: string, format: uuid, description: 'conta ativa com o papel BARBEIRO e ainda sem barbeiro (409 USUARIO_JA_VINCULADO)' }
     BarbeiroUpdateRequest:
       allOf:
         - $ref: '#/components/schemas/BarbeiroRequest'
@@ -1001,8 +1035,8 @@ components:
       required: [diaSemana, horaInicio, horaFim]
       properties:
         diaSemana: { type: integer, minimum: 1, maximum: 7, description: 'ISO-8601: 1 = segunda' }
-        horaInicio: { type: string, pattern: '^[0-2][0-9]:[0-5][0-9]$', example: '09:00' }
-        horaFim: { type: string, pattern: '^[0-2][0-9]:[0-5][0-9]$', example: '19:00' }
+        horaInicio: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$', example: '09:00' }
+        horaFim: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$', example: '19:00' }
     FolgaRequest:
       type: object
       additionalProperties: false
