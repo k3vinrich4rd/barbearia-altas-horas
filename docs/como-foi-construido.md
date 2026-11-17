@@ -67,6 +67,8 @@ sh scripts/buscar-contexto.sh R15      # a regra, a decisão, a spec, o contrato
 
 Irmão dele, o **eval do processo**: `sh scripts/conferir-spec.sh 1 --exigir` confere que cada critério `A#` da spec tem um teste com esse número (Fatia 1: 10 de 10). É o que impede dizer "pronto" com critério sem teste, seja a IA ou eu.
 
+E o **RAG vetorial** ([`docs/ia/rag-vetorial.md`](ia/rag-vetorial.md)): Spring AI 2.0.2 + pgvector + embeddings locais em [`ferramentas/rag/`](../ferramentas/rag). Montado para medir: só vetor acertou 10 de 17 perguntas (nenhum identificador); a busca híbrida, 15 de 17.
+
 ### 5.3 Skills (`.claude/skills/`)
 Uma skill é uma receita em Markdown que o Claude Code carrega quando o comando é chamado. Cada uma nasceu de um trabalho feito **uma vez à mão** e depois escrito como passo a passo, para a próxima fatia sair igual.
 

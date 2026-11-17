@@ -63,4 +63,6 @@ flowchart LR
 
 ### Por que não um RAG com banco vetorial
 
-O conhecimento do projeto cabe em ~40 arquivos Markdown com identificadores estáveis (R1 a R32, D1 a D44, códigos de erro, A1 a A10). Para isso, **recuperação por identificador** é mais precisa e mais barata que busca vetorial: `buscar-contexto.sh` encontra a linha exata, e o `CLAUDE.md` funciona como índice. Um RAG vetorial passa a valer a pena quando houver texto livre demais para indexar à mão (ex.: histórico de atendimento), o que não é o caso do beta.
+Para o dia a dia, a **recuperação por identificador** continua sendo a regra: o conhecimento cabe em ~40 arquivos com identificadores estáveis (R1 a R32, D1 a D50, códigos de erro, A1 a A29), e `buscar-contexto.sh` encontra a linha exata, de graça.
+
+Depois eu montei o RAG vetorial mesmo assim, para **medir** em vez de opinar ([`docs/ia/rag-vetorial.md`](../ia/rag-vetorial.md)): numa lista de 17 perguntas, o vetor sozinho acertou 10 e errou **todos** os identificadores; a busca híbrida (exata para identificador, vetor para pergunta em linguagem natural) acertou 15. Conclusão: as duas se completam, e o identificador estável segue sendo o que mais ajuda a IA.
