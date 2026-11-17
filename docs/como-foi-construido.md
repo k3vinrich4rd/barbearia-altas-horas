@@ -33,6 +33,8 @@ Ordem fixa de toda entrega: **regra → spec → OK do Kevin → contrato → te
 | 16/11/2026 | **Regras reais** | pagamento 100% antecipado (Pix ou cartão), sem cancelamento pelo cliente, aceite obrigatório, catálogo e horário reais; contrato v1.1 | decisões D31–D39, [PR #3](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/3) |
 | 16/11/2026 | **Fatia 1** | esqueleto Spring Boot 4, 8 módulos, erros RFC 9457, `Clock`, Flyway V1 com `EXCLUDE USING gist`, seed, Compose, CI; **26 testes** | [spec](sdd/fatia-1-esqueleto.md), [PR #4](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/4) |
 | 16/11/2026 | **Fatia 2** | spec com 15 decisões e 29 critérios, aprovada e implementada: catálogo, política e disponibilidade; hexagonal seletivo (ADR 0011); **69 testes** | [spec](sdd/fatia-2-catalogo-disponibilidade.md), [PR #6](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/6) |
+| 17/11/2026 | **RAG e release** | busca híbrida na documentação (Spring AI + pgvector), Copilot e Actions documentados; tudo mergeado na `main` | [RAG](ia/rag-vetorial.md), [PR #9](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/9) |
+| 17/11/2026 | **Fatia 3 (spec)** | 22 decisões e 39 critérios para conta, login, refresh rotativo, admin inicial e limite de tentativas | [spec](sdd/fatia-3-conta-e-acesso.md) |
 | a seguir | Fatias 3 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
 
 ## 4. O que existe no código hoje (Fatia 1), arquivo por arquivo
