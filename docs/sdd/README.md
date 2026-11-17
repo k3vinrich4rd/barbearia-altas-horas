@@ -49,7 +49,7 @@ flowchart LR
 | 1 · Esqueleto + Flyway V1 + Compose | [fatia-1-esqueleto.md](fatia-1-esqueleto.md) | ✅ implementada (26 testes) |
 | 2 · Catálogo + disponibilidade | [fatia-2-catalogo-disponibilidade.md](fatia-2-catalogo-disponibilidade.md) | ✅ implementada (69 testes no total) |
 | 3 · Conta e acesso | [fatia-3-conta-e-acesso.md](fatia-3-conta-e-acesso.md) | ✅ implementada (115 testes no total) |
-| 4 · Agendamento e pagamento | [fatia-4-agendamento-e-pagamento.md](fatia-4-agendamento-e-pagamento.md) | 📝 aguarda aprovação (45 critérios, em duas PRs) |
+| 4 · Agendamento e pagamento | [fatia-4-agendamento-e-pagamento.md](fatia-4-agendamento-e-pagamento.md) | ✅ aprovada (17/11), em implementação: 4A primeiro |
 | 5 a 8 | escritas uma de cada vez, antes da fatia começar | ⏳ |
 
 ## A IA no processo

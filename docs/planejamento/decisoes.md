@@ -105,6 +105,14 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D58 | CSRF **ligado** e exigido para requisição que altera dados e chega com cookie, em vez de desligado. O CodeQL acusou o CSRF desligado; o Kevin pediu que o alerta deixasse de existir em vez de ser dispensado. Para o uso normal da API (token no cabeçalho) nada muda; qualquer fluxo futuro com cookie já nasce protegido | aceita | alerta `java/spring-disabled-csrf-protection` na PR #16 | `SegurancaConfig`, teste A44 |
 | D57 | Fluxo de entrega: feature → `develop` → `main` automático, com CI verde, sem aguardar aprovação do merge; a spec de cada fatia continua precisando do OK | aceita | Kevin, 17/11/2026 | [SDD](../sdd/README.md) |
 
+### Fatia 4 (17/11/2026)
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D59 | **Beta sem gateway real**: pagamento em modo `simulado` em todo o beta, inclusive no deploy gratuito; nenhuma conta em serviço externo, nenhum custo e nenhum dinheiro real. O adaptador do Asaas é escrito e testado, mas só é ligado (`app.pagamento.modo=asaas`) na saída do beta | aceita | Kevin, 17/11/2026 | [spec da Fatia 4](../sdd/fatia-4-agendamento-e-pagamento.md) (E28) |
+| D60 | Fatia 4 em duas PRs: 4A (reserva e expiração) e 4B (cobrança e webhook) | aceita | Kevin, 17/11/2026 | spec da Fatia 4 |
+| D61 | Antes da produção, revisar com advogado a regra "sem cancelamento e sem estorno" frente ao direito de arrependimento do CDC (art. 49) para compras feitas fora do estabelecimento | proposta | levantado na saída do beta | `.equipe/saida-do-beta.md` (privado) |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |
