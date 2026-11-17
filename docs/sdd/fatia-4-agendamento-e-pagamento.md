@@ -66,7 +66,7 @@ O cliente, com conta ou sem conta, escolhe um horário livre, o horário fica **
 | E19 | Webhook autenticado | token do cabeçalho `asaas-access-token` comparado em tempo constante com `GATEWAY_SEGREDO_WEBHOOK`; errado → `401` sem gravar nada | ADR 0007 |
 | E20 | Webhook idempotente (R12) | `INSERT evento_webhook ... ON CONFLICT DO NOTHING`; evento já processado → `200` sem efeito; evento gravado e não processado → reprocessa; **reconsulta a cobrança** no gateway antes de marcar `PAGA` | o gateway entrega "pelo menos uma vez" e o corpo pode ser forjado (OWASP API10) |
 | E21 | Duas cobranças para a mesma reserva | já existe cobrança `PENDENTE` com **outra** chave → `409 COBRANCA_EM_ANDAMENTO` com o id da existente | uma cobrança viva por reserva (`cobranca_ativa_por_reserva_uk`), sem o cliente pagar duas vezes |
-| E22 | Pagamento confirmado (R13) | `PagamentoConfirmado` (outbox) → a agenda confirma a reserva se ela ainda está `AGUARDANDO_PAGAMENTO` | módulos conversam por evento (ADR 0002) |
+| E22 | Pagamento confirmado (R13) | o pagamento chama a API pública da agenda (`Reservas.confirmarPagamento`, **síncrona**, D67): `AGUARDANDO_PAGAMENTO` ou `EXPIRADO` vira `CONFIRMADO`, e o resultado (`CONFIRMADA` ou `HORARIO_OCUPADO`) decide se a cobrança fica `PAGA` ou `PAGA_APOS_EXPIRACAO` | o resultado define o status da cobrança (R14), o que um evento assíncrono não devolve; a agenda não depende do pagamento (a leitura chama a porta `ConciliadorDePagamento`) |
 | E23 | Pagamento tardio (R14, D35) | reserva já `EXPIRADO`: tenta `EXPIRADO → CONFIRMADO` passando pela constraint; horário ocupado (`23P01`) → a reserva fica `EXPIRADO` e a cobrança vira `PAGA_APOS_EXPIRACAO` (pendência para o painel da Fatia 5) | quem pagou não perde o horário se ele ainda estiver livre |
 | E24 | Reserva expirada antes de pagar | `ReservaExpirada` → cobrança `PENDENTE` vira `CANCELADA` localmente | não fica cobrança viva para reserva morta |
 | E25 | Conciliação | `GET /agendamentos/guest/{id}` e `GET /agendamentos/{id}` com cobrança `PENDENTE` reconsultam o gateway **no máximo a cada 10 s** por cobrança e aplicam o mesmo fluxo do webhook | se o webhook atrasar (API hibernando), a tela do cliente ainda vira "Confirmado" |
@@ -146,14 +146,14 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 |---|---|---|---|---|
 | A43 | fluxo inteiro (reservar, cobrar com CPF, webhook) | ler o log | nenhum CPF, e-mail, WhatsApp ou token no log (R30) | `SemDadoPessoalNoLogPagamentoIT` |
 | A44 | módulos | `./mvnw verify` | `agenda` e `pagamento` só se falam pela API pública e por eventos; `GatewayDePagamento` e o núcleo de estados sem framework | `ModulithTest`, `ArquiteturaTest` |
-| A45 | modo `simulado` (padrão), sem nenhuma conta externa | reservar, cobrar e chamar a confirmação simulada como dono · como outro usuário · com `app.pagamento.modo=asaas` | reserva `CONFIRMADO` pelo mesmo fluxo do webhook · `404` · `404` (a rota não existe) | `SimulacaoPagamentoIT` |
+| A45 | modo `simulado` (padrão), sem nenhuma conta externa | reservar, cobrar e chamar a confirmação simulada como dono · como outro usuário · com `app.pagamento.modo=asaas` | reserva `CONFIRMADO` pelo mesmo fluxo do webhook · `404` · `404` (a rota não existe) | `SimulacaoPagamentoIT`, `SimulacaoDesligadaIT` (modo `asaas`) |
 
 ## 5. Entregas
 
 | Módulo | 4A | 4B |
 |---|---|---|
-| `agenda` | `Reserva` (+ `StatusReserva`), `ReservaGuest`, `ReservarHorario` (caso de uso com E1 a E4), `AgendamentosController` (cliente e visitante na mesma classe), `ConsultaAgendamentos`, `ExpiracaoJob`, evento `ReservaExpirada` | API pública `Reservas` (dados para cobrança, registrar aceite, confirmar), listener de `PagamentoConfirmado` |
-| `pagamento` | listener de `ReservaExpirada` (D63) | `Cobranca`, `EventoWebhook`, porta `GatewayDePagamento` + `AsaasGateway` + `GatewayFalso` (dev), `CriarCobranca`, `WebhookController`, `ProcessarPagamento` (webhook, conciliação e job), `ReprocessamentoJob`, evento `PagamentoConfirmado` |
+| `agenda` | `Reserva` (+ `StatusReserva`), `ReservaGuest`, `ReservarHorario` (caso de uso com E1 a E4), `AgendamentosController` (cliente e visitante na mesma classe), `ConsultaAgendamentos`, `ExpiracaoJob`, evento `ReservaExpirada` | API pública `Reservas` (dados para cobrança, registrar aceite, confirmar) e a porta `ConciliadorDePagamento` (D67: a confirmação é chamada síncrona, sem o evento `PagamentoConfirmado`) |
+| `pagamento` | listener de `ReservaExpirada` (D63) | `Cobranca`, porta `GatewayDePagamento` + `AsaasGateway` (produção) + `GatewaySimulado` (modo do beta; os testes usam um gateway falso em memória), `CriarCobranca`, `ReceberWebhook` + `WebhookController`, `ProcessarPagamento` (webhook, conciliação, job e simulação), `ReprocessamentoWebhookJob`, `GatewaySimulado`, `SimulacaoController`, `ConciliacaoDePagamento` |
 | `comum` | — | `Cpf` (valida e mascara) |
 | banco | `V3__eventos.sql` (`event_publication` oficial do Modulith 2.1.2) | — |
 | dependências | `spring-modulith-starter-jdbc`, `shedlock-spring` + `shedlock-provider-jdbc-template` 7.10.1 | — |
@@ -178,7 +178,7 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 ## 8. Pronto quando
 
 - [x] A1 a A21 verdes na PR 4A (17/11/2026: 21/21, 137 testes no total)
-- [ ] A22 a A45 verdes na PR 4B (`sh scripts/conferir-spec.sh 4 --exigir` na 4B)
-- [ ] `redocly lint` com 0 erros no contrato 1.3.0
-- [ ] fluxo rodado à mão no perfil `dev` em modo simulado, do horário à reserva confirmada
+- [x] A22 a A45 verdes na PR 4B (17/11/2026: 45/45 com teste em `scripts/conferir-spec.sh 4 --exigir`, 168 testes no total, cobertura de instruções 95,3%)
+- [x] `redocly lint` com 0 erros no contrato 1.3.0 (`@redocly/cli@2.1.0`: válido, 15 avisos)
+- [x] fluxo rodado à mão no perfil `dev` em modo simulado, do horário à reserva confirmada (17/11/2026: `roteiro_4b.py`, visitante com Pix e cliente com cartão; saídas em `docs/guia-testes.md`, V7 a V9 e C12)
 - [ ] [checklist da PR](checklist-pr.md) completo

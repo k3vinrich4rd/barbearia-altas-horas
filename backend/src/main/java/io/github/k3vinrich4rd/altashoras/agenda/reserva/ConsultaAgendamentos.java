@@ -5,12 +5,15 @@ import java.util.List;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.k3vinrich4rd.altashoras.agenda.ConciliadorDePagamento;
 import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
@@ -27,12 +30,14 @@ class ConsultaAgendamentos {
 
     private final ReservaRepository reservas;
     private final ReservaGuestRepository visitantes;
+    private final ObjectProvider<ConciliadorDePagamento> conciliador;
     private final ZoneId fuso;
 
     ConsultaAgendamentos(ReservaRepository reservas, ReservaGuestRepository visitantes,
-            @Value("${app.fuso:America/Sao_Paulo}") String fuso) {
+            ObjectProvider<ConciliadorDePagamento> conciliador, @Value("${app.fuso:America/Sao_Paulo}") String fuso) {
         this.reservas = reservas;
         this.visitantes = visitantes;
+        this.conciliador = conciliador;
         this.fuso = ZoneId.of(fuso);
     }
 
@@ -46,19 +51,42 @@ class ConsultaAgendamentos {
                 resultado.getTotalElements());
     }
 
+    /**
+     * Sem transação aberta (NOT_SUPPORTED): a conciliação chama o gateway e grava em transações próprias (E25, E27).
+     * Só concilia depois de achar a reserva do dono, para um id alheio não disparar consulta ao gateway.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     AgendamentoResposta meu(UUID clienteId, UUID id) {
-        return reservas.doCliente(clienteId, id).map(linha -> AgendamentoResposta.de(linha, fuso))
-                .orElseThrow(ConsultaAgendamentos::naoEncontrado);
+        LinhaAgendamento linha = reservas.doCliente(clienteId, id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
+        if (esperandoPagamento(linha)) {
+            conciliar(id);
+            linha = reservas.doCliente(clienteId, id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
+        }
+        return AgendamentoResposta.de(linha, fuso);
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     AgendamentoResposta doVisitante(UUID id, @Nullable String token) {
         // Compara sempre, mesmo sem visitante: o tempo de resposta não separa "id inexistente" de "token errado".
         String hashGuardado = visitantes.findById(id).map(ReservaGuest::getTokenHash).orElse(HASH_INEXISTENTE);
         if (!TokenGuest.confere(token, hashGuardado) || HASH_INEXISTENTE.equals(hashGuardado)) {
             throw naoEncontrado();
         }
-        return reservas.doVisitante(id).map(linha -> AgendamentoResposta.de(linha, fuso))
-                .orElseThrow(ConsultaAgendamentos::naoEncontrado);
+        LinhaAgendamento linha = reservas.doVisitante(id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
+        if (esperandoPagamento(linha)) {
+            conciliar(id);
+            linha = reservas.doVisitante(id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
+        }
+        return AgendamentoResposta.de(linha, fuso);
+    }
+
+    private static boolean esperandoPagamento(LinhaAgendamento linha) {
+        return linha.status() == StatusReserva.AGUARDANDO_PAGAMENTO || linha.status() == StatusReserva.EXPIRADO;
+    }
+
+    /** Se o módulo de pagamento existe, ele reconsulta o gateway (no máximo a cada 10 s por cobrança, E25). */
+    private void conciliar(UUID reservaId) {
+        conciliador.ifAvailable(c -> c.conciliarReserva(reservaId));
     }
 
     AgendamentoResposta criadaPeloVisitante(UUID id, String token) {
