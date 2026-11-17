@@ -1,0 +1,24 @@
+# PostgreSQL 18 local para o perfil dev (Fatia 1), na porta 5433 para não brigar com um PostgreSQL instalado na máquina. A API e o front entram aqui nas fatias 7 e 8.
+# Subir: docker compose up -d   ·   Parar: docker compose down   ·   Zerar o banco: docker compose down -v
+# Senha padrão só de desenvolvimento local; troque no .env (POSTGRES_SENHA). Nunca use em produção.
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: altas-horas-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_BANCO:-altashoras}
+      POSTGRES_USER: ${POSTGRES_USUARIO:-altashoras}
+      POSTGRES_PASSWORD: ${POSTGRES_SENHA:-altashoras_dev}
+      TZ: UTC
+    ports:
+      - "${POSTGRES_PORTA:-5433}:5432"
+    volumes:
+      - altas-horas-dados:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  altas-horas-dados:
