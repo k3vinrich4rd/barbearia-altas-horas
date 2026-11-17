@@ -17,6 +17,8 @@ Nenhuma linha de código de produção sem **spec aprovada** em `docs/sdd/fatia-
 | critérios de aceite da fatia atual | `docs/sdd/fatia-N-*.md` |
 | roteiro de teste para visitantes | `docs/guia-testes.md` |
 
+Pergunta em linguagem natural sobre a documentação: RAG em `ferramentas/rag` (`docs/ia/rag-vetorial.md`), se o banco `rag-db` estiver no ar.
+
 Busca por identificador: `scripts/buscar-contexto.sh R15` (ou `D40`, `HORARIO_INDISPONIVEL`, `A7`) mostra todas as linhas que citam o identificador, com arquivo e linha.
 
 ## Padrões do código

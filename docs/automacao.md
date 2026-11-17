@@ -81,7 +81,14 @@ sh scripts/buscar-contexto.sh R15     # a regra, a decisão, a spec, o contrato 
 | Custo | zero: `grep` | modelo de embeddings + banco vetorial + reindexar a cada mudança |
 | Onde ganha | ~50 documentos estruturados, como aqui | muito texto livre sem identificador (histórico de atendimento, manuais) |
 
-Um RAG vetorial entra quando houver esse tipo de texto. O ponto de entrada natural é o assistente de agendamento pós-beta ([estudos aplicados](estudos-aplicados.md)).
+**E o vetorial?** Montei para medir ([`docs/ia/rag-vetorial.md`](ia/rag-vetorial.md), Spring AI + pgvector, embeddings locais). Na mesma lista de 17 perguntas:
+
+| Estratégia | Acertos (documento certo entre os 3 primeiros) |
+|---|:-:|
+| Só vetor | 9 de 17 (errou os 5 identificadores) |
+| **Híbrida**: exata para identificador, vetor para pergunta | **14 de 17** |
+
+A regra que saiu da medição: **identificador vai por busca exata; pergunta em linguagem natural vai por vetor.**
 
 ## 5. Economia: como gastar pouco sem perder qualidade
 
