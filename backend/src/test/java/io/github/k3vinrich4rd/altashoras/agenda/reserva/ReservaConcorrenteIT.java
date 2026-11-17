@@ -4,6 +4,7 @@ import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.as;
 import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.corpo;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -40,28 +41,20 @@ class ReservaConcorrenteIT {
     @Autowired
     JdbcTemplate jdbc;
 
-    @Test
-    @DisplayName("A9: 10 clientes no mesmo horário ao mesmo tempo → exatamente um 201, os outros 409, nunca 500")
-    void disputa() throws Exception {
-        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
-        UUID servico = DadosDeTeste.servico(jdbc, 30);
-        List<String> acessos = new ArrayList<>();
-        for (int i = 0; i < CLIENTES; i++) {
-            acessos.add(Reservas.clienteLogado(mvc));
-        }
-
+    /** Dez clientes disputam o mesmo horário ao mesmo tempo. Devolve quantos receberam 201; todo o resto tem de ser 409. */
+    private int disputar(List<String> acessos, UUID servico, UUID barbeiro, OffsetDateTime inicio) throws Exception {
         CountDownLatch largada = new CountDownLatch(1);
         List<Future<MockHttpServletResponse>> respostas = new ArrayList<>();
-        try (ExecutorService pool = Executors.newFixedThreadPool(CLIENTES)) {
+        int criadas = 0;
+        try (ExecutorService pool = Executors.newFixedThreadPool(acessos.size())) {
             for (String acesso : acessos) {
                 respostas.add(pool.submit(() -> {
                     largada.await();
-                    return Reservas.reservar(mvc, acesso, corpo(servico, barbeiro, as(10, 0))).andReturn().getResponse();
+                    return Reservas.reservar(mvc, acesso, corpo(servico, barbeiro, inicio)).andReturn().getResponse();
                 }));
             }
             largada.countDown();
 
-            int criadas = 0;
             for (Future<MockHttpServletResponse> futura : respostas) {
                 MockHttpServletResponse resposta = futura.get();
                 if (resposta.getStatus() == 201) {
@@ -72,9 +65,45 @@ class ReservaConcorrenteIT {
                     assertThat(code).isIn("HORARIO_INDISPONIVEL", "CONFLITO_CONCORRENTE");
                 }
             }
-            assertThat(criadas).isEqualTo(1);
         }
+        return criadas;
+    }
+
+    private List<String> clientes() throws Exception {
+        List<String> acessos = new ArrayList<>();
+        for (int i = 0; i < CLIENTES; i++) {
+            acessos.add(Reservas.clienteLogado(mvc));
+        }
+        return acessos;
+    }
+
+    @Test
+    @DisplayName("A9: 10 clientes no mesmo horário ao mesmo tempo → exatamente um 201, os outros 409, nunca 500")
+    void disputa() throws Exception {
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        UUID servico = DadosDeTeste.servico(jdbc, 30);
+
+        assertThat(disputar(clientes(), servico, barbeiro, as(10, 0))).isEqualTo(1);
+
         assertThat(jdbc.queryForObject("SELECT count(*) FROM reserva WHERE barbeiro_id = ?", Long.class, barbeiro))
                 .isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("A63: com o FOR SHARE em ReservarHorario, 10 clientes disputando o mesmo horário (5 horários, um depois do outro) continuam dando exatamente um 201 e os demais 409")
+    void disputaContinuaComATravaDoBarbeiro() throws Exception {
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        UUID servico = DadosDeTeste.servico(jdbc, 30);
+        List<String> acessos = clientes();
+
+        for (int hora = 7; hora < 12; hora++) {
+            assertThat(disputar(acessos, servico, barbeiro, as(hora, 0))).as("horário das %d:00", hora).isEqualTo(1);
+        }
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM reserva WHERE barbeiro_id = ?", Long.class, barbeiro))
+                .isEqualTo(5L);
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM (SELECT inicio FROM reserva WHERE barbeiro_id = ? GROUP BY inicio HAVING count(*) > 1) d
+                """, Long.class, barbeiro)).isZero();
     }
 }

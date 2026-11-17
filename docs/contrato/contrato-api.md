@@ -73,18 +73,18 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/admin/agenda` | agenda do dia ou da semana, com nome e WhatsApp de quem vem e o status da cobrança (`AgendamentoAdmin`) | 🛠 ✂️ (só a própria, **H9**) | `200` | `400`, `401`, `403`, `404` (barbeiro inexistente, alheio ou sem vínculo) | [Painel](../admin/painel-admin.md) |
 | `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta (valor retido) ou cancela pela barbearia (só ADMIN cancela) | 🛠 ✂️ | `200` | `400`, `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/servicos` | lista (inclusive inativos) e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 NOME_JA_EXISTE` | [Painel](../admin/painel-admin.md) |
-| `PUT` | `/admin/servicos/{id}` | altera nome, duração, preço, ativo | 🛠 | `200` | `400`, `401`, `403`, `404`, `409` | [Painel](../admin/painel-admin.md) |
-| `GET` `POST` | `/admin/barbeiros` | lista e cria | 🛠 | `200` / `201` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
-| `PUT` | `/admin/barbeiros/{id}` | altera nome, ativo, login vinculado | 🛠 | `200` | `400`, `401`, `403`, `404`, `409` | [Painel](../admin/painel-admin.md) |
+| `PUT` | `/admin/servicos/{id}` | altera nome, duração, preço, ativo (preço a partir de 1 centavo) | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 NOME_JA_EXISTE`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
+| `GET` `POST` | `/admin/barbeiros` | lista e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 USUARIO_JA_VINCULADO` | [Painel](../admin/painel-admin.md) |
+| `PUT` | `/admin/barbeiros/{id}` | altera nome, ativo, login vinculado | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 USUARIO_JA_VINCULADO`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/barbeiros/{id}/jornada` | substitui a jornada semanal | 🛠 | `200` | `400`, `401`, `403`, `404`, `422 JORNADA_SOBREPOSTA` | [Painel](../admin/painel-admin.md) |
-| `GET` | `/admin/barbeiros/{id}/folgas` | folgas de hoje em diante (**novo na 1.4.0**, entra na 5B) | 🛠 | `200` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/barbeiros/{id}/folgas` | folgas de hoje em diante (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/barbeiros/{id}/folgas` | cria folga | 🛠 | `201` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` | [Painel](../admin/painel-admin.md) |
 | `DELETE` | `/admin/barbeiros/{id}/folgas/{folgaId}` | remove folga | 🛠 | `204` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/pagamentos` | pendências (sem `status`) ou cobranças por status, sem Pix, cartão, CPF nem e-mail (`CobrancaAdmin`) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/pagamentos/{id}/devolucao` | registra devolução manual feita (responde `Cobranca` com `devolvidaEm`) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/pagamentos/eventos` | eventos do gateway em `REVISAO_MANUAL`, sem payload (**novo na 1.4.0**) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/pagamentos/eventos/{id}/revisao` | marca o evento como revisado, sem reprocessar (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
-| `GET` `PUT` | `/admin/configuracao` | regras configuráveis da agenda | 🛠 | `200` | `400`, `401`, `403`, `409` | [Painel](../admin/painel-admin.md) |
+| `GET` `PUT` | `/admin/configuracao` | regras configuráveis da agenda (`fuso` só leitura) | 🛠 | `200` | `400`, `401`, `403`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/auditoria` | ações do painel (paginado, sem IP) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 
 ## 3. Requisitos por endpoint
@@ -354,6 +354,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.4.0 (proposta) | 2026-11-17 | Fatia 5 (painel): `AgendamentoAdmin` e `CobrancaAdmin` (sem Pix, cartão, CPF nem e-mail); rotas novas `GET /admin/pagamentos/eventos`, `POST /admin/pagamentos/eventos/{id}/revisao` e `GET /admin/barbeiros/{id}/folgas`; `409 USUARIO_JA_VINCULADO`; `ServicoRequest.precoCentavos` a partir de **1** centavo; `PaginaAuditoria` com `detalhe` (sem IP); `ConfiguracaoAgenda` sem `fuso` na entrada; `Location` nos `201` dos cadastros | não (nenhum campo renomeado; o preço mínimo só recusa o que a reserva já recusava) |
 | 1.2.0 (proposta) | 2026-11-17 | Fatia 3: `PUT /me/senha`; `deveTrocarSenha` no login e no perfil; `403 TROCA_DE_SENHA_OBRIGATORIA`; senha medida em bytes; `WWW-Authenticate: Bearer` nos `401`; limite também por IP; o cabeçalho de rastreio é `X-Trace-Id` (o texto citava `X-Trace-Id`) | não (não há front ainda) |
 | 1.1.2 (proposta) | 2026-11-16 | Fatia 2: exemplos do catálogo com dados reais; `GET /disponibilidade` detalha `422 FORA_DO_HORIZONTE` para data passada, `422 SERVICO_INATIVO`, `404` de barbeiro, formato fixo dos horários e os cabeçalhos de cache | não (não há front ainda) |
 | 1.1.1 (proposta) | 2026-11-16 | Fatia 1: novos códigos `405 METODO_NAO_PERMITIDO` e `415 MIDIA_NAO_SUPORTADA`, que o tratador global já devolve para erros do Spring MVC | não (códigos novos) |

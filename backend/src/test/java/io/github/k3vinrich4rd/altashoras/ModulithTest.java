@@ -56,6 +56,25 @@ class ModulithTest {
         assertThat(dependenciasDe("agenda")).doesNotContain("pagamento", "admin");
     }
 
+    @Test
+    @DisplayName("A71: o admin depende de agenda, pagamento e conta (e de mais nenhum módulo de negócio); os cadastros chegam à agenda só por PainelDaAgenda e à conta só por Contas")
+    void cadastrosDoAdminSoPelasApisPublicas() {
+        modulos.verify();
+        assertThat(dependenciasDe("admin")).contains("agenda", "pagamento", "conta")
+                .isSubsetOf("agenda", "pagamento", "conta", "comum");
+        // Nos módulos agenda e conta só o pacote raiz é API pública (ADR 0002): o Modulith recusa qualquer outra classe.
+        var tiposDaAgendaUsadosPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
+                .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("agenda"))
+                .map(d -> d.getTargetType().getFullName()).distinct().toList();
+        assertThat(tiposDaAgendaUsadosPeloAdmin).isNotEmpty()
+                .allSatisfy(tipo -> assertThat(tipo).startsWith("io.github.k3vinrich4rd.altashoras.agenda.")
+                        .doesNotContain(".catalogo.").doesNotContain(".disponibilidade.").doesNotContain(".reserva."));
+        var tiposDaContaUsadosPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
+                .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("conta"))
+                .map(d -> d.getTargetType().getFullName()).distinct().toList();
+        assertThat(tiposDaContaUsadosPeloAdmin).containsExactly("io.github.k3vinrich4rd.altashoras.conta.Contas");
+    }
+
     private List<String> dependenciasDe(String modulo) {
         return modulos.getModuleByName(modulo).orElseThrow().getDirectDependencies(modulos).uniqueModules()
                 .map(m -> m.getIdentifier().toString()).toList();
