@@ -85,7 +85,7 @@ Não é um produto para qualquer barbearia. É **a agenda da Altas Horas**, com 
 | 📍 **Endereço** | R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP |
 | 💈 **Quem atende** | Eduardo Cândido (Carlos Eduardo Cândido), em todos os serviços |
 | 🕖 **Funcionamento** | terça a sábado, **07h00 às 20h00** (almoço 12h00 às 13h00) |
-| 📸 **Instagram** | [Barbearia](https://instagram.com) · [Eduardo](https://instagram.com) |
+| 📸 **Instagram** | [@altashorascabeleireiros](https://www.instagram.com/altashorascabeleireiros/) · [@eduardo_candido_barber](https://www.instagram.com/eduardo_candido_barber/) |
 
 ### 🗓 A agenda da semana
 
