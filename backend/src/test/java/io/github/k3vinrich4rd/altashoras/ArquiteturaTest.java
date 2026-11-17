@@ -68,4 +68,19 @@ class ArquiteturaTest {
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
+
+    @Test
+    @DisplayName("A40: ninguém depende do módulo admin, e o admin só usa JdbcClient, JdbcTemplate ou EntityManager na própria auditoria")
+    void adminIsoladoDasTabelasAlheias() {
+        noClasses().that().resideOutsideOfPackage("..admin..")
+                .should().dependOnClassesThat().resideInAPackage("..admin..")
+                .because("o painel chama os donos; nenhum dono chama o painel (ADR 0002)")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("..admin..").and().resideOutsideOfPackage("..admin.auditoria..")
+                .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.simple.JdbcClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.JdbcTemplate")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.EntityManager")
+                .because("o admin só enxerga SQL de auditoria_admin; as outras tabelas são dos donos (ADR 0002)")
+                .check(CLASSES);
+    }
 }

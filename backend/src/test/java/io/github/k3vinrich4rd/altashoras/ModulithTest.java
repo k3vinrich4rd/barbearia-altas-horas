@@ -1,5 +1,7 @@
 package io.github.k3vinrich4rd.altashoras;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
@@ -41,5 +43,21 @@ class ModulithTest {
         modulos.verify();
         assertThat(modulos.getModuleByName("conta").orElseThrow().getDirectDependencies(modulos).uniqueModules()
                 .map(m -> m.getIdentifier().toString())).doesNotContain("agenda", "pagamento", "admin");
+    }
+
+    @Test
+    @DisplayName("A40: o admin só depende de agenda, pagamento e conta (pelas APIs públicas); ninguém depende do admin; a agenda não conhece o pagamento")
+    void adminSoPelasApisPublicas() {
+        modulos.verify();
+        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "comum").contains("agenda", "pagamento");
+        for (String modulo : List.of("comum", "plataforma", "conta", "cep", "agenda", "pagamento", "privacidade")) {
+            assertThat(dependenciasDe(modulo)).as("dependências de " + modulo).doesNotContain("admin");
+        }
+        assertThat(dependenciasDe("agenda")).doesNotContain("pagamento", "admin");
+    }
+
+    private List<String> dependenciasDe(String modulo) {
+        return modulos.getModuleByName(modulo).orElseThrow().getDirectDependencies(modulos).uniqueModules()
+                .map(m -> m.getIdentifier().toString()).toList();
     }
 }
