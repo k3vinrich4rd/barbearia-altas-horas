@@ -55,6 +55,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<!-- A API valida o JWT como Resource Server (padrão OAuth2 do Spring Security), sem filtro feito à mão. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+		</dependency>
 		<!-- O suporte do Flyway ao PostgreSQL é um módulo separado: sem ele o Flyway não reconhece o banco. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -82,6 +91,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<!-- ApplicationModules.verify() e as regras ArchUnit (ArquiteturaTest). -->

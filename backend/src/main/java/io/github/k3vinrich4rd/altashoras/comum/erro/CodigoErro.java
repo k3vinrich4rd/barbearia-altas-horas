@@ -20,6 +20,7 @@ public enum CodigoErro {
     REFRESH_REUTILIZADO(401, "Sessão encerrada por segurança", "Faça login de novo."),
     WEBHOOK_NAO_AUTENTICADO(401, "Notificação não autenticada", "Notificação sem autenticação válida."),
     ACESSO_NEGADO(403, "Acesso negado", "Você não tem permissão para esta ação."),
+    TROCA_DE_SENHA_OBRIGATORIA(403, "Troca de senha obrigatória", "Troque a senha inicial antes de continuar."),
     RECURSO_NAO_ENCONTRADO(404, "Não encontrado", "O recurso pedido não existe."),
     CEP_NAO_ENCONTRADO(404, "CEP não encontrado", "Nenhum endereço encontrado para este CEP."),
     FUNCIONALIDADE_DESLIGADA(404, "Não encontrado", "O recurso pedido não existe."),

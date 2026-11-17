@@ -36,7 +36,7 @@
 | Concorrência | recursos do painel com `version` no corpo; versão antiga → `409 CONFLITO_DE_VERSAO` |
 | Paginação | `?pagina=0&tamanho=20` (máximo 50); resposta `{ "itens": [...], "pagina": 0, "tamanho": 20, "total": 3 }` |
 | Campos desconhecidos | recusados com `400 CAMPO_DESCONHECIDO` (`fail-on-unknown-properties=true`, OWASP API3) |
-| CORS | só as origens de `CORS_ORIGENS` (a do BFF); headers aceitos: `Authorization`, `Content-Type`, `X-Idempotency-Key`, `X-Guest-Token`, `X-Request-Id`; expostos: `Retry-After`, `X-Request-Id` |
+| CORS | só as origens de `CORS_ORIGENS` (a do BFF); headers aceitos: `Authorization`, `Content-Type`, `X-Idempotency-Key`, `X-Guest-Token`, `X-Trace-Id`; expostos: `Retry-After`, `X-Trace-Id` |
 | Erros | `application/problem+json`, RFC 9457, com `code`, `traceId` e `errors[]` (ADR 0005) |
 | Limites | `429 LIMITE_EXCEDIDO` com `Retry-After` (**HIPÓTESE H14**) |
 | Swagger | só no perfil `dev` (`/swagger-ui.html`); em `prod`, `404` |
@@ -57,6 +57,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/auth/refresh` | troca o refresh (rotativo) | 🌐 (com refresh) | `200` | `401 REFRESH_INVALIDO`, `401 REFRESH_REUTILIZADO` | [4.4](#44-autenticação-e-conta) |
 | `POST` | `/auth/logout` | encerra a família do refresh | 🌐 (com refresh) | `204` | — | [4.4](#44-autenticação-e-conta) |
 | `GET` | `/me` | meu perfil | 👤 ✂️ 🛠 | `200` | `401` | [4.4](#44-autenticação-e-conta) |
+| `PUT` | `/me/senha` | troca a própria senha e encerra as outras sessões | 👤 ✂️ 🛠 | `204` | `400`, `401 CREDENCIAIS_INVALIDAS` (senha atual errada), `401 NAO_AUTENTICADO` | [4.4](#44-autenticação-e-conta) |
 | `GET` | `/me/dados` | exportar meus dados (LGPD) | 👤 ✂️ 🛠 | `200` | `401` | [4.9](#49-privacidade) |
 | `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 | `204` | `401`, `403 ACESSO_NEGADO` (admin não se exclui) | [4.9](#49-privacidade) |
 | `GET` | `/me/consentimentos` | meus consentimentos | 👤 | `200` | `401` | [4.9](#49-privacidade) |
@@ -155,7 +156,7 @@ Aceita `01001-000` ou `01001000`; outro formato → `400 CEP_INVALIDO` sem chama
 ```json
 { "id": "c0000000-0000-4000-8000-00000000000a", "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "papeis": ["CLIENTE"], "endereco": { "cep": "01001000", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP", "completo": true } }
 ```
-Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13 dígitos depois de sanitizar; `senha` 10–72 caracteres (limite do BCrypt); `cep` opcional, 8 dígitos; `aceitaMarketing` opcional, padrão `false` (R28). CEP não resolvido → `endereco.completo: false` e bairro/cidade nulos (R31). Resposta **nunca** tem `senha` nem `senhaHash`.
+Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13 dígitos depois de sanitizar; `senha` de 10 a 72 **bytes** em UTF-8 (o BCrypt corta em 72 bytes, e letra acentuada ocupa 2); `cep` opcional, 8 dígitos; `aceitaMarketing` opcional, padrão `false` (R28). CEP não resolvido → `endereco.completo: false` e bairro/cidade nulos (R31). Resposta **nunca** tem `senha` nem `senhaHash`.
 
 `POST /auth/login`
 ```json
@@ -171,7 +172,13 @@ Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13
 
 `POST /auth/logout` `{ "refreshToken": "r1_9Yc..." }` → `204`.
 
-`GET /me` → `200` com o mesmo formato do cadastro.
+`GET /me` → `200` com o mesmo formato do cadastro, mais `deveTrocarSenha`.
+
+`PUT /me/senha` `{ "senhaAtual": "...", "novaSenha": "..." }` → `204`. A versão da credencial sobe e **todos** os refresh do usuário são revogados; senha atual errada → `401 CREDENCIAIS_INVALIDAS`.
+
+**Senha inicial do admin.** O primeiro admin nasce com `deveTrocarSenha: true` (a senha veio de variável de ambiente). Enquanto for verdadeiro, `/admin/**` responde `403 TROCA_DE_SENHA_OBRIGATORIA`.
+
+**Limites (R26).** Login: 5 erros em 15 min por e-mail + IP, e 20 por IP; cadastro: 5 por hora por IP. Passou → `429 LIMITE_EXCEDIDO` com `Retry-After` em segundos. Toda resposta `401` de rota protegida leva `WWW-Authenticate: Bearer`, e rota não declarada responde `401` para quem não está logado (negar por padrão).
 
 ### 4.5 Agendamentos do cliente
 
@@ -302,6 +309,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 401 | <a id="refresh_reutilizado"></a>`REFRESH_REUTILIZADO` | refresh já usado (família revogada) | Sessão encerrada por segurança |
 | 401 | <a id="webhook_nao_autenticado"></a>`WEBHOOK_NAO_AUTENTICADO` | token/assinatura do provedor ausente ou errado | Notificação não autenticada |
 | 403 | <a id="acesso_negado"></a>`ACESSO_NEGADO` | logado, mas sem o papel | Acesso negado |
+| 403 | <a id="troca_de_senha_obrigatoria"></a>`TROCA_DE_SENHA_OBRIGATORIA` | admin ainda com a senha inicial chamando `/admin/**` | Troca de senha obrigatória |
 | 404 | <a id="recurso_nao_encontrado"></a>`RECURSO_NAO_ENCONTRADO` | não existe **ou** não pertence a quem pede | Não encontrado |
 | 404 | <a id="cep_nao_encontrado"></a>`CEP_NAO_ENCONTRADO` | CEP válido sem endereço nos provedores | CEP não encontrado |
 | 404 | <a id="funcionalidade_desligada"></a>`FUNCIONALIDADE_DESLIGADA` | rota atrás de flag desligada | Não encontrado |
@@ -342,6 +350,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.2.0 (proposta) | 2026-11-17 | Fatia 3: `PUT /me/senha`; `deveTrocarSenha` no login e no perfil; `403 TROCA_DE_SENHA_OBRIGATORIA`; senha medida em bytes; `WWW-Authenticate: Bearer` nos `401`; limite também por IP; o cabeçalho de rastreio é `X-Trace-Id` (o texto citava `X-Trace-Id`) | não (não há front ainda) |
 | 1.1.2 (proposta) | 2026-11-16 | Fatia 2: exemplos do catálogo com dados reais; `GET /disponibilidade` detalha `422 FORA_DO_HORIZONTE` para data passada, `422 SERVICO_INATIVO`, `404` de barbeiro, formato fixo dos horários e os cabeçalhos de cache | não (não há front ainda) |
 | 1.1.1 (proposta) | 2026-11-16 | Fatia 1: novos códigos `405 METODO_NAO_PERMITIDO` e `415 MIDIA_NAO_SUPORTADA`, que o tratador global já devolve para erros do Spring MVC | não (códigos novos) |
 | 1.1 (proposta) | 2026-11-16 | regras reais da barbearia: pagamento **100% antecipado** por Pix ou cartão de crédito para cliente e guest; cliente logado nasce `AGUARDANDO_PAGAMENTO`; aceite obrigatório da política (`aceitePolitica`, `versaoPolitica`, `GET /politica-pagamento`); **saem** cancelamento e remarcação pelo cliente (`JANELA_CANCELAMENTO_ENCERRADA` vira `ACEITE_POLITICA_OBRIGATORIO`); sai `sinalCentavos`; pagamento tardio confirma se o horário estiver livre. `redocly lint` 2.78.0: 0 erros, 14 avisos | não (não há front ainda) |
