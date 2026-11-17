@@ -24,6 +24,7 @@
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | agenda, concluir, marcar falta, pagamento tardio | ⏳ Fatias 3 e 5 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
+| [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
 | [Deu erro?](#deu-erro) | problemas comuns | ✅ |
 
 ---
@@ -313,6 +314,72 @@ Agora mexa e veja a regra reagir:
 
 ---
 
+## 9. RAG: perguntar à documentação
+
+Ferramenta de desenvolvimento, separada da API ([como funciona](ia/rag-vetorial.md)). Precisa só de Docker e JDK 25; o modelo de embeddings (118 MB) é baixado na primeira execução e roda local, sem chave de API.
+
+### 9.1 ✅ Subir o banco vetorial e indexar
+
+```bash
+docker compose --profile rag up -d rag-db        # PostgreSQL 18 + pgvector, porta 5434
+cd ferramentas/rag
+./mvnw -q spring-boot:run -Dspring-boot.run.arguments=indexar
+```
+
+Tem que terminar com (o número cresce junto com a documentação):
+
+```text
+indexados 390 trechos de 37 arquivos
+```
+
+### 9.2 ✅ Perguntar em linguagem natural
+
+```bash
+./mvnw -q spring-boot:run "-Dspring-boot.run.arguments=buscar 'o cliente pode cancelar depois de pagar?'"
+```
+
+```text
+Pergunta: o cliente pode cancelar depois de pagar?
+
+1. [0,559] docs/adr/0007-gateway-de-pagamento-sandbox.md:70 · Decisão
+2. [0,544] docs/contrato/contrato-api.md:225 · 4.7 Pagamento 100% antecipado
+   ... "Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta."
+3. [0,534] docs/contexto.md:89 · 3. Regras de negócio
+```
+
+**Como ler:** o número entre colchetes é a semelhança (quanto maior, mais parecido em significado); depois vêm o arquivo, a linha e o título da seção. A resposta está no 2º trecho: o RAG **recupera**, quem redige a resposta é você ou a IA lendo esses trechos.
+
+### 9.3 ✅ Buscar um identificador
+
+```bash
+./mvnw -q spring-boot:run "-Dspring-boot.run.arguments=buscar D40"
+```
+
+```text
+1. [exata] docs/planejamento/decisoes.md:74 · Fatia 1 (16/11/2026)
+   ... | D40 | PostgreSQL local do `compose.yaml` na porta **5433** ...
+```
+
+**O que prova:** `[exata]` em vez de um número: identificador não vai pelo vetor, vai por busca de texto, e o trecho que **define** o `D40` vem primeiro.
+
+### 9.4 ✅ Medir a qualidade
+
+```bash
+./mvnw -q spring-boot:run -Dspring-boot.run.arguments=avaliar
+```
+
+Última linha, na medição de 17/11/2026:
+
+```text
+acerto@3 · só vetor: 10 de 17 · híbrido: 15 de 17
+```
+
+**O que prova:** o vetor sozinho erra os 5 identificadores; a busca híbrida acerta. Acrescente perguntas suas em `ferramentas/rag/src/main/resources/avaliacao.tsv` (pergunta, TAB, pedaço do caminho esperado) e rode de novo.
+
+Parar o banco do RAG: `docker compose --profile rag stop rag-db`.
+
+---
+
 ## Deu erro?
 
 | Sintoma | Causa provável | O que fazer |
@@ -323,5 +390,8 @@ Agora mexa e veja a regra reagir:
 | `./mvnw verify` falha com "Could not find a valid Docker environment" | Docker Desktop fechado | abra o Docker Desktop e espere ficar pronto |
 | o enforcer reclama do Java | JDK diferente do 25 | aponte o `JAVA_HOME` para um JDK 25 |
 | migração falha depois de você mexer no banco | banco local sujo | `docker compose down -v` e suba de novo |
+| RAG: `Connection refused` na 5434 | o banco vetorial não subiu (ele só sobe com o perfil) | `docker compose --profile rag up -d rag-db` |
+| RAG: `relation "vector_store" does not exist` | primeira execução foi `buscar` antes de `indexar` | rode `indexar` primeiro |
+| RAG: demora na primeira vez | está baixando o modelo de 118 MB para `ferramentas/rag/.cache/` | esperar; da segunda vez em diante usa o cache |
 
 Contrato da API (v1.1.2): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ 16/11/2026).
