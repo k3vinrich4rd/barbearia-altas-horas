@@ -2,6 +2,9 @@ package io.github.k3vinrich4rd.altashoras.plataforma.seguranca;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +17,6 @@ import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -57,9 +59,11 @@ class SegurancaConfig {
         conversor.setJwtGrantedAuthoritiesConverter(papeis);
 
         http
-                // CSRF desligado de propósito: a API é stateless e só aceita o token no cabeçalho Authorization.
-                // Não há cookie de sessão para um site malicioso reaproveitar (ADR 0006).
-                .csrf(AbstractHttpConfigurer::disable)
+                // CSRF ligado, exigido onde o ataque é possível: requisição que altera dados E chega com cookie.
+                // A API autentica só pelo token no cabeçalho Authorization (ADR 0006), que o navegador nunca envia
+                // sozinho; quem usa a API assim não é afetado. Se um dia algum fluxo passar a usar cookie, a
+                // proteção já está ativa para ele (D58).
+                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(SegurancaConfig::exigeCsrf))
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(regras -> regras
@@ -79,6 +83,17 @@ class SegurancaConfig {
                         .accessDeniedHandler(semPermissao));
         return http.build();
     }
+
+    /**
+     * CSRF é o navegador mandar sozinho uma credencial (cookie) numa requisição forjada por outro site. Só existe
+     * risco quando a requisição muda algo e carrega cookie; nesses casos o token CSRF é exigido.
+     */
+    static boolean exigeCsrf(HttpServletRequest request) {
+        boolean alteraDados = !METODOS_SEGUROS.contains(request.getMethod());
+        return alteraDados && request.getHeader(HttpHeaders.COOKIE) != null;
+    }
+
+    private static final Set<String> METODOS_SEGUROS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
 
     /** Painel: papel ADMIN ou BARBEIRO, e nunca com a senha inicial ainda em uso (E24). */
     private static AuthorizationManager<RequestAuthorizationContext> painel() {

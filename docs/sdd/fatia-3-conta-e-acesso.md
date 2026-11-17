@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ✅ **implementada** (17/11/2026): `./mvnw verify` com 114 testes, 0 falhas, 0 pulados, 97% de cobertura de instruções; `conferir-spec.sh 3`: 43 de 43 critérios com teste |
+| **Status** | ✅ **implementada** (17/11/2026): `./mvnw verify` com 115 testes, 0 falhas, 0 pulados, 97% de cobertura de instruções; `conferir-spec.sh 3`: 44 de 44 critérios com teste |
 | **Fatias do plano** | S04 (cadastro, login, `/me`) + S05 (refresh rotativo, logout) + S06 (admin inicial, limite de tentativas, matriz de acesso) |
 | **Branch** | `feat/fatia-3-conta-e-acesso` |
 | **Regras** | [R23](../contexto.md#3-regras-de-negócio) (recurso alheio → 404), R24 (e-mail único), R25 (admin inicial), R26 (limite de tentativas), R27 (refresh rotativo), R30 (nada pessoal em log) · decisões do [ADR 0006](../adr/0006-sessao-jwt-refresh-cookie-bff.md) |
@@ -49,7 +49,7 @@ Um cliente cria a conta e entra; o Eduardo entra como administrador com uma senh
 | E12 | `401` e `403` | `AuthenticationEntryPoint` e `AccessDeniedHandler` próprios devolvendo RFC 9457 (`NAO_AUTENTICADO`, `ACESSO_NEGADO`) com `traceId` | sem isso o Spring Security responde fora do padrão de erro da API |
 | E13 | Rotas públicas | `/servicos`, `/barbeiros`, `/politica-pagamento`, `/disponibilidade`, `/auth/**`, `/actuator/health`; `/admin/**` exige `ADMIN` ou `BARBEIRO`; **todo o resto exige login** (negar por padrão) | rota nova nasce protegida; esquecer de anotar não abre nada |
 | E14 | Matriz de acesso sem rotas de painel | testa a **regra** em `/admin/qualquer-coisa`: anônimo `401`, CLIENTE `403`, ADMIN `404` (a rota só nasce na Fatia 5) | prova a autorização sem inventar rota fora do contrato |
-| E15 | CORS e CSRF | CORS só para as origens de `CORS_ORIGENS` (nunca `*`); CSRF desligado, com comentário: a API é stateless e só aceita `Bearer` | ADR 0006 |
+| E15 | CORS e CSRF | CORS só para as origens de `CORS_ORIGENS` (nunca `*`). CSRF **ligado** e exigido quando a requisição altera dados **e** chega com cookie; sem cookie (o uso normal, com token no cabeçalho) não muda nada. *Mudou depois do CodeQL:* a primeira versão desligava o CSRF, o que o scanner acusou como alerta; a proteção condicional fecha o alerta sem dispensá-lo e protege qualquer fluxo futuro com cookie (D58) | o ataque CSRF depende de o navegador mandar uma credencial sozinho, e só cookie faz isso |
 | E16 | Atribuição em massa | o corpo do cadastro aceita só os campos do contrato; `papeis`, `id` ou `ativo` no JSON → `400 CAMPO_DESCONHECIDO` | ninguém se cadastra como ADMIN mandando um campo a mais (OWASP API3) |
 | E17 | Normalização | e-mail: `trim` + minúsculas; WhatsApp e CEP: só dígitos (value objects em `comum`, que mascaram no `toString()`) | R24 e R30 |
 | E18 | E-mail duplicado em corrida | além da consulta, captura a violação do índice único `usuario_email_uk` e responde `409` | dois cadastros simultâneos com o mesmo e-mail |
@@ -136,6 +136,7 @@ Relógio fixo dos testes: terça, 17/11/2026, 08:00 (-03:00). Dados fictícios (
 | A41 | usuário logado | `PUT /me/senha` com a senha atual errada · com nova senha de 5 caracteres | `401 CREDENCIAIS_INVALIDAS` · `400 VALIDACAO_INVALIDA`; a senha não muda | `TrocaDeSenhaIT` |
 | A42 | admin recém-criado na subida | login · `GET /admin/qualquer-coisa` · trocar a senha, entrar de novo e repetir | `deveTrocarSenha: true` · `403 TROCA_DE_SENHA_OBRIGATORIA` · `deveTrocarSenha: false` e `404` | `AdminInicialIT` |
 | A43 | 20 logins errados do mesmo IP com e-mails diferentes | 21º login desse IP | `429 LIMITE_EXCEDIDO` | `LimiteTentativasIT` |
+| A44 | uma requisição `POST` chegando com cookie e sem token CSRF · a mesma sem cookie · um `GET` com cookie | enviar | `403 ACESSO_NEGADO` · segue normal (`401 CREDENCIAIS_INVALIDAS`) · `200` | `SegurancaWebIT` |
 | A39 | código da fatia | `./mvnw verify` | `ModulithTest` e `ArquiteturaTest` verdes: `conta` não acessa pacotes internos de `plataforma` nem o contrário | `ModulithTest` |
 
 ## 5. Entregas
@@ -166,7 +167,7 @@ Relógio fixo dos testes: terça, 17/11/2026, 08:00 (-03:00). Dados fictícios (
 
 ## 8. Pronto quando
 
-- [ ] A1 a A43 com teste verde (`sh scripts/conferir-spec.sh 3 --exigir`), nenhum pulado
+- [ ] A1 a A44 com teste verde (`sh scripts/conferir-spec.sh 3 --exigir`), nenhum pulado
 - [ ] `redocly lint` com 0 erros no contrato 1.2.0
 - [ ] cadastro, login, `/me`, refresh e logout rodados à mão no perfil `dev`, com as respostas no guia de testes
 - [ ] [checklist da PR](checklist-pr.md) completo

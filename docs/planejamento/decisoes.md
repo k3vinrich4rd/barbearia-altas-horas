@@ -102,6 +102,7 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D54 | **Negar por padrão**: só as rotas listadas são públicas; rota não declarada responde `401` a quem não está logado. Consequência: o `404` de rota inexistente só aparece para quem tem login | aceita | spec da Fatia 3 (E13) | `SegurancaConfig` |
 | D55 | JWT validado pelo Resource Server do Spring Security com o **`Clock` injetado** (o validador padrão usa o relógio do sistema e o teste de expiração dependeria da data do dia) | aceita | implementação | `JwtConfig` |
 | D56 | O refresh é opaco e não carrega a versão da credencial: senha trocada **revoga todos os refresh do usuário** em vez de comparar versões na renovação (ajuste de E8) | aceita | implementação | `Sessoes.trocarSenha` |
+| D58 | CSRF **ligado** e exigido para requisição que altera dados e chega com cookie, em vez de desligado. O CodeQL acusou o CSRF desligado; o Kevin pediu que o alerta deixasse de existir em vez de ser dispensado. Para o uso normal da API (token no cabeçalho) nada muda; qualquer fluxo futuro com cookie já nasce protegido | aceita | alerta `java/spring-disabled-csrf-protection` na PR #16 | `SegurancaConfig`, teste A44 |
 | D57 | Fluxo de entrega: feature → `develop` → `main` automático, com CI verde, sem aguardar aprovação do merge; a spec de cada fatia continua precisando do OK | aceita | Kevin, 17/11/2026 | [SDD](../sdd/README.md) |
 
 ## Pontos em que uma IA discordou da fonte oficial
