@@ -30,6 +30,9 @@ public class ConfiguracaoAgenda {
     @Column(name = "horizonte_dias", nullable = false)
     private int horizonteDias;
 
+    @Column(name = "expiracao_pagamento_min", nullable = false)
+    private int expiracaoPagamentoMin;
+
     protected ConfiguracaoAgenda() {
     }
 
@@ -47,6 +50,10 @@ public class ConfiguracaoAgenda {
 
     public int getGranularidadeMin() {
         return granularidadeMin;
+    }
+
+    public int getExpiracaoPagamentoMin() {
+        return expiracaoPagamentoMin;
     }
 
     public int getHorizonteDias() {
