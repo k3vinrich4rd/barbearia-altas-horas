@@ -39,6 +39,12 @@ import io.github.k3vinrich4rd.altashoras.plataforma.LimitadorDeTentativas;
  * tela, mas só com as folgas (E1): quem decide a disputa entre duas reservas é a constraint EXCLUDE do banco, o
  * único que vence uma corrida. A transação é aberta à mão (TransactionTemplate) para o erro do banco ser traduzido
  * FORA dela e o deadlock poder ser refeito numa transação nova (E4).
+ * <p>
+ * Contra a folga a constraint não ajuda (folga é outra tabela, E21): a transação começa travando a linha do barbeiro
+ * com {@code FOR SHARE} e só DEPOIS relê configuração, serviço, barbeiro ativo, jornada e folga (D80), então a
+ * jornada trocada ou o barbeiro desativado que ganhou a corrida recusa a reserva com os mesmos códigos de erro. A folga trava a mesma linha com {@code FOR UPDATE} antes de
+ * conferir as reservas. Duas reservas não se bloqueiam ({@code FOR SHARE} é compatível com ele mesmo); reserva e
+ * folga esperam uma à outra e, ao acordar, enxergam o que a outra gravou.
  */
 @Service
 public class ReservarHorario {
@@ -122,14 +128,23 @@ public class ReservarHorario {
         ConfiguracaoAgenda config = configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow();
         Instant agora = clock.instant();
         Servico servico = servicoAtivo(pedido.servicoId());
-        Horario horario = validar(pedido, servico, config, agora);
-        Instant expiraEm = agora.plus(Duration.ofMinutes(config.getExpiracaoPagamentoMin()));
+        // Conferência rápida, sem trava: recusa cedo (e com os mesmos códigos) o que já está errado.
+        validar(pedido, servico, config, agora);
 
         for (int tentativa = 1; ; tentativa++) {
             try {
                 return transacao.execute(status -> {
+                    travarBarbeiroParaLeitura(pedido.barbeiroId());
+                    // D80: depois da trava, relê tudo o que uma alteração do painel pode ter mudado (configuração,
+                    // serviço, barbeiro ativo e jornada) e confere de novo, na mesma ordem de erros.
+                    ConfiguracaoAgenda configAtual = configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow();
+                    Servico servicoAtual = servicoAtivo(pedido.servicoId());
+                    Previa previa = validar(pedido, servicoAtual, configAtual, agora);
+                    conferirNaGrade(previa, servicoAtual, agora);
+                    Horario horario = previa.horario();
+                    Instant expiraEm = agora.plus(Duration.ofMinutes(configAtual.getExpiracaoPagamentoMin()));
                     expiracao.vencidasNoHorario(horario.barbeiroId(), horario.inicio(), horario.fimOcupacao(), agora);
-                    Reserva reserva = Reserva.nova(horario, clienteId, servico.getPrecoCentavos(), expiraEm, agora);
+                    Reserva reserva = Reserva.nova(horario, clienteId, servicoAtual.getPrecoCentavos(), expiraEm, agora);
                     em.persist(reserva);
                     if (contato != null) {
                         em.persist(new ReservaGuest(reserva.getId(), contato.nome(), contato.email(), contato.whatsapp(),
@@ -167,8 +182,15 @@ public class ReservarHorario {
         return servico;
     }
 
-    /** E1 e E2: a ordem das checagens decide o código de erro que o front recebe. */
-    private Horario validar(Pedidos.Reserva pedido, Servico servico, ConfiguracaoAgenda config, Instant agora) {
+    /** O que {@link #validar} já conferiu e a transação ainda precisa (a folga, que só se confere com a trava). */
+    private record Previa(Horario horario, ZoneId fuso, LocalDate data, List<Turno> turnos, Regras regras) {
+    }
+
+    /**
+     * E1 e E2: a ordem das checagens decide o código de erro que o front recebe. Aqui vai tudo o que não depende da
+     * folga; a grade (jornada, folga, granularidade) se confere depois, dentro da transação e com a trava do barbeiro.
+     */
+    private Previa validar(Pedidos.Reserva pedido, Servico servico, ConfiguracaoAgenda config, Instant agora) {
         Barbeiro barbeiro = barbeiros.listarAtivosComJornadas().stream()
                 .filter(b -> b.getId().equals(pedido.barbeiroId()))
                 .findFirst()
@@ -192,20 +214,36 @@ public class ReservarHorario {
                 .filter(j -> j.getDiaSemana() == diaDaSemana)
                 .map(j -> new Turno(j.getHoraInicio(), j.getHoraFim()))
                 .toList();
-        Instant inicioDoDia = data.atStartOfDay(fuso).toInstant();
-        Instant fimDoDia = data.plusDays(1).atStartOfDay(fuso).toInstant();
-        var folgas = bloqueios.folgasNoPeriodo(inicioDoDia, fimDoDia).getOrDefault(barbeiro.getId(), List.of());
         // Antecedência 0 aqui: ela já foi checada acima, com o código de erro próprio.
         Regras regras = new Regras(config.getIntervaloEntreAtendimentosMin(), config.getGranularidadeMin(), 0);
-        boolean naGrade = CalculadoraDeHorarios.calcular(data, fuso, turnos, folgas, servico.getDuracaoMin(), regras, agora)
-                .stream().anyMatch(livre -> livre.toInstant().equals(inicio));
-        if (!naGrade) {
-            throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_EXPEDIENTE);
-        }
 
         Instant fim = inicio.plus(Duration.ofMinutes(servico.getDuracaoMin()));
         Instant fimOcupacao = fim.plus(Duration.ofMinutes(config.getIntervaloEntreAtendimentosMin()));
-        return new Horario(barbeiro.getId(), servico.getId(), inicio, fim, fimOcupacao);
+        return new Previa(new Horario(barbeiro.getId(), servico.getId(), inicio, fim, fimOcupacao), fuso, data, turnos,
+                regras);
+    }
+
+    /**
+     * Trava a linha do barbeiro até o fim da transação (E21). Tem de ser a PRIMEIRA coisa dentro da transação: a folga
+     * que está sendo criada nesse instante já terá sido gravada (ou esperará esta reserva) quando a conferência rodar.
+     */
+    private void travarBarbeiroParaLeitura(UUID barbeiroId) {
+        em.createNativeQuery("SELECT 1 FROM barbeiro WHERE id = :id FOR SHARE").setParameter("id", barbeiroId)
+                .getResultList();
+    }
+
+    /** A grade do dia com a folga já enxergada depois da trava: horário fora do expediente ou em folga é 422. */
+    private void conferirNaGrade(Previa previa, Servico servico, Instant agora) {
+        Horario horario = previa.horario();
+        Instant inicioDoDia = previa.data().atStartOfDay(previa.fuso()).toInstant();
+        Instant fimDoDia = previa.data().plusDays(1).atStartOfDay(previa.fuso()).toInstant();
+        var folgas = bloqueios.folgasNoPeriodo(inicioDoDia, fimDoDia).getOrDefault(horario.barbeiroId(), List.of());
+        boolean naGrade = CalculadoraDeHorarios.calcular(previa.data(), previa.fuso(), previa.turnos(), folgas,
+                servico.getDuracaoMin(), previa.regras(), agora)
+                .stream().anyMatch(livre -> livre.toInstant().equals(horario.inicio()));
+        if (!naGrade) {
+            throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_EXPEDIENTE);
+        }
     }
 
     private static @Nullable String sqlState(Throwable erro) {
