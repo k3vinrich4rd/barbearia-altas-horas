@@ -30,17 +30,17 @@
 
 <img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
 
-Desde **1997**, a **Barbearia Altas Horas** é referência no Jardim Bonança, em Osasco. Quem comanda a cadeira é o **Eduardo Cândido**, meu pai: são quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Hoje, além da cadeira, ele forma novos profissionais como professor na **Altas Horas Barbearia Academy**. Em 2017, esse trabalho rendeu dois reconhecimentos: o **Prêmio Barbeiros do Brasil** e o **Prêmio Master Barber · Êxito Profissional**.
+O caminho do **Eduardo Cândido**, meu pai, na barbearia começou em **1995**, com o primeiro mestre. Dois anos depois, em **1997**, ele abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então comanda a cadeira: quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Em 2017, esse trabalho foi reconhecido duas vezes, com o **Prêmio Barbeiros do Brasil**, que ele fez questão de trazer para Osasco, e o **Prêmio Master Barber · Êxito Profissional**. Instrutor formado pela Ibel Formação, hoje ele também ensina na **Altas Horas Barbearia Academy**, preparando a próxima geração de barbeiros.
 
-Com a rotina dividida entre os clientes e as aulas, a agenda sempre ficou no caderno e no WhatsApp. E esse modelo carrega um problema clássico da barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta mais. Para quem atende sozinho, cadeira vazia é tempo perdido e dinheiro que deixa de entrar.
+Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no caderno e no WhatsApp. É aí que aparece um problema clássico da barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta mais. Para quem atende sozinho, cadeira vazia é tempo perdido e dinheiro que deixa de entrar.
 
-**Desenvolvi esta agenda para resolver exatamente essa dor:**
+**Como desenvolvedor, criei esta agenda para resolver exatamente essa dor:**
 
-- 💳 **Reserva com pagamento antecipado:** o cliente escolhe o serviço e o horário e paga antes, por Pix ou cartão.
-- 🔒 **Vaga garantida só com pagamento confirmado:** o horário entra na agenda quando o meio de pagamento confirma, e dois clientes nunca ficam com o mesmo horário.
-- ⏱️ **Liberação automática:** quem não conclui o pagamento em 15 minutos devolve a vaga para o próximo cliente.
+- 💳 **Reserva com pagamento antecipado:** o cliente escolhe o serviço e o horário e paga na hora, por Pix ou cartão.
+- 🔒 **Vaga garantida, sem conflito:** o horário só entra na agenda depois que o pagamento é confirmado, e dois clientes nunca ficam com o mesmo horário.
+- ⏱️ **Liberação automática:** quem não conclui o pagamento em 15 minutos devolve a vaga para o próximo.
 
-No fim, o Eduardo começa a manhã com um painel limpo, o dia já organizado e todos os horários confirmados e pagos. Sobra tempo para o que importa: a cadeira e os alunos.
+No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
 > **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. São **115 testes** em PostgreSQL real, 0 falhas. Agendamento com pagamento, painel e telas chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
@@ -65,6 +65,7 @@ No fim, o Eduardo começa a manhã com um painel limpo, o dia já organizado e t
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#FFFFFF','lineColor':'#7A7A7A','fontFamily':'Georgia, serif'}}}%%
 timeline
+    1995 : começa no ofício, com o primeiro mestre
     1997 : abre a Barbearia Altas Horas no Jardim Bonança, Osasco
     2017 : Prêmio Barbeiros do Brasil
          : Prêmio Master Barber · Êxito Profissional
