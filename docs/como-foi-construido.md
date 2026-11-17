@@ -34,8 +34,8 @@ Ordem fixa de toda entrega: **regra → spec → OK do Kevin → contrato → te
 | 16/11/2026 | **Fatia 1** | esqueleto Spring Boot 4, 8 módulos, erros RFC 9457, `Clock`, Flyway V1 com `EXCLUDE USING gist`, seed, Compose, CI; **26 testes** | [spec](sdd/fatia-1-esqueleto.md), [PR #4](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/4) |
 | 16/11/2026 | **Fatia 2** | spec com 15 decisões e 29 critérios, aprovada e implementada: catálogo, política e disponibilidade; hexagonal seletivo (ADR 0011); **69 testes** | [spec](sdd/fatia-2-catalogo-disponibilidade.md), [PR #6](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/6) |
 | 17/11/2026 | **RAG e release** | busca híbrida na documentação (Spring AI + pgvector), Copilot e Actions documentados; tudo mergeado na `main` | [RAG](ia/rag-vetorial.md), [PR #9](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/9) |
-| 17/11/2026 | **Fatia 3 (spec)** | 22 decisões e 39 critérios para conta, login, refresh rotativo, admin inicial e limite de tentativas | [spec](sdd/fatia-3-conta-e-acesso.md) |
-| a seguir | Fatias 3 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
+| 17/11/2026 | **Fatia 3** | spec com 25 decisões e 43 critérios, aprovada e implementada: cadastro, login, refresh rotativo, troca de senha, admin inicial, limite de tentativas e negar por padrão; **114 testes** | [spec](sdd/fatia-3-conta-e-acesso.md) |
+| a seguir | Fatias 4 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
 
 ## 4. O que existe no código hoje (Fatia 1), arquivo por arquivo
 
@@ -107,6 +107,9 @@ O Copilot lê as mesmas regras pelo [`.github/copilot-instructions.md`](../.gith
 | O Hibernate leu a jornada das 07:00 como 04:00 | teste A27 (`expected 07:00 but was 04:00`) | `java_time_use_direct_jdbc` (D46) |
 | 12 inserções simultâneas terminaram em deadlock (`40P01`) em vez de `23P01` | `ConcorrenciaReservaIT` falhou com a máquina sob carga | o teste passou a aceitar os dois; o invariante (uma vencedora) não mudou (D47) |
 | `SELECT DISTINCT` + `ORDER BY lower(...)` recusado pelo PostgreSQL | 15 testes com `500` na primeira execução | `JOIN FETCH` sem `DISTINCT` (D48) |
+| O validador de JWT do Spring usa o relógio do sistema: o teste de token vencido dependeria do dia em que roda | desenho da Fatia 3 | validador com o `Clock` injetado (D55) |
+| O CORS não respondia: o bean se chamava `cors` e o Spring Security procura `corsConfigurationSource` | teste A35 | bean renomeado |
+| A spec pedia comparar a versão da credencial no refresh, mas o refresh é opaco e não carrega versão | ao implementar | troca de senha revoga os refresh; spec e decisão D56 atualizadas |
 | Uma data de teste quase foi tratada como segunda-feira (era terça) | conferência por código | passo obrigatório na skill `/especificar-fatia` |
 
 ## 7. Como repetir em outro projeto

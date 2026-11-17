@@ -20,6 +20,7 @@ Agenda online da Barbearia Altas Horas (Osasco), feita pelo Kevin Richard para o
 - Regras configuráveis vêm de `configuracao_agenda`, nunca fixas no código.
 - Testes de integração com PostgreSQL real (`PostgresTestcontainers`), nunca H2. Cada teste cria os próprios dados.
 - Nenhum CPF, telefone, CEP ou e-mail em log ou em mensagem de erro. Nenhum segredo no repositório.
+- Segurança: negar por padrão. Rota pública nova precisa entrar na lista do `SegurancaConfig` e na spec; o id do usuário vem sempre do token (`sub`), nunca de parâmetro.
 
 ## Regras do produto que não podem ser quebradas
 - Todo agendamento paga 100% antes (Pix ou cartão); só o webhook do gateway confirma.
