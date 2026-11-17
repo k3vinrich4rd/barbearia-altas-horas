@@ -47,6 +47,16 @@ class ArquiteturaTest {
     }
 
     @Test
+    @DisplayName("A44: a porta do gateway e a máquina de estados da reserva não conhecem Spring, JPA nem Hibernate")
+    void portaEEstadosSemFramework() {
+        noClasses().that().haveSimpleName("GatewayDePagamento").or().haveSimpleName("StatusReserva")
+                .should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "jakarta..", "org.hibernate..")
+                .because("a regra de estados e a porta do gateway são código puro (ADR 0011): trocar o provedor ou o "
+                        + "framework não as toca")
+                .check(CLASSES);
+    }
+
+    @Test
     @DisplayName("A10: dinheiro nunca em double ou float (ADR 0004)")
     void dinheiroSemPontoFlutuante() {
         noFields().that().haveNameMatching("(?i).*(preco|valor|centavos).*")
