@@ -18,7 +18,7 @@ import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.CalculadoraDeHor
  * Adaptador SQL da porta FonteDeBloqueios. Uma consulta só para folgas e reservas (UNION ALL), com a mesma
  * definição de "ocupa horário" da constraint reserva_sem_sobreposicao, mais o prazo de pagamento (R15):
  * a pendente vencida já não bloqueia, mesmo antes de o job de expiração rodar.
- * SQL direto de propósito (E5): a entidade Reserva nasce na Fatia 4, quando houver escrita.
+ * SQL direto de propósito: é leitura de duas tabelas numa consulta só, sem precisar da entidade Reserva.
  */
 @Repository
 class BloqueiosJdbc implements FonteDeBloqueios {
@@ -54,6 +54,19 @@ class BloqueiosJdbc implements FonteDeBloqueios {
                     porBarbeiro.computeIfAbsent(barbeiro, id -> new ArrayList<>()).add(bloqueio);
                     return bloqueio;
                 })
+                .list();
+        return porBarbeiro;
+    }
+
+    @Override
+    public Map<UUID, List<Bloqueio>> folgasNoPeriodo(Instant inicio, Instant fim) {
+        Map<UUID, List<Bloqueio>> porBarbeiro = new HashMap<>();
+        jdbc.sql("SELECT barbeiro_id, inicio, fim FROM folga WHERE inicio < :fim AND fim > :inicio")
+                .param("inicio", utc(inicio))
+                .param("fim", utc(fim))
+                .query((rs, linha) -> porBarbeiro.computeIfAbsent(rs.getObject(1, UUID.class), id -> new ArrayList<>())
+                        .add(new Bloqueio(rs.getObject(2, OffsetDateTime.class).toInstant(),
+                                rs.getObject(3, OffsetDateTime.class).toInstant())))
                 .list();
         return porBarbeiro;
     }

@@ -112,6 +112,10 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D59 | **Beta sem gateway real**: pagamento em modo `simulado` em todo o beta, inclusive no deploy gratuito; nenhuma conta em serviço externo, nenhum custo e nenhum dinheiro real. O adaptador do Asaas é escrito e testado, mas só é ligado (`app.pagamento.modo=asaas`) na saída do beta | aceita | Kevin, 17/11/2026 | [spec da Fatia 4](../sdd/fatia-4-agendamento-e-pagamento.md) (E28) |
 | D60 | Fatia 4 em duas PRs: 4A (reserva e expiração) e 4B (cobrança e webhook) | aceita | Kevin, 17/11/2026 | spec da Fatia 4 |
 | D61 | Antes da produção, revisar com advogado a regra "sem cancelamento e sem estorno" frente ao direito de arrependimento do CDC (art. 49) para compras feitas fora do estabelecimento | proposta | levantado na saída do beta | `.equipe/saida-do-beta.md` (privado) |
+| D62 | Tabela `shedlock` com `timestamp` **sem fuso** (V3): com a hora do banco, o ShedLock grava `timezone('utc', now())`; numa coluna `timestamptz` o valor era convertido pelo fuso da sessão e a trava "acabava" 3 h antes (pego pelo teste A19) | aceita | teste A19, documentação do ShedLock | [V3](../../backend/src/main/resources/db/migration/V3__eventos.sql) |
+| D63 | O listener do pagamento para `ReservaExpirada` (cancela a cobrança `PENDENTE`, E24) entra já na 4A: sem um listener, o outbox não grava a publicação e o A20 não teria o que provar. O teste do efeito na cobrança (A40) fica na 4B | aceita | spec da Fatia 4 (E11, E24) | `CancelaCobrancaDaReservaExpirada` |
+| D64 | Os testes desligam o agendador de jobs (`app.jobs.habilitados=false`) e chamam o job à mão; só o `ExpiracaoJobIT` liga, num banco próprio, com uma reserva vencida criada por callback do Flyway antes da subida (prova o A21 de verdade) | aceita | Fatia 4A | `ExpiracaoJobIT` |
+| D65 | O limite do visitante conta só reserva **criada**: tentativa recusada (409, 422) não gasta a cota. Em rede móvel muita gente divide o mesmo IP (CGNAT); contar tentativas travaria clientes legítimos | aceita | revisor da fatia (17/11/2026) | `ReservarHorario`, A13 |
 
 ## Pontos em que uma IA discordou da fonte oficial
 

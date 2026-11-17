@@ -24,6 +24,7 @@
 		<!-- Spring Modulith 2.1.x é a linha do Boot 4.1 (2.1.2 compilado contra o Boot 4.1.2). O Boot não gerencia
 		     o Modulith: o BOM abaixo fixa todos os artefatos dele juntos. Por que modular: ADR 0001. -->
 		<spring-modulith.version>2.1.2</spring-modulith.version>
+		<shedlock.version>7.10.1</shedlock.version>
 	</properties>
 
 	<dependencyManagement>
@@ -76,6 +77,22 @@
 		<dependency>
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-api</artifactId>
+		</dependency>
+		<!-- Outbox: eventos entre módulos gravados na mesma transação (E11, tabela event_publication na V3) -->
+		<dependency>
+			<groupId>org.springframework.modulith</groupId>
+			<artifactId>spring-modulith-starter-jdbc</artifactId>
+		</dependency>
+		<!-- Um job agendado roda numa instância só por vez (E10) -->
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-spring</artifactId>
+			<version>${shedlock.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-provider-jdbc-template</artifactId>
+			<version>${shedlock.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
