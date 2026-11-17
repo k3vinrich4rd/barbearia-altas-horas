@@ -30,7 +30,7 @@
 
 <img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
 
-Desde **1997**, a **Barbearia Altas Horas** é referência no Jardim Bonança, em Osasco. Quem comanda a cadeira é o **Eduardo Cândido**, meu pai: são quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. A história começou antes, em 1995, aprendendo o ofício com o primeiro mestre. Hoje, além da cadeira, ele forma novos profissionais como professor na **Altas Horas Barbearia Academy**. Em 2017, esse trabalho rendeu dois reconhecimentos: o **Prêmio Barbeiros do Brasil** e o **Prêmio Master Barber · Êxito Profissional**.
+Desde **1997**, a **Barbearia Altas Horas** é referência no Jardim Bonança, em Osasco. Quem comanda a cadeira é o **Eduardo Cândido**, meu pai: são quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Hoje, além da cadeira, ele forma novos profissionais como professor na **Altas Horas Barbearia Academy**. Em 2017, esse trabalho rendeu dois reconhecimentos: o **Prêmio Barbeiros do Brasil** e o **Prêmio Master Barber · Êxito Profissional**.
 
 Com a rotina dividida entre os clientes e as aulas, a agenda sempre ficou no caderno e no WhatsApp. E esse modelo carrega um problema clássico da barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta mais. Para quem atende sozinho, cadeira vazia é tempo perdido e dinheiro que deixa de entrar.
 
@@ -65,7 +65,6 @@ No fim, o Eduardo começa a manhã com um painel limpo, o dia já organizado e t
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#FFFFFF','lineColor':'#7A7A7A','fontFamily':'Georgia, serif'}}}%%
 timeline
-    1995 : primeiros cortes, aprendendo com o primeiro mestre
     1997 : abre a Barbearia Altas Horas no Jardim Bonança, Osasco
     2017 : Prêmio Barbeiros do Brasil
          : Prêmio Master Barber · Êxito Profissional
