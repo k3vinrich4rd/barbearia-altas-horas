@@ -116,6 +116,7 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D63 | O listener do pagamento para `ReservaExpirada` (cancela a cobrança `PENDENTE`, E24) entra já na 4A: sem um listener, o outbox não grava a publicação e o A20 não teria o que provar. O teste do efeito na cobrança (A40) fica na 4B | aceita | spec da Fatia 4 (E11, E24) | `CancelaCobrancaDaReservaExpirada` |
 | D64 | Os testes desligam o agendador de jobs (`app.jobs.habilitados=false`) e chamam o job à mão; só o `ExpiracaoJobIT` liga, num banco próprio, com uma reserva vencida criada por callback do Flyway antes da subida (prova o A21 de verdade) | aceita | Fatia 4A | `ExpiracaoJobIT` |
 | D65 | O limite do visitante conta só reserva **criada**: tentativa recusada (409, 422) não gasta a cota. Em rede móvel muita gente divide o mesmo IP (CGNAT); contar tentativas travaria clientes legítimos | aceita | revisor da fatia (17/11/2026) | `ReservarHorario`, A13 |
+| D66 | Banco da Fase 1: continua o **Aiven PostgreSQL free** (o Aiven aposentou só o MySQL free, desligado em 21/12/2026). Plano B: **Neon** (troca só das variáveis `DB_*`), com `pg_dump` semanal fora do provedor | aceita | Kevin, 17/11/2026; páginas oficiais do Aiven e do Neon | [banco-na-nuvem.md](banco-na-nuvem.md) |
 
 ## Pontos em que uma IA discordou da fonte oficial
 
