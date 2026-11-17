@@ -1,6 +1,7 @@
 package io.github.k3vinrich4rd.altashoras.plataforma.web;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -33,7 +34,8 @@ class ErroPadraoTest {
     @Test
     @DisplayName("A2: rota inexistente dá 404 RECURSO_NAO_ENCONTRADO em problem+json, com o traceId da requisição")
     void rotaInexistente() throws Exception {
-        mvc.perform(get("/rota-que-nao-existe").header("X-Trace-Id", TRACE))
+        // Desde a Fatia 3, rota desconhecida sem login é 401 (negar por padrão); o 404 aparece para quem está logado.
+        mvc.perform(get("/rota-que-nao-existe").header("X-Trace-Id", TRACE).with(jwt()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value(
@@ -49,7 +51,7 @@ class ErroPadraoTest {
     @Test
     @DisplayName("traceId inválido no cabeçalho é trocado por um gerado (nada de texto livre no log)")
     void traceIdForaDoFormatoEhIgnorado() throws Exception {
-        mvc.perform(get("/rota-que-nao-existe").header("X-Trace-Id", "abc\ninjetado"))
+        mvc.perform(get("/rota-que-nao-existe").header("X-Trace-Id", "abc\ninjetado").with(jwt()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.traceId", matchesPattern("^[0-9a-f]{32}$")));
     }
@@ -57,7 +59,7 @@ class ErroPadraoTest {
     @Test
     @DisplayName("método não aceito na rota dá 405 METODO_NAO_PERMITIDO no mesmo formato")
     void metodoNaoPermitido() throws Exception {
-        mvc.perform(delete("/actuator/health"))
+        mvc.perform(delete("/actuator/health").with(jwt()))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("METODO_NAO_PERMITIDO"));
