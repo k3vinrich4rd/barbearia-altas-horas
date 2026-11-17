@@ -1,0 +1,40 @@
+# RAG da documentação: ferramenta local de desenvolvimento.
+spring:
+  application:
+    name: altas-horas-rag
+  main:
+    web-application-type: none
+    banner-mode: "off"
+  datasource:
+    # Banco próprio (serviço rag-db do compose.yaml, porta 5434): não se mistura com o banco da agenda.
+    url: jdbc:postgresql://localhost:${RAG_PORTA:5434}/rag
+    username: rag
+    password: ${RAG_SENHA:rag_dev}
+  ai:
+    embedding:
+      transformer:
+        onnx:
+          # Modelo multilíngue (entende português), versão quantizada de 118 MB. O padrão do Spring AI
+          # (all-MiniLM-L6-v2) é treinado em inglês e erra mais em texto em português.
+          model-uri: https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/onnx/model_quint8_avx2.onnx
+        tokenizer:
+          uri: https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/tokenizer.json
+        cache:
+          # Baixa uma vez e reaproveita; a pasta fica fora do Git.
+          directory: .cache/modelos
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 384
+        distance-type: COSINE_DISTANCE
+        index-type: HNSW
+
+rag:
+  # Raiz do repositório, relativa a ferramentas/rag.
+  raiz: ../..
+  pastas: docs,README.md,CLAUDE.md,.claude,.github/copilot-instructions.md
+
+logging:
+  level:
+    root: WARN
+    io.github.k3vinrich4rd: INFO

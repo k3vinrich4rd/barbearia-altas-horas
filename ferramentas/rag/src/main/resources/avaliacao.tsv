@@ -1,0 +1,19 @@
+# pergunta<TAB>trecho do caminho do documento esperado (entre os 3 primeiros resultados)
+# Perguntas em linguagem natural, do jeito que alguém novo no projeto faria. Os 5 últimos são identificadores.
+o que acontece se o cliente não pagar dentro do prazo?	docs/
+como o sistema impede dois clientes de marcarem o mesmo horário?	docs/adr/0003
+o cliente pode cancelar ou remarcar depois de pagar?	docs/
+por que o projeto não foi feito todo em arquitetura hexagonal?	docs/adr/0011
+onde o CPF do cliente fica guardado?	docs/adr/0009
+como eu rodo os testes do projeto?	docs/guia-testes.md
+qual é o horário de funcionamento da barbearia?	docs/contexto.md
+como o token de login é guardado no navegador?	docs/adr/0006
+por que os testes usam um banco de verdade em vez do H2?	docs/
+o que fazer quando o aviso de pagamento chega duas vezes?	docs/
+quais horários aparecem para um serviço de 60 minutos?	docs/sdd/fatia-2
+como escrever a especificação de uma nova fatia?	.claude/skills/especificar-fatia
+R15	docs/contexto.md
+D40	docs/planejamento/decisoes.md
+HORARIO_INDISPONIVEL	docs/contrato
+ADR 0011	docs/adr/0011
+A29	docs/sdd/fatia-2
