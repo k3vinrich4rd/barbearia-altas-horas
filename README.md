@@ -26,15 +26,21 @@
 
 ## 📖 A história
 
+### Quase três décadas de tradição, agora com agenda inteligente
+
 <img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
 
-O **Eduardo Cândido** pegou na tesoura pela primeira vez em 1995, aprendendo com o primeiro mestre dele. Dois anos depois, em **1997**, abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então é ele quem está na cadeira, de terça a sábado, das sete da manhã às oito da noite.
+Desde **1997**, a **Barbearia Altas Horas** é referência no Jardim Bonança, em Osasco. Quem comanda a cadeira é o **Eduardo Cândido**, meu pai: são quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. A história começou antes, em 1995, aprendendo o ofício com o primeiro mestre. Hoje, além da cadeira, ele forma novos profissionais como professor na **Altas Horas Barbearia Academy**. Em 2017, esse trabalho rendeu dois reconhecimentos: o **Prêmio Barbeiros do Brasil** e o **Prêmio Master Barber · Êxito Profissional**.
 
-Com o tempo, o ofício virou também sala de aula. Formado instrutor pela Ibel Formação, hoje ele ensina na **Altas Horas Barbearia Academy**, onde forma os próximos barbeiros. Em 2017, o trabalho de duas décadas foi reconhecido duas vezes: o **Prêmio Barbeiros do Brasil** e o **Prêmio Master Barber, Êxito Profissional**.
+Com a rotina dividida entre os clientes e as aulas, a agenda sempre ficou no caderno e no WhatsApp. E esse modelo carrega um problema clássico da barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta mais. Para quem atende sozinho, cadeira vazia é tempo perdido e dinheiro que deixa de entrar.
 
-O Eduardo é o meu pai. E a agenda dele, até hoje, coube num caderno e no WhatsApp. Entre um corte e uma aula, ele responde mensagem, anota horário, confirma quem vem. Quando o cliente marca e não aparece, aquela meia hora não volta: para quem atende sozinho, cadeira vazia é trabalho que ninguém paga. É um problema que se repete em quase toda barbearia de bairro.
+**Desenvolvi esta agenda para resolver exatamente essa dor:**
 
-**Sou desenvolvedor backend e decidi resolver isso com o que eu sei fazer.** Esta é a agenda online da Altas Horas: o cliente vê os horários livres, escolhe o serviço, **paga antes** por Pix ou cartão e só então o horário é dele. Quem não paga em 15 minutos libera a vaga. E o Eduardo começa o dia com a agenda pronta, cada horário confirmado e pago.
+- 💳 **Reserva com pagamento antecipado:** o cliente escolhe o serviço e o horário e paga antes, por Pix ou cartão.
+- 🔒 **Vaga garantida só com pagamento confirmado:** o horário entra na agenda quando o meio de pagamento confirma, e dois clientes nunca ficam com o mesmo horário.
+- ⏱️ **Liberação automática:** quem não conclui o pagamento em 15 minutos devolve a vaga para o próximo cliente.
+
+No fim, o Eduardo começa a manhã com um painel limpo, o dia já organizado e todos os horários confirmados e pagos. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
 > **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. São **115 testes** em PostgreSQL real, 0 falhas. Agendamento com pagamento, painel e telas chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
