@@ -2,380 +2,414 @@
 
 <img src="docs/assets/logo-altas-horas.png" width="168" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
 
-<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: agendamento online, sinal de 50% para quem marca sem conta, desde 1997"/>
+<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: a agenda online do Eduardo Cândido, Pix ou cartão 100% antecipado, desde 1997"/>
 
-[![Status](https://img.shields.io/badge/status-beta_planejado-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-do-beta)
-[![Fase](https://img.shields.io/badge/fase-0_·_desenho-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-do-beta)
-[![Template](https://img.shields.io/badge/uso-template-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-usar-como-template)
+[![Status](https://img.shields.io/badge/status-Fatia_2_de_8_·_horários_livres-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
+[![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1.2-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
+[![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
+[![Feito em Osasco](https://img.shields.io/badge/📍_Osasco-SP-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-a-barbearia)
 
 [![Java](https://img.shields.io/badge/Java-25_LTS-0A0A0A?logo=openjdk&logoColor=white&labelColor=2B2B2B)](https://openjdk.org/projects/jdk/25/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.x-0A0A0A?logo=springboot&logoColor=white&labelColor=2B2B2B)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?logo=springboot&logoColor=white&labelColor=2B2B2B)](https://spring.io/projects/spring-boot)
 [![Spring Security](https://img.shields.io/badge/Security-JWT_+_refresh-0A0A0A?logo=springsecurity&logoColor=white&labelColor=2B2B2B)](https://docs.spring.io/spring-security/reference/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Flyway-0A0A0A?logo=postgresql&logoColor=white&labelColor=2B2B2B)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-EXCLUDE_gist-0A0A0A?logo=postgresql&logoColor=white&labelColor=2B2B2B)](docs/adr/0003-anti-double-booking-no-banco.md)
+[![Flyway](https://img.shields.io/badge/Flyway-migrações-0A0A0A?logo=flyway&logoColor=white&labelColor=2B2B2B)](docs/banco/erd.md)
 [![Testcontainers](https://img.shields.io/badge/Testcontainers-Postgres_real-0A0A0A?logo=testcontainers&logoColor=white&labelColor=2B2B2B)](https://testcontainers.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?logo=nextdotjs&logoColor=white&labelColor=2B2B2B)](https://nextjs.org/)
-[![RFC 9457](https://img.shields.io/badge/erros-RFC_9457-0A0A0A?labelColor=2B2B2B)](https://www.rfc-editor.org/rfc/rfc9457)
-[![Último commit](https://img.shields.io/github/last-commit/k3vinrich4rd/barbearia-altas-horas?color=0A0A0A&labelColor=2B2B2B&label=último%20commit)](https://github.com/k3vinrich4rd/barbearia-altas-horas/commits/main)
+[![Next.js](https://img.shields.io/badge/Next.js-front_+_BFF-0A0A0A?logo=nextdotjs&logoColor=white&labelColor=2B2B2B)](https://nextjs.org/)
+[![RFC 9457](https://img.shields.io/badge/erros-RFC_9457-0A0A0A?labelColor=2B2B2B)](docs/adr/0005-erros-rfc-9457.md)
+[![Pix](https://img.shields.io/badge/Pix_+_Cartão-100%25_antecipado-0A0A0A?logo=pix&logoColor=white&labelColor=2B2B2B)](#-pagamento-100-antecipado)
+[![Último commit](https://img.shields.io/github/last-commit/k3vinrich4rd/barbearia-altas-horas/develop?color=0A0A0A&labelColor=2B2B2B&label=último%20commit)](https://github.com/k3vinrich4rd/barbearia-altas-horas/commits/develop)
 
+[![A história](https://img.shields.io/badge/📖_A_história-0A0A0A?style=for-the-badge)](#-a-história)
 [![Em 30 segundos](https://img.shields.io/badge/⚡_Em_30_segundos-0A0A0A?style=for-the-badge)](#-em-30-segundos)
+[![A barbearia](https://img.shields.io/badge/💈_A_barbearia-0A0A0A?style=for-the-badge)](#-a-barbearia)
+[![Pagamento](https://img.shields.io/badge/💳_Pagamento-0A0A0A?style=for-the-badge)](#-pagamento-100-antecipado)
 [![Arquitetura](https://img.shields.io/badge/🧱_Arquitetura-0A0A0A?style=for-the-badge)](#-arquitetura)
-[![Agendamento](https://img.shields.io/badge/📅_Agendamento-0A0A0A?style=for-the-badge)](#-o-agendamento-por-dentro)
+<br/>
+[![Decisões](https://img.shields.io/badge/🧭_Decisões_(ADRs)-0A0A0A?style=for-the-badge)](#-decisões-de-arquitetura-adrs)
 [![Segurança](https://img.shields.io/badge/🔐_Segurança_e_LGPD-0A0A0A?style=for-the-badge)](#-segurança-e-lgpd)
-[![Painel admin](https://img.shields.io/badge/🛠_Painel_admin-0A0A0A?style=for-the-badge)](#-painel-admin)
-[![Testes](https://img.shields.io/badge/🧪_Guia_de_testes-0A0A0A?style=for-the-badge)](#-testes-de-ponta-a-ponta)
-[![Roadmap](https://img.shields.io/badge/🚧_Roadmap-0A0A0A?style=for-the-badge)](#-roadmap-do-beta)
-[![Template](https://img.shields.io/badge/📦_Usar_como_template-0A0A0A?style=for-the-badge)](#-usar-como-template)
+[![Testes](https://img.shields.io/badge/🧪_Rodar_e_testar-0A0A0A?style=for-the-badge)](#-rodar-e-testar)
+[![SDD + IA](https://img.shields.io/badge/📐_SDD_+_IA-0A0A0A?style=for-the-badge)](#-como-o-projeto-é-feito-sdd--ia)
+[![Roadmap](https://img.shields.io/badge/🗺_Roadmap-0A0A0A?style=for-the-badge)](#-roadmap-em-fatias)
 
 </div>
 
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
 > [!IMPORTANT]
-> **Projeto em fase de desenho.** Este README descreve o beta **planejado**. Ainda não há código, testes nem deploy: tudo o que aparece abaixo é o plano, e cada item vira realidade numa fatia pequena, testada e revisada. Números (testes, cobertura, desempenho) só entram aqui depois de sair de uma execução real.
+> **Projeto individual de Kevin Richard**, feito com **Spec-Driven Development** e IA: o backend é escrito por mim com o Claude Code como par de programação, e o frontend é gerado com IA a partir do contrato ([como](#-como-o-projeto-é-feito-sdd--ia)).
+>
+> **Em construção por fatias.** Cada fatia começa por uma especificação e só entra com testes verdes. **Fatias 1 e 2 prontas:** esqueleto, banco com a regra anti-sobreposição, catálogo e **horários livres** pela API, com **69 testes** em PostgreSQL real (0 falhas, 96% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
+
+## 📖 A história
+
+<table>
+<tr>
+<td width="200" align="center" valign="top">
+<img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro da Altas Horas, de camisa listrada e gravata borboleta preta"/>
+<br/><b>Eduardo Cândido</b><br/><sub>meu pai · barbeiro desde 1997</sub>
+</td>
+<td valign="top">
+
+Meu pai, **Eduardo Cândido**, corta cabelo na **Barbearia Altas Horas**, em Osasco, desde **1997**. A agenda dele sempre foi o caderno e o WhatsApp: cliente marca, às vezes não aparece, e a cadeira fica vazia.
+
+Eu sou desenvolvedor backend. Este projeto é a **agenda dele**, feita por mim: o cliente escolhe o serviço e o horário, **paga antes** (Pix ou cartão) e o horário fica garantido. Meu pai abre o painel e vê o dia pronto.
+
+Não é um produto para qualquer barbearia. É **a agenda da Altas Horas**, com os serviços, os preços e o horário de trabalho dele. Faço sozinho, com método (especificação antes do código) e com IA como par de programação.
+
+</td>
+</tr>
+</table>
 
 ## ⚡ Em 30 segundos
 
 | | |
 |---|---|
-| **Problema** | Na barbearia do bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia. |
-| **Solução** | Agendamento online com disponibilidade em tempo real, **sinal de 50%** para quem marca sem conta e confirmação automática por webhook de pagamento. |
-| **Para quem** | Clientes da **Barbearia Altas Horas** (desde 1997), os barbeiros que cuidam da agenda e o **administrador**, que gerencia tudo num painel protegido por senha. |
-| **Por que é nível Pleno** | Concorrência resolvida no banco, idempotência de pagamento, degradação graciosa de integração externa, LGPD desde a primeira linha e testes com PostgreSQL real. |
+| **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido. |
+| **Solução** | Agendamento online com horários livres em tempo real e **pagamento 100% antecipado** (Pix ou cartão de crédito). O horário só é confirmado quando o gateway avisa que o dinheiro entrou. |
+| **Para quem** | Para o **Eduardo Cândido**, meu pai, que atende sozinho e administra tudo num painel protegido, e para os clientes da **Barbearia Altas Horas** (Osasco, desde 1997). |
+| **Quem faz** | Só o **Kevin Richard**: backend com o Claude Code como par de programação; frontend gerado com IA e revisado por mim. Cada fatia começa por uma [spec](docs/sdd/README.md). |
+| **Por que é nível Pleno** | Concorrência resolvida no banco, webhook idempotente, máquina de estados explícita, erros padronizados, LGPD desde a primeira linha e testes com PostgreSQL real. |
 | **Stack** | Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js |
-| **Deploy planejado** | Vercel (front) · Render (API, Docker) · Aiven (PostgreSQL) — tudo em plano gratuito |
+| **Deploy (Fase 1)** | Vercel (front) · Render (API em Docker) · Aiven (PostgreSQL) |
 
 **Três decisões que mostram o raciocínio**
-1. **Double booking impossível pelo banco:** constraint `EXCLUDE USING gist` com `tstzrange`. Duas reservas no mesmo horário ao mesmo tempo: o PostgreSQL deixa passar só uma.
-2. **Webhook idempotente:** o id do evento do gateway é chave única. O mesmo aviso de pagamento chegando duas vezes não confirma duas vezes.
-3. **CEP que não derruba o cadastro:** ViaCEP com fallback BrasilAPI, timeouts curtos e cache. Se as duas caírem, o cliente se cadastra mesmo assim.
+1. **Dois clientes nunca pegam o mesmo horário:** constraint `EXCLUDE USING gist` com `tstzrange '[)'` no PostgreSQL. Com duas requisições no mesmo milissegundo, o banco deixa passar só uma.
+2. **Pagamento confirmado uma vez só:** o id do evento do gateway é chave única. O mesmo aviso chegando duas vezes não confirma duas vezes.
+3. **Cartão sem tocar no cartão:** a API nunca recebe o número do cartão; o pagamento acontece no checkout hospedado do gateway, o que tira o projeto do escopo pesado do PCI DSS.
 
 ## 💈 A barbearia
 
-<details open>
-<summary><b>Como funciona para o cliente</b></summary>
+| | |
+|---|---|
+| 📍 **Endereço** | R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP |
+| 💈 **Quem atende** | Eduardo Cândido (Carlos Eduardo Cândido), em todos os serviços |
+| 🕖 **Funcionamento** | terça a sábado, **07h00 às 20h00** (almoço 12h00 às 13h00) |
+| 📸 **Instagram** | [@altashorascabeleireiros](https://www.instagram.com/altashorascabeleireiros/) · [@eduardo_candido_barber](https://www.instagram.com/eduardo_candido_barber/) |
+
+### 🗓 A agenda da semana
+
+<img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h; horários de 30 em 30 minutos, 2 horas de antecedência e até 30 dias à frente"/>
+
+<details>
+<summary><b>📖 Abrir a página de um dia</b> (resposta real da API para uma terça livre)</summary>
 
 <br/>
 
-| Quem | Como agenda | Pagamento | Status inicial |
-|---|---|---|---|
-| **Cliente com conta** | Escolhe serviço, barbeiro e horário | No balcão | `CONFIRMADO` |
-| **Cliente sem conta (guest)** | Informa nome, WhatsApp e e-mail | **Sinal de 50%** online (Pix em sandbox no beta); o CPF é pedido **só aqui**, porque o gateway exige | `AGUARDANDO_PAGAMENTO` por até 15 min |
+`GET /disponibilidade` do **Corte Degradê** (30 min): **24 horários**.
 
-> [!NOTE]
-> O sinal existe para reduzir faltas (*no-show*). As regras de cancelamento, remarcação e devolução do sinal serão definidas com a barbearia antes da implementação.
+| Manhã | | | | | Tarde | | | | | |
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| 07:00 | 07:30 | 08:00 | 08:30 | 09:00 | 13:00 | 13:30 | 14:00 | 14:30 | 15:00 | 15:30 |
+| 09:30 | 10:00 | 10:30 | 11:00 | 11:30 | 16:00 | 16:30 | 17:00 | 17:30 | 18:00 | 18:30 |
+| | | | | | 19:00 | 19:30 | | | | |
+
+O **Corte Moderno / Visagismo** (60 min) tem **22**: some o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h). Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 15 min vence, ele volta sozinho.
 
 </details>
 
-## 🛠 Painel admin
+<details>
+<summary><b>✂️ Testar agora, no seu terminal</b></summary>
 
-Área restrita ao papel `ADMIN`, com login por e-mail e senha, para a barbearia cuidar da operação sem mexer no banco.
+<br/>
 
-| O admin pode | Detalhe |
+```bash
+curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=2026-12-01"
+```
+
+Como subir a API em 2 comandos: [Rodar e testar](#-rodar-e-testar).
+
+</details>
+
+### Serviços
+
+| Serviço | Duração | Preço |
+|---|:-:|--:|
+| Corte Clássico / Social | 30 min | R$ 45,00 |
+| Corte Degradê / Fade / Navalhado | 30 min | R$ 55,00 |
+| Corte Moderno / Visagismo (tesoura) | 60 min · 2 horários | R$ 60,00 |
+| Barba Completa / Desenhada | 30 min | R$ 30,00 |
+| Acabamento (pezinho) / Sobrancelha | 30 min | R$ 20,00 |
+
+<sub>Sem combos. Preços, horários e regras são **dados** que o admin edita no painel, nunca valores fixos no código.</sub>
+
+<details>
+<summary><b>📷 A fachada</b></summary>
+
+<br/>
+<div align="center">
+<img src="docs/assets/fachada.jpg" width="520" alt="Fachada de vidro da Barbearia Altas Horas com dois adesivos redondos do logo e, ao fundo, as cadeiras, o balcão e os troféus"/>
+</div>
+
+</details>
+
+## 💳 Pagamento 100% antecipado
+
+| Regra | Como o sistema garante |
 |---|---|
-| Ver a agenda do dia e da semana | por barbeiro, com status de cada horário |
-| Gerenciar serviços | nome, duração e preço |
-| Gerenciar barbeiros e horários | jornada, folgas e bloqueio de horários |
-| Fechar o atendimento | marcar `CONCLUIDO` ou `NAO_COMPARECEU`, cancelar com motivo |
-| Acompanhar sinais | pagamentos pendentes, confirmados e expirados |
-| Ver o alcance geográfico | só agregados, pós-beta |
+| **Todo** agendamento (com conta ou sem conta) paga 100% antes | a reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` pelo webhook do gateway |
+| Pix ou cartão de crédito | Pix devolve QR Code e copia e cola; cartão abre o checkout hospedado do gateway |
+| O horário fica travado por **15 min** enquanto o cliente paga | a constraint do banco conta a reserva pendente como ocupada até `expira_em` |
+| Não pagou em 15 min | a reserva vira `EXPIRADO` e o horário volta para a agenda |
+| **Sem cancelamento, remarcação ou estorno** por desistência ou falta | não há botão nem rota para o cliente cancelar; antes de pagar, ele marca o aceite obrigatório (`aceitePolitica: true`, com a versão do texto gravada) |
+| Falta (*no-show*) | o barbeiro marca `NAO_COMPARECEU` no painel; o valor fica com a barbearia |
+| Pagamento que chega depois dos 15 min | com o horário ainda livre, confirma normalmente; com o horário já ocupado, vira pendência no painel do admin |
 
-> [!IMPORTANT]
-> **A senha do admin nunca entra no repositório.** O primeiro admin é criado na inicialização a partir das variáveis de ambiente `ADMIN_EMAIL` e `ADMIN_SENHA`, gravado só como hash (BCrypt ou Argon2). Em `prod` essas variáveis não têm valor padrão: sem elas, a API não cria o admin. O login do admin tem limite de tentativas, e toda ação do painel fica registrada com quem fez e quando.
+> [!NOTE]
+> O CPF é pedido **só** na tela de pagamento, porque o gateway exige. Ele é validado, repassado ao gateway e **não é guardado** no banco.
+
+### Checkout por dentro
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','actorBkg':'#0A0A0A','actorTextColor':'#FFFFFF','actorBorder':'#C0C0C0','noteBkgColor':'#2B2B2B','noteTextColor':'#FFFFFF','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
+sequenceDiagram
+    autonumber
+    actor C as Cliente
+    participant F as Next.js (BFF)
+    participant A as API Spring Boot
+    participant DB as PostgreSQL
+    participant G as Gateway (sandbox)
+
+    C->>F: escolhe serviço e horário
+    F->>A: POST /agendamentos
+    A->>DB: INSERT reserva AGUARDANDO_PAGAMENTO (expira_em = agora + 15 min)
+    alt horário já ocupado
+        DB-->>A: 23P01 (EXCLUDE gist)
+        A-->>F: 409 HORARIO_INDISPONIVEL (problem+json)
+    else livre
+        A-->>F: 201 reserva
+    end
+    F->>C: mostra a política e o checkbox (desmarcado)
+    C->>F: marca o aceite e escolhe Pix ou Cartão
+    F->>A: POST /pagamentos/cobrancas (X-Idempotency-Key, aceitePolitica=true)
+    A->>DB: cobrança PENDENTE + aceite (versão e data)
+    A->>G: cria cobrança de 100% (CPF só em trânsito)
+    G-->>A: QR Code Pix ou URL do checkout do cartão
+    A-->>F: 201 cobrança
+    C->>G: paga
+    G->>A: POST /pagamentos/webhook (token do gateway)
+    A->>G: reconsulta a cobrança (não confia só no corpo)
+    A->>DB: evento único + reserva CONFIRMADO (mesma transação)
+    A-->>G: 200 (repetição do mesmo evento: 200 sem efeito)
+    F->>A: consulta o status
+    A-->>F: CONFIRMADO
+```
+
+### Ciclo de vida do agendamento
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
+stateDiagram-v2
+    [*] --> AGUARDANDO_PAGAMENTO: cliente ou visitante reserva
+    AGUARDANDO_PAGAMENTO --> CONFIRMADO: webhook aprova em até 15 min
+    AGUARDANDO_PAGAMENTO --> EXPIRADO: 15 min sem pagamento
+    EXPIRADO --> CONFIRMADO: pagamento tardio e horário ainda livre
+    CONFIRMADO --> CONCLUIDO: barbeiro conclui
+    CONFIRMADO --> NAO_COMPARECEU: falta (valor retido)
+    CONFIRMADO --> CANCELADO: só a barbearia, com motivo
+    AGUARDANDO_PAGAMENTO --> CANCELADO: só a barbearia, com motivo
+    CONCLUIDO --> [*]
+    NAO_COMPARECEU --> [*]
+    CANCELADO --> [*]
+    EXPIRADO --> [*]
+```
+
+<sub>Qualquer transição fora do diagrama responde `422 TRANSICAO_INVALIDA`. Tabela completa em [`docs/dominio/modelo-de-dominio.md`](docs/dominio/modelo-de-dominio.md#2-máquina-de-estados).</sub>
 
 ## 🧱 Arquitetura
 
-**Monólito modular** num monorepo: um deploy só, módulos com fronteiras claras (verificadas por teste de arquitetura) e espaço para extrair um serviço no futuro, se fizer sentido. Linhas tracejadas = planejado para depois do beta.
+**Monólito modular** (Spring Modulith): um deploy só, oito módulos com fronteiras verificadas por teste (ArchUnit + `ApplicationModules.verify()`), conversando por API pública e eventos com *outbox*. Detalhes em [`docs/arquitetura/`](docs/arquitetura/README.md).
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','clusterBkg':'#141414','clusterBorder':'#8A8A8A','edgeLabelBackground':'#1F1F1F','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 flowchart LR
-    cliente([Cliente / Guest]) --> front[Next.js<br/>Vercel]
-    barbeiro([Barbeiro / Admin]) --> front
-    front -- "BFF · cookie HttpOnly" --> api
-    subgraph api [API Spring Boot · Render]
+    cliente([Cliente / Visitante]) --> front[Next.js + BFF<br/>Vercel]
+    barbeiro([Eduardo · Admin]) --> front
+    front -- "cookie HttpOnly" --> api
+    subgraph api [API Spring Boot · Render · Docker]
         direction TB
-        auth[identidade]
+        conta[conta]
         agenda[agenda]
         pagamento[pagamento]
-        endereco[endereço / CEP]
-        alcance[alcance geográfico]
-        admin[painel admin]
+        cep[cep]
+        privacidade[privacidade]
+        admin[admin]
+        comum[comum · plataforma]
     end
     api --> db[(PostgreSQL<br/>Aiven · SSL)]
-    endereco -- "timeout curto + cache" --> viacep[ViaCEP]
-    endereco -. fallback .-> brasilapi[BrasilAPI]
-    pagamento -- "cobrança Pix (sandbox)" --> gateway[Gateway de pagamento]
-    gateway -- "webhook assinado" --> pagamento
-    auth -. "OIDC · atrás de flag" .-> social[Google / Facebook]
+    cep -- "timeout curto + cache" --> viacep[ViaCEP]
+    cep -. fallback .-> brasilapi[BrasilAPI]
+    pagamento -- "Pix / checkout de cartão" --> gateway[Gateway · sandbox]
+    gateway -- "webhook autenticado" --> pagamento
 ```
 
 <details>
-<summary><b>Estrutura do monorepo (planejada)</b></summary>
+<summary><b>Estrutura do monorepo</b></summary>
 
 <br/>
 
 ```text
 barbearia-altas-horas/
-├── backend/          # API Java 25 + Spring Boot (monólito modular)
-│   └── src/main/java/.../
-│       ├── identidade/   # cadastro, login, JWT, refresh, (social atrás de flag)
-│       ├── agenda/       # serviços, barbeiros, disponibilidade, agendamentos
-│       ├── pagamento/    # cobrança do sinal, webhook idempotente
-│       ├── endereco/     # CEP com cache e fallback
-│       ├── admin/        # painel: agenda, serviços, barbeiros, sinais
-│       └── compartilhado/# erros RFC 9457, segurança, observabilidade
-├── frontend/         # Next.js na paleta da barbearia
-├── docs/             # contrato da API, ADRs, guias, diagramas
-└── compose.yaml      # sobe tudo localmente com 1 comando
+├── backend/                         # API Java 25 + Spring Boot 4
+│   └── src/main/java/io/github/k3vinrich4rd/altashoras/
+│       ├── comum/        # Dinheiro, Cpf, Cep (mascaram no toString), erros RFC 9457
+│       ├── plataforma/   # segurança, Clock, observabilidade, ShedLock
+│       ├── conta/        # cadastro, login, JWT, refresh rotativo
+│       ├── agenda/       # serviços, barbeiro, jornada, disponibilidade, reservas
+│       ├── pagamento/    # cobrança 100% (Pix/cartão), webhook idempotente
+│       ├── cep/          # ViaCEP → BrasilAPI, cache e degradação
+│       ├── privacidade/  # consentimento, exportação e exclusão (LGPD)
+│       └── admin/        # painel: agenda, catálogo, pagamentos, auditoria
+├── frontend/             # Next.js (BFF guarda os tokens em cookie HttpOnly)
+├── docs/                 # contrato, ADRs, domínio, banco, guia de testes
+└── compose.yaml          # PostgreSQL 18 local (API e front entram na Fatia 8)
 ```
 
 </details>
 
-## 📅 O agendamento por dentro
+## 🧭 Decisões de arquitetura (ADRs)
 
-<details open>
-<summary><b>Máquina de estados</b></summary>
-
-<br/>
-
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
-stateDiagram-v2
-    [*] --> CONFIRMADO: cliente com conta
-    [*] --> AGUARDANDO_PAGAMENTO: guest (segura o horário 15 min)
-    AGUARDANDO_PAGAMENTO --> CONFIRMADO: webhook de pagamento aprovado
-    AGUARDANDO_PAGAMENTO --> EXPIRADO: 15 min sem pagamento (job + expira_em)
-    CONFIRMADO --> CONCLUIDO: barbeiro finaliza o atendimento
-    CONFIRMADO --> CANCELADO: cliente ou barbearia cancela
-    CONFIRMADO --> NAO_COMPARECEU: cliente faltou
-    EXPIRADO --> [*]
-    CONCLUIDO --> [*]
-    CANCELADO --> [*]
-    NAO_COMPARECEU --> [*]
-```
-
-</details>
-
-<details>
-<summary><b>Fluxo do guest com sinal de 50%</b></summary>
-
-<br/>
-
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','actorBkg':'#0A0A0A','actorTextColor':'#FFFFFF','actorBorder':'#C0C0C0','signalColor':'#8A8A8A','signalTextColor':'#8A8A8A','noteBkgColor':'#1F1F1F','noteTextColor':'#FFFFFF','noteBorderColor':'#C0C0C0','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
-sequenceDiagram
-    autonumber
-    actor G as Guest
-    participant F as Front (Next.js)
-    participant A as API
-    participant D as PostgreSQL
-    participant P as Gateway (sandbox)
-    G->>F: escolhe serviço, barbeiro e horário
-    F->>A: POST /agendamentos/guest (com CPF)
-    A->>D: INSERT AGUARDANDO_PAGAMENTO, expira_em = agora + 15 min
-    alt horário já ocupado
-        D-->>A: violação da constraint EXCLUDE
-        A-->>F: 409 Problem Details (RFC 9457)
-    else horário livre
-        A->>P: cria cobrança Pix de 50%
-        A-->>F: 201 + dados do Pix
-        P-->>A: webhook "pago" (id do evento)
-        A->>D: grava id do evento (único) e muda para CONFIRMADO
-        Note over A,D: webhook repetido → mesmo id → 200 sem efeito
-    end
-```
-
-</details>
-
-<details>
-<summary><b>Modelo de dados resumido (ERD planejado)</b></summary>
-
-<br/>
-
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','attributeBackgroundColorOdd':'#1F1F1F','attributeBackgroundColorEven':'#2B2B2B','rowOdd':'#1F1F1F','rowEven':'#2B2B2B','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
-erDiagram
-    CLIENTE ||--o{ AGENDAMENTO : faz
-    BARBEIRO ||--o{ AGENDAMENTO : atende
-    SERVICO ||--o{ AGENDAMENTO : "é feito em"
-    AGENDAMENTO ||--o| PAGAMENTO : "sinal (guest)"
-    PAGAMENTO ||--o{ EVENTO_WEBHOOK : recebe
-    CLIENTE ||--o{ CONSENTIMENTO : registra
-    CLIENTE {
-        uuid id PK
-        text nome
-        text email UK
-        text whatsapp
-        text senha_hash "NULL só em conta social"
-        char cep
-        text bairro
-        text cidade
-        char uf
-    }
-    AGENDAMENTO {
-        uuid id PK
-        uuid barbeiro_id FK
-        uuid servico_id FK
-        uuid cliente_id FK "NULL no guest"
-        timestamptz inicio
-        timestamptz fim
-        text status
-        timestamptz expira_em
-    }
-    SERVICO {
-        uuid id PK
-        text nome
-        int duracao_min
-        int preco_centavos
-    }
-    PAGAMENTO {
-        uuid id PK
-        uuid agendamento_id FK
-        int valor_centavos
-        text status
-        text id_cobranca_gateway UK
-    }
-    EVENTO_WEBHOOK {
-        text id_evento PK "idempotência"
-        timestamptz recebido_em
-    }
-```
-
-| Proteção | Como |
-|---|---|
-| Sem dois clientes no mesmo horário | `EXCLUDE USING gist (barbeiro_id WITH =, tstzrange(inicio, fim) WITH &&)` nos status que ocupam a agenda (extensão `btree_gist`) |
-| Painel de alcance rápido | índice composto `(cidade, bairro)` |
-| Versionamento do banco | Flyway, `ddl-auto=validate` em produção |
-| Dinheiro sem arredondamento | valores em centavos (`int`) |
-
-</details>
-
-<details>
-<summary><b>Endpoints planejados (contrato v1.0 em construção)</b></summary>
-
-<br/>
-
-| Método | Rota | O que faz | Acesso |
+| Decisão | Alternativa descartada | Por quê | ADR |
 |---|---|---|---|
-| `POST` | `/auth/cadastro` | Cadastro com nome, e-mail, WhatsApp e senha (CEP opcional) | público |
-| `POST` | `/auth/login` | Login e emissão de JWT + refresh | público |
-| `POST` | `/auth/refresh` | Troca o refresh (rotativo) | cookie |
-| `GET` | `/cep/{cep}` | Endereço pelo CEP, com cache | público |
-| `GET` | `/servicos` | Serviços, duração e preço | público |
-| `GET` | `/disponibilidade` | Horários livres por barbeiro e dia | público |
-| `POST` | `/agendamentos` | Agenda como cliente logado | `CLIENTE` |
-| `POST` | `/agendamentos/guest` | Agenda sem conta e gera o Pix do sinal | público, com limite |
-| `POST` | `/pagamentos/webhook` | Confirmação do gateway (assinada e idempotente) | gateway |
-| `GET` / `DELETE` | `/me` | Exportar ou excluir os próprios dados (LGPD) | logado |
-| `GET` | `/admin/agenda` | Agenda do dia ou da semana por barbeiro | `ADMIN` |
-| `POST` / `PUT` | `/admin/servicos` | Cria ou altera serviço, duração e preço | `ADMIN` |
-| `POST` / `PUT` | `/admin/barbeiros` | Cria ou altera barbeiro, jornada e folgas | `ADMIN` |
-| `PATCH` | `/admin/agendamentos/{id}/status` | Conclui, marca falta ou cancela | `ADMIN`, `BARBEIRO` |
-| `GET` | `/admin/pagamentos` | Sinais pendentes, pagos e expirados | `ADMIN` |
-| `GET` | `/barbeiro/alcance` | Agregado por bairro e cidade (pós-beta) | `BARBEIRO`, `ADMIN` |
+| **Anti double booking no banco** com `EXCLUDE USING gist` + `tstzrange '[)'` + `btree_gist` | `synchronized` / lock em memória / `SELECT` antes do `INSERT` | lock em memória não protege duas instâncias e o `SELECT` tem corrida; a constraint vale para qualquer caminho de escrita | [0003](docs/adr/0003-anti-double-booking-no-banco.md) |
+| **Webhook idempotente** pelo id do evento + reconsulta da cobrança | confiar no corpo do aviso | o gateway entrega "pelo menos uma vez"; o corpo pode ser forjado (OWASP API10) | [0007](docs/adr/0007-gateway-de-pagamento-sandbox.md) |
+| **Erros RFC 9457** (`application/problem+json`) com `code` e `traceId` | JSON de erro próprio | padrão atual (substitui a RFC 7807); o front decide pelo `code`, não pelo texto | [0005](docs/adr/0005-erros-rfc-9457.md) |
+| **Monólito modular** (Spring Modulith) | microsserviços | 1 pessoa, 1 deploy, fronteiras testadas; extrair serviço só com motivo real | [0001](docs/adr/0001-monolito-modular-com-spring-modulith.md) |
+| **Hexagonal só onde paga o custo** (regra difícil pura; sistema externo atrás de porta) | hexagonal completo em todo módulo | CRUD com porta, adaptador e mapeador é cerimônia; a regra dos horários, pura, tem 12 testes em milissegundos | [0011](docs/adr/0011-hexagonal-seletivo-no-monolito-modular.md) |
+| **Tempo em `timestamptz` + `Clock` injetado; dinheiro em centavos (`long`)** | `LocalDateTime` e `double` | fuso `America/Sao_Paulo` explícito e testes que "adiantam o relógio"; sem erro de arredondamento | [0004](docs/adr/0004-tempo-e-dinheiro.md) |
+| **JWT curto + refresh rotativo em cookie `HttpOnly`** via BFF | token no `localStorage` | XSS não rouba sessão; reuso de refresh revoga a família | [0006](docs/adr/0006-sessao-jwt-refresh-cookie-bff.md) |
+| **LGPD**: CPF só em trânsito, marketing por consentimento | guardar CPF cifrado | princípio da necessidade (art. 6º, III): o que não é guardado não vaza | [0009](docs/adr/0009-lgpd-marketing-cpf-e-retencao.md) |
+| **Testcontainers** com PostgreSQL real | H2 em memória | `EXCLUDE`, `tstzrange` e `SKIP LOCKED` não existem no H2 | [0010](docs/adr/0010-versoes-da-plataforma.md) |
 
-Todo erro responde `application/problem+json` no padrão **RFC 9457**.
-
-</details>
+<sub>Todas as decisões com data e fonte: [`docs/planejamento/decisoes.md`](docs/planejamento/decisoes.md).</sub>
 
 ## 🔐 Segurança e LGPD
 
-| Tema | Decisão planejada |
+| Tema | Decisão |
 |---|---|
-| Sessão | JWT de acesso curto + refresh rotativo guardado com hash, em cookie `HttpOnly` via BFF no Next.js |
-| Acesso a recurso alheio | busca já filtrada pelo dono; responde **404** em vez de confirmar que o id existe |
-| Login social | Google e Facebook prontos, mas **desligados por flag** no beta; vínculo de conta só com `email_verified` e prova de posse da conta local |
-| CPF | pedido só no pagamento do guest, guardado criptografado, mascarado na tela e **nunca em log** |
-| CEP e marketing | finalidade separada: marketing só com consentimento opcional; painel mostra só agregados e esconde grupos com menos de 5 pessoas |
-| Admin | login por senha com papel `ADMIN`; senha inicial só por variável de ambiente (`ADMIN_EMAIL`, `ADMIN_SENHA`), guardada como hash; ações do painel auditadas |
-| Abuso | limite de tentativas no login (inclusive do admin), no cadastro e na reserva guest |
-| CORS | só as origens da Vercel vindas de variável de ambiente, sem `*` |
+| Sessão | JWT de acesso curto + refresh rotativo guardado com hash, em cookie `HttpOnly; Secure; SameSite` pelo BFF |
+| Recurso alheio | busca já filtrada pelo dono; responde **404** em vez de confirmar que o id existe (OWASP API1, BOLA) |
+| Pagamento | webhook só com o token do gateway; cobrança com `X-Idempotency-Key`; cartão só no checkout do gateway |
+| CPF | pedido só no pagamento, validado, repassado e **nunca gravado nem logado** |
+| Aceite da política | versão do texto e data gravadas na reserva (prova em caso de contestação) |
+| Admin | criado na subida por `ADMIN_EMAIL` / `ADMIN_SENHA` (variáveis de ambiente, hash), com limite de tentativas e auditoria de cada ação |
+| Abuso | limite de tentativas no login, no cadastro e na reserva sem conta (`429` com `Retry-After`) |
+| Titular | exporta e exclui os próprios dados; marketing só com consentimento opcional e desmarcado |
 
-## 🧭 Decisões técnicas
+## 🛠 Painel admin
 
-| # | Decisão | Por quê |
+Área do papel `ADMIN`/`BARBEIRO` (hoje uma pessoa só, o Eduardo). É onde ele vê o dia, fecha os atendimentos e ajusta preços e horários sem depender de mim.
+
+| O admin pode | Detalhe |
+|---|---|
+| Ver a agenda do dia e da semana | com o status de cada horário |
+| Fechar o atendimento | `CONCLUIDO`, `NAO_COMPARECEU` (valor retido) ou cancelar com motivo |
+| Gerenciar serviços e preços | nome, duração e preço, sem deploy |
+| Editar jornada e folgas | inclusive a pausa de almoço |
+| Acompanhar pagamentos | pendentes, confirmados e **pendências de pagamento tardio** |
+| Ajustar regras | antecedência, horizonte, prazo de pagamento, texto da política |
+
+## 🧪 Rodar e testar
+
+Precisa de **Docker Desktop** e **JDK 25**. Sem `.env`: o perfil `dev` usa os padrões locais.
+
+```bash
+git clone https://github.com/k3vinrich4rd/barbearia-altas-horas.git
+cd barbearia-altas-horas
+docker compose up -d                                         # PostgreSQL 18 (porta 5433)
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+```bash
+cd backend && ./mvnw verify      # 69 testes com PostgreSQL real via Testcontainers
+```
+
+| O que | Endereço local | |
+|---|---|:-:|
+| Health | `http://localhost:8080/actuator/health` | ✅ |
+| Serviços, política e horários livres | `/servicos` · `/politica-pagamento` · `/disponibilidade` | ✅ |
+| Conta, agendamento, pagamento e painel | — | ⏳ Fatias 3 a 5 |
+| Front | `http://localhost:3000` | ⏳ Fatia 7 |
+
+O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
+
+## 📐 Como o projeto é feito: SDD + IA
+
+Este é um projeto **só meu**. Sou desenvolvedor backend Java; não tenho um parceiro de frontend e essa não é a minha especialidade. Em vez de esconder isso, deixei o processo explícito:
+
+| Parte | Quem faz | Como a qualidade é garantida |
 |---|---|---|
-| 1 | Monólito modular | um time pequeno, um deploy, fronteiras testadas; extrair serviço só com motivo real |
-| 2 | Anti double booking no banco | lock em memória não protege duas instâncias; a constraint vale sempre |
-| 3 | Expiração por `expira_em` + job com ShedLock | o horário volta mesmo se o job atrasar, e o job não roda duplicado |
-| 4 | Idempotência pelo id do evento do gateway | o gateway reenvia avisos; repetir não pode confirmar duas vezes |
-| 5 | Gateway com sandbox gratuito | beta de portfólio sem custo; escolha final registrada em ADR |
-| 6 | CEP com cache e degradação graciosa | API externa fora do ar não pode impedir o cadastro |
-| 7 | Erros RFC 9457 | padrão atual (substituiu a RFC 7807), igual para o front e para quem integra |
-| 8 | Testcontainers com PostgreSQL real | a constraint `EXCLUDE` e o `tstzrange` não existem no H2 |
+| **Especificação** | eu, com o Claude Code | cada fatia tem uma [spec](docs/sdd/README.md) com decisões de desenho e critérios de aceite numerados; nada de código antes do meu OK |
+| **Backend** (Java 25 + Spring Boot 4) | **eu**, com o Claude Code como par de programação | um teste por critério da spec, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CI com CodeQL e gitleaks |
+| **Frontend** (Next.js) | **gerado com IA** a partir do contrato OpenAPI e das specs de tela, revisado por mim | tipos gerados do contrato, testes das telas críticas (checkout com aceite obrigatório), checagem de acessibilidade |
+| **Deploy** | eu, com IA para os passos de infraestrutura | Vercel + Render + Aiven, com o guia de testes rodado contra o ambiente publicado |
 
-Os ADRs completos ficarão em `docs/adr/`.
+### Por que Spec-Driven Development
 
-## 🧪 Testes de ponta a ponta
+Quando a IA escreve boa parte do código, quem garante a qualidade é a **especificação**, não o prompt. Sem spec, a IA preenche as lacunas com suposições; com spec, ela implementa critérios que viram testes, e eu reviso o código **contra a spec**.
 
-O roteiro passo a passo fica em **[`docs/guia-testes-e2e.md`](docs/guia-testes-e2e.md) (planejado)**: como rodar o projeto e o que testar no backend, no frontend e nos dois juntos, com o resultado esperado de cada passo.
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
+flowchart LR
+    R[Regra R#] --> S[📐 Spec<br/>Dado / Quando / Então]
+    S --> OK{meu OK}
+    OK --> C[📜 Contrato]
+    C --> T[🔴 Testes]
+    T --> I[🟢 Código<br/>eu + Claude Code]
+    I --> V[✅ CI]
+    V --> D[📚 Docs com saída real]
+```
 
-| Camada | Como será testada |
+| Ferramenta | Para quê |
 |---|---|
-| Backend | unitários (JUnit 5 + Mockito), integração com PostgreSQL real (Testcontainers), segurança 401/403/404 e roteiro de chamadas `curl` |
-| Frontend | testes de componentes e roteiro manual das telas do cliente, do guest e do admin |
-| Juntos | jornada completa no navegador contra a API local: cadastro, agendamento, guest com Pix de sandbox, webhook e painel admin |
+| [Specs das fatias](docs/sdd/README.md) | a fonte da verdade de cada entrega ([modelo](docs/sdd/modelo-de-spec.md), [Fatia 1](docs/sdd/fatia-1-esqueleto.md), [Fatia 2](docs/sdd/fatia-2-catalogo-disponibilidade.md)) |
+| [`CLAUDE.md`](CLAUDE.md) | o índice que a IA lê antes de mexer: onde está cada regra, decisão e padrão |
+| [Skills do projeto](.claude/skills/) | receitas repetíveis: `/especificar-fatia`, `/implementar-fatia`, `/verificar-contrato` |
+| [`scripts/conferir-spec.sh`](scripts/conferir-spec.sh) | *eval* do processo: todo critério da spec precisa de um teste com o número dele (roda no CI) |
+| [GitHub Copilot + Actions](docs/automacao.md) | o Copilot lê as mesmas regras ([instruções](.github/copilot-instructions.md)), revisa PRs e pega tarefas pequenas; as Actions barram o que não cumpre spec, teste ou segurança |
+| [Agente revisor](.claude/agents/revisor-de-fatia.md) | segundo par de olhos, só leitura: confere o código contra a spec antes da PR |
+| [RAG vetorial](docs/ia/rag-vetorial.md) | busca semântica na documentação com **Spring AI + pgvector** e embeddings locais. Medido: só vetor acerta 10 de 17 perguntas (nenhum identificador); a busca **híbrida**, 15 de 17 |
+| [`scripts/buscar-contexto.sh`](scripts/buscar-contexto.sh) | recuperação por identificador (`R15`, `D40`, `A7`): traz a regra, a decisão, a spec e o teste ligados a ela. Para ~40 documentos com IDs estáveis, isso é mais preciso que um RAG vetorial ([por quê](docs/sdd/README.md#por-que-não-um-rag-com-banco-vetorial)) |
 
-> [!NOTE]
-> O guia descreve o comportamento **esperado**. As respostas reais e os números de testes entram conforme cada fatia ficar pronta.
+<sub>Ferramentas de IA usadas: Claude Code (backend, specs e revisão) e outras ferramentas de IA no frontend. Números e respostas no README sempre saem de execução real, nunca de estimativa da IA.</sub>
 
-## 🚧 Roadmap do beta
+## 🗺 Roadmap em fatias
 
-Tudo abaixo está **planejado**. Cada item vira uma fatia pequena, com testes e revisão, na branch `develop`.
+Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (regras, contrato e critérios de aceite) e só depois como código.
 
-- [ ] Contrato da API v1.0, ADRs e modelo de domínio
-- [ ] Esqueleto: monorepo, `compose.yaml`, perfis `dev`/`test`/`prod`, CI (build, testes, CodeQL, gitleaks)
-- [ ] Agenda: serviços, barbeiros, disponibilidade e agendamento do cliente logado
-- [ ] Anti double booking com teste de concorrência
-- [ ] Autenticação: cadastro, login, JWT e refresh rotativo
-- [ ] Guest com sinal de 50% e CPF sob demanda (gateway em sandbox)
-- [ ] Webhook idempotente e expiração automática dos 15 minutos
-- [ ] CEP com cache, fallback e degradação graciosa
-- [ ] LGPD: consentimento de marketing, exportar e excluir dados, nada pessoal em log
-- [ ] Painel admin: login por senha (`ROLE_ADMIN`), agenda, serviços, barbeiros e sinais
-- [ ] Guia de testes de ponta a ponta (backend, frontend e juntos) validado a cada fatia
-- [ ] Front Next.js na identidade da barbearia
-- [ ] Deploy: Vercel + Render + Aiven
-- [ ] Pós-beta: login social (ligar a flag), painel de alcance geográfico, lembrete por WhatsApp
+- [x] **Fatia 0 · Especificação:** domínio, máquina de estados, contrato OpenAPI v1.1, DDL proposto e ADRs
+- [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
+- [x] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes)
+- [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas
+- [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração
+- [ ] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
+- [ ] **Fatia 6 · CEP e privacidade:** ViaCEP/BrasilAPI com degradação, LGPD
+- [ ] **Fatia 7 · Telas Next.js:** agenda, checkout com aceite obrigatório, painel, acessibilidade
+- [ ] **Fatia 8 · Deploy:** Vercel + Render + Aiven
 
-## 🚀 Rodar o projeto
+## 📚 Documentação
 
-> [!NOTE]
-> Ainda não há código para rodar. Quando o esqueleto entrar, esta seção terá o `docker compose up` testado do zero, os endereços do Swagger e do front e uma coleção de requisições. O passo a passo completo fica em [`docs/guia-testes-e2e.md`](docs/guia-testes-e2e.md) (planejado).
-
-## 📦 Usar como template
-
-O repositório é pensado para servir de base a outros projetos. Quando o beta estiver pronto:
-
-1. Clique em **Use this template** no GitHub (ou clone o repositório).
-2. Renomeie o pacote base e o `artifactId` no `pom.xml`.
-3. Troque o domínio de agenda pelo seu e mantenha o que é transversal: `compartilhado/` (erros RFC 9457, segurança, observabilidade), perfis, `compose.yaml`, CI e a estrutura de `docs/`.
-4. Ajuste a paleta do front e as variáveis de ambiente (listadas em `docs/`).
-
-<details>
-<summary><b>O que vem pronto no template (planejado)</b></summary>
-
-<br/>
-
-- Erros RFC 9457 com `code` estável e validação de campos
-- Autenticação JWT + refresh rotativo, login social atrás de flag e admin criado por variável de ambiente
-- Guia de testes de ponta a ponta reaproveitável
-- Testes com Testcontainers e regras de arquitetura (ArchUnit)
-- Perfis `dev`, `test` e `prod` com variáveis obrigatórias sem valor padrão
-- Dockerfile multi-estágio para o Render e `compose.yaml` local
-- CI com build, testes, CodeQL e varredura de segredos
-
-</details>
-
-## 🤖 Como o projeto é feito
-
-| Quem | Papel |
+| Documento | O que tem |
 |---|---|
-| **Kevin Richard** | Dono do produto e do código: decide as regras com a barbearia, revisa e aprova cada entrega |
-| **Claude Code** | Arquitetura, contrato e código das regras mais difíceis |
-| **Gemini** | Pesquisa com fonte e data e revisão crítica da arquitetura |
-| **GitHub Copilot** | Apoio no IntelliJ em código repetitivo e testes de cenário |
-| **Grok** | Orquestração: divide o trabalho, roda os testes e prepara as entregas |
+| [Contrato da API](docs/contrato/contrato-api.md) · [OpenAPI](docs/contrato/openapi.yaml) | rotas, exemplos, erros e histórico de versões |
+| [Dossiê de contexto](docs/contexto.md) | regras de negócio numeradas (R1 a R32) e decisões em aberto |
+| [Modelo de domínio](docs/dominio/modelo-de-dominio.md) | agregados, eventos e máquina de estados |
+| [Arquitetura](docs/arquitetura/README.md) | módulos, dependências e fluxos críticos |
+| [Banco](docs/banco/erd.md) | ERD, constraints e DDL proposto |
+| [ADRs](docs/adr/README.md) | as 10 decisões de arquitetura |
+| [Painel admin](docs/admin/painel-admin.md) | matriz de acesso |
+| [Guia de testes](docs/guia-testes.md) | teste você mesmo, à mão: o banco, os erros e os cenários de visitante, cliente e admin |
+| [Como foi construído](docs/como-foi-construido.md) | o projeto de ponta a ponta: método, linha do tempo, código arquivo por arquivo, skills e agente de IA |
+| [SDD](docs/sdd/README.md) | o processo, o modelo de spec e a spec de cada fatia |
+| [Automação](docs/automacao.md) | por que cada Action existe, o papel do Copilot, como o SDD é cobrado e a regra de recuperação de contexto |
+| [RAG vetorial](docs/ia/rag-vetorial.md) | como a busca semântica na documentação funciona e o que a avaliação mostrou |
+| [Estudos aplicados](docs/estudos-aplicados.md) | minhas metas de estudo (Java/Spring e IA) ligadas a arquivos e testes deste projeto |
+
+## 🔭 E outros barbeiros?
+
+Hoje, não: o projeto é **a agenda do Eduardo Cândido na Altas Horas**, e todo o esforço vai para ela funcionar bem.
+
+O que fica pronto para o futuro, sem custo agora: o modelo já tem a entidade `Barbeiro` com jornada própria, a disponibilidade responde por barbeiro e preços e horários são dados do banco. Se um dia entrar outro profissional na cadeira ao lado, é cadastro, não reescrita.
 
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
@@ -385,7 +419,7 @@ O repositório é pensado para servir de base a outros projetos. Quando o beta e
 
 <img src="docs/assets/logo-altas-horas.png" width="96" alt="Logo da Barbearia Altas Horas"/>
 
-**Para o meu pai**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997**.
+**Para o meu pai, Eduardo Cândido**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997**.
 Este projeto é a minha forma de levar para o código o cuidado que ele coloca em cada corte.
 
 **★ 19 ✂ 97 ★**
@@ -394,6 +428,8 @@ Este projeto é a minha forma de levar para o código o cuidado que ele coloca e
 
 ## 👤 Autor
 
-**Kevin Richard** · [GitHub @k3vinrich4rd](https://github.com/k3vinrich4rd)
+**Kevin Richard** · desenvolvedor backend Java · Osasco/SP · [GitHub @k3vinrich4rd](https://github.com/k3vinrich4rd)
 
-<sub>Logo e identidade visual pertencem à Barbearia Altas Horas.</sub>
+Projeto individual: especificação, backend, deploy e revisão de tudo por mim; frontend gerado com IA.
+
+<sub>Logo, fotos e identidade visual pertencem à Barbearia Altas Horas. Feito com Spec-Driven Development e apoio de IA; cada decisão tem fonte e data.</sub>

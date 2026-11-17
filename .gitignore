@@ -34,3 +34,9 @@ Thumbs.db
 # Relatórios locais
 coverage/
 *.hprof
+
+# Área interna da equipe (specs de agentes, roteiros completos, credenciais de sandbox): nunca no Git público
+/.equipe/
+
+# Modelos de embeddings baixados pelo RAG (ferramentas/rag)
+.cache/

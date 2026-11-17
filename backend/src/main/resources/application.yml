@@ -1,0 +1,53 @@
+# =====================================================================================================================
+# Barbearia Altas Horas API · configuração comum a todos os perfis.
+# Perfis: dev (docker compose + seed fictício) e prod (variáveis obrigatórias, sem valor padrão).
+# Nos testes, o banco vem do Testcontainers (@ServiceConnection), sem perfil.
+# =====================================================================================================================
+spring:
+  application:
+    name: altas-horas-api
+  # Lê o .env da raiz do repositório quando existe. Os testes apontam ALTAS_HORAS_ENV para um arquivo inexistente.
+  config:
+    import: optional:file:${ALTAS_HORAS_ENV:../.env}[.properties]
+  datasource:
+    hikari:
+      # Aiven free: max_connections 20 com 3 a 6 reservadas (D12). Nenhuma chamada HTTP dentro de transação.
+      maximum-pool-size: 5
+  jpa:
+    # Quem cria o schema é o Flyway; o Hibernate só confere.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        # LocalTime, Instant etc. vão direto para o driver. Sem isto, o fuso UTC acima também é aplicado às
+        # colunas "time" (hora local, sem fuso) e a jornada das 07:00 era lida como 04:00 (pego pelo teste A27).
+        type:
+          java_time_use_direct_jdbc: true
+  flyway:
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: true
+  web:
+    resources:
+      # API pura: sem arquivos estáticos, rota inexistente vira 404 RECURSO_NAO_ENCONTRADO em problem+json.
+      add-mappings: false
+
+app:
+  fuso: America/Sao_Paulo
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  pattern:
+    level: "%5p [%X{traceId:-}]"
