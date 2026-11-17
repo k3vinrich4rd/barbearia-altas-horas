@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ✅ **aprovada pelo Kevin em 16/11/2026**; em implementação |
+| **Status** | ✅ **implementada** (16/11/2026): aprovada pelo Kevin e entregue com `./mvnw verify` em 69 testes, 0 falhas, 0 pulados, 96% de cobertura de instruções; `conferir-spec.sh 2`: 29 de 29 critérios com teste |
 | **Fatias do plano** | S02 (catálogo e configuração) + S03 (disponibilidade) + `GET /politica-pagamento` |
 | **Branch** | `feat/fatia-2-catalogo-disponibilidade` |
 | **Regras** | [R3](../contexto.md#3-regras-de-negócio) (duração e ocupação), R4 (jornada, folga, slots), R5 (antecedência e horizonte), R15 (pendente vencida não ocupa), R1/R2 (o que ocupa horário) |
@@ -34,8 +34,8 @@ Um visitante, sem login, vê os 5 serviços com preço, o texto da política de 
 | E1 | Onde fica o cálculo? | `CalculadoraDeHorarios`: **função pura** (sem Spring, sem banco) que recebe jornada, folgas, ocupações, configuração, duração e `agora` e devolve os inícios livres | regra difícil testada em milissegundos, com dezenas de casos; o serviço só busca os dados |
 | E2 | Quando um início `h` é oferecido? | `h` está na grade (do início do intervalo da jornada, de `granularidadeMin` em `granularidadeMin`) **e** `[h, h + duração + intervalo)` cabe inteiro num intervalo da jornada **e** `h ≥ agora + antecedência` (inclusivo) **e** não sobrepõe folga nem ocupação | é exatamente o que a constraint do banco vai aceitar na Fatia 4: a tela não oferece o que o banco recusaria |
 | E3 | O que "ocupa" | `CONFIRMADO`, ou `AGUARDANDO_PAGAMENTO` com `expira_em > agora`; `EXPIRADO`, `CANCELADO`, `CONCLUIDO` e `NAO_COMPARECEU` não | R15: a pendente vencida libera o horário mesmo antes do job de expiração rodar (o Render hiberna, D13) |
-| E4 | Quantas consultas | no máximo **5** por chamada: configuração, serviço, barbeiros + jornadas do dia, folgas do dia, ocupações do dia (filtro `inicio < fimDoDia AND fim_ocupacao > inicioDoDia`, usando o índice `reserva_barbeiro_inicio_ix`) | nada de N+1 por barbeiro ou por slot |
-| E5 | Leitura de reservas | consulta de leitura (`JdbcClient`) no módulo `agenda`; a entidade JPA `Reserva` nasce na Fatia 4, quando houver escrita | não criar entidade que ainda não tem comportamento |
+| E4 | Quantas consultas | **4** por chamada: configuração, serviço, barbeiros com jornadas e bloqueios do dia (folgas e reservas num `UNION ALL`, filtro `inicio < fimDoDia AND fim > inicioDoDia`) | nada de N+1 por barbeiro ou por slot |
+| E5 | Leitura de reservas | porta `FonteDeBloqueios` com adaptador SQL `BloqueiosJdbc` (`JdbcClient`), no módulo `agenda` ([ADR 0011](../adr/0011-hexagonal-seletivo-no-monolito-modular.md)); a entidade JPA `Reserva` nasce na Fatia 4, quando houver escrita | não criar entidade que ainda não tem comportamento |
 | E6 | Fuso | `data` é um dia em `America/Sao_Paulo`; jornada (`time`) + `data` vira `ZonedDateTime` e sai como `OffsetDateTime` | a regra é local; o banco guarda UTC (ADR 0004) |
 | E7 | Formato do horário | serializado com o padrão `yyyy-MM-dd'T'HH:mm:ssXXX` | o ISO padrão do Java **omite** `:00` dos segundos; o contrato mostra os segundos e o front não pode depender de dois formatos |
 | E8 | `precoFormatado` | montado à mão: `R$ 45,00`, `R$ 1.234,56` (espaço normal) | o `NumberFormat` pt-BR usa espaço não separável (` `), que quebra comparação no front e no teste |
@@ -44,7 +44,7 @@ Um visitante, sem login, vê os 5 serviços com preço, o texto da política de 
 | E11 | Consistência | a disponibilidade é uma foto: um horário pode ser pego 1 ms depois. **Quem garante é a constraint** na reserva (Fatia 4, `409`) | ler com trava só deixaria a tela lenta sem garantir nada |
 | E12 | Cache HTTP | `/servicos`, `/barbeiros`, `/politica-pagamento`: `Cache-Control: public, max-age=60`; `/disponibilidade`: `no-store` | catálogo muda pouco; disponibilidade muda a cada reserva |
 | E13 | Política vigente | a de **maior `versao`** | mudar o texto = nova versão; a reserva guarda qual foi aceita |
-| E15 | Como ler com JPA sem N+1 | catálogo por **projeção JPQL em DTO** (`SELECT new ...ServicoResumo(...)`), sem carregar a entidade; barbeiros ativos com as jornadas em **uma** consulta (`SELECT DISTINCT b FROM Barbeiro b LEFT JOIN FETCH b.jornadas WHERE b.ativo = true`), com `@OneToMany` LAZY; o dia da semana é filtrado em memória (são no máximo 14 linhas por barbeiro) | `LEFT` para o barbeiro sem jornada continuar aparecendo (E10); filtrar a coleção no `JOIN FETCH` devolveria a entidade com a coleção pela metade |
+| E15 | Como ler com JPA sem N+1 | catálogo por **projeção JPQL em DTO** (`SELECT new ...ServicoResumo(...)`), sem carregar a entidade; barbeiros ativos com as jornadas em **uma** consulta (`SELECT b FROM Barbeiro b LEFT JOIN FETCH b.jornadas WHERE b.ativo = true`; sem `DISTINCT`, que o Hibernate 6+ dispensa e o PostgreSQL recusa junto de `ORDER BY lower(...)`), com `@OneToMany` LAZY; o dia da semana é filtrado em memória (são no máximo 14 linhas por barbeiro) | `LEFT` para o barbeiro sem jornada continuar aparecendo (E10); filtrar a coleção no `JOIN FETCH` devolveria a entidade com a coleção pela metade |
 | E14 | Módulos | catálogo, configuração e disponibilidade no `agenda`; política no `pagamento` | a política pertence ao checkout |
 
 ## 4. Critérios de aceite
@@ -66,7 +66,7 @@ Nos testes de integração, `agora` é fixado por um `Clock` de teste em **terç
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | A6 | terça livre, serviço 30 | consultar 01/12 | **24** horários: 07:00 a 11:30 e 13:00 a 19:30; nenhum às 12:00 ou 12:30 (almoço) | `CalculadoraDeHorariosTest`, `DisponibilidadeIT` |
-| A7 | terça livre, serviço 60 (visagismo) | consultar 01/12 | **22** horários; **sem** 11:30 (invadiria o almoço) e **sem** 19:30 (passaria das 20:00) | idem |
+| A7 | terça livre, serviço 60 (visagismo) | consultar 01/12 | **22** horários; **sem** 11:30 (invadiria o almoço) e **sem** 19:30 (passaria das 20:00) | `CalculadoraDeHorariosTest`, `DisponibilidadeIT` |
 | A8 | segunda (30/11) e domingo (06/12) | consultar | `200` com `horarios: []` | `DisponibilidadeIT` |
 | A9 | `agora` = 01/12 09:10 | consultar 01/12, serviço 30 | primeiro horário **11:30** (09:10 + 2 h = 11:10, próximo da grade) | `CalculadoraDeHorariosTest` |
 | A10 | `agora` = 01/12 09:00 | consultar 01/12, serviço 30 | **11:00** aparece (antecedência inclusiva, exatamente 2 h) | `CalculadoraDeHorariosTest` |

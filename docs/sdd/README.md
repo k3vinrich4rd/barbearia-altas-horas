@@ -47,7 +47,7 @@ flowchart LR
 | Fatia | Spec | Status |
 |---|---|---|
 | 1 · Esqueleto + Flyway V1 + Compose | [fatia-1-esqueleto.md](fatia-1-esqueleto.md) | ✅ implementada (26 testes) |
-| 2 · Catálogo + disponibilidade | [fatia-2-catalogo-disponibilidade.md](fatia-2-catalogo-disponibilidade.md) | ✅ aprovada (16/11), em implementação |
+| 2 · Catálogo + disponibilidade | [fatia-2-catalogo-disponibilidade.md](fatia-2-catalogo-disponibilidade.md) | ✅ implementada (69 testes no total) |
 | 3 a 8 | escritas uma de cada vez, antes da fatia começar | ⏳ |
 
 ## A IA no processo

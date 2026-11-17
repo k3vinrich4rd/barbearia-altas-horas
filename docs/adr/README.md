@@ -14,3 +14,4 @@ Formato MADR (adr.github.io/madr). Um ADR aceito nunca é reescrito: um ADR novo
 | [0008](0008-cep-com-cache-e-degradacao.md) | CEP: ViaCEP + BrasilAPI, cache Caffeine e degradação graciosa | Quarteto Dev | proposta |
 | [0009](0009-lgpd-marketing-cpf-e-retencao.md) | LGPD: marketing por consentimento, CPF não persistido, retenção do guest | Quarteto Dev | proposta |
 | [0010](0010-versoes-da-plataforma.md) | Versões: Java 25 LTS e Spring Boot 4.1.2 | Quarteto Dev | proposta |
+| [0011](0011-hexagonal-seletivo-no-monolito-modular.md) | Hexagonal seletivo dentro do monólito modular | Kevin | aceito em 16/11/2026 |
