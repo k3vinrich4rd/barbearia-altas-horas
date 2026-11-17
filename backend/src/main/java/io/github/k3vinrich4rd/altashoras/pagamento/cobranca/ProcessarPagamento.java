@@ -1,8 +1,10 @@
 package io.github.k3vinrich4rd.altashoras.pagamento.cobranca;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -35,14 +37,18 @@ class ProcessarPagamento {
     private final CobrancaRepository cobrancas;
     private final GatewayDePagamento gateway;
     private final Reservas reservas;
+    private final TransicoesDeCobranca transicoes;
     private final TransactionTemplate transacao;
+    /** Gancho só de teste: roda entre a confirmação da reserva e a marcação da cobrança (a janela da corrida, D77). */
+    volatile Runnable aposConfirmarReserva = () -> { };
     private final Clock clock;
 
-    ProcessarPagamento(CobrancaRepository cobrancas, GatewayDePagamento gateway, Reservas reservas,
+    ProcessarPagamento(CobrancaRepository cobrancas, GatewayDePagamento gateway, Reservas reservas, TransicoesDeCobranca transicoes,
             PlatformTransactionManager gerenciador, Clock clock) {
         this.cobrancas = cobrancas;
         this.gateway = gateway;
         this.reservas = reservas;
+        this.transicoes = transicoes;
         this.transacao = new TransactionTemplate(gerenciador);
         this.clock = clock;
     }
@@ -79,15 +85,24 @@ class ProcessarPagamento {
             // Vira pendência para o painel (Fatia 5), igual ao pagamento tardio sem horário; o webhook responde 200.
             semHorario = true;
         }
+        aposConfirmarReserva.run();
         boolean tardio = semHorario;
+        UUID id = cobranca.getId();
+        boolean[] canceladaNaJanela = {false};
         transacao.executeWithoutResult(status -> {
-            Cobranca atual = cobrancas.findById(cobranca.getId()).orElseThrow();
+            Instant agora = clock.instant();
             if (tardio) {
-                atual.marcarPagaAposExpiracao(clock.instant());
+                transicoes.pagarAposExpiracao(id, agora);
             } else {
-                atual.marcarPaga(clock.instant());
+                // Paga primeiro e só depois pergunta à agenda: se a barbearia cancelou entre a confirmação e aqui, o
+                // listener do cancelamento já passou (cobrança CANCELADA) ou ainda vai passar (vê PAGA e devolve).
+                transicoes.pagar(id, agora);
+                if (reservas.estaCancelada(cobranca.getReservaId())) {
+                    transicoes.pagarAposExpiracao(id, agora);
+                    canceladaNaJanela[0] = true;
+                }
             }
         });
-        return tardio ? Resultado.PAGO_APOS_EXPIRACAO : Resultado.PROCESSADO;
+        return tardio || canceladaNaJanela[0] ? Resultado.PAGO_APOS_EXPIRACAO : Resultado.PROCESSADO;
     }
 }

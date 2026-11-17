@@ -4,12 +4,14 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -66,6 +68,16 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
         CodigoErro codigo = ex instanceof TrocaDeSenhaObrigatoriaException
                 ? CodigoErro.TROCA_DE_SENHA_OBRIGATORIA : CodigoErro.ACESSO_NEGADO;
         ProblemDetail corpo = problema(codigo, request.getRequestURI());
+        return ResponseEntity.status(corpo.getStatus()).body(corpo);
+    }
+
+    /**
+     * Duas pessoas (ou o job e o painel) mexeram na mesma linha ao mesmo tempo: @Version recusou o segundo (E8, E23).
+     * É 409 e nunca 500: recarregar a tela resolve.
+     */
+    @ExceptionHandler({OptimisticLockException.class, OptimisticLockingFailureException.class})
+    ResponseEntity<ProblemDetail> conflitoDeVersao(Exception ex, HttpServletRequest request) {
+        ProblemDetail corpo = problema(CodigoErro.CONFLITO_DE_VERSAO, request.getRequestURI());
         return ResponseEntity.status(corpo.getStatus()).body(corpo);
     }
 
