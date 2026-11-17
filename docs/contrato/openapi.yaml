@@ -203,6 +203,7 @@ paths:
     get:
       tags: [privacidade]
       operationId: meusConsentimentos
+      summary: Meus consentimentos
       responses:
         '200':
           description: Consentimentos atuais
@@ -216,6 +217,7 @@ paths:
     put:
       tags: [privacidade]
       operationId: registrarConsentimentoMarketing
+      summary: Aceita ou revoga o consentimento de marketing
       requestBody:
         required: true
         content:
@@ -251,12 +253,13 @@ paths:
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
-        '409': { $ref: '#/components/responses/Erro409' }
+        '409': { $ref: '#/components/responses/Erro409Agendamento' }
         '422': { $ref: '#/components/responses/Erro422' }
   /me/agendamentos:
     get:
       tags: [agenda]
       operationId: meusAgendamentos
+      summary: Meus agendamentos (paginado)
       parameters:
         - $ref: '#/components/parameters/Pagina'
         - $ref: '#/components/parameters/Tamanho'
@@ -271,6 +274,7 @@ paths:
     get:
       tags: [agenda]
       operationId: meuAgendamento
+      summary: Um agendamento meu (404 se for de outro dono)
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       responses:
         '200':
@@ -284,6 +288,7 @@ paths:
     post:
       tags: [agenda]
       operationId: cancelarAgendamento
+      summary: Cancela dentro da janela (HIPÓTESE H6)
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: false
@@ -303,6 +308,7 @@ paths:
     post:
       tags: [agenda]
       operationId: remarcarAgendamento
+      summary: Remarca dentro da janela, de forma atômica
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -317,7 +323,7 @@ paths:
               schema: { $ref: '#/components/schemas/Agendamento' }
         '401': { $ref: '#/components/responses/Erro401' }
         '404': { $ref: '#/components/responses/Erro404' }
-        '409': { $ref: '#/components/responses/Erro409' }
+        '409': { $ref: '#/components/responses/Erro409Agendamento' }
         '422': { $ref: '#/components/responses/Erro422' }
   /agendamentos/guest:
     post:
@@ -338,13 +344,14 @@ paths:
               schema: { $ref: '#/components/schemas/AgendamentoGuest' }
         '400': { $ref: '#/components/responses/Erro400' }
         '404': { $ref: '#/components/responses/Erro404' }
-        '409': { $ref: '#/components/responses/Erro409' }
+        '409': { $ref: '#/components/responses/Erro409Agendamento' }
         '422': { $ref: '#/components/responses/Erro422' }
         '429': { $ref: '#/components/responses/Erro429' }
   /agendamentos/guest/{id}:
     get:
       tags: [guest]
       operationId: consultarAgendamentoGuest
+      summary: Status da reserva do guest (com X-Guest-Token)
       security: [ { guestToken: [] } ]
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       responses:
@@ -372,12 +379,12 @@ paths:
             schema: { $ref: '#/components/schemas/CobrancaRequest' }
       responses:
         '201':
-          description: Cobrança criada
+          description: Cobrança criada (único lugar com cpfMascarado, montado do CPF recebido; o CPF não é guardado)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Cobranca' }
+              schema: { $ref: '#/components/schemas/CobrancaCriada' }
         '200':
-          description: Repetição com a mesma chave e o mesmo corpo
+          description: Repetição com a mesma chave e o mesmo corpo (sem cpfMascarado)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Cobranca' }
@@ -424,6 +431,7 @@ paths:
     patch:
       tags: [admin]
       operationId: mudarStatusAgendamento
+      summary: Conclui, marca falta ou cancela (BARBEIRO só a própria agenda, H9)
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -445,6 +453,7 @@ paths:
     get:
       tags: [admin]
       operationId: listarServicosAdmin
+      summary: Lista serviços, inclusive inativos
       responses:
         '200':
           description: Serviços (inclusive inativos)
@@ -458,6 +467,7 @@ paths:
     post:
       tags: [admin]
       operationId: criarServico
+      summary: Cria serviço
       requestBody:
         required: true
         content:
@@ -477,6 +487,7 @@ paths:
     put:
       tags: [admin]
       operationId: alterarServico
+      summary: Altera nome, duração, preço ou ativo
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -498,6 +509,7 @@ paths:
     get:
       tags: [admin]
       operationId: listarBarbeirosAdmin
+      summary: Lista barbeiros
       responses:
         '200':
           description: Barbeiros
@@ -511,6 +523,7 @@ paths:
     post:
       tags: [admin]
       operationId: criarBarbeiro
+      summary: Cria barbeiro
       requestBody:
         required: true
         content:
@@ -529,6 +542,7 @@ paths:
     put:
       tags: [admin]
       operationId: alterarBarbeiro
+      summary: Altera nome, ativo ou login vinculado
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -550,6 +564,7 @@ paths:
     put:
       tags: [admin]
       operationId: substituirJornada
+      summary: Substitui a jornada semanal
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -575,6 +590,7 @@ paths:
     post:
       tags: [admin]
       operationId: criarFolga
+      summary: Cria folga
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       requestBody:
         required: true
@@ -596,6 +612,7 @@ paths:
     delete:
       tags: [admin]
       operationId: removerFolga
+      summary: Remove folga
       parameters:
         - $ref: '#/components/parameters/Id'
         - { name: folgaId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -608,6 +625,7 @@ paths:
     get:
       tags: [admin]
       operationId: listarPagamentosAdmin
+      summary: Sinais por status, inclusive a devolver
       parameters:
         - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/StatusCobranca' } }
         - $ref: '#/components/parameters/Pagina'
@@ -624,6 +642,7 @@ paths:
     post:
       tags: [admin]
       operationId: registrarDevolucao
+      summary: Registra devolução manual feita
       parameters: [ { $ref: '#/components/parameters/Id' } ]
       responses:
         '200':
@@ -639,6 +658,7 @@ paths:
     get:
       tags: [admin]
       operationId: lerConfiguracao
+      summary: Lê as regras configuráveis da agenda
       responses:
         '200':
           description: Configuração da agenda
@@ -650,6 +670,7 @@ paths:
     put:
       tags: [admin]
       operationId: alterarConfiguracao
+      summary: Altera as regras configuráveis da agenda
       requestBody:
         required: true
         content:
@@ -669,6 +690,7 @@ paths:
     get:
       tags: [admin]
       operationId: listarAuditoria
+      summary: Ações do painel (paginado)
       parameters:
         - $ref: '#/components/parameters/Pagina'
         - $ref: '#/components/parameters/Tamanho'
@@ -716,6 +738,33 @@ components:
     Erro403: { description: Sem permissão, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
     Erro404: { description: Não encontrado ou de outro dono, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
     Erro409: { description: Conflito, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro409Agendamento:
+      description: |
+        Conflito ao reservar ou remarcar. HORARIO_INDISPONIVEL = horário ocupado (o front esconde o horário).
+        CONFLITO_CONCORRENTE = deadlock que persistiu depois do retry interno; o horário pode estar livre,
+        o front não o esconde e pode repetir a mesma requisição uma vez (ADR 0003).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            horarioIndisponivel:
+              value:
+                type: https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#horario_indisponivel
+                title: Horário indisponível
+                status: 409
+                detail: Este horário acabou de ser reservado. Escolha outro.
+                instance: /agendamentos
+                code: HORARIO_INDISPONIVEL
+                traceId: 4bf92f3577b34da6a3ce929d0e0e4736
+            conflitoConcorrente:
+              value:
+                type: https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#conflito_concorrente
+                title: Conflito momentâneo
+                status: 409
+                detail: Muitas reservas ao mesmo tempo. Tente de novo.
+                instance: /agendamentos
+                code: CONFLITO_CONCORRENTE
+                traceId: 0af7651916cd43dd8448eb211c80319c
     Erro422: { description: Regra de negócio, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
     Erro429:
       description: Limite de tentativas
@@ -759,7 +808,7 @@ components:
              IDEMPOTENCY_KEY_AUSENTE, NAO_AUTENTICADO, CREDENCIAIS_INVALIDAS, REFRESH_INVALIDO,
              REFRESH_REUTILIZADO, WEBHOOK_NAO_AUTENTICADO, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO,
              CEP_NAO_ENCONTRADO, FUNCIONALIDADE_DESLIGADA, EMAIL_JA_CADASTRADO, HORARIO_INDISPONIVEL,
-             CONFLITO_DE_VERSAO, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
+             CONFLITO_DE_VERSAO, CONFLITO_CONCORRENTE, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
              FORA_DO_HORIZONTE, JANELA_CANCELAMENTO_ENCERRADA, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
              RESERVA_EXPIRADA, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
              FOLGA_COM_RESERVAS, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL, ERRO_INTERNO]
@@ -1048,8 +1097,14 @@ components:
           properties:
             copiaECola: { type: string }
             expiraEm: { type: string, format: date-time }
-        cpfMascarado: { type: string, example: '***.***.***-09' }
-        devolucaoPendente: { type: boolean }
+    CobrancaCriada:
+      description: Resposta 201 da criação. Só aqui existe cpfMascarado.
+      allOf:
+        - $ref: '#/components/schemas/Cobranca'
+        - type: object
+          required: [cpfMascarado]
+          properties:
+            cpfMascarado: { type: string, example: '***.***.***-09' }
     PaginaCobrancas:
       type: object
       required: [itens, pagina, tamanho, total]

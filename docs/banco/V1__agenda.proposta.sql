@@ -256,11 +256,13 @@ CREATE TABLE cobranca (
     valor_centavos          bigint       NOT NULL,
     status                  varchar(25)  NOT NULL,
     chave_idempotencia_hash char(64)     NOT NULL,       -- SHA-256 do X-Idempotency-Key (R10)
-    hash_corpo              char(64)     NOT NULL,       -- mesma chave + corpo diferente = 422
+    hash_corpo              char(64)     NOT NULL,       -- HMAC-SHA256(IDEMPOTENCIA_HMAC_SEGREDO, reservaId|cpf) em hex;
+                                                         -- mesma chave + corpo diferente = 422. HMAC, não SHA-256 puro:
+                                                         -- o CPF tem só 10^9 combinações e um hash sem segredo
+                                                         -- seria revertido por força bruta (ADR 0009)
     pix_copia_e_cola        text,                        -- o QR Code é gerado no front a partir dele
     pix_expira_em           timestamptz,
     paga_em                 timestamptz,
-    devolucao_pendente      boolean      NOT NULL DEFAULT false,
     devolvida_em            timestamptz,
     devolvida_por           uuid,
     version                 bigint       NOT NULL DEFAULT 0,
@@ -276,8 +278,8 @@ CREATE TABLE cobranca (
 CREATE INDEX cobranca_reserva_ix ON cobranca (reserva_id);
 -- No máximo uma cobrança viva por reserva.
 CREATE UNIQUE INDEX cobranca_ativa_por_reserva_uk ON cobranca (reserva_id) WHERE status IN ('PENDENTE', 'PAGA');
--- Painel: sinais a devolver.
-CREATE INDEX cobranca_devolucao_ix ON cobranca (criado_em) WHERE devolucao_pendente;
+-- Painel: sinais a devolver (o status é a única fonte; não há coluna booleana paralela).
+CREATE INDEX cobranca_devolucao_ix ON cobranca (criado_em) WHERE status IN ('PAGA_APOS_EXPIRACAO', 'DEVOLUCAO_PENDENTE');
 
 -- Idempotência do webhook (R12): o id do EVENTO do provedor é único.
 -- O payload inteiro não é guardado (pode trazer dados do pagador): só o necessário.
@@ -288,12 +290,23 @@ CREATE TABLE evento_webhook (
     tipo                 varchar(60)  NOT NULL,          -- ex.: PAYMENT_RECEIVED
     id_cobranca_provedor varchar(100),
     recebido_em          timestamptz  NOT NULL DEFAULT now(),
-    processado_em        timestamptz,
-    resultado            varchar(30),                    -- PROCESSADO, IGNORADO, PAGO_APOS_EXPIRACAO...
+    processado_em        timestamptz,                    -- NULL = ainda não processado: um reenvio do mesmo
+                                                         -- evento (ON CONFLICT) REPROCESSA em vez de ignorar,
+                                                         -- para o pagamento não se perder
+    resultado            varchar(30),                    -- PROCESSADO, IGNORADO, PAGO_APOS_EXPIRACAO, REVISAO_MANUAL...
+    tentativas           smallint     NOT NULL DEFAULT 0, -- tentativas do job de reprocessamento (H20)
+    ultima_tentativa_em  timestamptz,
+    ultimo_erro          varchar(60),                    -- só o code do erro, nunca payload ou dado pessoal
     CONSTRAINT evento_webhook_provedor_ck CHECK (provedor IN ('ASAAS', 'MERCADO_PAGO')),
+    CONSTRAINT evento_webhook_tentativas_ck CHECK (tentativas >= 0),
     CONSTRAINT evento_webhook_uk UNIQUE (provedor, id_evento_provedor)
 );
 CREATE INDEX evento_webhook_cobranca_ix ON evento_webhook (provedor, id_cobranca_provedor);
+-- Job de reprocessamento: eventos gravados, não processados e ainda não mandados para revisão manual.
+CREATE INDEX evento_webhook_pendente_ix ON evento_webhook (recebido_em)
+    WHERE processado_em IS NULL AND resultado IS DISTINCT FROM 'REVISAO_MANUAL';
+-- Painel: eventos que esgotaram as tentativas.
+CREATE INDEX evento_webhook_revisao_ix ON evento_webhook (recebido_em) WHERE resultado = 'REVISAO_MANUAL';
 
 -- -----------------------------------------------------------------------------
 -- Módulo privacidade

@@ -1,7 +1,7 @@
 # 0006. Sessão: JWT curto + refresh rotativo em cookie `HttpOnly` via BFF
 
-- Status: **proposta — revisão do Alicerce**
-- Data: 2026-11-13
+- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Data: 2026-11-13 (proposta e aceite)
 - Decisores: Alicerce (dono), Quarteto Dev (texto)
 
 ## Contexto
@@ -18,6 +18,7 @@ Opção 2.
 - **Acesso:** JWT HS256 (`JWT_SEGREDO` ≥ 32 bytes, sem padrão em `prod`; a API não sobe sem ele), validade curta (**H15**: 15 min), claims `sub`, `papeis`, `ver` (versão da credencial). Validado **só pelas claims**, sem ir ao banco (módulo `plataforma`).
 - **Refresh:** valor aleatório opaco, de uso único, guardado só como **hash SHA-256** (`refresh_token`), com `familia_id`. Cada `POST /auth/refresh` gera um novo e marca o anterior como usado. **Reuso** de um já usado → revoga a família inteira e responde `401 REFRESH_REUTILIZADO` (R27).
 - **BFF:** o navegador fala só com o Next (`app/api/...`). O Next guarda o refresh em cookie `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` no próprio domínio e chama a API com `Authorization: Bearer`. O JavaScript da página nunca vê o refresh.
+- **Onde o BFF guarda o token de acesso:** em **outro cookie `HttpOnly; Secure; SameSite=Strict; Path=/api`**, com `Max-Age` igual à validade do JWT (H15). As funções da Vercel não têm estado entre chamadas, então guardar em memória do servidor não funciona; e o navegador nunca recebe o JWT em JavaScript, `localStorage` ou corpo de resposta. A cada chamada, a rota do BFF lê o cookie no servidor e repassa como `Authorization: Bearer`; se a API responder `401`, o BFF usa o refresh uma vez e repete a chamada.
 - **CSRF:** a API é stateless e só aceita `Bearer`, então CSRF fica desligado na API (com comentário no código). O BFF é a única origem que fala com a API (CORS restrito por `CORS_ORIGENS`) e protege as próprias rotas com `SameSite=Strict` + verificação de `Origin`.
 - **Revogação:** troca de senha incrementa `versao_credencial`; tokens com `ver` antigo são recusados na renovação. O acesso já emitido vale até expirar (15 min), risco aceito.
 - Opção 4 descartada para o beta: custo e operação. Gatilho abaixo.

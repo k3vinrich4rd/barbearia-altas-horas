@@ -8,7 +8,7 @@
 | 🧰 **Como** | diagramas Mermaid; as regras viram testes (ArchUnit + Spring Modulith) |
 | 🚫 **Não cobre** | colunas ([ERD](../banco/erd.md)) · rotas ([contrato](../contrato/contrato-api.md)) |
 
-> Fonte: proposta do Alicerce de 13/11/2026. Status: **proposta — revisão do Alicerce**. Diagramas mostram o planejado: ainda não há código.
+> Fonte: proposta do Alicerce de 13/11/2026. Status: **aceita** (ADRs 0001 a 0006, revisão do Alicerce, 13/11/2026). Diagramas mostram o planejado: ainda não há código.
 
 ## 1. Contexto (C4 nível 1)
 
@@ -171,19 +171,27 @@ sequenceDiagram
         G->>F: informa CPF
         F->>PG: POST /pagamentos/cobrancas (X-Idempotency-Key, X-Guest-Token)
         PG->>AG: AgendaApi.dadosParaCobranca(reservaId)
-        PG->>GW: cria cliente (CPF) e cobrança Pix (fora de transação)
+        PG->>DB: INSERT cobranca PENDENTE (chave de idempotência + HMAC do corpo, id do provedor NULL, sem CPF)
+        Note over PG,DB: chave repetida com id do provedor preenchido → devolve a linha (200), sem chamar o gateway
+        PG->>GW: cria cliente (CPF) e cobrança Pix com externalReference = cobranca.id (fora de transação)
         alt gateway fora
             GW-->>PG: timeout
+            Note over PG,DB: a cobrança fica PENDENTE com id do provedor NULL; repetir com a mesma chave<br/>procura antes pelo externalReference no Asaas e só cria se não achar
             PG-->>F: 503 GATEWAY_INDISPONIVEL (reserva segue até expirar)
         else ok
-            PG->>DB: INSERT cobranca PENDENTE (sem CPF)
+            PG->>DB: UPDATE cobranca SET id_cobranca_provedor, pix (mesma linha)
             PG-->>F: 201 + Pix copia e cola
         end
         GW->>PG: POST /pagamentos/webhook (asaas-access-token)
-        PG->>DB: INSERT evento_webhook ON CONFLICT DO NOTHING
-        PG->>GW: reconsulta a cobrança (fonte da verdade)
-        PG->>DB: cobrança PAGA + event_publication
-        PG-->>GW: 200
+        PG->>DB: INSERT evento_webhook ON CONFLICT DO NOTHING RETURNING id
+        alt conflito e processado_em preenchido
+            PG-->>GW: 200 (repetido, sem efeito)
+        else evento novo ou já gravado com processado_em NULL
+            PG->>GW: reconsulta a cobrança (fonte da verdade, fora de transação)
+            PG->>DB: trava o evento (FOR UPDATE), confere processado_em IS NULL, cobrança PAGA + event_publication + processado_em = agora
+            PG-->>GW: 200
+        end
+        Note over PG,GW: falha no processamento → 5xx; o Asaas reenvia e o reenvio reprocessa
         PG-)AG: PagamentoConfirmado (depois do commit)
         AG->>DB: reserva CONFIRMADO (se não venceu, R13/R14)
     end
@@ -193,15 +201,58 @@ sequenceDiagram
 
 O job roda a cada minuto e **uma vez logo na subida** (a API hiberna no Render free e o `@Scheduled` não recupera disparos perdidos). A correção da agenda não depende dele: R15 e R16.
 
+Expira **em lotes** (tamanho configurável, proposta: 100), cada lote numa transação curta, até não sobrar vencida:
+
+```sql
+UPDATE reserva
+   SET status = 'EXPIRADO', version = version + 1, atualizado_em = :agora
+ WHERE id IN (SELECT id
+                FROM reserva
+               WHERE status = 'AGUARDANDO_PAGAMENTO'
+                 AND expira_em <= :agora
+               ORDER BY id
+               LIMIT :lote
+                 FOR UPDATE SKIP LOCKED)
+RETURNING id;
+```
+
+`SKIP LOCKED` pula as linhas que uma inserção ou remarcação já travou (ADR 0003), então o job não disputa trava com o usuário e não entra em deadlock com ele. `:agora` vem do `Clock`. Cada `id` devolvido publica `ReservaExpirada`.
+
 
 ```mermaid
 sequenceDiagram
     participant J as Job agenda (ShedLock, a cada 1 min)
     participant DB as PostgreSQL
     participant PG as pagamento
-    J->>DB: UPDATE reserva SET status = EXPIRADO WHERE AGUARDANDO_PAGAMENTO AND expira_em <= agora
+    loop lotes até não sobrar vencida
+        J->>DB: UPDATE ... WHERE id IN (SELECT id ... ORDER BY id LIMIT lote FOR UPDATE SKIP LOCKED)
+    end
     J-)PG: ReservaExpirada (por reserva)
     PG->>DB: cobrança PENDENTE → CANCELADA (ou PAGA → PAGA_APOS_EXPIRACAO, R14)
+```
+
+### 6.2.1 Reprocessamento de eventos de webhook presos
+
+Mesmo desenho do job de expiração: **ShedLock**, roda a cada 5 min (configurável) e **uma vez na subida**, `agora` do `Clock`, lotes com `FOR UPDATE SKIP LOCKED`. Pega só eventos com `processado_em IS NULL` e `recebido_em < agora - N min` (**H19**) que ainda não foram para revisão manual. Detalhe no [ADR 0007](../adr/0007-gateway-de-pagamento-sandbox.md).
+
+```mermaid
+sequenceDiagram
+    participant J as Job pagamento (ShedLock, a cada 5 min e na subida)
+    participant DB as PostgreSQL
+    participant GW as Asaas (sandbox)
+    loop lotes até não sobrar evento preso
+        J->>DB: UPDATE evento_webhook SET tentativas = tentativas + 1 WHERE id IN (SELECT id ... processado_em IS NULL AND recebido_em < agora - N ORDER BY id LIMIT lote FOR UPDATE SKIP LOCKED)
+        loop cada evento do lote (mesmo caminho do webhook)
+            J->>GW: reconsulta a cobrança (fora de transação)
+            alt ok
+                J->>DB: trava o evento (FOR UPDATE), confere processado_em IS NULL, atualiza a cobrança, processado_em = agora
+            else falhou e tentativas < M (H20)
+                J->>DB: ultimo_erro = code do erro (tenta de novo na próxima execução)
+            else falhou e tentativas = M
+                J->>DB: resultado = REVISAO_MANUAL (aparece no painel admin)
+            end
+        end
+    end
 ```
 
 ### 6.3 Excluir conta

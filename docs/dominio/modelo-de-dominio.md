@@ -141,7 +141,6 @@ classDiagram
             String pixCopiaECola
             Instant expiraEm
             Instant pagaEm
-            boolean devolucaoPendente
         }
         class EventoWebhook {
             UUID id
@@ -282,7 +281,7 @@ Conforme o ADR 0002: publicados com o registro de publicação do Spring Modulit
 **Pagamento depois da expiração (R14), sem dependência proibida:**
 1. O webhook, antes de marcar a cobrança, consulta `AgendaApi.situacao(reservaId)` (chamada síncrona permitida: `pagamento → agenda`).
 2. Reserva ainda `AGUARDANDO_PAGAMENTO` e dentro do prazo → cobrança `PAGA` e evento `PagamentoConfirmado`.
-3. Reserva `EXPIRADO` (ou com prazo vencido) → cobrança `PAGA_APOS_EXPIRACAO`, `devolucao_pendente = true`, sem evento. Aparece no painel.
+3. Reserva `EXPIRADO` (ou com prazo vencido) → cobrança `PAGA_APOS_EXPIRACAO`, sem evento. Aparece no painel entre os sinais a devolver (`PAGA_APOS_EXPIRACAO` ou `DEVOLUCAO_PENDENTE`; o status é a única fonte).
 4. Corrida residual (a reserva vence entre o passo 1 e o listener da agenda): a agenda não confirma reserva vencida e publica `ReservaExpirada`; o listener do pagamento encontra a cobrança `PAGA` e a converte para `PAGA_APOS_EXPIRACAO`. Nenhum lado precisa conhecer o outro além do que a tabela de dependências permite.
 
 A forma final fica para a revisão do Alicerce (arquitetura).

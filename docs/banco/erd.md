@@ -138,7 +138,6 @@ erDiagram
         char chave_idempotencia_hash UK
         char hash_corpo
         text pix_copia_e_cola
-        boolean devolucao_pendente
     }
     evento_webhook {
         uuid id PK
@@ -148,6 +147,9 @@ erDiagram
         varchar id_cobranca_provedor
         timestamptz recebido_em
         timestamptz processado_em
+        smallint tentativas
+        timestamptz ultima_tentativa_em
+        varchar ultimo_erro
     }
     consentimento {
         uuid id PK
@@ -187,7 +189,7 @@ Tabelas de infraestrutura do módulo `plataforma`, fora do diagrama: `shedlock` 
 | `reserva_valores_ck` | sinal entre 0 e o preço congelado | R8 |
 | `cobranca_idempotencia_uk` | mesma `X-Idempotency-Key` não cria duas cobranças | R10 |
 | `cobranca_ativa_por_reserva_uk` (índice único parcial) | no máximo uma cobrança viva por reserva | R10 |
-| `evento_webhook_uk (provedor, id_evento_provedor)` | evento repetido não processa duas vezes (`INSERT ... ON CONFLICT DO NOTHING`) | R12 |
+| `evento_webhook_uk (provedor, id_evento_provedor)` | evento repetido não processa duas vezes (`INSERT ... ON CONFLICT DO NOTHING`). Se o evento já existe mas `processado_em IS NULL` (a API caiu ou falhou depois de gravar), ele é **reprocessado**, senão o pagamento se perderia; o processamento trava a linha (`FOR UPDATE`) e só marca `processado_em` na mesma transação que atualiza a cobrança | R12 |
 | `usuario_email_uk` em `lower(email)` | e-mail único sem diferença de maiúsculas | R24 |
 | `refresh_token_hash_uk` | refresh localizado pelo hash, nunca pelo valor | R27 |
 | `configuracao_agenda_unica_ck` + faixas | uma configuração só, com valores sãos | H4 a H12 |
@@ -226,6 +228,10 @@ Em 13/11/2026, o coordenador aplicou o DDL num **PostgreSQL 17.12** limpo (image
 | Cliente logado com sinal > 0 | recusada por `reserva_origem_ck` |
 | Mesmo evento de webhook duas vezes com `ON CONFLICT DO NOTHING` | uma linha só |
 | Duas transações simultâneas no mesmo horário (a primeira segura o commit por 2 s) | a segunda esperou e falhou com `23P01`; ficou 1 reserva |
+
+**Revalidação depois da revisão do Alicerce (13/11/2026, PostgreSQL 17.12 no Docker):** DDL ajustado aplicado sem erro (sem a coluna `devolucao_pendente`, com os índices `cobranca_devolucao_ix` por status e `evento_webhook_pendente_ix`); o `EXPLAIN` das duas instruções de expiração (preguiçosa com `FOR UPDATE` e job com `FOR UPDATE SKIP LOCKED` em lote) passou; o segundo `INSERT ... ON CONFLICT DO NOTHING RETURNING id` do mesmo evento devolveu zero linhas e o `SELECT ... FOR UPDATE` seguinte achou o evento com `processado_em` nulo (caso de reprocessar).
+
+**Revalidação do job de reprocessamento (13/11/2026, PostgreSQL 17.12 no Docker):** DDL com `tentativas`, `ultima_tentativa_em`, `ultimo_erro`, o check `evento_webhook_tentativas_ck` e os índices `evento_webhook_pendente_ix` e `evento_webhook_revisao_ix` aplicado sem erro. Com N = 10 min, a instrução de reivindicação do lote pegou só o evento não processado com 20 min; ignorou o de 2 min, o já processado e o que estava em `REVISAO_MANUAL`, e incrementou `tentativas`. Com outra sessão segurando `FOR UPDATE` num evento elegível, o `SKIP LOCKED` pulou esse evento. `tentativas = -1` foi recusado pelo check.
 
 Isto **não** substitui os testes automatizados: na fatia S01, os mesmos casos viram testes com Testcontainers (`ReservaConstraintIT` e `ReservaConcorrenciaIT`).
 
