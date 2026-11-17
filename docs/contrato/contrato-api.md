@@ -32,7 +32,7 @@
 | Data e hora | ISO-8601 **com offset** (`2026-12-01T10:00:00-03:00`); datas puras `YYYY-MM-DD` no fuso da barbearia (`America/Sao_Paulo`) |
 | Autenticação | `Authorization: Bearer <accessToken>` (JWT, **HIPÓTESE H15**: 15 min). Refresh opaco, de uso único, guardado pelo BFF em cookie `HttpOnly` (ADR 0006) |
 | Papéis | `CLIENTE`, `BARBEIRO`, `ADMIN`; o guest não tem conta e usa `X-Guest-Token` só na própria reserva |
-| Idempotência | `X-Idempotency-Key` (UUID v4) obrigatória em `POST /pagamentos/cobrancas` (R10). Guardada como hash; mesma chave + mesmo corpo → mesma resposta; corpo diferente → `422` |
+| Idempotência | `X-Idempotency-Key` (UUID v4) obrigatória em `POST /pagamentos/cobrancas` (R10). A chave é guardada como SHA-256 (é aleatória, sem dado pessoal). O corpo é comparado por **HMAC-SHA256** de `reservaId` + CPF normalizado com o segredo `IDEMPOTENCIA_HMAC_SEGREDO` (variável de ambiente), nunca por SHA-256 puro, que permitiria descobrir o CPF por força bruta. Mesma chave + mesmo corpo → mesma resposta; corpo diferente → `422` |
 | Concorrência | recursos do painel com `version` no corpo; versão antiga → `409 CONFLITO_DE_VERSAO` |
 | Paginação | `?pagina=0&tamanho=20` (máximo 50); resposta `{ "itens": [...], "pagina": 0, "tamanho": 20, "total": 3 }` |
 | Campos desconhecidos | recusados com `400 CAMPO_DESCONHECIDO` (`fail-on-unknown-properties=true`, OWASP API3) |
@@ -61,12 +61,12 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 | `204` | `401`, `403 ACESSO_NEGADO` (admin não se exclui) | [4.9](#49-privacidade) |
 | `GET` | `/me/consentimentos` | meus consentimentos | 👤 | `200` | `401` | [4.9](#49-privacidade) |
 | `PUT` | `/me/consentimentos/marketing` | aceita ou revoga marketing | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
-| `POST` | `/agendamentos` | reserva como cliente (`CONFIRMADO`) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
+| `POST` | `/agendamentos` | reserva como cliente (`CONFIRMADO`) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
 | `POST` | `/agendamentos/{id}/cancelamento` | cancela dentro da janela | 👤 | `200` | `401`, `404`, `422 JANELA_CANCELAMENTO_ENCERRADA`, `422 TRANSICAO_INVALIDA` | [4.5](#45-agendamentos-do-cliente) |
-| `POST` | `/agendamentos/{id}/remarcacao` | remarca dentro da janela | 👤 | `200` | `401`, `404`, `409 HORARIO_INDISPONIVEL`, `422` | [4.5](#45-agendamentos-do-cliente) |
-| `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`) | 🌐 (limite por IP) | `201` | `400`, `404`, `409 HORARIO_INDISPONIVEL`, `422`, `429` | [4.6](#46-guest) |
+| `POST` | `/agendamentos/{id}/remarcacao` | remarca dentro da janela | 👤 | `200` | `401`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422` | [4.5](#45-agendamentos-do-cliente) |
+| `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`) | 🌐 (limite por IP) | `201` | `400`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
 | `POST` | `/pagamentos/cobrancas` | cria a cobrança Pix do sinal (pede o CPF) | 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `404`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-do-sinal) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
@@ -195,7 +195,7 @@ Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13
   "podeCancelarAte": "2026-12-01T08:00:00-03:00"
 }
 ```
-Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; antes de `agora + antecedência` → `422 ANTECEDENCIA_INSUFICIENTE`; `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `sinalCentavos` no corpo → `400 CAMPO_DESCONHECIDO`.
+Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; deadlock que persistiu depois do retry interno → `409 CONFLITO_CONCORRENTE` (o horário pode estar livre: o front **não** o esconde e pode repetir a requisição **uma vez**; vale também para o guest e a remarcação, ADR 0003); fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; antes de `agora + antecedência` → `422 ANTECEDENCIA_INSUFICIENTE`; `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `sinalCentavos` no corpo → `400 CAMPO_DESCONHECIDO`.
 
 `GET /me/agendamentos?pagina=0&tamanho=20` → `200` página do formato acima, mais recentes primeiro.
 
@@ -245,7 +245,7 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
   "cpfMascarado": "***.***.***-09"
 }
 ```
-Repetição com a mesma chave e o mesmo corpo → `200` com a mesma cobrança, sem chamar o gateway de novo. Mesma chave e corpo diferente → `422 IDEMPOTENCIA_CONFLITO`. Reserva vencida → `422 RESERVA_EXPIRADA`. Gateway fora ou lento → `503 GATEWAY_INDISPONIVEL` (a reserva segue até expirar). O CPF é validado pelos dígitos, repassado ao gateway e **não é gravado** (ADR 0009). O QR Code é desenhado no front a partir do `copiaECola`.
+O `cpfMascarado` aparece **só nesta resposta `201`**: ele é montado a partir do CPF que acabou de chegar no corpo, e o CPF não é guardado. Repetição com a mesma chave e o mesmo corpo → `200` com a mesma cobrança **sem** `cpfMascarado`, sem chamar o gateway de novo. A listagem do painel (`GET /admin/pagamentos`) também não traz CPF. Mesma chave e corpo diferente → `422 IDEMPOTENCIA_CONFLITO`. Reserva vencida → `422 RESERVA_EXPIRADA`. Gateway fora ou lento → `503 GATEWAY_INDISPONIVEL` (a reserva segue até expirar). O CPF é validado pelos dígitos, repassado ao gateway e **não é gravado** (ADR 0009). O QR Code é desenhado no front a partir do `copiaECola`.
 
 ### 4.8 Webhook
 
@@ -305,6 +305,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 404 | <a id="funcionalidade_desligada"></a>`FUNCIONALIDADE_DESLIGADA` | rota atrás de flag desligada | Não encontrado |
 | 409 | <a id="email_ja_cadastrado"></a>`EMAIL_JA_CADASTRADO` | e-mail já em uso | E-mail já cadastrado |
 | 409 | <a id="horario_indisponivel"></a>`HORARIO_INDISPONIVEL` | violação da constraint `reserva_sem_sobreposicao` | Horário indisponível |
+| 409 | <a id="conflito_concorrente"></a>`CONFLITO_CONCORRENTE` | deadlock (`40P01`) que persistiu depois do retry interno da transação; `detail`: "Muitas reservas ao mesmo tempo. Tente de novo." O front pode repetir **uma vez** e não esconde o horário | Conflito momentâneo |
 | 409 | <a id="conflito_de_versao"></a>`CONFLITO_DE_VERSAO` | `version` desatualizada | Registro alterado por outra pessoa |
 | 409 | <a id="nome_ja_existe"></a>`NOME_JA_EXISTE` | serviço com o mesmo nome | Nome já existe |
 | 422 | <a id="fora_do_expediente"></a>`FORA_DO_EXPEDIENTE` | fora da jornada ou em folga | Fora do horário de atendimento |
@@ -339,3 +340,5 @@ Só a assinatura; não entram no beta.
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
 | 1.0 (proposta) | 2026-11-13 | primeira versão: catálogo, disponibilidade, CEP, auth, agendamentos, guest, cobrança, webhook, privacidade e painel admin | não (não há front ainda) |
+| 1.0.2 (proposta) | 2026-11-13 | novo `409 CONFLITO_CONCORRENTE` em `POST /agendamentos`, `POST /agendamentos/guest` e remarcação (deadlock depois do retry; o front pode repetir uma vez) | não (código novo; nenhum renomeado) |
+| 1.0.1 (proposta) | 2026-11-13 | revisão do Alicerce: `cpfMascarado` só no `201` da cobrança (sai da repetição `200` e do painel); `devolucaoPendente` sai de `Cobranca` (o status basta); idempotência compara o corpo por HMAC; `summary` em todas as operações do OpenAPI (`redocly lint` 2.78.0: 0 erros, 14 avisos) | não (não há front ainda) |
