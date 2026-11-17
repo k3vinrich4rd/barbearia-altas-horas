@@ -70,6 +70,28 @@ class ArquiteturaTest {
     }
 
     @Test
+    @DisplayName("A71: os cadastros do admin chamam a agenda só por PainelDaAgenda e a conta só por Contas; não usam repositório, entidade nem SQL alheios")
+    void cadastrosDoAdminSoPelaApiPublica() {
+        noClasses().that().resideInAPackage("..admin.cadastro..")
+                .should().dependOnClassesThat().resideInAnyPackage("..agenda.catalogo..", "..agenda.disponibilidade..",
+                        "..agenda.reserva..", "..conta.usuario..", "..conta.sessao..", "..conta.cadastro..",
+                        "..conta.admin..", "..pagamento..")
+                .because("o catálogo, a jornada, a folga e a configuração são da agenda, e a conta é da conta (ADR 0002)")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("..admin.cadastro..")
+                .should().dependOnClassesThat(com.tngtech.archunit.base.DescribedPredicate.describe(
+                        "classes da agenda que não são o PainelDaAgenda",
+                        classe -> classe.getPackageName().equals("io.github.k3vinrich4rd.altashoras.agenda")
+                                && !classe.getName().startsWith("io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda")))
+                .because("PainelDaAgenda é a única porta do painel para os cadastros da agenda")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("..admin.cadastro..")
+                .should().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.EntityManager")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.simple.JdbcClient")
+                .check(CLASSES);
+    }
+
+    @Test
     @DisplayName("A40: ninguém depende do módulo admin, e o admin só usa JdbcClient, JdbcTemplate ou EntityManager na própria auditoria")
     void adminIsoladoDasTabelasAlheias() {
         noClasses().that().resideOutsideOfPackage("..admin..")

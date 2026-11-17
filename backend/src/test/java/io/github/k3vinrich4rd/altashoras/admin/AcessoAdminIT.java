@@ -1,5 +1,6 @@
 package io.github.k3vinrich4rd.altashoras.admin;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,5 +75,61 @@ class AcessoAdminIT extends PainelBase {
             chamar(metodo, rota[1], eduardo, "").andExpect(status().is(Integer.parseInt(rota[2])));
         }
         agendaDoDia(barbeiro).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("A70: as 12 rotas de cadastro da 5B dão 401 sem token, 403 para CLIENTE e 403 ACESSO_NEGADO para quem só é BARBEIRO")
+    void cadastrosSoParaAdmin() throws Exception {
+        UUID barbeiro = UUID.randomUUID();
+        UUID folga = UUID.randomUUID();
+        String servico = """
+                { "nome": "Corte", "duracaoMin": 30, "precoCentavos": 4500 }
+                """;
+        String servicoAlterado = """
+                { "nome": "Corte", "duracaoMin": 30, "precoCentavos": 4500, "ativo": true, "version": 0 }
+                """;
+        String barbeiroNovo = """
+                { "nomeExibicao": "Bruno" }
+                """;
+        String barbeiroAlterado = """
+                { "nomeExibicao": "Bruno", "ativo": true, "version": 0 }
+                """;
+        String folgaNova = """
+                { "inicio": "2026-12-01T14:00:00-03:00", "fim": "2026-12-01T16:00:00-03:00" }
+                """;
+        String configuracao = """
+                { "antecedenciaMinimaMin": 120, "intervaloEntreAtendimentosMin": 0, "granularidadeMin": 30,
+                  "horizonteDias": 30, "expiracaoPagamentoMin": 15, "version": 0 }
+                """;
+        String[][] rotas = {
+                {"GET", "/admin/servicos", ""},
+                {"POST", "/admin/servicos", servico},
+                {"PUT", "/admin/servicos/" + UUID.randomUUID(), servicoAlterado},
+                {"GET", "/admin/barbeiros", ""},
+                {"POST", "/admin/barbeiros", barbeiroNovo},
+                {"PUT", "/admin/barbeiros/" + barbeiro, barbeiroAlterado},
+                {"PUT", "/admin/barbeiros/" + barbeiro + "/jornada", "[]"},
+                {"GET", "/admin/barbeiros/" + barbeiro + "/folgas", ""},
+                {"POST", "/admin/barbeiros/" + barbeiro + "/folgas", folgaNova},
+                {"DELETE", "/admin/barbeiros/" + barbeiro + "/folgas/" + folga, ""},
+                {"GET", "/admin/configuracao", ""},
+                {"PUT", "/admin/configuracao", configuracao}};
+        assertThat(rotas.length).isEqualTo(12);
+
+        Conta cliente = conta("CLIENTE");
+        Conta soBarbeiro = conta("BARBEIRO");
+        Conta eduardo = conta("ADMIN", "BARBEIRO");
+        for (String[] rota : rotas) {
+            HttpMethod metodo = HttpMethod.valueOf(rota[0]);
+            chamar(metodo, rota[1], null, rota[2]).andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value("NAO_AUTENTICADO"));
+            chamar(metodo, rota[1], cliente, rota[2]).andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+            chamar(metodo, rota[1], soBarbeiro, rota[2]).andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
+            // Quem tem ADMIN e BARBEIRO passa pela barreira: nunca recebe 401 nem 403 (a rota responde o que for dela).
+            int resposta = chamar(metodo, rota[1], eduardo, rota[2]).andReturn().getResponse().getStatus();
+            assertThat(resposta).as("%s %s com ADMIN", rota[0], rota[1]).isNotIn(401, 403);
+        }
     }
 }

@@ -15,4 +15,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     @Query("SELECT count(u) > 0 FROM Usuario u JOIN u.papeis p WHERE p = :papel")
     boolean existeComPapel(String papel);
+
+    /** A conta existe, está ativa e tem o papel (a API pública {@code conta.Contas} usa). */
+    @Query("SELECT count(u) > 0 FROM Usuario u JOIN u.papeis p WHERE u.id = :id AND u.ativo = true AND p = :papel")
+    boolean ativoComPapel(UUID id, String papel);
 }

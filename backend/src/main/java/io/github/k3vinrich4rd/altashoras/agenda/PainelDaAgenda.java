@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -65,6 +66,51 @@ public class PainelDaAgenda {
     public record Mudanca(String de, Item item) {
     }
 
+    // ---- cadastros do painel (5B) ----------------------------------------------------------------------------------
+
+    /** Resultado de uma alteração: o item já atualizado e os NOMES dos campos que mudaram (a auditoria guarda só isso). */
+    public record Alterado<T>(T item, List<String> campos) {
+    }
+
+    public record NovoServico(String nome, @Nullable String descricao, int duracaoMin, long precoCentavos) {
+    }
+
+    public record AlteracaoDeServico(String nome, @Nullable String descricao, int duracaoMin, long precoCentavos,
+            boolean ativo, long version) {
+    }
+
+    public record ServicoCadastrado(UUID id, String nome, @Nullable String descricao, int duracaoMin,
+            long precoCentavos, boolean ativo, long version) {
+    }
+
+    /** Um intervalo de trabalho num dia da semana (1 = segunda ... 7 = domingo), em hora local da barbearia. */
+    public record Intervalo(int diaSemana, LocalTime horaInicio, LocalTime horaFim) {
+    }
+
+    public record AlteracaoDeBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, boolean ativo, long version) {
+    }
+
+    public record BarbeiroCadastrado(UUID id, String nomeExibicao, @Nullable UUID usuarioId, boolean ativo,
+            long version, List<Intervalo> jornada) {
+    }
+
+    /** O motivo da folga pode ser pessoal (consulta médica): o toString não o imprime (R30). */
+    public record FolgaCadastrada(UUID id, Instant inicio, Instant fim, @Nullable String motivo) {
+
+        @Override
+        public String toString() {
+            return "FolgaCadastrada[" + id + "]";
+        }
+    }
+
+    public record NovaConfiguracao(int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin, int granularidadeMin,
+            int horizonteDias, int expiracaoPagamentoMin, long version) {
+    }
+
+    public record ConfiguracaoCadastrada(String fuso, int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin,
+            int granularidadeMin, int horizonteDias, int expiracaoPagamentoMin, long version) {
+    }
+
     private static final int MOTIVO_MAXIMO = 300;
 
     private static final String SELECIONAR = """
@@ -98,9 +144,11 @@ public class PainelDaAgenda {
     private final ConfiguracaoAgendaRepository configuracoes;
     private final ApplicationEventPublisher eventos;
     private final Clock clock;
+    private final CadastrosDoPainel cadastros;
 
     PainelDaAgenda(JdbcClient jdbc, EntityManager em, ConfiguracaoAgendaRepository configuracoes,
-            ApplicationEventPublisher eventos, Clock clock) {
+            ApplicationEventPublisher eventos, Clock clock, CadastrosDoPainel cadastros) {
+        this.cadastros = cadastros;
         this.jdbc = jdbc;
         this.em = em;
         this.configuracoes = configuracoes;
@@ -205,6 +253,63 @@ public class PainelDaAgenda {
             eventos.publishEvent(new ReservaCancelada(id));
         }
         return new Mudanca(de, jdbc.sql(SELECIONAR + " WHERE r.id = :id").param("id", id).query(LINHA).single());
+    }
+
+    // ---- cadastros do painel (5B): a agenda é a dona das tabelas; o admin só chama e audita ---------------------------
+
+    public List<ServicoCadastrado> servicos() {
+        return cadastros.servicos();
+    }
+
+    public ServicoCadastrado criarServico(NovoServico novo) {
+        return cadastros.criarServico(novo);
+    }
+
+    public Alterado<ServicoCadastrado> alterarServico(UUID id, AlteracaoDeServico alteracao) {
+        return cadastros.alterarServico(id, alteracao);
+    }
+
+    public List<BarbeiroCadastrado> barbeiros() {
+        return cadastros.barbeiros();
+    }
+
+    public BarbeiroCadastrado criarBarbeiro(String nomeExibicao, @Nullable UUID usuarioId) {
+        return cadastros.criarBarbeiro(nomeExibicao, usuarioId);
+    }
+
+    public Alterado<BarbeiroCadastrado> alterarBarbeiro(UUID id, AlteracaoDeBarbeiro alteracao) {
+        return cadastros.alterarBarbeiro(id, alteracao);
+    }
+
+    /** Substitui a semana inteira numa transação. Sobreposição no mesmo dia: 422; encostar não é sobrepor (E19). */
+    public List<Intervalo> substituirJornada(UUID barbeiroId, List<Intervalo> intervalos) {
+        return cadastros.substituirJornada(barbeiroId, intervalos);
+    }
+
+    /** As folgas de hoje em diante (dia civil no fuso da barbearia), por início. */
+    public List<FolgaCadastrada> folgas(UUID barbeiroId) {
+        return cadastros.folgas(barbeiroId);
+    }
+
+    /**
+     * Cria a folga se nenhuma reserva ativa a atravessa. Trava a linha do barbeiro ({@code FOR UPDATE}), e a reserva
+     * trava a mesma linha com {@code FOR SHARE}: folga e reserva nunca passam juntas no mesmo horário (E21).
+     */
+    public FolgaCadastrada criarFolga(UUID barbeiroId, UUID criadaPor, Instant inicio, Instant fim,
+            @Nullable String motivo) {
+        return cadastros.criarFolga(barbeiroId, criadaPor, inicio, fim, motivo);
+    }
+
+    public void removerFolga(UUID barbeiroId, UUID folgaId) {
+        cadastros.removerFolga(barbeiroId, folgaId);
+    }
+
+    public ConfiguracaoCadastrada configuracao() {
+        return cadastros.configuracao();
+    }
+
+    public Alterado<ConfiguracaoCadastrada> alterarConfiguracao(UUID alteradaPor, NovaConfiguracao nova) {
+        return cadastros.alterarConfiguracao(alteradaPor, nova);
     }
 
     private static OffsetDateTime utc(Instant instante) {

@@ -30,4 +30,19 @@ public interface BarbeiroRepository extends JpaRepository<Barbeiro, UUID> {
             ORDER BY lower(b.nomeExibicao)
             """)
     List<Barbeiro> listarAtivosComJornadas();
+
+    /** Todos os barbeiros (inclusive inativos) com as jornadas, em UMA consulta, para o painel. */
+    @Query("""
+            SELECT b
+            FROM Barbeiro b
+            LEFT JOIN FETCH b.jornadas
+            ORDER BY lower(b.nomeExibicao)
+            """)
+    List<Barbeiro> listarTodosComJornadas();
+
+    @Query("SELECT count(b) > 0 FROM Barbeiro b WHERE b.usuarioId = :usuarioId")
+    boolean existeComUsuario(UUID usuarioId);
+
+    @Query("SELECT count(b) > 0 FROM Barbeiro b WHERE b.usuarioId = :usuarioId AND b.id <> :id")
+    boolean existeOutroComUsuario(UUID usuarioId, UUID id);
 }
