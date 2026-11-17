@@ -30,6 +30,7 @@ public enum CodigoErro {
     CONFLITO_DE_VERSAO(409, "Registro alterado por outra pessoa", "Recarregue e tente de novo."),
     CONFLITO_CONCORRENTE(409, "Conflito momentâneo", "Muitas reservas ao mesmo tempo. Tente de novo."),
     NOME_JA_EXISTE(409, "Nome já existe", "Já existe um registro com este nome."),
+    COBRANCA_EM_ANDAMENTO(409, "Cobrança em andamento", "Esta reserva já tem uma cobrança pendente."),
     MIDIA_NAO_SUPORTADA(415, "Tipo de conteúdo não suportado", "Envie o corpo como application/json."),
     FORA_DO_EXPEDIENTE(422, "Fora do horário de atendimento", "A barbearia não atende neste horário."),
     ANTECEDENCIA_INSUFICIENTE(422, "Antecedência mínima não atendida", "Escolha um horário mais à frente."),

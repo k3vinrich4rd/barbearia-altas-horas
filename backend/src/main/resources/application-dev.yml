@@ -13,3 +13,7 @@ app:
       # Só para rodar na sua máquina; em prod o segredo vem obrigatoriamente do ambiente.
       segredo: ${JWT_SEGREDO:somente-desenvolvimento-local-nao-usar-em-producao}
     cors-origens: ${CORS_ORIGENS:http://localhost:3000}
+  pagamento:
+    # Só para rodar na sua máquina; em prod o segredo vem obrigatoriamente do ambiente.
+    idempotencia-segredo: ${IDEMPOTENCIA_HMAC_SEGREDO:somente-desenvolvimento-local-idempotencia}
+    webhook-token: ${GATEWAY_SEGREDO_WEBHOOK:token-do-webhook-so-de-desenvolvimento}
