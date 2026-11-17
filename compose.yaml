@@ -20,5 +20,25 @@ services:
       timeout: 3s
       retries: 10
 
+  # Banco vetorial do RAG da documentação (ferramentas/rag). Só sobe com: docker compose --profile rag up -d rag-db
+  rag-db:
+    image: pgvector/pgvector:pg18
+    container_name: altas-horas-rag-db
+    profiles: ["rag"]
+    environment:
+      POSTGRES_DB: rag
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: ${RAG_SENHA:-rag_dev}
+    ports:
+      - "${RAG_PORTA:-5434}:5432"
+    volumes:
+      - altas-horas-rag:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d rag"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   altas-horas-dados:
+  altas-horas-rag:
