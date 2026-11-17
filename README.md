@@ -28,6 +28,7 @@
 [![Decisões](https://img.shields.io/badge/🧭_Decisões_(ADRs)-0A0A0A?style=for-the-badge)](#-decisões-de-arquitetura-adrs)
 [![Segurança](https://img.shields.io/badge/🔐_Segurança_e_LGPD-0A0A0A?style=for-the-badge)](#-segurança-e-lgpd)
 [![Testes](https://img.shields.io/badge/🧪_Rodar_e_testar-0A0A0A?style=for-the-badge)](#-rodar-e-testar)
+[![SDD + IA](https://img.shields.io/badge/📐_SDD_+_IA-0A0A0A?style=for-the-badge)](#-como-o-projeto-é-feito-sdd--ia)
 [![Roadmap](https://img.shields.io/badge/🗺_Roadmap-0A0A0A?style=for-the-badge)](#-roadmap-em-fatias)
 
 </div>
@@ -35,7 +36,9 @@
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
 > [!IMPORTANT]
-> **Em construção por fatias (Spec-Driven Development).** Domínio, contrato, banco e decisões estão escritos e revisados; o código entra em fatias pequenas, cada uma com testes e revisão na `develop`. **Fatia 1 pronta:** esqueleto, migração V1 com a constraint anti-sobreposição e **26 testes** com PostgreSQL real (0 falhas, 87% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
+> **Projeto individual de Kevin Richard**, feito com **Spec-Driven Development** e IA: o backend é escrito por mim com o Claude Code como par de programação, e o frontend é gerado com IA a partir do contrato ([como](#-como-o-projeto-é-feito-sdd--ia)).
+>
+> **Em construção por fatias.** Domínio, contrato, banco e decisões estão escritos e revisados; o código entra em fatias pequenas, cada uma com testes e revisão na `develop`. **Fatia 1 pronta:** esqueleto, migração V1 com a constraint anti-sobreposição e **26 testes** com PostgreSQL real (0 falhas, 87% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
 
 ## ⚡ Em 30 segundos
 
@@ -44,6 +47,7 @@
 | **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido. |
 | **Solução** | Agendamento online com horários livres em tempo real e **pagamento 100% antecipado** (Pix ou cartão de crédito). O horário só é confirmado quando o gateway avisa que o dinheiro entrou. |
 | **Para quem** | Clientes da **Barbearia Altas Horas** (Osasco, desde 1997) e o barbeiro **Carlos Eduardo Cândido**, que administra tudo num painel protegido. |
+| **Quem faz** | Só o **Kevin Richard**: backend com o Claude Code como par de programação; frontend gerado com IA e revisado por mim. Cada fatia começa por uma [spec](docs/sdd/README.md). |
 | **Por que é nível Pleno** | Concorrência resolvida no banco, webhook idempotente, máquina de estados explícita, erros padronizados, LGPD desde a primeira linha e testes com PostgreSQL real. |
 | **Stack** | Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js |
 | **Deploy (Fase 1)** | Vercel (front) · Render (API em Docker) · Aiven (PostgreSQL) |
@@ -288,7 +292,45 @@ cd backend && ./mvnw verify      # 26 testes com PostgreSQL real via Testcontain
 | Rotas de negócio | `http://localhost:8080/...` | ⏳ Fatia 2 em diante |
 | Front | `http://localhost:3000` | ⏳ Fatia 7 |
 
-O passo a passo para testar **o backend, o frontend e os dois juntos** (inclusive pagar no sandbox e ver o webhook confirmar) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**.
+O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
+
+## 📐 Como o projeto é feito: SDD + IA
+
+Este é um projeto **só meu**. Sou desenvolvedor backend Java; não tenho um parceiro de frontend e essa não é a minha especialidade. Em vez de esconder isso, deixei o processo explícito:
+
+| Parte | Quem faz | Como a qualidade é garantida |
+|---|---|---|
+| **Especificação** | eu, com o Claude Code | cada fatia tem uma [spec](docs/sdd/README.md) com decisões de desenho e critérios de aceite numerados; nada de código antes do meu OK |
+| **Backend** (Java 25 + Spring Boot 4) | **eu**, com o Claude Code como par de programação | um teste por critério da spec, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CI com CodeQL e gitleaks |
+| **Frontend** (Next.js) | **gerado com IA** a partir do contrato OpenAPI e das specs de tela, revisado por mim | tipos gerados do contrato, testes das telas críticas (checkout com aceite obrigatório), checagem de acessibilidade |
+| **Deploy** | eu, com IA para os passos de infraestrutura | Vercel + Render + Aiven, com o guia de testes rodado contra o ambiente publicado |
+
+### Por que Spec-Driven Development
+
+Quando a IA escreve boa parte do código, quem garante a qualidade é a **especificação**, não o prompt. Sem spec, a IA preenche as lacunas com suposições; com spec, ela implementa critérios que viram testes, e eu reviso o código **contra a spec**.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
+flowchart LR
+    R[Regra R#] --> S[📐 Spec<br/>Dado / Quando / Então]
+    S --> OK{meu OK}
+    OK --> C[📜 Contrato]
+    C --> T[🔴 Testes]
+    T --> I[🟢 Código<br/>eu + Claude Code]
+    I --> V[✅ CI]
+    V --> D[📚 Docs com saída real]
+```
+
+| Ferramenta | Para quê |
+|---|---|
+| [Specs das fatias](docs/sdd/README.md) | a fonte da verdade de cada entrega ([modelo](docs/sdd/modelo-de-spec.md), [Fatia 1](docs/sdd/fatia-1-esqueleto.md), [Fatia 2](docs/sdd/fatia-2-catalogo-disponibilidade.md)) |
+| [`CLAUDE.md`](CLAUDE.md) | o índice que a IA lê antes de mexer: onde está cada regra, decisão e padrão |
+| [Skills do projeto](.claude/skills/) | receitas repetíveis: `/especificar-fatia`, `/implementar-fatia`, `/verificar-contrato` |
+| [`scripts/conferir-spec.sh`](scripts/conferir-spec.sh) | *eval* do processo: todo critério da spec precisa de um teste com o número dele (roda no CI) |
+| [Agente revisor](.claude/agents/revisor-de-fatia.md) | segundo par de olhos, só leitura: confere o código contra a spec antes da PR |
+| [`scripts/buscar-contexto.sh`](scripts/buscar-contexto.sh) | recuperação por identificador (`R15`, `D40`, `A7`): traz a regra, a decisão, a spec e o teste ligados a ela. Para ~40 documentos com IDs estáveis, isso é mais preciso que um RAG vetorial ([por quê](docs/sdd/README.md#por-que-não-um-rag-com-banco-vetorial)) |
+
+<sub>Ferramentas de IA usadas: Claude Code (backend, specs e revisão) e outras ferramentas de IA no frontend. Números e respostas no README sempre saem de execução real, nunca de estimativa da IA.</sub>
 
 ## 🗺 Roadmap em fatias
 
@@ -296,7 +338,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 
 - [x] **Fatia 0 · Especificação:** domínio, máquina de estados, contrato OpenAPI v1.1, DDL proposto e ADRs
 - [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
-- [ ] **Fatia 2 · Catálogo e disponibilidade:** serviços, jornada com almoço, slots de 30 min, teste de concorrência da constraint
+- [ ] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento, horários livres com almoço, folgas, antecedência e reservas pendentes vencidas (📝 [spec escrita](docs/sdd/fatia-2-catalogo-disponibilidade.md), 28 critérios)
 - [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas
 - [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração
 - [ ] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
@@ -315,7 +357,10 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 | [Banco](docs/banco/erd.md) | ERD, constraints e DDL proposto |
 | [ADRs](docs/adr/README.md) | as 10 decisões de arquitetura |
 | [Painel admin](docs/admin/painel-admin.md) | matriz de acesso |
-| [Guia de testes](docs/guia-testes.md) | rodar e testar backend, frontend e os dois juntos |
+| [Guia de testes](docs/guia-testes.md) | teste você mesmo, à mão: o banco, os erros e os cenários de visitante, cliente e admin |
+| [Como foi construído](docs/como-foi-construido.md) | o projeto de ponta a ponta: método, linha do tempo, código arquivo por arquivo, skills e agente de IA |
+| [SDD](docs/sdd/README.md) | o processo, o modelo de spec e a spec de cada fatia |
+| [Estudos aplicados](docs/estudos-aplicados.md) | minhas metas de estudo (Java/Spring e IA) ligadas a arquivos e testes deste projeto |
 
 ## 📦 Usar como template
 
@@ -338,6 +383,8 @@ Este projeto é a minha forma de levar para o código o cuidado que ele coloca e
 
 ## 👤 Autor
 
-**Kevin Richard** · [GitHub @k3vinrich4rd](https://github.com/k3vinrich4rd)
+**Kevin Richard** · desenvolvedor backend Java · Osasco/SP · [GitHub @k3vinrich4rd](https://github.com/k3vinrich4rd)
 
-<sub>Logo, fotos e identidade visual pertencem à Barbearia Altas Horas. Feito com Spec-Driven Development e apoio de IA (Claude Code, Gemini e GitHub Copilot); cada decisão tem fonte e data.</sub>
+Projeto individual: especificação, backend, deploy e revisão de tudo por mim; frontend gerado com IA.
+
+<sub>Logo, fotos e identidade visual pertencem à Barbearia Altas Horas. Feito com Spec-Driven Development e apoio de IA; cada decisão tem fonte e data.</sub>

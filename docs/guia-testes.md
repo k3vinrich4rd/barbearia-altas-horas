@@ -1,25 +1,34 @@
-# 🧪 Rodar e testar · Barbearia Altas Horas
-
-> [!IMPORTANT]
-> ✅ = rodado de verdade, com a saída copiada da execução (16/11/2026, Fatia 1). ⏳ = vira ✅ quando a fatia dele entrar na `develop`.
+# 🧪 Teste você mesmo, de ponta a ponta · Barbearia Altas Horas
 
 | | |
 |---|---|
-| 🎯 **Para que serve** | subir o projeto do zero e conferir, em ~15 minutos, as regras que mais importam |
-| 👥 **Para quem** | recrutador, revisor ou quem for usar o projeto como template |
-| 🧰 **Precisa de** | Docker Desktop · JDK 25 · um navegador · `curl` |
-| 🔒 **Sem segredo** | tudo roda com dados **fictícios** e o gateway em **sandbox** (nenhum dinheiro real) |
+| 🎯 **Para que serve** | subir o projeto do zero e testar **à mão**, sem depender de ninguém (nem de IA), cada regra que importa |
+| 👥 **Para quem** | o Kevin, um recrutador, um revisor |
+| 🧰 **Precisa de** | Docker Desktop · JDK 25 · Git Bash (ou qualquer terminal com `curl`) |
+| 🔒 **Sem segredo** | dados **fictícios** e gateway em **sandbox**; nenhum dinheiro real |
 
-## Sumário
-1. [Subir o projeto](#1-subir-o-projeto)
-2. [Backend: a API sozinha](#2-backend-a-api-sozinha)
-3. [Frontend: as telas](#3-frontend-as-telas)
-4. [Os dois juntos: a jornada completa](#4-os-dois-juntos-a-jornada-completa)
-5. [Testes automatizados](#5-testes-automatizados)
+> [!IMPORTANT]
+> **✅ = dá para testar hoje**, com a saída copiada de uma execução real (16/11/2026, Fatia 1).
+> **⏳ Fatia N = roteiro já escrito**, que vira ✅ quando a fatia entrar na `develop` (aí ganha o comando e a resposta reais).
+
+## Mapa
+
+| Parte | O que você testa | Hoje |
+|---|---|:-:|
+| [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 26 testes com PostgreSQL real | ✅ |
+| [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
+| [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
+| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, agendar e pagar sem conta | ⏳ Fatias 2 e 4 |
+| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, agendar, pagar com cartão | ⏳ Fatias 3 e 4 |
+| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | agenda, concluir, marcar falta, pagamento tardio | ⏳ Fatias 3 e 5 |
+| [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
+| [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
+| [Deu erro?](#deu-erro) | problemas comuns | ✅ |
 
 ---
 
-## 1. Subir o projeto
+## 0. Subir o projeto
 
 ```bash
 git clone https://github.com/k3vinrich4rd/barbearia-altas-horas.git
@@ -28,16 +37,13 @@ docker compose up -d                                         # PostgreSQL 18 na 
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-O perfil `dev` funciona sem `.env` (usa os padrões locais do `compose.yaml`) e cria dados fictícios: o barbeiro **Carlos Eduardo Cândido**, os 5 serviços reais com preço e a jornada de terça a sábado (07h–12h e 13h–20h).
+Deixe esse terminal aberto (a API fica rodando) e abra **outro** para os testes. O perfil `dev` não precisa de `.env` e cria dados fictícios: o barbeiro **Carlos Eduardo Cândido**, os 5 serviços reais e a jornada de terça a sábado (07h–12h e 13h–20h).
 
-| O que sobe | Endereço | |
-|---|---|:-:|
-| API | `http://localhost:8080` | ✅ |
-| Health | `http://localhost:8080/actuator/health` | ✅ |
-| Front (Next.js) | `http://localhost:3000` | ⏳ Fatia 7 |
-| API e front dentro do compose | `docker compose up --build` | ⏳ Fatia 8 |
+```bash
+curl -i http://localhost:8080/actuator/health
+```
 
-Resposta real do health (16/11/2026):
+✅ Resposta real:
 
 ```http
 HTTP/1.1 200
@@ -47,7 +53,108 @@ Content-Type: application/vnd.spring-boot.actuator.v3+json
 {"groups":["liveness","readiness"],"status":"UP"}
 ```
 
-E de uma rota que ainda não existe, no padrão RFC 9457 que toda a API vai seguir:
+**O que prova:** a API subiu, conectou no banco e o Flyway aplicou a migração `V1` e o seed.
+
+Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `docker compose down -v`.
+
+## 1. Testes automatizados
+
+```bash
+cd backend && ./mvnw verify
+```
+
+✅ Resultado real (Windows + Docker Desktop): **26 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **87%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+
+| Classe | Testes | O que prova |
+|---|:-:|---|
+| `ContextoSobeIT` | 1 | a API sobe no PostgreSQL real e o health responde UP |
+| `ErroPadraoTest` | 3 | 404 e 405 em `problem+json` com `code` e `traceId`; `X-Trace-Id` fora do formato é descartado |
+| `V1MigracaoIT` | 6 | V1 aplicada, `btree_gist`, constraint e índices; regras reais na configuração; o banco recusa `AGUARDANDO_PAGAMENTO` sem prazo, `CONFIRMADO` sem aceite e método fora de PIX/cartão |
+| `SobreposicaoConstraintIT` | 6 | mesmo horário e sobreposição parcial dão `23P01`; encostadas `[)` passam; `CANCELADO` e `EXPIRADO` não ocupam |
+| `ConcorrenciaReservaIT` | 3 | 12 conexões disputando o mesmo horário: **exatamente 1 vence** (repetido 3 vezes) |
+| `SeedDevIT` | 3 | perfil `dev` com o Carlos, os 5 serviços e a jornada com almoço |
+| `ModulithTest` | 2 | 8 módulos e fronteiras verificadas |
+| `ArquiteturaTest` | 2 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double` |
+
+Rodar uma classe só: `./mvnw test -Dtest=ConcorrenciaReservaIT`.
+
+## 2. O banco na mão: as regras que o PostgreSQL garante
+
+Abra o `psql` dentro do container (a API pode estar rodando ou não):
+
+```bash
+docker exec -it altas-horas-postgres psql -U altashoras
+```
+
+Para sair do `psql`: `\q`.
+
+### 2.1 ✅ O catálogo real
+
+```sql
+SELECT nome, duracao_min, preco_centavos FROM servico ORDER BY preco_centavos;
+```
+
+```text
+                nome                 | duracao_min | preco_centavos
+-------------------------------------+-------------+----------------
+ Acabamento (Pezinho) / Sobrancelha  |          30 |           2000
+ Barba Completa / Desenhada          |          30 |           3000
+ Corte Clássico / Social             |          30 |           4500
+ Corte Degradê / Fade / Navalhado    |          30 |           5500
+ Corte Moderno / Visagismo (Tesoura) |          60 |           6000
+```
+
+**O que prova:** preço em centavos (inteiro, nunca `float`) e o visagismo ocupando 60 min.
+
+### 2.2 ✅ Dois clientes não pegam o mesmo horário
+
+Primeira reserva, terça 01/12/2026 às 10h00 (Corte Degradê):
+
+```sql
+INSERT INTO reserva (barbeiro_id, servico_id, origem, inicio, fim, fim_ocupacao, status, preco_centavos, expira_em)
+VALUES ('b0000000-0000-4000-8000-000000000001', '6f1c2a8e-0000-4000-8000-000000000002', 'GUEST',
+        '2026-12-01 10:00-03', '2026-12-01 10:30-03', '2026-12-01 10:30-03', 'AGUARDANDO_PAGAMENTO', 5500, '2026-12-01 09:00-03');
+```
+
+`INSERT 0 1`. Agora outro cliente tenta 10h15, que sobrepõe:
+
+```sql
+INSERT INTO reserva (barbeiro_id, servico_id, origem, inicio, fim, fim_ocupacao, status, preco_centavos, expira_em)
+VALUES ('b0000000-0000-4000-8000-000000000001', '6f1c2a8e-0000-4000-8000-000000000001', 'GUEST',
+        '2026-12-01 10:15-03', '2026-12-01 10:45-03', '2026-12-01 10:45-03', 'AGUARDANDO_PAGAMENTO', 4500, '2026-12-01 09:00-03');
+```
+
+```text
+ERROR:  conflicting key value violates exclusion constraint "reserva_sem_sobreposicao"
+```
+
+**O que prova:** quem impede o *double booking* é o banco (`EXCLUDE USING gist`), não um `if` no código. Vale para qualquer caminho de escrita e para duas instâncias da API ([ADR 0003](adr/0003-anti-double-booking-no-banco.md)). Troque `10:15` por `10:30` e o `INSERT` passa: o intervalo é meio aberto `[)`.
+
+### 2.3 ✅ Ninguém é confirmado sem aceitar a política
+
+```sql
+UPDATE reserva SET status = 'CONFIRMADO' WHERE inicio = '2026-12-01 10:00-03';
+```
+
+```text
+ERROR:  new row for relation "reserva" violates check constraint "reserva_aceite_ck"
+```
+
+**O que prova:** mesmo que um bug no código tentasse confirmar sem o aceite, o banco recusa (regra R18).
+
+### 2.4 ✅ Limpar
+
+```sql
+DELETE FROM reserva WHERE inicio >= '2026-12-01' AND inicio < '2026-12-02';
+```
+
+## 3. Erros padronizados (RFC 9457)
+
+```bash
+curl -i http://localhost:8080/servicos
+```
+
+✅ Resposta real (a rota `/servicos` chega na Fatia 2; hoje ela mostra o formato de erro de toda a API):
 
 ```http
 HTTP/1.1 404
@@ -58,74 +165,101 @@ Content-Type: application/problem+json
  "code":"RECURSO_NAO_ENCONTRADO","traceId":"bf302b905aa348aabe50c5322f03f4b6","errors":[]}
 ```
 
-> [!TIP]
-> Já tem um PostgreSQL instalado na 5432? Por isso o compose usa a **5433**. Para outra porta: `POSTGRES_PORTA=5444 docker compose up -d` e a mesma variável ao subir a API.
+**O que prova:** o front decide pelo `code` (estável), e o `traceId` da tela é o mesmo do log da API. Confira: procure o `traceId` da sua resposta no terminal onde a API está rodando.
 
-## 2. Backend: a API sozinha
+```bash
+curl -i -X DELETE http://localhost:8080/actuator/health     # 405 METODO_NAO_PERMITIDO, mesmo formato
+```
+
+---
+
+## 4. Cenário do visitante (sem conta)
+
+> ⏳ Os passos V1 a V3 chegam na **Fatia 2** ([spec](sdd/fatia-2-catalogo-disponibilidade.md)); V4 a V9, na **Fatia 4**.
 
 | # | O que fazer | O que deve acontecer | O que prova | |
 |---|---|---|---|:-:|
-| 1 | `GET /actuator/health` | `200 UP` | a API subiu e o Flyway aplicou as migrações | ✅ |
-| 2 | `GET /servicos` | os 5 serviços com preço em centavos | catálogo vem do banco | ⏳ |
-| 3 | `GET /disponibilidade?servicoId=…&data=…` | horários de 30 em 30 min, sem 12h00–13h00 e só a partir de agora + 2 h | regras da agenda como dado | ⏳ |
-| 4 | cadastro e login (`POST /auth/cadastro`, `POST /auth/login`) | `201` e `200` | autenticação | ⏳ |
-| 5 | `POST /agendamentos` | `201` com `AGUARDANDO_PAGAMENTO` e `expiraEm` (15 min) | horário travado até pagar | ⏳ |
-| 6 | repetir o passo 5 no mesmo horário | `409 HORARIO_INDISPONIVEL` em `application/problem+json` | anti double booking no banco + RFC 9457 | ⏳ |
-| 7 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar a política | ⏳ |
-| 8 | mesma chamada com `"metodo": "PIX"` e `"aceitePolitica": true` | `201` com QR Code e copia e cola de **100%** do preço | pagamento integral | ⏳ |
-| 9 | confirmar a cobrança no painel do **sandbox** do gateway | o webhook chega e a reserva vira `CONFIRMADO` | só o gateway confirma | ⏳ |
-| 10 | reenviar o mesmo webhook | `200` e nada muda | idempotência | ⏳ |
-| 11 | criar outra reserva e não pagar por 15 min | vira `EXPIRADO` e o horário volta no passo 3 | ninguém segura horário de graça | ⏳ |
-| 12 | `POST /agendamentos/{id}/cancelamento` | `404` | não existe cancelamento pelo cliente | ⏳ |
+| V1 | `curl http://localhost:8080/servicos` | os 5 serviços com `precoCentavos` e `precoFormatado` (`R$ 55,00`) | catálogo público vindo do banco | ⏳ 2 |
+| V2 | `curl http://localhost:8080/politica-pagamento` | `{ "versao": 1, "texto": "Após o pagamento antecipado de 100%..." }` | o texto que o cliente aceita é versionado | ⏳ 2 |
+| V3 | `curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=<uma terça>"` | 24 horários de 30 em 30 min, **sem** 12h00 e 12h30; hoje, só a partir de agora + 2 h | jornada, almoço e antecedência como dado | ⏳ 2 |
+| V4 | `POST /agendamentos/guest` com serviço, horário, nome, WhatsApp e e-mail fictícios | `201`, `AGUARDANDO_PAGAMENTO`, `expiraEm` (15 min) e `tokenGuest` (mostrado uma vez) | horário travado sem pedir CPF | ⏳ 4 |
+| V5 | repetir o V3 | o horário reservado sumiu | reserva pendente ocupa o horário | ⏳ 4 |
+| V6 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar | ⏳ 4 |
+| V7 | mesma chamada com `"metodo": "PIX"`, CPF fictício e `"aceitePolitica": true` | `201` com QR Code e copia e cola de **100%** do preço | pagamento integral; CPF só aqui | ⏳ 4 |
+| V8 | confirmar a cobrança no painel do **sandbox** do gateway | o webhook chega e `GET /agendamentos/guest/{id}` mostra `CONFIRMADO` | só o gateway confirma | ⏳ 4 |
+| V9 | fazer outra reserva e **não** pagar por 15 min | vira `EXPIRADO` e o horário volta no V3 | ninguém segura horário de graça | ⏳ 4 |
 
-## 3. Frontend: as telas
+## 5. Cenário do cliente (com conta)
+
+> ⏳ **Fatia 3** (conta) e **Fatia 4** (agendamento e pagamento).
+
+| # | O que fazer | O que deve acontecer | O que prova | |
+|---|---|---|---|:-:|
+| C1 | `POST /auth/cadastro` com dados fictícios | `201`; CPF **não** é pedido | cadastro mínimo (LGPD) | ⏳ 3 |
+| C2 | repetir com o mesmo e-mail em MAIÚSCULAS | `409 EMAIL_JA_CADASTRADO` | e-mail único | ⏳ 3 |
+| C3 | `POST /auth/login` | `200` com token de acesso | autenticação | ⏳ 3 |
+| C4 | `POST /agendamentos` com o token | `201`, `AGUARDANDO_PAGAMENTO` (cliente logado **também** paga antes) | regra R6 | ⏳ 4 |
+| C5 | `POST /pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"` e aceite | `201` com `cartao.urlCheckout`; pagar com o cartão de teste do sandbox | a API nunca vê o número do cartão | ⏳ 4 |
+| C6 | `GET /me/agendamentos` | a reserva `CONFIRMADO` | "meus horários" | ⏳ 4 |
+| C7 | `POST /agendamentos/{id}/cancelamento` | `404` | **não existe** cancelamento pelo cliente | ⏳ 4 |
+| C8 | outro cliente lê `GET /agendamentos/{id}` do primeiro | `404` (não `403`) | não confirma que o id existe | ⏳ 4 |
+| C9 | `GET /admin/agenda` com token de cliente | `403 ACESSO_NEGADO` | painel só para o admin | ⏳ 3 |
+| C10 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
+
+## 6. Cenário do admin (o barbeiro)
+
+> ⏳ **Fatia 3** (login do admin) e **Fatia 5** (painel). O admin é criado na subida a partir de `ADMIN_EMAIL` e `ADMIN_SENHA` do **seu** `.env`: você escolhe os valores de teste; nenhuma senha fica no repositório.
+
+| # | O que fazer | O que deve acontecer | O que prova | |
+|---|---|---|---|:-:|
+| AD1 | `POST /auth/login` com o admin do seu `.env` | `200` com os papéis `ADMIN` e `BARBEIRO` | admin por variável de ambiente | ⏳ 3 |
+| AD2 | errar a senha várias vezes | `429 LIMITE_EXCEDIDO` com `Retry-After` | força bruta bloqueada | ⏳ 3 |
+| AD3 | `GET /admin/agenda?data=...` | as reservas do dia com status | agenda do barbeiro | ⏳ 5 |
+| AD4 | `PATCH /admin/agendamentos/{id}/status` → `CONCLUIDO` | `200` | atendimento fechado | ⏳ 5 |
+| AD5 | o mesmo com `NAO_COMPARECEU` em outra reserva | `200`; a cobrança continua `PAGA` | falta retém o valor | ⏳ 5 |
+| AD6 | cancelar pela barbearia **sem** motivo | `422 MOTIVO_OBRIGATORIO` | só a barbearia cancela, e com motivo | ⏳ 5 |
+| AD7 | `POST /admin/servicos` (novo serviço) e depois `GET /admin/auditoria` | `201` e uma linha de auditoria com quem fez | toda ação do painel é registrada | ⏳ 5 |
+| AD8 | mudar o almoço na jornada e repetir o V3 | os horários mudam sem deploy | regra como dado | ⏳ 5 |
+| AD9 | deixar uma reserva expirar, outro cliente pega o horário, e só então pagar a primeira no sandbox | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência | pagamento tardio sem horário vira pendência | ⏳ 5 |
+
+## 7. As telas (frontend)
+
+> ⏳ **Fatia 7.** O frontend é gerado com IA a partir do contrato e revisado pelo Kevin ([como](como-foi-construido.md)).
 
 | # | Tela | O que fazer | O que deve acontecer | |
 |---|---|---|---|:-:|
-| 1 | Início | abrir `http://localhost:3000` | preto, branco e prata, logo da barbearia e botão "Agendar" | ⏳ |
-| 2 | Agendar | escolher serviço, dia e horário | vai para o checkout com contagem de 15 min | ⏳ |
-| 3 | Checkout | tentar pagar sem marcar o aceite | botão de pagar desabilitado | ⏳ |
-| 4 | Checkout | marcar o aceite e escolher Pix | aparece o QR Code | ⏳ |
-| 5 | Checkout | escolher Cartão | abre o checkout do gateway (sandbox) | ⏳ |
-| 6 | Meus horários | abrir depois de pagar | "Confirmado", **sem** botões de cancelar ou remarcar | ⏳ |
-| 7 | Celular | modo mobile do navegador | layout legível e navegação por teclado | ⏳ |
+| T1 | Início | abrir `http://localhost:3000` | preto, branco e prata, logo e botão "Agendar" | ⏳ 7 |
+| T2 | Agendar | escolher serviço, dia e horário | checkout com contagem de 15 min | ⏳ 7 |
+| T3 | Checkout | tentar pagar sem marcar o aceite | botão desabilitado | ⏳ 7 |
+| T4 | Checkout | marcar o aceite e escolher Pix / Cartão | QR Code / checkout do gateway | ⏳ 7 |
+| T5 | Meus horários | abrir depois de pagar | "Confirmado", **sem** botões de cancelar ou remarcar | ⏳ 7 |
+| T6 | Painel | entrar como admin / como cliente | agenda do dia / acesso negado | ⏳ 7 |
+| T7 | Celular | modo mobile do navegador | legível e navegável por teclado | ⏳ 7 |
 
-## 4. Os dois juntos: a jornada completa
+## 8. Jornada completa
 
-1. `docker compose up --build` e conferir o health.
-2. No front, cadastrar um cliente fictício e agendar um **Corte Degradê** (R$ 55,00).
-3. Aceitar a política e pagar com **Pix** no sandbox: a tela muda sozinha para "Confirmado".
-4. Numa janela anônima, agendar o horário seguinte **sem conta** e pagar com **cartão** de teste do sandbox.
-5. Numa terceira reserva, não pagar: depois de 15 min o horário volta a aparecer livre.
-6. Entrar no painel com o admin do seu `.env`, concluir um atendimento e marcar falta em outro.
-7. Conferir o log da API: nenhum CPF, telefone ou CEP aparece.
+> ⏳ Roda quando as Fatias 2 a 7 estiverem na `develop`.
 
-**Pronto quando:** os 7 passos passam numa base limpa, sem mexer no banco à mão.
+1. Subir tudo e conferir o health (parte 0).
+2. Como **visitante**, agendar um Corte Degradê (R$ 55,00), aceitar a política e pagar com **Pix** no sandbox: a tela muda sozinha para "Confirmado".
+3. Como **cliente** com conta, agendar o horário seguinte e pagar com **cartão** de teste.
+4. Numa terceira reserva, não pagar: em 15 min o horário volta.
+5. Como **admin**, concluir um atendimento e marcar falta em outro.
+6. Conferir o log da API: nenhum CPF, telefone ou CEP.
 
-## 5. Testes automatizados
+**Pronto quando:** os 6 passos passam numa base limpa (`docker compose down -v`), sem mexer no banco à mão.
 
-```bash
-cd backend && ./mvnw verify     # unitários, integração com PostgreSQL real (Testcontainers) e arquitetura
-```
+---
 
-Resultado real da Fatia 1 (16/11/2026, Docker Desktop no Windows): **26 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **87%** (JaCoCo em `backend/target/site/jacoco/`).
+## Deu erro?
 
-| Classe | Testes | O que prova |
-|---|:-:|---|
-| `ContextoSobeIT` | 1 | a API sobe no PostgreSQL real e o health responde UP |
-| `ErroPadraoTest` | 3 | 404 e 405 em `problem+json` com `code` e `traceId`; `X-Trace-Id` fora do formato é descartado |
-| `V1MigracaoIT` | 6 | V1 aplicada, `btree_gist`, constraint e índices; regras reais na configuração; o banco recusa `AGUARDANDO_PAGAMENTO` sem prazo, `CONFIRMADO` sem aceite e método de cobrança fora de PIX/cartão |
-| `SobreposicaoConstraintIT` | 6 | mesmo horário e sobreposição parcial dão `23P01`; encostadas `[)` passam; `CANCELADO` e `EXPIRADO` não ocupam |
-| `ConcorrenciaReservaIT` | 3 | 12 conexões disputando o mesmo horário: **exatamente 1 vence** (repetido 3 vezes) |
-| `SeedDevIT` | 3 | perfil `dev` com Carlos, os 5 serviços e a jornada com almoço |
-| `ModulithTest` | 2 | 8 módulos e fronteiras verificadas |
-| `ArquiteturaTest` | 2 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double` |
-
-| Tipo | Ferramenta | Cobre |
+| Sintoma | Causa provável | O que fazer |
 |---|---|---|
-| Unitário | JUnit 5 · Mockito · AssertJ | regras da agenda, valor da cobrança, máquina de estados |
-| Integração | Spring Boot Test · Testcontainers (PostgreSQL) | constraint anti-sobreposição, concorrência, webhook, expiração |
-| Arquitetura | ArchUnit · Spring Modulith | fronteiras entre módulos, uso do `Clock` |
-| Contrato | Redocly CLI | o `openapi.yaml` sem erro de lint |
+| `autenticação do tipo senha falhou para o usuário "altashoras"` | a API conectou num PostgreSQL **instalado na máquina**, não no do compose | o compose usa a porta **5433** por isso; confira `docker compose ps` e se não há `POSTGRES_PORTA` trocada no ambiente |
+| `Connection refused` na 5433 | o banco não subiu | `docker compose up -d` e `docker compose ps` (precisa estar `healthy`) |
+| `Port 8080 was already in use` | outra API rodando | feche a outra ou suba com `-Dspring-boot.run.arguments=--server.port=8081` |
+| `./mvnw verify` falha com "Could not find a valid Docker environment" | Docker Desktop fechado | abra o Docker Desktop e espere ficar pronto |
+| o enforcer reclama do Java | JDK diferente do 25 | aponte o `JAVA_HOME` para um JDK 25 |
+| migração falha depois de você mexer no banco | banco local sujo | `docker compose down -v` e suba de novo |
 
-Contrato atual (v1.1.1): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ executado em 16/11/2026).
+Contrato da API (v1.1.1): `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml` → **0 erros** (✅ 16/11/2026).

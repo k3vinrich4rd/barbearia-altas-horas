@@ -46,6 +46,12 @@ jobs:
           done
           echo "✅ constraint, concorrência e migração rodaram no PostgreSQL 18"
 
+      # Eval do SDD: todo critério de aceite das fatias implementadas tem teste com o número dele.
+      - name: Conferir spec × testes
+        working-directory: .
+        run: |
+          for fatia in 1; do sh scripts/conferir-spec.sh "$fatia" --exigir; done
+
       - name: Publicar relatórios
         if: always()
         uses: actions/upload-artifact@v7
