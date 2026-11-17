@@ -16,12 +16,12 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 216 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 250 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
-| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver e auditoria | ✅ AD1 a AD9 · ⏳ 5B (AD10 em diante) |
+| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
 | [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **216 testes, 0 falhas, 0 pulados** (17/11/2026, com a Fatia 5A), `BUILD SUCCESS`, cobertura de instruções **95,3%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **250 testes, 0 falhas, 0 pulados** (17/11/2026, com a 5B), `BUILD SUCCESS`, cobertura de instruções **95,3%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -657,14 +657,100 @@ curl -s -i "localhost:8080/admin/agenda?data=2026-12-02"
 401  NAO_AUTENTICADO   (sem token)
 ```
 
-### ⏳ 5B: AD10 em diante
+### AD10 ✅ Serviços: criar, repetir o nome, editar e desativar
+
+```bash
+curl -s -i -X POST localhost:8080/admin/servicos -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"nome":"Hidratação Teste","duracaoMin":30,"precoCentavos":3500}'
+curl -s -i -X POST localhost:8080/admin/servicos -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"nome":"hidratação teste","duracaoMin":30,"precoCentavos":3500}'
+curl -s -i -X PUT localhost:8080/admin/servicos/<id> -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"nome":"Hidratação Teste","duracaoMin":30,"precoCentavos":4000,"ativo":false,"version":1}'
+curl -s localhost:8080/servicos
+```
+
+Saída real (17/11/2026, 17h13), resumida:
+
+```text
+200  GET /admin/servicos: 5 serviços (todos ativos), com ativo e version
+201  POST: R$ 35,00, ativo true, version 0, Location /admin/servicos/<id>; aparece em GET /servicos (6)
+409  NOME_JA_EXISTE            (mesmo nome em minúsculas)
+400  CAMPO_DESCONHECIDO        (campo "ativo" no corpo do POST)
+200  PUT preço 4000: R$ 40,00, version 1
+409  CONFLITO_DE_VERSAO        (PUT de novo com version 0)
+200  PUT ativo=false: version 2; GET /servicos volta a 5 e o serviço some; GET /admin/servicos continua listando
+```
+
+**O que prova:** o Eduardo muda o cardápio sem deploy. Não existe DELETE: desativar tira o serviço do público e mantém o histórico. A `version` impede que duas telas abertas se sobrescrevam.
+
+### AD11 ✅ Jornada: ver e recusar sobreposição
+
+```bash
+curl -s localhost:8080/admin/barbeiros -H "Authorization: Bearer $ADMIN"
+curl -s -i -X PUT localhost:8080/admin/barbeiros/b0000000-0000-4000-8000-000000000001/jornada -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '[{"diaSemana":2,"horaInicio":"08:00","horaFim":"12:00"},{"diaSemana":2,"horaInicio":"11:00","horaFim":"14:00"}]'
+```
+
+Saída real (17/11/2026, 17h13):
+
+```text
+200  1 barbeiro; jornada de terça a sábado, 07:00-12:00 e 13:00-20:00
+422  JORNADA_SOBREPOSTA   (terça 08-12 e 11-14); a jornada antiga continua igual
+```
+
+**O que prova:** a jornada é dado, não código, e um intervalo sobreposto é recusado antes de gravar. A troca que dá `200` (e muda os horários) está provada em `JornadaAdminIT` (A52), para não deixar a jornada do seed alterada.
+
+### AD12 ✅ Folga: some da disponibilidade, não passa por cima de reserva
+
+```bash
+curl -s -i -X POST localhost:8080/admin/barbeiros/b0000000-0000-4000-8000-000000000001/folgas -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"inicio":"2026-12-10T14:00:00-03:00","fim":"2026-12-10T16:00:00-03:00","motivo":"Consulta"}'
+curl -s "localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&barbeiroId=b0000000-0000-4000-8000-000000000001&data=2026-12-10"
+curl -s -i -X DELETE localhost:8080/admin/barbeiros/b0000000-0000-4000-8000-000000000001/folgas/<folgaId> -H "Authorization: Bearer $ADMIN"
+```
+
+Saída real (17/11/2026, 17h13), resumida:
+
+```text
+24 horários em 10/12 (07:00 a 19:30) antes da folga
+201  folga 14:00-16:00 em 10/12 (Location da folga)
+20 horários: somem 14:00, 14:30, 15:00 e 15:30; 16:00 continua
+200  GET folgas: 1 folga
+204  DELETE: os 24 horários voltam; DELETE de novo: 404
+201  reserva do cliente em 09/12 às 15:00 (AGUARDANDO_PAGAMENTO)
+422  FOLGA_COM_RESERVAS   (folga 14:00-16:00 em 09/12 por cima dela); nada gravado
+```
+
+**O que prova:** a folga tira os horários na hora, sem reiniciar nada, e o Eduardo não consegue apagar um horário que já tem cliente: antes ele cancela (com motivo) e devolve. Remover a folga devolve os horários.
+
+### AD13 ✅ Configuração: mudar a antecedência com efeito imediato
+
+```bash
+curl -s localhost:8080/admin/configuracao -H "Authorization: Bearer $ADMIN"
+curl -s -i -X PUT localhost:8080/admin/configuracao -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"antecedenciaMinimaMin":180,"intervaloEntreAtendimentosMin":0,"granularidadeMin":30,"horizonteDias":30,"expiracaoPagamentoMin":15,"version":0}'
+curl -s "localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&barbeiroId=b0000000-0000-4000-8000-000000000001&data=<hoje>"
+curl -s "localhost:8080/admin/auditoria?tamanho=10" -H "Authorization: Bearer $ADMIN"
+```
+
+Saída real (17/11/2026, 17h13), resumida:
+
+```text
+200  antecedência 120, intervalo 0, granularidade 30, horizonte 30, expiração 15, fuso America/Sao_Paulo, version 0
+     hoje (17h13): 1 horário (19:30)
+200  PUT antecedência 180: version 1; hoje: 0 horários, sem reiniciar a API
+409  CONFLITO_DE_VERSAO   (PUT com version 0 de novo)
+400  CAMPO_DESCONHECIDO   (fuso no corpo)
+200  PUT de volta a 120: version 2; hoje: 1 horário (19:30)
+200  auditoria: SERVICO_CRIADO, SERVICO_ALTERADO x2, FOLGA_CRIADA, FOLGA_REMOVIDA, CONFIGURACAO_ALTERADA x2
+     detalhe só com nomes de campos e ids ({"campos":"antecedenciaMinimaMin"}), sem nome nem motivo
+403  ACESSO_NEGADO   (cliente em /admin/servicos, /admin/barbeiros e /admin/configuracao)
+401  NAO_AUTENTICADO (sem token)
+```
+
+**O que prova:** a regra de negócio é dado: mudou de 120 para 180 minutos e a disponibilidade de hoje mudou na mesma hora. Cada cadastro deixa uma linha na auditoria, e o papel `BARBEIRO` sem `ADMIN` recebe `403` (A70, `AcessoAdminIT`; o seed `dev` não tem conta só com esse papel). O roteiro completo está em `.equipe/testes/roteiro_5b.py` (saída em `roteiro_5b.out`, para a equipe). Depois de rodar, `grep` por e-mails `@exemplo.test`, WhatsApp e `g1_` no log da API deu **0**.
+
+### AD14 ✅ Pagamento tardio (modo simulado)
 
 | # | O que fazer | O que deve acontecer | O que prova |
 |---|---|---|---|
-| AD10 | `POST /admin/servicos` e depois `GET /admin/auditoria` | `201` e uma linha de auditoria com quem fez | cadastros do painel também são registrados |
-| AD11 | mudar o almoço na jornada e repetir o V3 | os horários mudam sem deploy | regra como dado |
-| AD12 | criar uma folga com reservas no período, e mudar a antecedência em `PUT /admin/configuracao` | a folga avisa dos conflitos; a nova antecedência vale já | regra como dado |
-| AD13 | deixar uma reserva expirar, outro cliente pega o horário, e só então pagar a primeira no sandbox | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência (testado em A24; falta rodar no sandbox) | pagamento tardio sem horário vira pendência |
+| AD14 | deixar uma reserva expirar, outro cliente pega o horário, e só então confirmar o pagamento da primeira (no beta o gateway é simulado, D59: não há sandbox) | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência | pagamento tardio sem horário vira pendência |
+
+✅ **Coberto por teste automatizado:** o pagamento tardio é provado pelo A38 (horário livre: a reserva volta a `CONFIRMADO`) e pelo A39 (horário já de outro cliente: a reserva continua `EXPIRADO` e a cobrança vira `PAGA_APOS_EXPIRACAO`), ambos em `PagamentoTardioIT` (Fatia 4), e pelo A24 da Fatia 5 (`CancelamentoPagamentoTardioIT`) para a reserva cancelada.
 
 ## 7. As telas (frontend)
 
