@@ -16,11 +16,11 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 115 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 137 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
-| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários (✅), agendar e pagar sem conta | ✅ V1 a V3 · ⏳ Fatia 4 |
-| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão e senha (✅), agendar e pagar | ✅ C1 a C7 · ⏳ Fatia 4 |
+| [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta (✅), pagar | ✅ V1 a V6 · ⏳ Fatia 4B |
+| [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar e listar (✅), pagar | ✅ C1 a C11 · ⏳ Fatia 4B |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial (✅), agenda e fechamento | ✅ AD1 a AD3 · ⏳ Fatia 5 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **115 testes, 0 falhas, 0 pulados**, `BUILD SUCCESS`, cobertura de instruções **97%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **137 testes, 0 falhas, 0 pulados** (17/11/2026, com a Fatia 4A), `BUILD SUCCESS`, cobertura de instruções **97%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -244,16 +244,51 @@ Agora mexa e veja a regra reagir:
 | ocupe um horário pelo `psql` (parte 2.2) e repita | o horário some; apague a reserva e ele volta |
 | data de **hoje** | só horários a partir de agora + 2 horas |
 
-### V4 em diante ⏳ Fatia 4
+### V4 ✅ Reservar sem conta
+
+Escolha um horário livre do V3 (aqui, terça 24/11 às 10h30) e mande nome, e-mail e WhatsApp **fictícios**. Não há CPF nesta etapa.
+
+```bash
+curl -s -i -X POST localhost:8080/agendamentos/guest -H "Content-Type: application/json" -d '{
+  "servicoId": "6f1c2a8e-0000-4000-8000-000000000002", "barbeiroId": "b0000000-0000-4000-8000-000000000001",
+  "inicio": "2026-11-24T10:30:00-03:00",
+  "nome": "Visitante Teste", "email": "visitante@exemplo.test", "whatsapp": "(11) 90000-0002" }'
+```
+
+Saída real (17/11/2026, 11h48; token encurtado aqui):
+
+```
+201  Location: /agendamentos/guest/af072ba4-57eb-45cd-bd37-312e7b868b70
+{"id":"af072ba4-…","status":"AGUARDANDO_PAGAMENTO","origem":"GUEST","inicio":"2026-11-24T10:30:00-03:00",
+ "expiraEm":"2026-11-17T12:03:12-03:00","tokenGuest":"g1_8LI…(46 caracteres)", ...}
+```
+
+**O que prova:** o horário fica travado por **15 minutos** esperando o pagamento de 100%. O `tokenGuest` aparece **só nesta resposta**; o banco guarda apenas o SHA-256 dele. A 4ª reserva sem conta do mesmo IP em uma hora recebe `429 LIMITE_EXCEDIDO` com `Retry-After`.
+
+### V5 ✅ Acompanhar a reserva pelo token
+
+| Chamada | Saída real |
+|---|---|
+| `GET /agendamentos/guest/{id}` com `X-Guest-Token: <token do V4>` | `200` `{"status":"AGUARDANDO_PAGAMENTO","inicio":"2026-11-24T10:30:00-03:00", ...}` |
+| o mesmo com `X-Guest-Token: g1_errado` | `404 RECURSO_NAO_ENCONTRADO` |
+| sem o cabeçalho | `404` |
+
+**O que prova:** token errado responde igual a "não existe": a API não confirma que a reserva existe para quem não tem o token.
+
+### V6 ✅ O horário sumiu da agenda
+
+Repita o V3 para a mesma data. Saída real, entre 9h e 11h30: `['09:00', '09:30', '11:00', '11:30']`. As 10h (reservada pelo cliente do C8) e as 10h30 (do V4) saíram. Se ninguém pagar em 15 minutos, o job de expiração libera os dois de novo.
+
+### V7 em diante ⏳ Fatia 4B (pagamento simulado)
+
+No beta o pagamento é **simulado** (D59): nenhuma conta em gateway e nenhum dinheiro real, mas o caminho de confirmação é o mesmo do webhook de produção.
 
 | # | O que fazer | O que deve acontecer | O que prova |
 |---|---|---|---|
-| V4 | `POST /agendamentos/guest` com serviço, horário, nome, WhatsApp e e-mail fictícios | `201`, `AGUARDANDO_PAGAMENTO`, `expiraEm` (15 min) e `tokenGuest` (mostrado uma vez) | horário travado sem pedir CPF |
-| V5 | repetir o V3 | o horário reservado sumiu | reserva pendente ocupa o horário |
-| V6 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar |
-| V7 | mesma chamada com `"metodo": "PIX"`, CPF fictício e `"aceitePolitica": true` | `201` com QR Code e copia e cola de **100%** do preço | pagamento integral; CPF só aqui |
-| V8 | confirmar a cobrança no painel do **sandbox** do gateway | o webhook chega e `GET /agendamentos/guest/{id}` mostra `CONFIRMADO` | só o gateway confirma |
-| V9 | fazer outra reserva e **não** pagar por 15 min | vira `EXPIRADO` e o horário volta no V3 | ninguém segura horário de graça |
+| V7 | `POST /pagamentos/cobrancas` **sem** `aceitePolitica` | `422 ACEITE_POLITICA_OBRIGATORIO` | ninguém paga sem aceitar |
+| V8 | mesma chamada com `"metodo": "PIX"`, CPF fictício e `"aceitePolitica": true` | `201` com o Pix de demonstração e **100%** do preço | pagamento integral; CPF só em trânsito |
+| V9 | `POST /pagamentos/simulacao/{cobrancaId}/confirmar` com o token do visitante | `GET /agendamentos/guest/{id}` mostra `CONFIRMADO` | a confirmação passa pelo mesmo fluxo do webhook |
+| V10 | fazer outra reserva e **não** pagar por 15 min | vira `EXPIRADO` e o horário volta no V3 | ninguém segura horário de graça |
 
 ## 5. Cenário do cliente (com conta)
 
@@ -345,15 +380,51 @@ Retry-After: 898
 
 Para sair: `POST /auth/logout` com o refresh → `204`. Para trocar a senha: `PUT /me/senha` com `senhaAtual` e `novaSenha` → `204` (as outras sessões param de renovar).
 
-### C8 em diante ⏳
+### C8 ✅ Reservar com a conta
+
+Com o `accessToken` do C3:
+
+```bash
+curl -s -i -X POST localhost:8080/agendamentos -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"   -d '{ "servicoId": "6f1c2a8e-0000-4000-8000-000000000002", "barbeiroId": "b0000000-0000-4000-8000-000000000001",
+        "inicio": "2026-11-24T10:00:00-03:00" }'
+```
+
+Saída real (17/11/2026, 11h48):
+
+```
+201  Location: /agendamentos/20b31b02-5bc5-4bec-9ef7-057a24d37f5d
+{"status":"AGUARDANDO_PAGAMENTO","origem":"CLIENTE","servico":{"nome":"Corte Degradê / Fade / Navalhado","duracaoMin":30},
+ "inicio":"2026-11-24T10:00:00-03:00","fim":"2026-11-24T10:30:00-03:00","precoCentavos":5500,"expiraEm":"2026-11-17T12:03:11-03:00", ...}
+```
+
+**O que prova:** quem tem conta **também** paga 100% antes (R6); o preço vem do serviço e fica congelado na reserva.
+
+E os erros, todos com saída real:
+
+| Tentativa | Resposta |
+|---|---|
+| outro cliente, mesmo horário | `409 HORARIO_INDISPONIVEL` · "Este horário acabou de ser reservado. Escolha outro." |
+| 12h00 (almoço) | `422 FORA_DO_EXPEDIENTE` |
+| sem o token | `401 NAO_AUTENTICADO` |
+| corpo com `"status": "CONFIRMADO"` | `400 CAMPO_DESCONHECIDO` (ninguém se confirma sozinho) |
+
+### C9 ✅ Meus agendamentos
+
+`GET /me/agendamentos` (paginado: `pagina` a partir de 0, `tamanho` até 50). Saída real: `200 total=1 itens=[('2026-11-24T10:00:00-03:00', 'AGUARDANDO_PAGAMENTO')]`. O dono vem do token, nunca da URL.
+
+### C10 ✅ A reserva de outra pessoa
+
+Outro cliente pede `GET /agendamentos/20b31b02-…` → `404 RECURSO_NAO_ENCONTRADO` (não `403`): a resposta não confirma que o id existe.
+
+### C11 ✅ Tentar cancelar
+
+`POST /agendamentos/{id}/cancelamento` com o token do dono → `404`. **Não existe** cancelamento nem remarcação pelo cliente (R18); a reserva continua `AGUARDANDO_PAGAMENTO`.
+
+### C12 em diante ⏳
 
 | # | O que fazer | O que deve acontecer | O que prova | |
 |---|---|---|---|:-:|
-| C8 | `POST /agendamentos` com o token | `201`, `AGUARDANDO_PAGAMENTO` (cliente logado **também** paga antes) | regra R6 | ⏳ 4 |
-| C9 | `POST /pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"` e aceite | `201` com `cartao.urlCheckout`; pagar com o cartão de teste do sandbox | a API nunca vê o número do cartão | ⏳ 4 |
-| C10 | `GET /me/agendamentos` | a reserva `CONFIRMADO` | "meus horários" | ⏳ 4 |
-| C11 | `POST /agendamentos/{id}/cancelamento` | `404` | **não existe** cancelamento pelo cliente | ⏳ 4 |
-| C12 | outro cliente lê `GET /agendamentos/{id}` do primeiro | `404` (não `403`) | não confirma que o id existe | ⏳ 4 |
+| C12 | `POST /pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"` e aceite, depois a confirmação simulada | `201` com `cartao.urlCheckout`; a reserva vira `CONFIRMADO` | a API nunca vê o número do cartão | ⏳ 4B |
 | C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
 
 ## 6. Cenário do admin (o barbeiro)

@@ -70,6 +70,9 @@ class SegurancaConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/servicos", "/barbeiros", "/politica-pagamento",
                                 "/disponibilidade", "/actuator/health", "/actuator/health/**").permitAll()
+                        // Visitante sem conta (R26): reserva com limite por IP; a consulta exige o X-Guest-Token.
+                        .requestMatchers(HttpMethod.POST, "/agendamentos/guest").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/agendamentos/guest/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/cadastro", "/auth/login", "/auth/refresh",
                                 "/auth/logout").permitAll()
                         .requestMatchers("/admin/**").access(painel())

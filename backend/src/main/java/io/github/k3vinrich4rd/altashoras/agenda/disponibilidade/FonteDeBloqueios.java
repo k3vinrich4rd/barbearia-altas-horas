@@ -19,4 +19,8 @@ public interface FonteDeBloqueios {
      * AGUARDANDO_PAGAMENTO com o prazo ainda aberto em {@code agora} (R15).
      */
     Map<UUID, List<Bloqueio>> noPeriodo(Instant inicio, Instant fim, Instant agora);
+
+    /** Só as folgas que tocam [inicio, fim), por barbeiro. A reserva usa isto (E1): a disputa com outras reservas
+     * é da constraint do banco, não de uma consulta que pode estar velha. */
+    Map<UUID, List<Bloqueio>> folgasNoPeriodo(Instant inicio, Instant fim);
 }
