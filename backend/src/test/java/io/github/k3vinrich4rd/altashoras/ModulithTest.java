@@ -24,4 +24,12 @@ class ModulithTest {
     void fronteirasRespeitadas() {
         modulos.verify();
     }
+
+    @Test
+    @DisplayName("A39: conta, plataforma, privacidade e agenda só se falam pela API pública e por eventos")
+    void contaNaoAtravessaFronteiras() {
+        modulos.verify();
+        assertThat(modulos.getModuleByName("conta").orElseThrow().getDirectDependencies(modulos).uniqueModules()
+                .map(m -> m.getIdentifier().toString())).doesNotContain("agenda", "pagamento", "admin");
+    }
 }
