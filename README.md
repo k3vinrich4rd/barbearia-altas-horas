@@ -2,7 +2,7 @@
 
 <img src="docs/assets/logo-altas-horas.png" width="168" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
 
-<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: a agenda online do Eduardo Cândido, Pix ou cartão 100% antecipado, desde 1997"/>
+<img src="docs/assets/banner.svg" width="100%" alt="Barbearia Altas Horas: barbearia e academy em Osasco, agenda online com horário garantido, desde 1997"/>
 
 [![Status](https://img.shields.io/badge/status-Fatia_2_de_8_·_horários_livres-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](#-roadmap-em-fatias)
 [![Contrato](https://img.shields.io/badge/contrato-OpenAPI_3.1_·_v1.1.2-0A0A0A?style=for-the-badge&labelColor=2B2B2B)](docs/contrato/openapi.yaml)
@@ -55,15 +55,17 @@
 <tr>
 <td width="200" align="center" valign="top">
 <img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro da Altas Horas, de camisa listrada e gravata borboleta preta"/>
-<br/><b>Eduardo Cândido</b><br/><sub>barbeiro desde 1997</sub>
+<br/><b>Eduardo Cândido</b><br/><sub>barbeiro e professor<br/>na ativa desde 1997</sub>
 </td>
 <td valign="top">
 
-Desde **1997**, quem senta na cadeira da **Barbearia Altas Horas**, no Jardim Bonança, em Osasco, é atendido pelo **Eduardo Cândido**. Ele é o barbeiro da casa e é meu pai. São quase três décadas de terça a sábado, das sete da manhã às oito da noite, fazendo do corte social ao degradê navalhado.
+A **Barbearia Altas Horas** está aberta desde **1997** no Jardim Bonança, em Osasco. Quem comanda a cadeira é o **Eduardo Cândido**, meu pai: são quase três décadas de terça a sábado, das sete da manhã às oito da noite, do corte social ao degradê navalhado. Além de atender, ele ensina: é professor na **Altas Horas Barbearia Academy**, onde forma novos barbeiros.
 
-A agenda dele sempre coube num caderno e no WhatsApp, e é aí que mora o problema de toda barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta. Para quem atende sozinho, **cadeira vazia é meia hora de trabalho que ninguém paga**.
+Com a cadeira e as aulas dividindo o mesmo dia, a agenda dele sempre coube num caderno e no WhatsApp. E é aí que mora um problema que se repete em quase toda barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta. Para quem atende sozinho, **cadeira vazia é meia hora de trabalho que ninguém paga**.
 
-Este projeto é a agenda online da Altas Horas. O cliente escolhe o serviço e o horário, **paga antes**, por Pix ou cartão, e só então o horário é dele. Quem não paga em 15 minutos libera a vaga para o próximo. No fim, o Eduardo abre o painel de manhã e encontra o dia já organizado, com cada horário confirmado e pago. É para esse dia que o projeto está sendo construído, uma fatia de cada vez.
+Criei esta agenda para resolver isso.
+
+O cliente escolhe o serviço e o horário, **paga antes**, por Pix ou cartão, e só então o horário é dele. Quem não paga em 15 minutos libera a vaga para o próximo. No fim, o Eduardo abre o painel de manhã e encontra o dia já organizado, com cada horário confirmado e pago. É para esse dia que o projeto está sendo construído, uma fatia de cada vez.
 
 </td>
 </tr>
@@ -106,7 +108,7 @@ Este projeto é a agenda online da Altas Horas. O cliente escolhe o serviço e o
 
 | | |
 |---|---|
-| **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido. |
+| **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido, e isso se repete toda semana. |
 | **Solução** | Agendamento online com horários livres em tempo real e **pagamento 100% antecipado** (Pix ou cartão de crédito). O horário só é confirmado quando o gateway avisa que o dinheiro entrou. |
 | **Para quem** | Para o **Eduardo Cândido**, meu pai, que atende sozinho e administra tudo num painel protegido, e para os clientes da **Barbearia Altas Horas** (Osasco, desde 1997). |
 | **Como é construído** | Especificação antes do código, um teste para cada critério e CI barrando o que não cumpre. Backend em Java e Spring; IA como par de programação e na geração do frontend. [Como funciona](#-como-o-projeto-é-feito-sdd--ia). |
@@ -169,12 +171,16 @@ Serviços, preços, jornada, almoço, antecedência mínima e prazo de pagamento
 |---|---|
 | 📍 **Endereço** | R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP |
 | 💈 **Quem atende** | Eduardo Cândido (Carlos Eduardo Cândido), em todos os serviços |
+| 🎓 **Academy** | o Eduardo também é professor na **Altas Horas Barbearia Academy** |
+| 🏁 **Desde** | 1997 |
 | 🕖 **Funcionamento** | terça a sábado, **07h00 às 20h00** (almoço 12h00 às 13h00) |
 | 📸 **Instagram** | [@altashorascabeleireiros](https://www.instagram.com/altashorascabeleireiros/) · [@eduardo_candido_barber](https://www.instagram.com/eduardo_candido_barber/) |
 
 ### 🗓 A agenda da semana
 
-<img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h; horários de 30 em 30 minutos, 2 horas de antecedência e até 30 dias à frente"/>
+<img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h e exemplos de horários confirmados e aguardando pagamento; horários de 30 em 30 minutos, 2 horas de antecedência e até 30 dias à frente"/>
+
+<sub>Os horários marcados na imagem são ilustrativos: mostram como o dia aparece para o Eduardo, com o que está pago e o que ainda aguarda pagamento.</sub>
 
 <details>
 <summary><b>📖 Abrir a página de um dia</b> (resposta real da API para uma terça livre)</summary>
@@ -206,20 +212,31 @@ Como subir a API em 2 comandos: [Rodar e testar](#-rodar-e-testar).
 
 </details>
 
-### Serviços
+### 💈 Quadro de serviços
 
-| Serviço | Duração | Preço |
-|---|:-:|--:|
-| Corte Clássico / Social | 30 min | R$ 45,00 |
-| Corte Degradê / Fade / Navalhado | 30 min | R$ 55,00 |
-| Corte Moderno / Visagismo (tesoura) | 60 min · 2 horários | R$ 60,00 |
-| Barba Completa / Desenhada | 30 min | R$ 30,00 |
-| Acabamento (pezinho) / Sobrancelha | 30 min | R$ 20,00 |
+<table>
+<tr><th align="left">Serviço</th><th>Tempo</th><th align="right">Valor</th></tr>
+<tr><td>✂️ Corte Clássico / Social</td><td align="center">30 min</td><td align="right"><kbd>R$ 45,00</kbd></td></tr>
+<tr><td>✂️ Corte Degradê / Fade / Navalhado</td><td align="center">30 min</td><td align="right"><kbd>R$ 55,00</kbd></td></tr>
+<tr><td>✂️ Corte Moderno / Visagismo (tesoura)</td><td align="center">60 min · 2 horários</td><td align="right"><kbd>R$ 60,00</kbd></td></tr>
+<tr><td>🪒 Barba Completa / Desenhada</td><td align="center">30 min</td><td align="right"><kbd>R$ 30,00</kbd></td></tr>
+<tr><td>🪒 Acabamento (pezinho) / Sobrancelha</td><td align="center">30 min</td><td align="right"><kbd>R$ 20,00</kbd></td></tr>
+</table>
 
-<sub>Sem combos. Preços, horários e regras são **dados** que o admin edita no painel, nunca valores fixos no código.</sub>
+<sub>Sem combos. Preços, horários e regras são **dados** que o Eduardo edita no painel, nunca valores fixos no código.</sub>
+
+### 📷 Da cadeira
+
+<table>
+<tr>
+<td align="center" width="33%"><img src="docs/assets/galeria/eduardo-em-atendimento.jpg" width="100%" alt="Eduardo Cândido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo"/><br/><sub>O Eduardo em atendimento</sub></td>
+<td align="center" width="33%"><img src="docs/assets/galeria/corte-topete-parede-do-logo.jpg" width="100%" alt="Cliente de perfil com topete alto e degradê, em frente à parede xadrez preta e branca com o logo da barbearia"/><br/><sub>A parede xadrez do logo</sub></td>
+<td align="center" width="33%"><img src="docs/assets/galeria/corte-degrade-com-desenho.jpg" width="100%" alt="Cliente de costas com cabelo crespo em degradê, pontas descoloridas e um desenho feito na navalha na nuca"/><br/><sub>Degradê com desenho na navalha</sub></td>
+</tr>
+</table>
 
 <details>
-<summary><b>📷 A fachada</b></summary>
+<summary><b>🚪 A fachada</b></summary>
 
 <br/>
 <div align="center">
@@ -227,6 +244,8 @@ Como subir a API em 2 comandos: [Rodar e testar](#-rodar-e-testar).
 </div>
 
 </details>
+
+<sub>🎨 A identidade deste README segue o salão: preto, branco e prata, o vermelho das cadeiras e o xadrez da parede do logo. Fotos do acervo da barbearia.</sub>
 
 ## 💳 Pagamento 100% antecipado
 
@@ -504,7 +523,7 @@ O que fica pronto para o futuro, sem custo agora: o modelo já tem a entidade `B
 
 <img src="docs/assets/logo-altas-horas.png" width="96" alt="Logo da Barbearia Altas Horas"/>
 
-**Para o meu pai, Eduardo Cândido**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997**.
+**Para o meu pai, Eduardo Cândido**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997** e ensina o ofício na **Altas Horas Barbearia Academy**.
 Este projeto é a minha forma de levar para o código o cuidado que ele coloca em cada corte.
 
 **★ 19 ✂ 97 ★**
