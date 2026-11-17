@@ -113,19 +113,6 @@ class Cobranca {
         this.atualizadoEm = agora;
     }
 
-    void marcarPaga(Instant agora) {
-        this.status = StatusCobranca.PAGA;
-        this.pagaEm = agora;
-        this.atualizadoEm = agora;
-    }
-
-    /** R14: pagou depois de expirar e o horário já era de outra pessoa; vira pendência para o painel (Fatia 5). */
-    void marcarPagaAposExpiracao(Instant agora) {
-        this.status = StatusCobranca.PAGA_APOS_EXPIRACAO;
-        this.pagaEm = agora;
-        this.atualizadoEm = agora;
-    }
-
     UUID getId() {
         return id;
     }

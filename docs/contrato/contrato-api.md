@@ -70,19 +70,22 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
 | `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
-| `GET` | `/admin/agenda` | agenda do dia ou da semana | 🛠 ✂️ (só a própria, **H9**) | `200` | `401`, `403`, `404` (barbeiro pedindo outro) | [Painel](../admin/painel-admin.md) |
-| `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta (valor retido) ou cancela pela barbearia | 🛠 ✂️ | `200` | `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/agenda` | agenda do dia ou da semana, com nome e WhatsApp de quem vem e o status da cobrança (`AgendamentoAdmin`) | 🛠 ✂️ (só a própria, **H9**) | `200` | `400`, `401`, `403`, `404` (barbeiro inexistente, alheio ou sem vínculo) | [Painel](../admin/painel-admin.md) |
+| `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta (valor retido) ou cancela pela barbearia (só ADMIN cancela) | 🛠 ✂️ | `200` | `400`, `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/servicos` | lista (inclusive inativos) e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 NOME_JA_EXISTE` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/servicos/{id}` | altera nome, duração, preço, ativo | 🛠 | `200` | `400`, `401`, `403`, `404`, `409` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/barbeiros` | lista e cria | 🛠 | `200` / `201` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/barbeiros/{id}` | altera nome, ativo, login vinculado | 🛠 | `200` | `400`, `401`, `403`, `404`, `409` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/barbeiros/{id}/jornada` | substitui a jornada semanal | 🛠 | `200` | `400`, `401`, `403`, `404`, `422 JORNADA_SOBREPOSTA` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/barbeiros/{id}/folgas` | folgas de hoje em diante (**novo na 1.4.0**, entra na 5B) | 🛠 | `200` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/barbeiros/{id}/folgas` | cria folga | 🛠 | `201` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` | [Painel](../admin/painel-admin.md) |
 | `DELETE` | `/admin/barbeiros/{id}/folgas/{folgaId}` | remove folga | 🛠 | `204` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
-| `GET` | `/admin/pagamentos` | sinais por status (inclusive devoluções) | 🛠 | `200` | `401`, `403` | [Painel](../admin/painel-admin.md) |
-| `POST` | `/admin/pagamentos/{id}/devolucao` | registra devolução manual feita | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/pagamentos` | pendências (sem `status`) ou cobranças por status, sem Pix, cartão, CPF nem e-mail (`CobrancaAdmin`) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
+| `POST` | `/admin/pagamentos/{id}/devolucao` | registra devolução manual feita (responde `Cobranca` com `devolvidaEm`) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/pagamentos/eventos` | eventos do gateway em `REVISAO_MANUAL`, sem payload (**novo na 1.4.0**) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
+| `POST` | `/admin/pagamentos/eventos/{id}/revisao` | marca o evento como revisado, sem reprocessar (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
 | `GET` `PUT` | `/admin/configuracao` | regras configuráveis da agenda | 🛠 | `200` | `400`, `401`, `403`, `409` | [Painel](../admin/painel-admin.md) |
-| `GET` | `/admin/auditoria` | ações do painel (paginado) | 🛠 | `200` | `401`, `403` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/auditoria` | ações do painel (paginado, sem IP) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 
 ## 3. Requisitos por endpoint
 
@@ -320,6 +323,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 409 | <a id="conflito_concorrente"></a>`CONFLITO_CONCORRENTE` | deadlock (`40P01`) que persistiu depois do retry interno da transação; `detail`: "Muitas reservas ao mesmo tempo. Tente de novo." O front pode repetir **uma vez** e não esconde o horário | Conflito momentâneo |
 | 409 | <a id="conflito_de_versao"></a>`CONFLITO_DE_VERSAO` | `version` desatualizada | Registro alterado por outra pessoa |
 | 409 | <a id="nome_ja_existe"></a>`NOME_JA_EXISTE` | serviço com o mesmo nome | Nome já existe |
+| 409 | <a id="usuario_ja_vinculado"></a>`USUARIO_JA_VINCULADO` | conta já ligada a outro barbeiro (**novo na 1.4.0**, usado pelo cadastro de barbeiros da 5B) | Conta já vinculada |
 | 422 | <a id="fora_do_expediente"></a>`FORA_DO_EXPEDIENTE` | fora da jornada ou em folga | Fora do horário de atendimento |
 | 422 | <a id="antecedencia_insuficiente"></a>`ANTECEDENCIA_INSUFICIENTE` | antes da antecedência mínima (H5) | Antecedência mínima não atendida |
 | 422 | <a id="fora_do_horizonte"></a>`FORA_DO_HORIZONTE` | data além do horizonte (H12) | Data além do permitido |
