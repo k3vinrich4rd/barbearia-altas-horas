@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.1.2-proposta
+  version: 1.2.0-proposta
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -198,6 +198,23 @@ paths:
         '204': { description: Conta anonimizada }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
+  /me/senha:
+    put:
+      tags: [conta]
+      operationId: trocarSenha
+      summary: Troca a própria senha (encerra as outras sessões)
+      description: |
+        Confere a senha atual, grava a nova, incrementa a versão da credencial e revoga todos os refresh do
+        usuário. É também como o admin sai da senha inicial (deveTrocarSenha).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrocaDeSenhaRequest' }
+      responses:
+        '204': { description: Senha trocada }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
   /me/dados:
     get:
       tags: [privacidade]
@@ -794,7 +811,7 @@ components:
       enum: [VALIDACAO_INVALIDA, JSON_MALFORMADO, CAMPO_DESCONHECIDO, CEP_INVALIDO, CPF_INVALIDO,
              IDEMPOTENCY_KEY_AUSENTE, NAO_AUTENTICADO, CREDENCIAIS_INVALIDAS, REFRESH_INVALIDO,
              REFRESH_REUTILIZADO, WEBHOOK_NAO_AUTENTICADO, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO,
-             CEP_NAO_ENCONTRADO, FUNCIONALIDADE_DESLIGADA, METODO_NAO_PERMITIDO, MIDIA_NAO_SUPORTADA, EMAIL_JA_CADASTRADO, HORARIO_INDISPONIVEL,
+             TROCA_DE_SENHA_OBRIGATORIA, CEP_NAO_ENCONTRADO, FUNCIONALIDADE_DESLIGADA, METODO_NAO_PERMITIDO, MIDIA_NAO_SUPORTADA, EMAIL_JA_CADASTRADO, HORARIO_INDISPONIVEL,
              CONFLITO_DE_VERSAO, CONFLITO_CONCORRENTE, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
              FORA_DO_HORIZONTE, ACEITE_POLITICA_OBRIGATORIO, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
              RESERVA_EXPIRADA, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
@@ -958,6 +975,14 @@ components:
             cidade: { type: [string, 'null'] }
             uf: { type: [string, 'null'] }
             completo: { type: boolean }
+        deveTrocarSenha: { type: boolean, description: 'true enquanto o admin usa a senha inicial; o front leva para a troca' }
+    TrocaDeSenhaRequest:
+      type: object
+      additionalProperties: false
+      required: [senhaAtual, novaSenha]
+      properties:
+        senhaAtual: { type: string, writeOnly: true }
+        novaSenha: { type: string, writeOnly: true, description: 'de 10 a 72 bytes em UTF-8' }
     LoginRequest:
       type: object
       additionalProperties: false
@@ -977,7 +1002,7 @@ components:
       properties:
         accessToken: { type: string }
         tipo: { type: string, const: Bearer }
-        expiraEmSegundos: { type: integer, description: 'HIPÓTESE H15: 900' }
+        expiraEmSegundos: { type: integer, example: 900 }
         refreshToken: { type: string, description: 'lido só pelo BFF, que guarda em cookie HttpOnly' }
         refreshExpiraEm: { type: string, format: date-time }
         usuario:
@@ -988,6 +1013,7 @@ components:
             papeis:
               type: array
               items: { $ref: '#/components/schemas/Papel' }
+        deveTrocarSenha: { type: boolean }
     AgendamentoRequest:
       type: object
       additionalProperties: false

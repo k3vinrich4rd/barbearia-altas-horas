@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,7 +27,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
+import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeLimite;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
+import io.github.k3vinrich4rd.altashoras.plataforma.seguranca.TrocaDeSenhaObrigatoriaException;
 
 /**
  * Todo erro da API sai em application/problem+json (RFC 9457, ADR 0005) com as extensões "code" (estável, para o
@@ -42,6 +46,26 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> erroDeNegocio(ExcecaoDeNegocio ex, HttpServletRequest request) {
         ProblemDetail corpo = problema(ex.codigo(), request.getRequestURI());
         corpo.setDetail(ex.getMessage());
+        ResponseEntity.BodyBuilder resposta = ResponseEntity.status(corpo.getStatus());
+        if (ex instanceof ExcecaoDeLimite limite) {
+            resposta.header(HttpHeaders.RETRY_AFTER, Long.toString(limite.tentarDeNovoEmSegundos()));
+        }
+        return resposta.body(corpo);
+    }
+
+    /** Sem login, ou com token inválido ou vencido (vem do filtro de segurança, pelo SegurancaConfig). */
+    @ExceptionHandler(AuthenticationException.class)
+    ResponseEntity<ProblemDetail> naoAutenticado(AuthenticationException ex, HttpServletRequest request) {
+        ProblemDetail corpo = problema(CodigoErro.NAO_AUTENTICADO, request.getRequestURI());
+        return ResponseEntity.status(corpo.getStatus()).body(corpo);
+    }
+
+    /** Logado, mas sem o papel (403), ou ainda com a senha inicial. */
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ProblemDetail> semPermissao(AccessDeniedException ex, HttpServletRequest request) {
+        CodigoErro codigo = ex instanceof TrocaDeSenhaObrigatoriaException
+                ? CodigoErro.TROCA_DE_SENHA_OBRIGATORIA : CodigoErro.ACESSO_NEGADO;
+        ProblemDetail corpo = problema(codigo, request.getRequestURI());
         return ResponseEntity.status(corpo.getStatus()).body(corpo);
     }
 
@@ -60,10 +84,12 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
         ProblemDetail corpo = problema(codigo, caminho(request));
         corpo.setStatus(statusCode.value());
         if (ex instanceof MethodArgumentNotValidException invalido) {
-            corpo.setProperty("errors", invalido.getBindingResult().getFieldErrors().stream()
-                    .map(erro -> Map.of("field", erro.getField(),
-                            "message", erro.getDefaultMessage() == null ? "inválido" : erro.getDefaultMessage()))
-                    .toList());
+            // Um item por campo (o primeiro erro de cada um), em ordem estável.
+            Map<String, String> porCampo = new java.util.TreeMap<>();
+            invalido.getBindingResult().getFieldErrors().forEach(erro -> porCampo.putIfAbsent(erro.getField(),
+                    erro.getDefaultMessage() == null ? "inválido" : erro.getDefaultMessage()));
+            corpo.setProperty("errors", porCampo.entrySet().stream()
+                    .map(e -> Map.of("field", e.getKey(), "message", e.getValue())).toList());
         } else if (ex instanceof MissingServletRequestParameterException ausente) {
             corpo.setProperty("errors", List.of(Map.of("field", ausente.getParameterName(), "message", "obrigatório")));
         } else if (ex instanceof MethodArgumentTypeMismatchException tipoErrado) {
@@ -86,6 +112,12 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
 
     private static CodigoErro codigoPara(Exception ex, HttpStatusCode status) {
         if (ex instanceof HttpMessageNotReadableException) {
+            // Campo fora do contrato (fail-on-unknown-properties) é erro diferente de JSON quebrado.
+            for (Throwable causa = ex.getCause(); causa != null; causa = causa.getCause()) {
+                if (causa.getClass().getSimpleName().contains("UnrecognizedProperty")) {
+                    return CodigoErro.CAMPO_DESCONHECIDO;
+                }
+            }
             return CodigoErro.JSON_MALFORMADO;
         }
         return switch (status.value()) {

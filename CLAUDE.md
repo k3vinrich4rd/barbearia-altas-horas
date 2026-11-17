@@ -29,6 +29,7 @@ Busca por identificador: `scripts/buscar-contexto.sh R15` (ou `D40`, `HORARIO_IN
 - Migração mergeada nunca é editada: mudança vira `V<n+1>`.
 - Testes com PostgreSQL real (`PostgresTestcontainers`); o critério da spec vai no `@DisplayName` (`"A7: ..."`).
 - Nenhum CPF, telefone, CEP ou e-mail em log.
+- Segurança: **negar por padrão**. Rota pública nova precisa entrar na lista do `SegurancaConfig` e na spec; o id do usuário vem sempre do token (`sub`), nunca de parâmetro.
 
 ## Comandos
 ```bash
