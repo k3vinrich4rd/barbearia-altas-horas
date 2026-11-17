@@ -48,6 +48,10 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> erroDeNegocio(ExcecaoDeNegocio ex, HttpServletRequest request) {
         ProblemDetail corpo = problema(ex.codigo(), request.getRequestURI());
         corpo.setDetail(ex.getMessage());
+        String campo = ex.campo();
+        if (campo != null) {
+            corpo.setProperty("errors", List.of(Map.of("field", campo, "message", ex.getMessage())));
+        }
         ResponseEntity.BodyBuilder resposta = ResponseEntity.status(corpo.getStatus());
         if (ex instanceof ExcecaoDeLimite limite) {
             resposta.header(HttpHeaders.RETRY_AFTER, Long.toString(limite.tentarDeNovoEmSegundos()));

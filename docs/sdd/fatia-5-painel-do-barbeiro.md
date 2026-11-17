@@ -282,10 +282,10 @@ Massa: cobrança `PAGA` (criada 08:00), `DEVOLUCAO_PENDENTE` (criada 10:00), `PA
 
 ## 8. Pronto quando
 
-- [x] **5A:** A1 a A40 verdes (214 testes no `./mvnw verify`, `scripts/conferir-spec.sh 5`: 40 de 71 com teste) · [ ] **5B:** A41 a A71 na PR 5B (`scripts/conferir-spec.sh 5 --exigir`)
-- [x] **5A:** `./mvnw verify` verde (214 testes, 0 falhas) · [ ] **5B:** com A9 da Fatia 4 (`ReservaConcorrenteIT`) ainda passando depois do `FOR SHARE`
-- [x] **5A:** `redocly lint` com 0 erros no contrato 1.4.0 (parte da 5A; o item 5 da seção 2 entra na 5B)
-- [ ] rotina do Eduardo rodada à mão no perfil `dev`: ver o dia, fechar, cancelar uma reserva paga, devolver, criar folga, mudar a antecedência (saídas em `docs/guia-testes.md`)
+- [x] **5A:** A1 a A40 verdes (214 testes no `./mvnw verify`, `scripts/conferir-spec.sh 5`: 40 de 71 com teste) · [x] **5B:** A41 a A71 verdes (249 testes no `./mvnw verify`, `scripts/conferir-spec.sh 5 --exigir`: 71 de 71 com teste)
+- [x] **5A:** `./mvnw verify` verde (214 testes, 0 falhas) · [x] **5B:** `./mvnw verify` verde (249 testes, 0 falhas), com A9 da Fatia 4 (`ReservaConcorrenteIT`) ainda passando depois do `FOR SHARE` (A63) e a corrida folga × reserva provada 50 vezes (A62)
+- [x] **5A:** `redocly lint` com 0 erros no contrato 1.4.0 (parte da 5A) · [x] **5B:** `redocly lint` com 0 erros no contrato 1.4.0 completo (item 5 da seção 2: preço mínimo de 1 centavo)
+- [x] rotina do Eduardo rodada à mão no perfil `dev` (**5A** em 17/11/2026, 16h31: ver o dia, fechar, cancelar uma reserva paga, devolver, auditoria · **5B** em 17/11/2026, 17h13: serviço, jornada, folga, antecedência de 120 para 180 e de volta; saídas em `docs/guia-testes.md`, AD4 a AD13)
   - [x] **5A** rodada à mão em 17/11/2026 (AD4 a AD9: agenda, fechar com a regra do relógio, cancelar com motivo, pendência, devolução e auditoria; `grep` do log: 0) · [ ] **5B** folga e antecedência
-- [x] **5A:** D70 a D76 registradas em `decisoes.md` (matriz de papéis, auditoria na mesma transação, `ReservaCancelada`, trava da reserva, testes de falha injetada) · [ ] **5B:** `FOR SHARE` (D77 em diante) · decisões originais: matriz de papéis, auditoria na mesma transação, `ReservaCancelada`, `FOR SHARE`)
+- [x] **5A:** D70 a D76 registradas em `decisoes.md` (matriz de papéis, auditoria na mesma transação, `ReservaCancelada`, trava da reserva, testes de falha injetada) · [x] **5B:** D80 a D86 registradas em `decisoes.md` (`FOR SHARE` e a grade dentro da transação, prova da corrida com atraso no insert, fachada `PainelDaAgenda`, `version` e `23505`, erro por campo, auditoria da 5B, base dos testes)
 - [ ] [checklist da PR](checklist-pr.md) completo
