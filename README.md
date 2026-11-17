@@ -37,9 +37,17 @@
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
 > [!IMPORTANT]
-> **Projeto individual de Kevin Richard**, feito com **Spec-Driven Development** e IA: o backend é escrito por mim com o Claude Code como par de programação, e o frontend é gerado com IA a partir do contrato ([como](#-como-o-projeto-é-feito-sdd--ia)).
+> **Onde o projeto está.** A agenda já responde, pela API, quais horários estão livres de verdade (descontando almoço, folgas e reservas), e o banco já impede dois clientes no mesmo horário. São **69 testes** rodando em PostgreSQL real, com 0 falhas. Conta, pagamento, painel e telas chegam nas próximas fatias: o [roadmap](#-roadmap-em-fatias) mostra o que está pronto e o que falta.
 >
-> **Em construção por fatias.** Cada fatia começa por uma especificação e só entra com testes verdes. **Fatias 1 e 2 prontas:** esqueleto, banco com a regra anti-sobreposição, catálogo e **horários livres** pela API, com **69 testes** em PostgreSQL real (0 falhas, 96% de cobertura de instruções). Números só aparecem aqui depois de sair de uma execução real.
+> Cada entrega nasce de uma **especificação** e só entra com teste para cada critério. Os números desta página saem sempre de execução real.
+
+<table>
+<tr>
+<td align="center" width="33%"><b>👀 Tenho 2 minutos</b><br/><a href="#-a-história">A história</a> · <a href="#-em-30-segundos">Em 30 segundos</a></td>
+<td align="center" width="33%"><b>🧑‍💻 Quero ver a engenharia</b><br/><a href="#-as-regras-da-casa-e-quem-garante-cada-uma">Regras e garantias</a> · <a href="#-decisões-de-arquitetura-adrs">ADRs</a> · <a href="#-como-o-projeto-é-feito-sdd--ia">SDD + IA</a></td>
+<td align="center" width="33%"><b>⌨️ Quero rodar</b><br/><a href="#-rodar-e-testar">2 comandos</a> · <a href="docs/guia-testes.md">guia de testes</a></td>
+</tr>
+</table>
 
 ## 📖 A história
 
@@ -47,19 +55,52 @@
 <tr>
 <td width="200" align="center" valign="top">
 <img src="docs/assets/eduardo-candido-avatar.png" width="170" alt="Eduardo Cândido, barbeiro da Altas Horas, de camisa listrada e gravata borboleta preta"/>
-<br/><b>Eduardo Cândido</b><br/><sub>meu pai · barbeiro desde 1997</sub>
+<br/><b>Eduardo Cândido</b><br/><sub>barbeiro desde 1997</sub>
 </td>
 <td valign="top">
 
-Meu pai, **Eduardo Cândido**, corta cabelo na **Barbearia Altas Horas**, em Osasco, desde **1997**. A agenda dele sempre foi o caderno e o WhatsApp: cliente marca, às vezes não aparece, e a cadeira fica vazia.
+Desde **1997**, quem senta na cadeira da **Barbearia Altas Horas**, no Jardim Bonança, em Osasco, é atendido pelo **Eduardo Cândido**. Ele é o barbeiro da casa e é meu pai. São quase três décadas de terça a sábado, das sete da manhã às oito da noite, fazendo do corte social ao degradê navalhado.
 
-Eu sou desenvolvedor backend. Este projeto é a **agenda dele**, feita por mim: o cliente escolhe o serviço e o horário, **paga antes** (Pix ou cartão) e o horário fica garantido. Meu pai abre o painel e vê o dia pronto.
+A agenda dele sempre coube num caderno e no WhatsApp, e é aí que mora o problema de toda barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta. Para quem atende sozinho, **cadeira vazia é meia hora de trabalho que ninguém paga**.
 
-Não é um produto para qualquer barbearia. É **a agenda da Altas Horas**, com os serviços, os preços e o horário de trabalho dele. Faço sozinho, com método (especificação antes do código) e com IA como par de programação.
+Este projeto é a agenda online da Altas Horas. O cliente escolhe o serviço e o horário, **paga antes**, por Pix ou cartão, e só então o horário é dele. Quem não paga em 15 minutos libera a vaga para o próximo. No fim, o Eduardo abre o painel de manhã e encontra o dia já organizado, com cada horário confirmado e pago. É para esse dia que o projeto está sendo construído, uma fatia de cada vez.
 
 </td>
 </tr>
 </table>
+
+<details>
+<summary><b>📒 Antes: o caderno e o WhatsApp</b></summary>
+
+<br/>
+
+| Momento | O que acontecia |
+|---|---|
+| Cliente quer marcar | manda mensagem e espera o Eduardo terminar um corte para responder |
+| Dois clientes querem o mesmo horário | quem respondeu primeiro leva; o outro descobre depois |
+| Cliente desiste | às vezes avisa, às vezes não |
+| Cliente falta | cadeira vazia, sem receita, e sem tempo de encaixar outra pessoa |
+| Fim do dia | a agenda de amanhã está espalhada entre o caderno e as conversas |
+
+</details>
+
+<details open>
+<summary><b>💈 Agora: a agenda online</b></summary>
+
+<br/>
+
+| Momento | O que acontece | Quem garante |
+|---|---|---|
+| Cliente quer marcar | vê os horários livres na hora, a qualquer hora | a API calcula jornada, almoço, folgas e reservas |
+| Dois clientes querem o mesmo horário | só um consegue, mesmo clicando no mesmo instante | o PostgreSQL, com uma regra no próprio banco |
+| Cliente reserva | o horário fica guardado por 15 minutos enquanto ele paga | prazo gravado na reserva |
+| Cliente paga | a confirmação é automática | o aviso do meio de pagamento, aceito uma vez só |
+| Cliente falta | o valor já foi pago: a cadeira vazia não vira prejuízo | regra do produto, aceita pelo cliente antes de pagar |
+| Começo do dia | o Eduardo vê a agenda pronta no painel | painel do barbeiro |
+
+<sub>✅ Já roda: horários livres pela API e a trava contra horário duplicado. 🚧 Em construção: reserva, pagamento e painel ([roadmap](#-roadmap-em-fatias)).</sub>
+
+</details>
 
 ## ⚡ Em 30 segundos
 
@@ -68,15 +109,59 @@ Não é um produto para qualquer barbearia. É **a agenda da Altas Horas**, com 
 | **Problema** | Na barbearia de bairro, a agenda vive no WhatsApp e no caderno. Horário marcado e não cumprido é cadeira vazia e dinheiro perdido. |
 | **Solução** | Agendamento online com horários livres em tempo real e **pagamento 100% antecipado** (Pix ou cartão de crédito). O horário só é confirmado quando o gateway avisa que o dinheiro entrou. |
 | **Para quem** | Para o **Eduardo Cândido**, meu pai, que atende sozinho e administra tudo num painel protegido, e para os clientes da **Barbearia Altas Horas** (Osasco, desde 1997). |
-| **Quem faz** | Só o **Kevin Richard**: backend com o Claude Code como par de programação; frontend gerado com IA e revisado por mim. Cada fatia começa por uma [spec](docs/sdd/README.md). |
+| **Como é construído** | Especificação antes do código, um teste para cada critério e CI barrando o que não cumpre. Backend em Java e Spring; IA como par de programação e na geração do frontend. [Como funciona](#-como-o-projeto-é-feito-sdd--ia). |
 | **Por que é nível Pleno** | Concorrência resolvida no banco, webhook idempotente, máquina de estados explícita, erros padronizados, LGPD desde a primeira linha e testes com PostgreSQL real. |
 | **Stack** | Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js |
 | **Deploy (Fase 1)** | Vercel (front) · Render (API em Docker) · Aiven (PostgreSQL) |
 
-**Três decisões que mostram o raciocínio**
-1. **Dois clientes nunca pegam o mesmo horário:** constraint `EXCLUDE USING gist` com `tstzrange '[)'` no PostgreSQL. Com duas requisições no mesmo milissegundo, o banco deixa passar só uma.
-2. **Pagamento confirmado uma vez só:** o id do evento do gateway é chave única. O mesmo aviso chegando duas vezes não confirma duas vezes.
-3. **Cartão sem tocar no cartão:** a API nunca recebe o número do cartão; o pagamento acontece no checkout hospedado do gateway, o que tira o projeto do escopo pesado do PCI DSS.
+### ✂️ As regras da casa, e quem garante cada uma
+
+Cada regra do negócio tem uma garantia de engenharia por trás. Abra para ver.
+
+<details>
+<summary><b>1. Dois clientes nunca ficam com o mesmo horário</b></summary>
+
+<br/>
+
+Quem garante é o banco, não um `if` no código: uma constraint `EXCLUDE USING gist` com `tstzrange '[)'` no PostgreSQL. Com duas requisições no mesmo milissegundo, ou duas instâncias da API no ar, o banco deixa passar só uma. O teste coloca 12 conexões disputando o mesmo horário e confere que exatamente uma vence. [ADR 0003](docs/adr/0003-anti-double-booking-no-banco.md)
+
+</details>
+
+<details>
+<summary><b>2. Horário só é confirmado com o dinheiro na conta</b></summary>
+
+<br/>
+
+A reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` quando o meio de pagamento avisa. Esse aviso pode chegar repetido, então o id do evento é chave única: o mesmo aviso duas vezes não confirma duas vezes. E a API não confia só no corpo do aviso: consulta a cobrança antes de confirmar. [ADR 0007](docs/adr/0007-gateway-de-pagamento-sandbox.md)
+
+</details>
+
+<details>
+<summary><b>3. Quem não paga em 15 minutos libera a vaga</b></summary>
+
+<br/>
+
+A reserva guarda o prazo. Passou dele, o horário volta a aparecer como livre **na mesma hora**, sem esperar nenhuma rotina de limpeza rodar: a consulta de horários já ignora reserva vencida. Importa porque a hospedagem gratuita hiberna, e uma rotina agendada atrasaria.
+
+</details>
+
+<details>
+<summary><b>4. O número do cartão nunca passa pela API</b></summary>
+
+<br/>
+
+O pagamento com cartão acontece na página do próprio meio de pagamento. A API só recebe o resultado, o que tira o projeto do escopo pesado do PCI DSS. O CPF, exigido para gerar a cobrança, é validado, repassado e não fica guardado. [ADR 0009](docs/adr/0009-lgpd-marketing-cpf-e-retencao.md)
+
+</details>
+
+<details>
+<summary><b>5. Preço, horário e regra mudam sem mexer no código</b></summary>
+
+<br/>
+
+Serviços, preços, jornada, almoço, antecedência mínima e prazo de pagamento são dados no banco. O Eduardo muda o horário de almoço no painel e a agenda acompanha, sem depender de uma nova versão do sistema.
+
+</details>
 
 ## 💈 A barbearia
 
@@ -335,27 +420,27 @@ O passo a passo para **testar à mão, sem depender de ninguém** (o que já rod
 
 ## 📐 Como o projeto é feito: SDD + IA
 
-Este é um projeto **só meu**. Sou desenvolvedor backend Java; não tenho um parceiro de frontend e essa não é a minha especialidade. Em vez de esconder isso, deixei o processo explícito:
+O backend é escrito em Java e Spring com IA como par de programação, e o frontend é gerado com IA a partir do contrato da API. O que mantém a qualidade com tanta IA no processo é o método: nada entra sem especificação, e cada critério da especificação vira um teste que o CI cobra.
 
-| Parte | Quem faz | Como a qualidade é garantida |
+| Parte | Como é feita | Como a qualidade é garantida |
 |---|---|---|
-| **Especificação** | eu, com o Claude Code | cada fatia tem uma [spec](docs/sdd/README.md) com decisões de desenho e critérios de aceite numerados; nada de código antes do meu OK |
-| **Backend** (Java 25 + Spring Boot 4) | **eu**, com o Claude Code como par de programação | um teste por critério da spec, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CI com CodeQL e gitleaks |
-| **Frontend** (Next.js) | **gerado com IA** a partir do contrato OpenAPI e das specs de tela, revisado por mim | tipos gerados do contrato, testes das telas críticas (checkout com aceite obrigatório), checagem de acessibilidade |
-| **Deploy** | eu, com IA para os passos de infraestrutura | Vercel + Render + Aiven, com o guia de testes rodado contra o ambiente publicado |
+| **Especificação** | escrita antes de qualquer código, com as decisões de desenho e os critérios de aceite | cada fatia tem uma [spec](docs/sdd/README.md) com critérios numerados; nada de código antes da aprovação |
+| **Backend** (Java 25 + Spring Boot 4) | escrito à mão, com IA como par de programação | um teste por critério da spec, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CI com CodeQL e gitleaks |
+| **Frontend** (Next.js) | gerado com IA a partir do contrato OpenAPI e das specs de tela, com revisão humana | tipos gerados do contrato, testes das telas críticas (checkout com aceite obrigatório), checagem de acessibilidade |
+| **Deploy** | Vercel + Render + Aiven, com IA apoiando os passos de infraestrutura | o guia de testes rodado contra o ambiente publicado |
 
 ### Por que Spec-Driven Development
 
-Quando a IA escreve boa parte do código, quem garante a qualidade é a **especificação**, não o prompt. Sem spec, a IA preenche as lacunas com suposições; com spec, ela implementa critérios que viram testes, e eu reviso o código **contra a spec**.
+Quando a IA escreve boa parte do código, quem garante a qualidade é a **especificação**, não o prompt. Sem spec, a IA preenche as lacunas com suposições; com spec, ela implementa critérios que viram testes, e a revisão é feita **contra a spec**.
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 flowchart LR
     R[Regra R#] --> S[📐 Spec<br/>Dado / Quando / Então]
-    S --> OK{meu OK}
+    S --> OK{aprovação}
     OK --> C[📜 Contrato]
     C --> T[🔴 Testes]
-    T --> I[🟢 Código<br/>eu + Claude Code]
+    T --> I[🟢 Código<br/>dev + IA em par]
     I --> V[✅ CI]
     V --> D[📚 Docs com saída real]
 ```
@@ -380,7 +465,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 0 · Especificação:** domínio, máquina de estados, contrato OpenAPI v1.1, DDL proposto e ADRs
 - [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
 - [x] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes)
-- [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas (📝 [spec escrita](docs/sdd/fatia-3-conta-e-acesso.md), 39 critérios, aguardando aprovação)
+- [ ] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo, admin inicial, limite de tentativas (📝 [spec escrita](docs/sdd/fatia-3-conta-e-acesso.md), 39 critérios)
 - [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração
 - [ ] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
 - [ ] **Fatia 6 · CEP e privacidade:** ViaCEP/BrasilAPI com degradação, LGPD
@@ -430,6 +515,6 @@ Este projeto é a minha forma de levar para o código o cuidado que ele coloca e
 
 **Kevin Richard** · desenvolvedor backend Java · Osasco/SP · [GitHub @k3vinrich4rd](https://github.com/k3vinrich4rd)
 
-Projeto individual: especificação, backend, deploy e revisão de tudo por mim; frontend gerado com IA.
+Construo backends em Java e Spring com foco em regra de negócio bem protegida: concorrência resolvida no banco, integrações que falham sem derrubar o sistema e testes que provam o que a especificação promete.
 
 <sub>Logo, fotos e identidade visual pertencem à Barbearia Altas Horas. Feito com Spec-Driven Development e apoio de IA; cada decisão tem fonte e data.</sub>
