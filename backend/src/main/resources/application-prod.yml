@@ -8,3 +8,6 @@ app:
   pagamento:
     # Sem valor padrão: sem o segredo da idempotência a API não sobe.
     idempotencia-segredo: ${IDEMPOTENCIA_HMAC_SEGREDO}
+server:
+  # Atrás do proxy do Render, o IP do cliente vem do X-Forwarded-For; sem isto a auditoria gravaria o IP do proxy (D77).
+  forward-headers-strategy: framework
