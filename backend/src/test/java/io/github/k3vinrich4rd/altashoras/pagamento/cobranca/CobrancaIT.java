@@ -93,7 +93,7 @@ class CobrancaIT {
                 .andExpect(jsonPath("$.valorCentavos").value(5500))
                 .andExpect(jsonPath("$.pix.copiaECola").value(startsWith("00020126FAKE")))
                 .andExpect(jsonPath("$.pix.qrCodeBase64").value("UVJDT0RFLUZBTFNP"))
-                .andExpect(jsonPath("$.pix.expiraEm").value("2026-11-17T08:15:00-03:00"))
+                .andExpect(jsonPath("$.pix.expiraEm").value("2026-11-17T08:03:00-03:00"))
                 .andExpect(jsonPath("$.cartao").doesNotExist())
                 .andExpect(jsonPath("$.cpfMascarado").value("***.***.***-25"));
 
@@ -117,7 +117,7 @@ class CobrancaIT {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.metodo").value("CARTAO_CREDITO"))
                 .andExpect(jsonPath("$.cartao.urlCheckout").value(startsWith("https://checkout.exemplo.test/")))
-                .andExpect(jsonPath("$.cartao.expiraEm").value("2026-11-17T08:15:00-03:00"))
+                .andExpect(jsonPath("$.cartao.expiraEm").value("2026-11-17T08:03:00-03:00"))
                 .andExpect(jsonPath("$.pix").value((Object) null))
                 .andReturn().getResponse().getContentAsString();
 
@@ -170,9 +170,9 @@ class CobrancaIT {
     @Test
     @DisplayName("A29: reserva expirada → 422 RESERVA_EXPIRADA; reserva de outro dono → 404; token de visitante errado → 404")
     void reservaExpiradaEDono() throws Exception {
-        // Expirada: o prazo de 15 min passa (o job ainda nem rodou: a regra olha o expira_em).
+        // Expirada: o prazo de 3 min passa (o job ainda nem rodou: a regra olha o expira_em).
         ReservaGuest expirada = reservarComoVisitante(mvc, barbeiro, servico, as(13, 0));
-        relogio.avancar(Duration.ofMinutes(16));
+        relogio.avancar(Duration.ofMinutes(4));
         cobrarComoVisitante(mvc, expirada, chaveNova(), corpoDaCobranca(expirada.id(), "PIX", CPF, versao))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.code").value("RESERVA_EXPIRADA"));

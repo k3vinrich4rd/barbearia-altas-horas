@@ -17,7 +17,7 @@ class PoliticaPrivacidadeIT extends PrivacidadeBase {
     void politicaPublica() throws Exception {
         String corpo = mvc.perform(MockMvcRequestBuilders.get("/politica-privacidade")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.versao").value(Consentimentos.VERSAO_DO_TEXTO))
-                .andExpect(jsonPath("$.versao").value("1.0"))
+                .andExpect(jsonPath("$.versao").value("1.1"))
                 .andExpect(jsonPath("$.textoConsentimento").isNotEmpty())
                 .andExpect(jsonPath("$.politica").isNotEmpty())
                 .andExpect(jsonPath("$.atualizadaEm").isNotEmpty())

@@ -1,5 +1,6 @@
 package io.github.k3vinrich4rd.altashoras.admin.agenda;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,10 +35,22 @@ class AgendaAdminController {
 
     private final ConsultarAgendaDoPainel consultar;
     private final MudarStatusDoAgendamento mudar;
+    private final CriarReservaManual criarManual;
 
-    AgendaAdminController(ConsultarAgendaDoPainel consultar, MudarStatusDoAgendamento mudar) {
+    AgendaAdminController(ConsultarAgendaDoPainel consultar, MudarStatusDoAgendamento mudar,
+            CriarReservaManual criarManual) {
         this.consultar = consultar;
         this.mudar = mudar;
+        this.criarManual = criarManual;
+    }
+
+    /** Trava um horário combinado por WhatsApp (Fatia 6D): ADMIN para qualquer barbeiro, BARBEIRO só para si. */
+    @PostMapping("/admin/agendamentos")
+    ResponseEntity<AgendamentoAdmin> criarManual(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+            @Valid @RequestBody ReservaManualRequest pedido) {
+        AgendamentoAdmin criado = criarManual.criar(Ator.de(token, request), pedido);
+        return ResponseEntity.created(URI.create("/admin/agendamentos/" + criado.id())).cacheControl(SEM_CACHE)
+                .body(criado);
     }
 
     @GetMapping("/admin/agenda")

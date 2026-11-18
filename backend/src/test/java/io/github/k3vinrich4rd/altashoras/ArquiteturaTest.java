@@ -37,7 +37,7 @@ class ArquiteturaTest {
                 .orShould().callMethod(OffsetDateTime.class, "now")
                 .orShould().callMethod(ZonedDateTime.class, "now")
                 .orShould().callMethod(System.class, "currentTimeMillis")
-                .because("o relógio injetado deixa testar a expiração de 15 minutos sem esperar")
+                .because("o relógio injetado deixa testar a expiração de 3 minutos sem esperar")
                 .check(CLASSES);
     }
 
