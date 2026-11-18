@@ -4,13 +4,13 @@
 
 <img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Cândido, com horário garantido."/>
 
-[![Status](https://img.shields.io/badge/status-Fatias_1_a_5_e_6A_prontas-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
+[![Status](https://img.shields.io/badge/status-Fatias_1_a_6_e_8_preparada-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-0A0A0A?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes-349_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
+[![Testes](https://img.shields.io/badge/testes-356_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
 
 <b><a href="#-a-história">A história</a></b> ·
 <a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
@@ -71,7 +71,7 @@ No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, c
   - **RAG da documentação: existe.** Está em `ferramentas/rag/` (Spring AI 2.0.2 + pgvector + embeddings locais, busca híbrida). Medido em 17/11/2026: só vetor acerta 10 de 17 perguntas; a híbrida, 15 de 17 ([detalhes](docs/ia/rag-vetorial.md)).
   - **SDD com um teste por critério:** nada entra sem spec, e o CI cobra um teste para cada critério ([como funciona](#-como-o-projeto-é-feito-sdd--ia)).
   - **Assistente de dúvidas para clientes: planejado** (Fatia 9). Vai nascer desligado por padrão, reaproveitando o RAG; a IA generativa só liga em produção. Não existe código disso ainda.
-- 🗺 **Status das fatias:** 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 7 (telas), 8 (deploy grátis) e 9 (assistente) planejadas. Lista completa no [roadmap](#-roadmap-em-fatias).
+- 🗺 **Status das fatias:** 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 8 (deploy grátis da API) **preparada**, aguardando a ativação pelo Kevin · 7 (telas) e 9 (assistente) planejadas. Lista completa no [roadmap](#-roadmap-em-fatias).
 
 ## 🏆 Trajetória e prêmios
 
@@ -358,7 +358,8 @@ barbearia-altas-horas/
 │       └── admin/        # painel: agenda, catálogo, pagamentos, auditoria
 ├── frontend/             # Next.js (BFF guarda os tokens em cookie HttpOnly)
 ├── docs/                 # contrato, ADRs, domínio, banco, guia de testes
-└── compose.yaml          # PostgreSQL 18 local (API e front entram na Fatia 8)
+├── render.yaml           # Blueprint do Render (API, plano free; Fatia 8)
+└── compose.yaml          # PostgreSQL 18 local para o perfil dev
 ```
 
 </details>
@@ -418,7 +419,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 349 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 356 testes com PostgreSQL real via Testcontainers
 ```
 
 | O que | Endereço local | |
@@ -431,6 +432,24 @@ cd backend && ./mvnw verify      # 349 testes com PostgreSQL real via Testcontai
 | Front | `http://localhost:3000` | ⏳ Fatia 7 |
 
 O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
+
+## 🚀 Deploy grátis (Fatia 8)
+
+Plano da Fase 1 (D38), **sem custo e sem cartão**: API no **Render** (web service free, Docker), banco no **Aiven PostgreSQL free** (D66, plano B Neon), front no **Vercel** depois da Fatia 7 e um **backup semanal** (`pg_dump` + gpg AES-256) guardado como artefato do GitHub Actions por 30 dias.
+
+| Peça | Arquivo |
+|---|---|
+| Imagem da API (JDK 25 no build, JRE 25 e usuário não-root no runtime) | [`backend/Dockerfile`](backend/Dockerfile) |
+| Blueprint do Render (segredos gerados pelo Render ou preenchidos no painel, nunca no repositório) | [`render.yaml`](render.yaml) |
+| Backup semanal criptografado | [`.github/workflows/backup-banco.yml`](.github/workflows/backup-banco.yml) |
+| Passo a passo de ativação, limites do plano free e rollback | [`docs/planejamento/ativar-deploy.md`](docs/planejamento/ativar-deploy.md) |
+
+```bash
+sh scripts/testar-imagem.sh    # docker build + PostgreSQL 18 + API no perfil prod (variáveis falsas): health UP, Flyway, CORS, IP real
+sh scripts/testar-backup.sh    # pg_dump, criptografia e restauração num banco novo
+```
+
+Nada disso está no ar ainda: a ativação (criar as contas e colar os valores) é feita pelo Kevin, com o OK dele. Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
 
 ## 📐 Como o projeto é feito: SDD + IA
 
@@ -486,7 +505,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 6B · Privacidade (LGPD):** consentimento, exportar e excluir conta, retenção
 - [x] **Fatia 6C · Alcance por região:** CEP opcional do visitante, região na reserva, painel `GET /admin/alcance` e vitrine pública `GET /alcance`, com agrupamento mínimo de 5 (k-anonimato)
 - [ ] **Fatia 7 · Telas Next.js (🗓 planejada):** agenda, checkout com aceite obrigatório, painel, acessibilidade
-- [ ] **Fatia 8 · Deploy grátis:** Vercel + Render + banco gratuito (🗓 planejada)
+- [ ] **Fatia 8 · Deploy grátis (preparada, [spec](docs/sdd/fatia-8-deploy.md)):** imagem Docker, Blueprint do Render, banco Aiven PostgreSQL free e backup semanal criptografado, tudo testado localmente; falta a ativação (só com o OK do Kevin) e o front no Vercel, depois da 7
 - [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)
 
 ## 📚 Documentação
