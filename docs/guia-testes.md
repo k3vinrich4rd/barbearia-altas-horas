@@ -515,7 +515,18 @@ curl -i http://localhost:8080/cep/99999999         # 404 CEP_NAO_ENCONTRADO
 curl -i -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json"   -d '{"nome":"Cliente Teste B","email":"cliente.b@exemplo.test","whatsapp":"(11) 90000-0002","senha":"Senha-de-teste-123","cep":"01001-000"}'
 ```
 
-Saída real: a preencher no fluxo manual.
+Saída real (17/11/2026, ViaCEP de verdade, resumida):
+
+```text
+GET /cep/01001000   -> 200 {"cep":"01001000","logradouro":"Praça da Sé","bairro":"Sé","cidade":"São Paulo","uf":"SP","fonte":"VIACEP"}
+GET /cep/01001000   -> 200 {... "fonte":"CACHE"}
+GET /cep/01001-000  -> 200 {"cep":"01001000", ... "fonte":"CACHE"}   (a máscara é normalizada)
+GET /cep/99999999   -> 404 application/problem+json  code=CEP_NAO_ENCONTRADO  traceId=...
+GET /cep/123        -> 400 application/problem+json  code=CEP_INVALIDO ("O CEP deve ter 8 dígitos.")
+POST /auth/cadastro (cep 01001000) -> 201 "endereco":{"cep":"01001000","bairro":"Sé","cidade":"São Paulo","uf":"SP","completo":true}
+```
+
+Limite por IP (30 por minuto): numa rajada de 31 consultas seguidas, as 26 primeiras deram `404` (CEPs válidos que não existem) e as 5 últimas `429` com `Retry-After` (ex.: `52`). As consultas de antes da rajada contaram na mesma janela; o `123` inválido não gastou chamada externa.
 
 **O que deve acontecer:** a primeira consulta vem com `"fonte":"VIACEP"` (Praça da Sé, Sé, São Paulo, SP) e a segunda com `"fonte":"CACHE"`; o cadastro devolve `endereco.completo: true`. O log da API tem a linha `cep resolvido: sim, fonte=...` e **nenhum** CEP.
 
@@ -529,7 +540,14 @@ curl -i http://localhost:8080/cep/01001000        # 503 CEP_INDISPONIVEL, em app
 curl -i -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json"   -d '{"nome":"Cliente Teste C","email":"cliente.c@exemplo.test","whatsapp":"(11) 90000-0003","senha":"Senha-de-teste-123","cep":"01001-000"}'
 ```
 
-Saída real: a preencher no fluxo manual.
+Saída real (17/11/2026, provedores apontados para `http://localhost:1/`, resumida):
+
+```text
+GET /cep/01310100 -> 503 application/problem+json  code=CEP_INDISPONIVEL ("Preencha o endereço manualmente.")  traceId=...
+POST /auth/cadastro (cep 01310100) -> 201 "endereco":{"cep":"01310100","bairro":null,"cidade":null,"uf":null,"completo":false}
+```
+
+Com os provedores ligados de novo, o cadastro com `01001000` deu `201` e `completo: true`. No log: `provedor de CEP falhou: provedor=VIACEP tipo=REDE` (e `BRASILAPI`), sem nenhum CEP, e-mail ou nome. `grep -c` por CEP e por e-mail de teste no log inteiro: 0.
 
 **O que deve acontecer:** a consulta dá `503` e o cadastro dá `201` com `endereco.completo: false` e bairro, cidade e uf nulos (R31). Quando os provedores voltam, a falha **não** ficou em cache: a mesma consulta já responde `200`. O log tem `provedor de CEP falhou: provedor=... tipo=REDE` e nenhum CEP. Limite: a 31ª consulta do mesmo IP no mesmo minuto dá `429` com `Retry-After`.
 
