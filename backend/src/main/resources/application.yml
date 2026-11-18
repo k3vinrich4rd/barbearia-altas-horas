@@ -64,7 +64,7 @@ app:
     cep-janela: 1m
     alcance-max: 30       # consultas da vitrine GET /alcance por IP (E35)
     alcance-janela: 1m
-    exportacao-max: 5    # exportações de dados (GET /me/dados) por conta (H22, E14)
+    exportacao-max: 5     # exportações de dados (GET /me/dados) por conta (H22, E14)
     exportacao-janela: 1h
   privacidade:
     # Canal de contato do titular, escrito na política (E13). Vem do ambiente: nunca no repositório (D-4).

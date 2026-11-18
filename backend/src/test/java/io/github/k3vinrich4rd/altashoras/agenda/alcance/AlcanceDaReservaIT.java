@@ -106,6 +106,31 @@ class AlcanceDaReservaIT extends AlcanceBase {
     }
 
     @Test
+    @DisplayName("A66: se a leitura da região da conta falhar (aqui, a coluna some por um instante), a reserva do cliente sai igual, sem região, e o log traz só a classe do erro (R31)")
+    void falhaNaRegiaoDaContaNaoImpedeAReserva(CapturedOutput saida) throws Exception {
+        Catalogo c = catalogo();
+        UUID cliente = cliente("Cliente Teste", "11988880001");
+        jdbc.update("UPDATE usuario SET bairro = 'Centro', cidade = 'Osasco', uf = 'SP' WHERE id = ?", cliente);
+        String token = tokenDeCliente(cliente);
+        jdbc.execute("ALTER TABLE usuario RENAME COLUMN cidade TO cidade_fora");
+        String resposta;
+        try {
+            resposta = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/agendamentos")
+                    .header("Authorization", "Bearer " + token).contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .content("""
+                            { "servicoId": "%s", "barbeiroId": "%s", "inicio": "%s" }
+                            """.formatted(c.servico(), c.barbeiro(),
+                            io.github.k3vinrich4rd.altashoras.DadosDeTeste.em(TERCA_DA_RESERVA, 10, 0))))
+                    .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        } finally {
+            jdbc.execute("ALTER TABLE usuario RENAME COLUMN cidade_fora TO cidade");
+        }
+
+        assertThat(regiaoDaReserva(idDe(resposta))).containsEntry("regiao_cidade", null).containsEntry("regiao_bairro", null);
+        assertThat(saida.getAll()).contains("reserva de cliente sem região (").doesNotContain("Osasco");
+    }
+
+    @Test
     @DisplayName("A66: cliente com Centro, Osasco, SP no cadastro: a reserva copia Centro, Osasco, SP, e mudar o endereço do usuário depois não muda a reserva")
     void clienteCopiaARegiaoDoCadastro() throws Exception {
         Catalogo c = catalogo();

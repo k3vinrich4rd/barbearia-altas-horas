@@ -246,9 +246,9 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
 ```json
 { "periodo": { "de": "2026-11-01", "ate": "2026-11-17" }, "total": 9, "semRegiao": 1,
   "cidades": [
-    { "cidade": "Osasco", "uf": "SP", "atendimentos": 6, "percentual": 66.7,
-      "bairros": [ { "bairro": "Centro", "atendimentos": 6, "percentual": 66.7 } ] },
-    { "cidade": "Outras cidades", "uf": null, "atendimentos": 2, "percentual": 22.2, "bairros": [] } ] }
+    { "cidade": "Osasco", "uf": "SP", "atendimentos": 6, "percentual": 66.7, "abaixoDoLimite": false,
+      "bairros": [ { "bairro": "Centro", "atendimentos": 6, "percentual": 66.7, "abaixoDoLimite": false } ] },
+    { "cidade": "Outras cidades", "uf": null, "atendimentos": null, "percentual": null, "abaixoDoLimite": true, "bairros": [] } ] }
 ```
 
 `GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix ou do checkout do cartão). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.

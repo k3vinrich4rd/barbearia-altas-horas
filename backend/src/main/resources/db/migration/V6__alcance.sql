@@ -7,6 +7,7 @@ ALTER TABLE reserva
     ADD COLUMN regiao_bairro varchar(120),
     ADD COLUMN regiao_cidade varchar(120),
     ADD COLUMN regiao_uf     char(2),
+    ADD CONSTRAINT reserva_regiao_par_ck CHECK ((regiao_cidade IS NULL) = (regiao_uf IS NULL)),
     ADD CONSTRAINT reserva_regiao_uf_ck CHECK (regiao_uf IS NULL OR regiao_uf ~ '^[A-Z]{2}$');
 
 -- O CEP do visitante é dado pessoal (localiza a casa): fica na tabela do contato, com o mesmo CHECK do usuario, e

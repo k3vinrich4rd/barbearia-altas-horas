@@ -46,11 +46,13 @@ public class AlcanceDaAgenda {
     public record Periodo(LocalDate de, LocalDate ate) {
     }
 
-    public record Bairro(String bairro, long atendimentos, double percentual) {
+    /** Abaixo do limite ("Outros bairros" com menos de 5): {@code atendimentos} e {@code percentual} nulos e {@code abaixoDoLimite} verdadeiro (D114). */
+    public record Bairro(String bairro, @Nullable Long atendimentos, @Nullable Double percentual, boolean abaixoDoLimite) {
     }
 
     /** "Outras cidades" tem {@code uf} nula e nenhum bairro. O percentual é sobre o total do período (inclui o sem região). */
-    public record Cidade(String cidade, @Nullable String uf, long atendimentos, double percentual, List<Bairro> bairros) {
+    public record Cidade(String cidade, @Nullable String uf, @Nullable Long atendimentos, @Nullable Double percentual,
+            boolean abaixoDoLimite, List<Bairro> bairros) {
     }
 
     public record Painel(Periodo periodo, long total, long semRegiao, List<Cidade> cidades) {

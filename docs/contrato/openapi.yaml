@@ -1554,22 +1554,24 @@ components:
           description: 'por volume; "Outras cidades" (uf nula) por último'
           items:
             type: object
-            required: [cidade, uf, atendimentos, percentual, bairros]
+            required: [cidade, uf, atendimentos, percentual, abaixoDoLimite, bairros]
             properties:
               cidade: { type: string, example: Osasco }
               uf: { type: [string, 'null'], example: SP }
-              atendimentos: { type: integer }
-              percentual: { type: number, format: double, description: 'sobre o total do período, 1 casa decimal', example: 66.7 }
+              atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
+              percentual: { type: [number, 'null'], format: double, description: 'sobre o total do período, 1 casa decimal; nulo quando abaixoDoLimite', example: 66.7 }
+              abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outras cidades" com menos de 5 atendimentos (D114)' }
               bairros:
                 type: array
                 description: 'por volume; "Outros bairros" por último; vazio em "Outras cidades"'
                 items:
                   type: object
-                  required: [bairro, atendimentos, percentual]
+                  required: [bairro, atendimentos, percentual, abaixoDoLimite]
                   properties:
                     bairro: { type: string, example: Centro }
-                    atendimentos: { type: integer }
-                    percentual: { type: number, format: double, example: 66.7 }
+                    atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
+                    percentual: { type: [number, 'null'], format: double, example: 66.7 }
+                    abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outros bairros" com menos de 5 atendimentos (D114)' }
     AlcancePublico:
       type: object
       required: [atualizadoEm, totalCidades, totalBairros, regioes]
