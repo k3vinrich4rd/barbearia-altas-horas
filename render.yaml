@@ -1,0 +1,55 @@
+# =====================================================================================================================
+# Render Blueprint da API da Barbearia Altas Horas (Fatia 8, docs/sdd/fatia-8-deploy.md).
+# Só a API: o banco é o Aiven PostgreSQL free (D66), fora do Render, e o front vai para o Vercel depois da Fatia 7.
+# NENHUM valor secreto fica aqui: toda variável com "sync: false" é preenchida pelo Kevin no painel do Render, na
+# primeira vez que o Blueprint é aplicado. O passo a passo está em docs/planejamento/ativar-deploy.md.
+# =====================================================================================================================
+services:
+  - type: web
+    name: altas-horas-api
+    runtime: docker
+    plan: free                      # 512 MB de RAM, dorme após ~15 min sem tráfego (cold start de ~20 s)
+    region: frankfurt               # confira no Aiven a região do banco e escolha a mais próxima (guia, passo 2)
+    branch: main                    # só a main é implantada; a develop nunca vai para o ar sozinha
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    autoDeploy: false               # beta: o Kevin aperta "Manual Deploy"; ligar depois é decisão registrada (D-3)
+    envVars:
+      # --- valores não secretos, fixos ---
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: APP_PAGAMENTO_MODO     # D59: pagamento simulado em todo o beta
+        value: simulado
+
+      # --- banco (Aiven): URL JDBC com ?sslmode=require, usuário e senha do serviço ---
+      - key: DB_URL
+        sync: false
+      - key: DB_USUARIO
+        sync: false
+      - key: DB_SENHA
+        sync: false
+
+      # --- segredos que o Render gera sozinho (ninguém digita; ficam só no painel do Render) ---
+      - key: JWT_SEGREDO
+        generateValue: true
+      - key: IDEMPOTENCIA_HMAC_SEGREDO
+        generateValue: true
+      - key: GATEWAY_SEGREDO_WEBHOOK
+        generateValue: true
+
+      # --- primeiro administrador (criado na subida só se ainda não existir nenhum) ---
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_SENHA
+        sync: false
+      - key: ADMIN_NOME
+        sync: false
+
+      # --- front e privacidade ---
+      - key: CORS_ORIGENS           # URL do front (Vercel), sem barra no fim; vazio = nenhum navegador acessa a API
+        sync: false
+      - key: URL_CHECKOUT_SIMULADO  # tela de pagamento simulado do front (depois da Fatia 7)
+        sync: false
+      - key: APP_PRIVACIDADE_CONTATO
+        sync: false

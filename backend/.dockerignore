@@ -1,0 +1,17 @@
+# Fora do contexto de build: o que é lixo, local ou segredo.
+target/
+.idea/
+*.iml
+.vscode/
+.git/
+.gitignore
+# Segredos locais nunca entram na imagem
+.env
+.env.*
+*.pem
+*.key
+# Testes não vão para a imagem (o build usa -DskipTests; src/test não é copiado)
+src/test/
+*.md
+Dockerfile
+.dockerignore
