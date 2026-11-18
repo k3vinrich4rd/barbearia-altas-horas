@@ -28,7 +28,7 @@ class CatalogoController {
     }
 
     @GetMapping("/barbeiros")
-    ResponseEntity<List<BarbeiroResumo>> barbeiros() {
+    ResponseEntity<List<BarbeiroNoCatalogo>> barbeiros() {
         return ResponseEntity.ok().cacheControl(CACHE_DO_CATALOGO).body(barbeiros.listarAtivos());
     }
 }

@@ -27,7 +27,8 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 @Table(name = "reserva")
 public class Reserva {
 
-    public enum Origem { CLIENTE, GUEST }
+    /** MANUAL: horário combinado por fora do app e travado pelo painel (Fatia 6D): nasce CONFIRMADO, sem cobrança. */
+    public enum Origem { CLIENTE, GUEST, MANUAL }
 
     @Id
     private UUID id;
@@ -90,6 +91,16 @@ public class Reserva {
     @Column(name = "regiao_uf", length = 2)
     private @Nullable String regiaoUf;
 
+    /** Só na reserva manual (6D): nome e observação digitados pela barbearia. Dado pessoal; viram NULL na retenção. */
+    @Column(name = "nome_cliente")
+    private @Nullable String nomeCliente;
+
+    @Column(name = "observacao")
+    private @Nullable String observacao;
+
+    @Column(name = "criado_por")
+    private @Nullable UUID criadoPor;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -122,6 +133,22 @@ public class Reserva {
     /** Toda reserva nasce aguardando o pagamento de 100%, com prazo (R6, R7). Sem cliente = visitante. */
     static Reserva nova(Horario horario, @Nullable UUID clienteId, long precoCentavos, Instant expiraEm, Instant agora) {
         return new Reserva(horario, clienteId, precoCentavos, expiraEm, agora);
+    }
+
+    /**
+     * Reserva manual (Fatia 6D): o horário foi combinado por WhatsApp e a barbearia só o trava. Nasce {@code CONFIRMADO},
+     * sem cliente, sem prazo e sem aceite de política; o preço do serviço fica só como referência (nenhuma cobrança nasce).
+     */
+    static Reserva manual(Horario horario, long precoCentavos, @Nullable String nomeCliente, @Nullable String observacao,
+            UUID criadoPor, Instant agora) {
+        Reserva reserva = new Reserva(horario, null, precoCentavos, agora, agora);
+        reserva.origem = Origem.MANUAL;
+        reserva.status = StatusReserva.CONFIRMADO;
+        reserva.expiraEm = null;
+        reserva.nomeCliente = nomeCliente;
+        reserva.observacao = observacao;
+        reserva.criadoPor = criadoPor;
+        return reserva;
     }
 
     /** Copia a região na criação (E30). Nunca é alterada depois: mudar o endereço da conta não muda a estatística. */

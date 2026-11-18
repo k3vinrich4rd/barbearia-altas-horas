@@ -127,11 +127,11 @@ class CadastrosDoPainel {
     }
 
     @Transactional
-    BarbeiroCadastrado criarBarbeiro(String nomeExibicao, @Nullable UUID usuarioId) {
+    BarbeiroCadastrado criarBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp) {
         if (usuarioId != null && barbeiros.existeComUsuario(usuarioId)) {
             throw new ExcecaoDeNegocio(CodigoErro.USUARIO_JA_VINCULADO);
         }
-        Barbeiro barbeiro = Barbeiro.novo(nomeExibicao, usuarioId, clock.instant());
+        Barbeiro barbeiro = Barbeiro.novo(nomeExibicao, usuarioId, whatsapp, clock.instant());
         em.persist(barbeiro);
         descarregar(CodigoErro.USUARIO_JA_VINCULADO);
         return barbeiroDe(barbeiro, List.of());
@@ -153,8 +153,9 @@ class CadastrosDoPainel {
         List<String> campos = camposAlterados(
                 mudou("nomeExibicao", barbeiro.getNomeExibicao(), alteracao.nomeExibicao()),
                 mudou("usuarioId", barbeiro.getUsuarioId(), usuario),
+                mudou("whatsapp", barbeiro.getWhatsapp(), alteracao.whatsapp()),
                 mudou("ativo", barbeiro.isAtivo(), alteracao.ativo()));
-        barbeiro.alterar(alteracao.nomeExibicao(), usuario, alteracao.ativo(), clock.instant());
+        barbeiro.alterar(alteracao.nomeExibicao(), usuario, alteracao.whatsapp(), alteracao.ativo(), clock.instant());
         descarregar(CodigoErro.USUARIO_JA_VINCULADO);
         return new Alterado<>(barbeiroDe(barbeiro, jornadaDe(id)), campos);
     }
@@ -201,8 +202,8 @@ class CadastrosDoPainel {
     private static BarbeiroCadastrado barbeiroDe(Barbeiro b, List<Intervalo> jornada) {
         List<Intervalo> ordenada = jornada.stream()
                 .sorted(Comparator.comparingInt(Intervalo::diaSemana).thenComparing(Intervalo::horaInicio)).toList();
-        return new BarbeiroCadastrado(b.getId(), b.getNomeExibicao(), b.getUsuarioId(), b.isAtivo(), b.getVersion(),
-                ordenada);
+        return new BarbeiroCadastrado(b.getId(), b.getNomeExibicao(), b.getUsuarioId(), b.getWhatsapp(), b.isAtivo(),
+                b.getVersion(), ordenada);
     }
 
     // ---- folgas -----------------------------------------------------------------------------------------------------

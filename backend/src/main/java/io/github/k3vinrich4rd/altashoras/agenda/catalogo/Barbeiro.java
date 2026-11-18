@@ -33,6 +33,13 @@ public class Barbeiro {
     @Column(name = "usuario_id")
     private @Nullable UUID usuarioId;
 
+    /**
+     * WhatsApp comercial do barbeiro (Fatia 6D, D122): só dígitos, opcional. É contato de trabalho que o próprio barbeiro
+     * divulga, cadastrado pelo ADMIN e mostrado ao público em {@code GET /barbeiros}; não é dado de cliente.
+     */
+    @Column(name = "whatsapp")
+    private @Nullable String whatsapp;
+
     @Column(nullable = false)
     private boolean ativo;
 
@@ -52,20 +59,23 @@ public class Barbeiro {
     protected Barbeiro() {
     }
 
-    public static Barbeiro novo(String nomeExibicao, @Nullable UUID usuarioId, Instant agora) {
+    public static Barbeiro novo(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp, Instant agora) {
         Barbeiro barbeiro = new Barbeiro();
         barbeiro.id = UUID.randomUUID();
         barbeiro.nomeExibicao = nomeExibicao;
         barbeiro.usuarioId = usuarioId;
+        barbeiro.whatsapp = whatsapp;
         barbeiro.ativo = true;
         barbeiro.criadoEm = agora;
         barbeiro.atualizadoEm = agora;
         return barbeiro;
     }
 
-    public void alterar(String nomeExibicao, @Nullable UUID usuarioId, boolean ativo, Instant agora) {
+    public void alterar(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp, boolean ativo,
+            Instant agora) {
         this.nomeExibicao = nomeExibicao;
         this.usuarioId = usuarioId;
+        this.whatsapp = whatsapp;
         this.ativo = ativo;
         this.atualizadoEm = agora;
     }
@@ -80,6 +90,10 @@ public class Barbeiro {
 
     public @Nullable UUID getUsuarioId() {
         return usuarioId;
+    }
+
+    public @Nullable String getWhatsapp() {
+        return whatsapp;
     }
 
     public boolean isAtivo() {

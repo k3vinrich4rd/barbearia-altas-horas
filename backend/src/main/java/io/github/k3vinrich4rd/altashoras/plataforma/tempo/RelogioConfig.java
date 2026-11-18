@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * O único lugar que lê o relógio do sistema (ADR 0004). O resto do código recebe {@link Clock} injetado, o que
- * deixa os testes "adiantarem o relógio" (expiração de 15 min) sem esperar. Regra garantida pelo ArquiteturaTest.
+ * deixa os testes "adiantarem o relógio" (expiração de 3 min) sem esperar. Regra garantida pelo ArquiteturaTest.
  */
 @Configuration(proxyBeanMethods = false)
 class RelogioConfig {

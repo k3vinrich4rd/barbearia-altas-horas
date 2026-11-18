@@ -49,14 +49,14 @@ class V1MigracaoIT {
     }
 
     @Test
-    @DisplayName("Configuração inicial = regras reais: 2 h de antecedência, slots de 30 min, 30 dias, 15 min para pagar")
+    @DisplayName("Configuração inicial = regras reais: 2 h de antecedência, slots de 30 min, 30 dias, 3 min para pagar (a V1 nasceu com 15; a V7 trocou para 3, D121)")
     void configuracaoReal() {
         var cfg = jdbc.queryForMap("SELECT * FROM configuracao_agenda WHERE id = 1");
         assertThat(cfg).containsEntry("antecedencia_minima_min", 120)
                 .containsEntry("intervalo_entre_atendimentos_min", 0)
                 .containsEntry("granularidade_min", 30)
                 .containsEntry("horizonte_dias", 30)
-                .containsEntry("expiracao_pagamento_min", 15)
+                .containsEntry("expiracao_pagamento_min", 3)
                 .containsEntry("fuso", "America/Sao_Paulo");
         assertThat(jdbc.queryForObject("SELECT texto FROM politica_pagamento WHERE versao = 1", String.class))
                 .contains("100%").contains("não há cancelamento, remarcação ou estorno");

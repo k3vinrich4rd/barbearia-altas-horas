@@ -49,7 +49,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 |---|---|---|---|---|---|---|
 | `GET` | `/actuator/health` | saúde da API | 🌐 | `200` | — | — |
 | `GET` | `/servicos` | serviços ativos com duração e preço | 🌐 | `200` | — | [4.1](#41-catálogo) |
-| `GET` | `/barbeiros` | barbeiros ativos | 🌐 | `200` | — | [4.1](#41-catálogo) |
+| `GET` | `/barbeiros` | barbeiros ativos, com o `whatsapp` comercial (**muda na 1.6.0**, 6D) | 🌐 | `200` | — | [4.1](#41-catálogo) |
 | `GET` | `/disponibilidade` | horários livres de um dia | 🌐 | `200` | `400 VALIDACAO_INVALIDA`, `404 RECURSO_NAO_ENCONTRADO`, `422 FORA_DO_HORIZONTE` | [4.2](#42-disponibilidade) |
 | `GET` | `/cep/{cep}` | endereço pelo CEP (cache) | 🌐 | `200` | `400 CEP_INVALIDO`, `404 CEP_NAO_ENCONTRADO`, `503 CEP_INDISPONIVEL`, `429` | [4.3](#43-cep) |
 | `POST` | `/auth/cadastro` | cria conta de cliente | 🌐 | `201` | `400 VALIDACAO_INVALIDA`, `409 EMAIL_JA_CADASTRADO`, `429` | [4.4](#44-autenticação-e-conta) |
@@ -64,7 +64,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `PUT` | `/me/consentimentos/marketing` | aceita ou revoga marketing | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
 | `GET` | `/politica-privacidade` | política de privacidade e texto da caixa de marketing, com a versão vigente | 🌐 | `200` | — | [4.9](#49-privacidade) |
 | `GET` | `/politica-pagamento` | texto e versão da política (sem cancelamento, remarcação ou estorno) | 🌐 | `200` | — | [4.7](#47-pagamento-100-antecipado) |
-| `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 15 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
+| `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 3 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/alcance` | cidades e bairros atendidos, só nomes e sem contagens, últimos 12 meses (**novo na 1.5.0**, 6C) | 🌐 (30/min por IP) | `200` | `429` | [4.6](#46-guest) |
@@ -73,11 +73,12 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
 | `GET` | `/admin/agenda` | agenda do dia ou da semana, com nome e WhatsApp de quem vem e o status da cobrança (`AgendamentoAdmin`) | 🛠 ✂️ (só a própria, **H9**) | `200` | `400`, `401`, `403`, `404` (barbeiro inexistente, alheio ou sem vínculo) | [Painel](../admin/painel-admin.md) |
+| `POST` | `/admin/agendamentos` | trava um horário combinado por WhatsApp, fora do app: nasce `CONFIRMADO`, `origem = MANUAL`, sem cobrança (**novo na 1.6.0**, 6D). ADMIN para qualquer barbeiro; BARBEIRO só para si | 🛠 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 SERVICO_INATIVO`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 FORA_DO_HORIZONTE` | [4.11](#411-reserva-manual-16-fatia-6d) |
 | `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta (valor retido) ou cancela pela barbearia (só ADMIN cancela) | 🛠 ✂️ | `200` | `400`, `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/servicos` | lista (inclusive inativos) e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 NOME_JA_EXISTE` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/servicos/{id}` | altera nome, duração, preço, ativo (preço a partir de 1 centavo) | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 NOME_JA_EXISTE`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/barbeiros` | lista e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 USUARIO_JA_VINCULADO` | [Painel](../admin/painel-admin.md) |
-| `PUT` | `/admin/barbeiros/{id}` | altera nome, ativo, login vinculado | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 USUARIO_JA_VINCULADO`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
+| `PUT` | `/admin/barbeiros/{id}` | altera nome, WhatsApp comercial (**novo na 1.6.0**), ativo, login vinculado | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 USUARIO_JA_VINCULADO`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/barbeiros/{id}/jornada` | substitui a jornada semanal | 🛠 | `200` | `400`, `401`, `403`, `404`, `422 JORNADA_SOBREPOSTA` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/barbeiros/{id}/folgas` | folgas de hoje em diante (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/barbeiros/{id}/folgas` | cria folga | 🛠 | `201` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` | [Painel](../admin/painel-admin.md) |
@@ -120,8 +121,9 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 ```
 Só os **ativos**, em ordem de nome (sem diferença de maiúsculas). `GET /barbeiros` → `200`
 ```json
-[ { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido" } ]
+[ { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": "5511912345678" } ]
 ```
+**WhatsApp do barbeiro (1.6.0, Fatia 6D).** `whatsapp` é o contato comercial do barbeiro, só dígitos (DDD e DDI opcional), ou `null` quando ele não cadastrou. O front monta `https://wa.me/<whatsapp>` e esconde o botão se for `null`. É contato de trabalho que o próprio barbeiro divulga, cadastrado só pelo ADMIN (`POST` e `PUT /admin/barbeiros`, com ou sem máscara; a resposta devolve só dígitos): não é dado de cliente.
 As três rotas de catálogo (`/servicos`, `/barbeiros`, `/politica-pagamento`) respondem com `Cache-Control: max-age=60, public`.
 
 ### 4.2 Disponibilidade
@@ -286,7 +288,7 @@ O `cpfMascarado` aparece **só nesta resposta `201`**: ele é montado a partir d
 ```
 Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_NAO_AUTENTICADO` com token errado ou ausente, sem gravar nada (R11). O corpo é tratado como **sinal de mudança**: a API reconsulta a cobrança no gateway antes de marcar `PAGA` (OWASP API10). Eventos de tipos que a API não usa → `200` e registro como `IGNORADO`.
 
-**Pagamento tardio (R14).** Se a aprovação chega depois dos 15 minutos: com o horário ainda livre, a reserva volta de `EXPIRADO` para `CONFIRMADO` (passa pela mesma constraint do banco); com o horário já ocupado por outro cliente, a cobrança fica `PAGA_APOS_EXPIRACAO` e aparece no painel como **pendência administrativa** para tratamento manual.
+**Pagamento tardio (R14).** Se a aprovação chega depois do prazo (3 minutos, R7): com o horário ainda livre, a reserva volta de `EXPIRADO` para `CONFIRMADO` (passa pela mesma constraint do banco); com o horário já ocupado por outro cliente, a cobrança fica `PAGA_APOS_EXPIRACAO` e aparece no painel como **pendência administrativa** para tratamento manual.
 
 ### 4.9 Privacidade
 
@@ -298,13 +300,22 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 
 `GET /me/consentimentos` → `200` com o **estado atual** de cada finalidade (a linha mais recente); conta sem nenhum registro (o admin inicial) recebe `[]`.
 
-`PUT /me/consentimentos/marketing` `{ "aceito": true, "versaoTexto": "1.0" }` → `200` com o consentimento registrado (cada mudança é uma linha nova, R28). `versaoTexto` precisa ser a vigente (a de `GET /politica-privacidade`): outra versão é `400 VALIDACAO_INVALIDA` com `errors[].field = versaoTexto`. Pedir o estado que já vale, na mesma versão, devolve a linha existente e não grava outra. Revogar não apaga CEP, bairro nem cidade da conta.
+`PUT /me/consentimentos/marketing` `{ "aceito": true, "versaoTexto": "1.1" }` → `200` com o consentimento registrado (cada mudança é uma linha nova, R28). `versaoTexto` precisa ser a vigente (a de `GET /politica-privacidade`): outra versão é `400 VALIDACAO_INVALIDA` com `errors[].field = versaoTexto`. Pedir o estado que já vale, na mesma versão, devolve a linha existente e não grava outra. Revogar não apaga CEP, bairro nem cidade da conta.
 
-`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.0", "textoConsentimento": "...", "politica": "...", "atualizadaEm": "2026-11-17T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.0 é um **rascunho técnico, não é parecer jurídico**.
+`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.1", "textoConsentimento": "...", "politica": "...", "atualizadaEm": "2026-11-18T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.1 (6D: WhatsApp comercial do barbeiro, reserva por fora do sistema e backup) é um **rascunho técnico, não é parecer jurídico**.
+
+### 4.11 Reserva manual (1.6, Fatia 6D)
+
+`POST /admin/agendamentos` (ADMIN ou BARBEIRO) `{ "servicoId": "...", "barbeiroId": "...", "inicio": "2026-12-01T15:00:00-03:00", "nomeCliente": "Fulano de Tal", "observacao": "combinado por WhatsApp" }` → `201` `AgendamentoAdmin` com `status = CONFIRMADO`, `origem = MANUAL`, `expiraEm = null`, `cobrancaStatus = null`, `cliente = { "nome": "Fulano de Tal", "whatsapp": null }` e `observacao`. `nomeCliente` (até 80) e `observacao` (até 200) são opcionais; sem nome, `cliente.nome` vem como `Sem nome`.
+
+- **Quem:** ADMIN trava para qualquer barbeiro; BARBEIRO só para si (barbeiro alheio, inexistente ou conta sem vínculo: `404`).
+- **Regras:** as da reserva do cliente (jornada, almoço, folga, granularidade, serviço ativo, horizonte, constraint do banco), **exceto a antecedência mínima**; horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado é `409 HORARIO_INDISPONIVEL`. Grava auditoria (`AGENDAMENTO_MANUAL_CRIADO`) na mesma transação.
+- **Depois de criada:** aparece em `GET /admin/agenda`, ocupa o horário na disponibilidade e pode ser concluída ou marcada como falta (`PATCH /admin/agendamentos/{id}/status`). Só o ADMIN cancela, com motivo; como não há cobrança, nada vai para devolução.
+- **Privacidade:** não existe campo de WhatsApp, e-mail nem CPF do cliente, e o sistema não guarda. `nomeCliente` e `observacao` somem 90 dias depois do fim da reserva. Cliente e visitante recebem `404` ao tentar ver ou pagar essa reserva. Não conta no alcance. Pagamento por fora (dinheiro, Pix direto) não gera registro financeiro.
 
 ### 4.10 Regras de negócio citadas
 
-As regras R1 a R32 ficam no [dossiê, seção 3](../contexto.md#3-regras-de-negócio), para não duplicar. Testes e PRs citam o número.
+As regras R1 a R34 ficam no [dossiê, seção 3](../contexto.md#3-regras-de-negócio), para não duplicar. Testes e PRs citam o número.
 
 ## 5. Erros
 
@@ -379,6 +390,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.6.0 (proposta) | 2026-11-18 | Fatia 6D: prazo de pagamento de 3 minutos (descrições e `expiracaoPagamentoMin` de 3 a 60); `whatsapp` em `GET /barbeiros` e em `POST` e `PUT /admin/barbeiros`; rota nova `POST /admin/agendamentos` (reserva manual) e schema `ReservaManualRequest`; `origem = MANUAL` e `observacao` em `AgendamentoAdmin`; política de privacidade e texto do consentimento na versão `1.1` | não (campos novos; o front que fixa a versão do texto em `1.0` passa a receber `400` no consentimento e deve ler a versão de `GET /politica-privacidade`) |
 | 1.5.0 (proposta) | 2026-11-17 | Fatia 6B (privacidade): rota nova `GET /politica-privacidade` e schema `PoliticaPrivacidade`; `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` em `DELETE /me`; `429` em `GET /me/dados` (H22); `ExportacaoDados` detalhado (`conta`, `agendamentos`); `GET /me/consentimentos` devolve o estado atual por finalidade. Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31). Fatia 6C (alcance): `cep` opcional em `POST /agendamentos/guest`; rotas novas `GET /admin/alcance` (`AlcancePainel`) e `GET /alcance` (`AlcancePublico`, pública); sem subir a versão. `redocly lint` 2.78.0: 0 erros | não (campos e códigos já existiam; `cep` é opcional) |
 | 1.4.0 (proposta) | 2026-11-17 | Fatia 5 (painel): `AgendamentoAdmin` e `CobrancaAdmin` (sem Pix, cartão, CPF nem e-mail); rotas novas `GET /admin/pagamentos/eventos`, `POST /admin/pagamentos/eventos/{id}/revisao` e `GET /admin/barbeiros/{id}/folgas`; `409 USUARIO_JA_VINCULADO`; `ServicoRequest.precoCentavos` a partir de **1** centavo; `PaginaAuditoria` com `detalhe` (sem IP); `ConfiguracaoAgenda` sem `fuso` na entrada; `Location` nos `201` dos cadastros | não (nenhum campo renomeado; o preço mínimo só recusa o que a reserva já recusava) |
 | 1.2.0 (proposta) | 2026-11-17 | Fatia 3: `PUT /me/senha`; `deveTrocarSenha` no login e no perfil; `403 TROCA_DE_SENHA_OBRIGATORIA`; senha medida em bytes; `WWW-Authenticate: Bearer` nos `401`; limite também por IP; o cabeçalho de rastreio é `X-Trace-Id` (o texto citava `X-Trace-Id`) | não (não há front ainda) |
