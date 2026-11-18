@@ -157,6 +157,9 @@ class SegurancaConfig {
         return (request, response, recusa) -> {
             CodigoErro codigo = request.getRequestURI().startsWith("/cep/")
                     ? CodigoErro.CEP_INVALIDO : CodigoErro.VALIDACAO_INVALIDA;
+            // Sem a URI: ela pode trazer o CEP (R30). Só o método e o código, para notar se as recusas virarem ataque.
+            org.slf4j.LoggerFactory.getLogger(SegurancaConfig.class)
+                    .debug("pedido recusado pelo firewall: metodo={} code={}", request.getMethod(), codigo);
             tratadorDeErros.resolveException(request, response, null, new ExcecaoDeNegocio(codigo));
         };
     }

@@ -32,3 +32,5 @@ Opção 2, no módulo `cep` (`CepApi.buscar(Cep): Optional<Endereco>`):
 ## Gatilhos para revisitar
 - Mais de uma instância → cache distribuído só se medir ganho.
 - Algum provedor exigir chave ou mudar termos.
+- Reclamação de cadastro lento: pôr um prazo total de ~3 s na consulta (`orTimeout`) ou reduzir a leitura da BrasilAPI (D91; o pior caso teórico hoje é ~6 s, aceito no beta pelo revisor).
+- Em produção, confirmar que o IP contado no limite (H21) é o do cliente e não o do proxy do Render (`forward-headers-strategy: framework`).
