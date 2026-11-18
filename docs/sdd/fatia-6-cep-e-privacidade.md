@@ -95,13 +95,13 @@ As rotas já existem no [`openapi.yaml`](../contrato/openapi.yaml), exceto as ma
 
 | # | Pergunta | Decisão | Por quê |
 |---|---|---|---|
-| E22 | De onde vem a região | **Cliente:** cópia de `usuario.bairro/cidade/uf` no momento da reserva (via `conta.Contas`, sem ler a tabela alheia). **Visitante:** o `cep` opcional é resolvido pelo `CepApi` **fora** da transação; encontrado → grava a região e o CEP em `reserva_guest.cep`; não encontrado ou provedor fora → reserva criada sem região | a estatística não muda se o cliente se mudar e sobrevive à exclusão da conta (E17) |
-| E23 | O que conta | só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no período; as demais ficam fora. Reserva sem região entra em `semRegiao` | mede atendimento de verdade, não tentativa |
-| E24 | k-anonimato (ADR 0009) | bairro com **menos de 5** atendimentos no recorte vira "Outros bairros" na cidade; cidade com menos de 5 vira "Outras cidades" (`uf` nulo). Vale no painel e na vitrine | nenhum grupo pequeno aponta para uma pessoa |
-| E25 | Base legal (D-8) | o resumo agregado com k ≥ 5 usa **legítimo interesse** (estatística da própria barbearia) e conta todos os atendimentos, não só quem consentiu; a política 1.0 explica. Mandar promoção para alguém continua exigindo `MARKETING_CEP` | atualiza o ADR 0009 ("conta só quem consentiu" passa a valer só para marketing direto) |
-| E26 | Retenção | na anonimização do visitante (90 dias, E18) `reserva_guest.cep` vira `NULL`; a região da reserva **fica**. Na exclusão da conta a região também fica | bairro e cidade, sem nome nem contato, não identificam ninguém |
-| E27 | Vitrine pública (D-9) | `GET /alcance` devolve **só nomes** de cidades e bairros que passam no k ≥ 5, ordenados por volume, sem números, dos últimos 12 meses; cache de 1 hora; limite `app.limites.alcance-*` de 30 por minuto por IP | chamariz para quem vai agendar, sem expor o movimento da barbearia |
-| E28 | Barbeiro | `BARBEIRO` vê só os próprios atendimentos: o `barbeiroId` da query é trocado pelo dele. `ADMIN` vê tudo ou filtra por barbeiro | cada barbeiro vê o alcance do próprio trabalho |
+| E30 | De onde vem a região | **Cliente:** cópia de `usuario.bairro/cidade/uf` no momento da reserva (via `conta.Contas`, sem ler a tabela alheia). **Visitante:** o `cep` opcional é resolvido pelo `CepApi` **fora** da transação; encontrado → grava a região e o CEP em `reserva_guest.cep`; não encontrado ou provedor fora → reserva criada sem região | a estatística não muda se o cliente se mudar e sobrevive à exclusão da conta (E17) |
+| E31 | O que conta | só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no período; as demais ficam fora. Reserva sem região entra em `semRegiao` | mede atendimento de verdade, não tentativa |
+| E32 | k-anonimato (ADR 0009) | bairro com **menos de 5** atendimentos no recorte vira "Outros bairros" na cidade; cidade com menos de 5 vira "Outras cidades" (`uf` nulo). Vale no painel e na vitrine | nenhum grupo pequeno aponta para uma pessoa |
+| E33 | Base legal (D-8) | o resumo agregado com k ≥ 5 usa **legítimo interesse** (estatística da própria barbearia) e conta todos os atendimentos, não só quem consentiu; a política 1.0 explica. Mandar promoção para alguém continua exigindo `MARKETING_CEP` | atualiza o ADR 0009 ("conta só quem consentiu" passa a valer só para marketing direto) |
+| E34 | Retenção | na anonimização do visitante (90 dias, E18) `reserva_guest.cep` vira `NULL`; a região da reserva **fica**. Na exclusão da conta a região também fica | bairro e cidade, sem nome nem contato, não identificam ninguém |
+| E35 | Vitrine pública (D-9) | `GET /alcance` devolve **só nomes** de cidades e bairros que passam no k ≥ 5, ordenados por volume, sem números, dos últimos 12 meses; cache de 1 hora; limite `app.limites.alcance-*` de 30 por minuto por IP | chamariz para quem vai agendar, sem expor o movimento da barbearia |
+| E36 | Barbeiro | `BARBEIRO` vê só os próprios atendimentos: o `barbeiroId` da query é trocado pelo dele. `ADMIN` vê tudo ou filtra por barbeiro | cada barbeiro vê o alcance do próprio trabalho |
 
 ## 4. Critérios de aceite
 
@@ -253,8 +253,8 @@ Relógio da 6C: o mesmo das Fatias 4 e 5 (terça, 17/11/2026 08:00 -03:00). Per�
 | D-4 | Quem escreve o **texto da política e da caixa de marketing** (versão 1.0) e qual o **canal de contato** do titular | eu escrevo um rascunho técnico em `backend/src/main/resources/privacidade/politica-1.0.md` (e o texto do consentimento), marcado "não é parecer jurídico"; você revisa. O contato vem da variável `APP_PRIVACIDADE_CONTATO` (por exemplo o WhatsApp da barbearia), nunca escrito no repositório |
 | D-5 | Dividir em **6A (CEP, A1 a A22)** e **6B (privacidade, A23 a A61)**? São 61 critérios, entre a Fatia 4 (45) e a 5 (71) | **sim**, a 6A é pequena e já destrava o cadastro com endereço; a 6B só começa com a 6A na `main` |
 | D-6 | Limites novos **H15**: 30 consultas de CEP por minuto por IP e 5 exportações por hora por conta | **aceitar** esses valores (configuráveis em `app.limites.*`) |
-| D-8 | ✅ Alcance agregado sem pedir consentimento (legítimo interesse, k ≥ 5) | **aceita** pelo Kevin (E25) |
-| D-9 | ✅ Mostrar o alcance também para quem vai agendar | **aceita** pelo Kevin: vitrine pública só com nomes de regiões (E27); tela no front-end e no mobile na Fatia 7 |
+| D-8 | ✅ Alcance agregado sem pedir consentimento (legítimo interesse, k ≥ 5) | **aceita** pelo Kevin (E33) |
+| D-9 | ✅ Mostrar o alcance também para quem vai agendar | **aceita** pelo Kevin: vitrine pública só com nomes de regiões (E35); tela no front-end e no mobile na Fatia 7 |
 | D-7 | **Visitante** quer apagar o contato antes dos 90 dias | **sem rota no beta**: ele pede ao Eduardo (canal da política) e o Eduardo anonimiza por fora; a retenção de 90 dias cobre o resto. Rota para visitante fica pós-beta |
 
 ## 8. Pronto quando
