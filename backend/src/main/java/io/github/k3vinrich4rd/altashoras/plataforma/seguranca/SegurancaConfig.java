@@ -74,6 +74,8 @@ class SegurancaConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/servicos", "/barbeiros", "/politica-pagamento",
                                 "/disponibilidade", "/politica-privacidade", "/actuator/health", "/actuator/health/**").permitAll()
+                        // Vitrine do alcance (Fatia 6C, E35): só nomes de cidades e bairros, com limite por IP e cache de 1 hora.
+                        .requestMatchers(HttpMethod.GET, "/alcance").permitAll()
                         // CEP (Fatia 6A): pública, mas com limite por IP; é a primeira rota que gasta serviço de terceiros (H21).
                         .requestMatchers(HttpMethod.GET, "/cep/**").permitAll()
                         // Visitante sem conta (R26): reserva com limite por IP; a consulta exige o X-Guest-Token.

@@ -1,0 +1,128 @@
+package io.github.k3vinrich4rd.altashoras.agenda.alcance;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.UUID;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+/** A67 a A70: o painel de alcance (GET /admin/alcance), com k ≥ 5, filtro por barbeiro e escopo do BARBEIRO (E31, E32, E36). */
+class AlcancePainelIT extends AlcanceBase {
+
+    @Test
+    @DisplayName("A67: 6 atendimentos em Centro/Osasco, 2 em Sé/São Paulo, 1 EXPIRADO e 1 CONFIRMADO sem região: total 9 (o EXPIRADO fica fora), semRegiao 1, Osasco com Centro 6, os 2 de São Paulo em Outras cidades , percentuais com 1 casa decimal e, no grupo abaixo de 5 (Outras cidades), atendimentos e percentual nulos com abaixoDoLimite true")
+    void adminVeTudoComKAnonimato() throws Exception {
+        cenarioDoA67();
+
+        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.periodo.de").value("2026-10-19"))
+                .andExpect(jsonPath("$.periodo.ate").value("2026-11-17"))
+                .andExpect(jsonPath("$.total").value(9))
+                .andExpect(jsonPath("$.semRegiao").value(1))
+                .andExpect(jsonPath("$.cidades.length()").value(2))
+                .andExpect(jsonPath("$.cidades[0].cidade").value("Osasco"))
+                .andExpect(jsonPath("$.cidades[0].uf").value("SP"))
+                .andExpect(jsonPath("$.cidades[0].atendimentos").value(6))
+                .andExpect(jsonPath("$.cidades[0].percentual").value(66.7))
+                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(1))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Centro"))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(6))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].percentual").value(66.7))
+                .andExpect(jsonPath("$.cidades[1].cidade").value("Outras cidades"))
+                .andExpect(jsonPath("$.cidades[1].uf").doesNotExist())
+                .andExpect(jsonPath("$.cidades[1].abaixoDoLimite").value(true))
+                .andExpect(jsonPath("$.cidades[1].atendimentos").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.cidades[1].percentual").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.cidades[0].abaixoDoLimite").value(false))
+                .andExpect(jsonPath("$.cidades[1].bairros.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("A68: 5 atendimentos em Osasco, 4 no Centro e 1 em Presidente Altino: Osasco aparece (5) e dentro dela só Outros bairros com 5")
+    void bairrosPequenosViramOutrosBairros() throws Exception {
+        Catalogo c = catalogo();
+        atendimentos(4, c.barbeiro(), c.servico(), "Centro", "Osasco", "SP");
+        atendimentos(1, c.barbeiro(), c.servico(), "Presidente Altino", "Osasco", "SP");
+
+        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(5))
+                .andExpect(jsonPath("$.cidades.length()").value(1))
+                .andExpect(jsonPath("$.cidades[0].cidade").value("Osasco"))
+                .andExpect(jsonPath("$.cidades[0].atendimentos").value(5))
+                .andExpect(jsonPath("$.cidades[0].percentual").value(100.0))
+                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(1))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Outros bairros"))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].abaixoDoLimite").value(false));
+    }
+
+    @Test
+    @DisplayName("A68: com 7 atendimentos em Osasco (5 no Centro e 2 em bairros pequenos), o Outros bairros tem só 2 e vem sem número: atendimentos e percentual nulos, abaixoDoLimite true")
+    void outrosBairrosAbaixoDoLimiteSemNumero() throws Exception {
+        Catalogo c = catalogo();
+        atendimentos(5, c.barbeiro(), c.servico(), "Centro", "Osasco", "SP");
+        atendimentos(1, c.barbeiro(), c.servico(), "Presidente Altino", "Osasco", "SP");
+        atendimentos(1, c.barbeiro(), c.servico(), "Vila Yara", "Osasco", "SP");
+
+        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.cidades[0].atendimentos").value(7))
+                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(2))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Centro"))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].bairro").value("Outros bairros"))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].abaixoDoLimite").value(true))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].atendimentos").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].percentual").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    @DisplayName("A69: atendimentos de dois barbeiros: o BARBEIRO A chama com barbeiroId do B e vê só os próprios; o ADMIN vê todos ou filtra por barbeiro")
+    void barbeiroVeSoOsProprios() throws Exception {
+        Conta contaA = conta("BARBEIRO");
+        Conta contaB = conta("BARBEIRO");
+        UUID barbeiroA = barbeiroDaConta(contaA.id());
+        UUID barbeiroB = barbeiroDaConta(contaB.id());
+        UUID servico = catalogo().servico();
+        atendimentos(5, barbeiroA, servico, "Centro", "Osasco", "SP");
+        atendimentos(6, barbeiroB, servico, "Alphaville", "Barueri", "SP");
+
+        get("/admin/alcance?barbeiroId=" + barbeiroB, contaA).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(5))
+                .andExpect(jsonPath("$.cidades.length()").value(1))
+                .andExpect(jsonPath("$.cidades[0].cidade").value("Osasco"));
+        get("/admin/alcance", contaA).andExpect(jsonPath("$.total").value(5));
+        get("/admin/alcance?barbeiroId=" + barbeiroA, contaB).andExpect(jsonPath("$.total").value(6))
+                .andExpect(jsonPath("$.cidades[0].cidade").value("Barueri"));
+
+        Conta admin = conta("ADMIN");
+        get("/admin/alcance", admin).andExpect(jsonPath("$.total").value(11)).andExpect(jsonPath("$.cidades.length()").value(2));
+        get("/admin/alcance?barbeiroId=" + barbeiroB, admin).andExpect(jsonPath("$.total").value(6))
+                .andExpect(jsonPath("$.cidades[0].cidade").value("Barueri"));
+
+        // Conta BARBEIRO sem vínculo com um barbeiro: 404, sem confirmar nada (R23).
+        get("/admin/alcance", conta("BARBEIRO")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("A70: ADMIN com barbeiroId inexistente → 404; período invertido → 400; período de 400 dias → 400; sem token → 401; cliente → 403 (e 366 dias ainda vale)")
+    void errosDoPainel() throws Exception {
+        Conta admin = conta("ADMIN");
+
+        get("/admin/alcance?barbeiroId=" + UUID.randomUUID(), admin).andExpect(status().isNotFound());
+        get("/admin/alcance?de=2026-11-10&ate=2026-11-01", admin).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA")).andExpect(jsonPath("$.errors[0].field").value("de"));
+        get("/admin/alcance?de=2025-10-01&ate=2026-11-05", admin).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA")).andExpect(jsonPath("$.errors[0].field").value("ate"));
+        get("/admin/alcance?de=2025-11-16&ate=2026-11-17", admin).andExpect(status().isBadRequest()); // 367 dias
+        get("/admin/alcance?de=2025-11-17&ate=2026-11-17", admin).andExpect(status().isOk()); // 366 dias
+        get("/admin/alcance?de=abc", admin).andExpect(status().isBadRequest());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/alcance"))
+                .andExpect(status().isUnauthorized());
+        get("/admin/alcance", emissor.emitir(cliente("Cliente Teste", "11988880001"), java.util.List.of("CLIENTE"), 0, false)
+                .valor()).andExpect(status().isForbidden());
+    }
+}

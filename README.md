@@ -10,7 +10,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes-331_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
+[![Testes](https://img.shields.io/badge/testes-349_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
 
 <b><a href="#-a-história">A história</a></b> ·
 <a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
@@ -43,13 +43,14 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
-> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática. São **331 testes** em PostgreSQL real, 0 falhas; telas e deploy chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
+> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática, e o alcance por região (de onde vêm os atendimentos, com agrupamento mínimo de 5). São **349 testes** em PostgreSQL real, 0 falhas; telas e deploy chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
 
 <br clear="right"/>
 
 ## 🧭 O que tem para quem visita o projeto
 
 - ▶️ **O que já funciona e dá para testar:** catálogo, horários livres, reserva (com e sem conta), pagamento simulado, expiração, conta e sessão, CEP com degradação (6A) e o painel completo. Como rodar e testar à mão, com a saída real de cada passo: **[guia de testes](docs/guia-testes.md)**.
+- 🗺 **Alcance por região (6C):** a vitrine pública `GET /alcance` mostra, sem login e sem números, as cidades e os bairros que a barbearia atende (últimos 12 meses); o painel `GET /admin/alcance` dá a contagem e o percentual ao Eduardo. Nenhum grupo com menos de 5 atendimentos aparece com nome. Como testar: [AL1 no guia](docs/guia-testes.md#al1--alcance-por-região-fatia-6c).
 - 🛤 **Fluxo de ponta a ponta:** visitante, cliente e painel, com rotas, classes e diagramas: **[docs/fluxo-ponta-a-ponta.md](docs/fluxo-ponta-a-ponta.md)**.
 - 🧩 **Padrões usados**, cada um com a classe real:
 
@@ -70,7 +71,7 @@ No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, c
   - **RAG da documentação: existe.** Está em `ferramentas/rag/` (Spring AI 2.0.2 + pgvector + embeddings locais, busca híbrida). Medido em 17/11/2026: só vetor acerta 10 de 17 perguntas; a híbrida, 15 de 17 ([detalhes](docs/ia/rag-vetorial.md)).
   - **SDD com um teste por critério:** nada entra sem spec, e o CI cobra um teste para cada critério ([como funciona](#-como-o-projeto-é-feito-sdd--ia)).
   - **Assistente de dúvidas para clientes: planejado** (Fatia 9). Vai nascer desligado por padrão, reaproveitando o RAG; a IA generativa só liga em produção. Não existe código disso ainda.
-- 🗺 **Status das fatias:** 1 a 5, 6A e 6B (privacidade/LGPD) prontas · 6C (alcance por região), 7 (telas), 8 (deploy grátis) e 9 (assistente) planejadas. Lista completa no [roadmap](#-roadmap-em-fatias).
+- 🗺 **Status das fatias:** 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 7 (telas), 8 (deploy grátis) e 9 (assistente) planejadas. Lista completa no [roadmap](#-roadmap-em-fatias).
 
 ## 🏆 Trajetória e prêmios
 
@@ -417,7 +418,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 331 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 349 testes com PostgreSQL real via Testcontainers
 ```
 
 | O que | Endereço local | |
@@ -483,7 +484,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
 - [x] **Fatia 6A · CEP:** ViaCEP, BrasilAPI e degradação (feita)
 - [x] **Fatia 6B · Privacidade (LGPD):** consentimento, exportar e excluir conta, retenção
-- [ ] **Fatia 6C · Alcance por região:** 🗓 planejada
+- [x] **Fatia 6C · Alcance por região:** CEP opcional do visitante, região na reserva, painel `GET /admin/alcance` e vitrine pública `GET /alcance`, com agrupamento mínimo de 5 (k-anonimato)
 - [ ] **Fatia 7 · Telas Next.js (🗓 planejada):** agenda, checkout com aceite obrigatório, painel, acessibilidade
 - [ ] **Fatia 8 · Deploy grátis:** Vercel + Render + banco gratuito (🗓 planejada)
 - [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)

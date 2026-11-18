@@ -17,7 +17,8 @@ import io.github.k3vinrich4rd.altashoras.privacidade.LimpezaPorRetencao;
  * A agenda limpando o contato do visitante sem conta (R29, E19). Passou o prazo ({@code app.privacidade.retencao-guest-dias},
  * padrão 90) do FIM da reserva, inclusive no dia exato, e ainda não anonimizado: o nome, o e-mail e o WhatsApp viram
  * valores sem dono e o token do link vira o SHA-256 de um valor aleatório (o link guardado pelo visitante passa a dar 404).
- * A reserva e a cobrança não mudam. Idempotente ({@code anonimizado_em IS NULL}), em lotes de até 500 linhas por
+ * O CEP que o visitante informou (6C, E34) também vira NULL; a região da reserva (bairro, cidade e uf, sem nome nem contato)
+ * fica, porque a estatística de alcance não identifica ninguém. A reserva e a cobrança não mudam. Idempotente ({@code anonimizado_em IS NULL}), em lotes de até 500 linhas por
  * transação e sem travar quem estiver sendo usado ({@code SKIP LOCKED}).
  */
 @Component
@@ -47,6 +48,7 @@ class RetencaoDeVisitantes implements LimpezaPorRetencao {
                 UPDATE reserva_guest SET nome = 'Visitante anonimizado',
                        email = 'anonimizado-' || reserva_id || '@anonimo.invalid',
                        whatsapp = '00000000000',
+                       cep = NULL,
                        token_hash = encode(sha256(convert_to(gen_random_uuid()::text || gen_random_uuid()::text, 'UTF8')), 'hex'),
                        anonimizado_em = :agora
                 WHERE reserva_id IN (SELECT g.reserva_id FROM reserva_guest g JOIN reserva r ON r.id = g.reserva_id

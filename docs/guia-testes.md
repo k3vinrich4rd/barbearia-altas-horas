@@ -16,12 +16,12 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 331 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 349 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
-| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) |
+| [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) · ⏳ AL1 (alcance por região, Fatia 6C: saída real a preencher no fluxo manual) |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
 | [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **331 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6B: 282 anteriores, já com os serviços de 60 min, + 49 da privacidade), `BUILD SUCCESS` em 2 min 31 s. A cobertura de instruções da 6A era **96%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **349 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6C: 331 anteriores, todos intactos, + 18 do alcance por região), `BUILD SUCCESS` em cerca de 2 min. A cobertura de instruções medida pelo JaCoCo foi de **96,6%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -85,10 +85,12 @@ cd backend && ./mvnw verify
 | `CepIT` · `CepFallbackIT` · `CepDegradacaoIT` | 4 · 5 · 2 | ViaCEP com os 8 dígitos, formato inválido sem chamada externa, fallback para a BrasilAPI (timeout, 503, 429, corpo que não é JSON), 503 com os dois fora e cadastro sobrevivendo (A1 a A7, A16) |
 | `CepCacheIT` · `CepRespostaInvalidaIT` · `CepLimiteIT` | 5 · 4 · 2 | cache de 7 dias e de 1 hora com relógio falso, falha nunca em cache, teto de entradas, resposta do ViaCEP que não serve vira falha, 30 por minuto por IP (A8 a A14) |
 | `CadastroComCepIT` · `SemDadoPessoalNoLogCepIT` · `CepConfigTest` | 4 · 1 · 2 | bairro, cidade e uf gravados no cadastro (A15, A17 a A19), nenhum CEP no log (A20), timeouts de 1 s e 2 s e URLs só locais (A22). Todos os provedores são falsos: **nenhuma chamada de rede real** |
-| `ModulithTest` | 3 | 8 módulos e fronteiras verificadas |
+| `AlcanceDaReservaIT` · `AlcancePainelIT` · `AlcancePublicoIT` | 5 · 4 · 4 | região copiada do CEP do visitante (provedores falsos) e do cadastro do cliente, CEP nunca impede a reserva, `cep` de formato errado dá 400; painel com k ≥ 5 ("Outros bairros", "Outras cidades"), escopo do BARBEIRO e erros 400/401/403/404; vitrine só com nomes, 12 meses, cache de 1 hora (`TickerFalso`) e 429 na 31ª chamada (A62 a A73) |
+| `RetencaoJobIT` · `SemDadoPessoalNoLogIT` (6C) | +1 · +1 | o job zera `reserva_guest.cep` e mantém a região (A74); nenhum CEP, e-mail, WhatsApp nem IP no log do roteiro do alcance (A75) |
+| `ModulithTest` | 9 | 8 módulos e fronteiras verificadas (a 6C acrescentou: a agenda usa a conta só por `Contas` e o cep só pelas portas) |
 | `ArquiteturaTest` | 3 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double`; o núcleo da regra não conhece framework |
 
-Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (44 de 44; fatias 1 e 2: 10 e 29). Fatia 6: `sh scripts/conferir-spec.sh 6` mostra A1 a A22 (6A) cobertos; A23 em diante aparecem faltando até a 6B e a 6C.
+Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (44 de 44; fatias 1 e 2: 10 e 29). Fatia 6: `sh scripts/conferir-spec.sh 6 --exigir` dá **75 de 75** (A1 a A75; A61a, A61b e A61c não entram na contagem do script, mas têm teste).
 
 Rodar uma classe só: `./mvnw test -Dtest=ConcorrenciaReservaIT`.
 
@@ -850,6 +852,52 @@ Saída real (17/11/2026, 17h13), resumida:
 | AD14 | deixar uma reserva expirar, outro cliente pega o horário, e só então confirmar o pagamento da primeira (no beta o gateway é simulado, D59: não há sandbox) | `GET /admin/pagamentos?status=PAGA_APOS_EXPIRACAO` lista a pendência | pagamento tardio sem horário vira pendência |
 
 ✅ **Coberto por teste automatizado:** o pagamento tardio é provado pelo A38 (horário livre: a reserva volta a `CONFIRMADO`) e pelo A39 (horário já de outro cliente: a reserva continua `EXPIRADO` e a cobrança vira `PAGA_APOS_EXPIRACAO`), ambos em `PagamentoTardioIT` (Fatia 4), e pelo A24 da Fatia 5 (`CancelamentoPagamentoTardioIT`) para a reserva cancelada.
+
+### AL1 ✅ Alcance por região (Fatia 6C)
+
+Os critérios A62 a A75 já têm teste automatizado (`AlcanceDaReservaIT`, `AlcancePainelIT`, `AlcancePublicoIT`, `RetencaoJobIT` e `SemDadoPessoalNoLogIT`). Este roteiro mostra o mesmo à mão, no perfil `dev`. Precisa do ADMIN com a senha já trocada (AD3) e do ViaCEP de verdade (internet) para o CEP ser resolvido.
+
+```bash
+# 1. visitante agenda com CEP (A62); sem CEP (A65); com CEP de formato errado (A64)
+curl -s -X POST localhost:8080/agendamentos/guest -H "Content-Type: application/json" \
+  -d '{"servicoId":"<SERVICO>","barbeiroId":"<BARBEIRO>","inicio":"2026-12-02T10:00:00-03:00","nome":"Visitante Teste","email":"visitante@exemplo.test","whatsapp":"(11) 90000-0002","cep":"01001-000"}'
+curl -s -i -X POST localhost:8080/agendamentos/guest -H "Content-Type: application/json" \
+  -d '{"servicoId":"<SERVICO>","barbeiroId":"<BARBEIRO>","inicio":"2026-12-02T10:30:00-03:00","nome":"Visitante Teste","email":"visitante@exemplo.test","whatsapp":"(11) 90000-0002","cep":"123"}'
+
+# 2. a região copiada na reserva e o CEP guardado no contato do visitante
+docker exec -it altas-horas-postgres psql -U altashoras -c \
+  "SELECT r.regiao_bairro, r.regiao_cidade, r.regiao_uf, g.cep FROM reserva r JOIN reserva_guest g ON g.reserva_id = r.id ORDER BY r.criado_em DESC LIMIT 3"
+
+# 3. painel (só CONFIRMADO e CONCLUIDO contam: confirme o pagamento no V9 antes) e vitrine pública
+curl -s "localhost:8080/admin/alcance" -H "Authorization: Bearer $ADMIN"
+curl -s "localhost:8080/admin/alcance?de=2026-11-10&ate=2026-11-01" -H "Authorization: Bearer $ADMIN"   # 400
+curl -s "localhost:8080/alcance"                                                                         # sem token
+```
+
+Saída real (18/11/2026, perfil `dev`, ViaCEP de verdade, dados fictícios, resumida):
+
+```text
+POST /agendamentos/guest (cep 01001-000)   -> 201, resposta sem região nem CEP
+POST /agendamentos/guest (cep 123)         -> 400 CEP_INVALIDO, nada criado
+POST /agendamentos/guest (cep 99999999)    -> 201, sem região e sem CEP guardado
+banco: reserva.regiao_* = Sé / São Paulo / SP e reserva_guest.cep = 01001000 (só a 1ª); a do 99999999 ficou nula
+log:   "cep resolvido: sim, fonte=VIACEP" · "região resolvida: sim" / "região resolvida: não"
+
+GET /admin/alcance (ADMIN, 01/11 a 31/12) -> 200 total 14, semRegiao 6,
+      São Paulo 6 (42,9%) com bairro Sé 6 (42,9%), "Outras cidades" 2 (14,3%, sem bairros)
+      (Campinas/Cambuí tinha só 2 atendimentos: k < 5, por isso agrupou)
+GET /admin/alcance?de=2026-11-10&ate=2026-11-01 -> 400
+GET /admin/alcance (sem token)            -> 401
+GET /admin/alcance (BARBEIRO só dele)     -> 200 total 2, semRegiao 0, "Outras cidades" 2 (100,0%); com ?barbeiroId=<outro> a resposta é a mesma (continua só a dele)
+GET /alcance (sem token) 1ª e 2ª chamada  -> 200 {atualizadoEm, totalCidades:1, totalBairros:1, regioes:[{São Paulo/SP, ["Sé"]}]}, sem números;
+      a 2ª repete o mesmo atualizadoEm (veio do cache); Cache-Control: max-age=300, public
+```
+
+Como foi montado: os 2 primeiros atendimentos (01001-000 e 99999999) foram confirmados pelo pagamento simulado (V8/V9). A rota de visitante limita 3 reservas por IP por hora, então os outros 7 `CONCLUIDO` (5 em Sé/São Paulo e 2 em Cambuí/Campinas) foram inseridos por `INSERT ... SELECT` no banco de dev, copiando uma reserva real. O BARBEIRO sem papel de ADMIN foi criado por SQL (conta com o mesmo hash do admin, papel `BARBEIRO`) e vinculado por `POST /admin/barbeiros`; as 2 reservas de Campinas foram movidas para ele. O período padrão do painel são os últimos 30 dias, por isso os testes usaram `de` e `ate`.
+
+No log inteiro da API (uma subida, 59 linhas): `grep -c` por `01001000`, `01001-000`, `99999999`, `123`, e-mails dos testes, nomes fictícios, WhatsApp, senha, token de visitante, `127.0.0.1` e `::1`: **0** em todos.
+
+**O que deve acontecer:** a reserva com `cep` válido nasce `201` com a região (bairro, cidade e uf) e o CEP no contato do visitante, **sem** devolver nenhum dos dois na resposta; com os provedores fora ou um CEP que não existe, a reserva sai igual, sem região e sem CEP guardado; `cep` com formato errado dá `400 CEP_INVALIDO` e nada é criado. O painel só conta atendimentos `CONFIRMADO` e `CONCLUIDO`: bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades" (k ≥ 5), então com poucos atendimentos de teste quase tudo aparece agrupado. O período invertido ou com mais de 366 dias dá `400`. A vitrine `GET /alcance` devolve só nomes (sem contagens) e repete a mesma resposta por 1 hora; a 31ª chamada no mesmo minuto do mesmo IP dá `429` com `Retry-After`. No log da API: `grep` por CEP, e-mail, WhatsApp e IP deve dar 0 (o log só diz "região resolvida: sim/não").
 
 ## 7. As telas (frontend)
 

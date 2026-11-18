@@ -108,6 +108,30 @@ class ModulithTest {
         }
     }
 
+    @Test
+    @DisplayName("6C: a agenda usa a conta só por Contas e o cep só pelas portas CepApi, Endereco e CepIndisponivel; nem a conta nem o cep conhecem a agenda; o admin chega ao alcance só por AlcanceDaAgenda")
+    void alcanceUsaContaECepPelasPortas() {
+        modulos.verify();
+        assertThat(dependenciasDe("agenda")).contains("conta", "cep");
+        assertThat(dependenciasDe("conta")).doesNotContain("agenda");
+        assertThat(dependenciasDe("cep")).doesNotContain("agenda");
+        var tiposDaContaUsadosPelaAgenda = modulos.getModuleByName("agenda").orElseThrow().getDirectDependencies(modulos)
+                .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("conta"))
+                .map(d -> d.getTargetType().getFullName()).distinct().toList();
+        // Contas (a porta) e o evento AdminInicialCriado (que a agenda já escutava): nada de usuario, sessao ou cadastro.
+        assertThat(tiposDaContaUsadosPelaAgenda).contains("io.github.k3vinrich4rd.altashoras.conta.Contas")
+                .allSatisfy(tipo -> assertThat(tipo).matches("io\\.github\\.k3vinrich4rd\\.altashoras\\.conta\\.(Contas.*|AdminInicialCriado)"));
+        var tiposDoCepUsadosPelaAgenda = modulos.getModuleByName("agenda").orElseThrow().getDirectDependencies(modulos)
+                .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("cep"))
+                .map(d -> d.getTargetType().getFullName()).distinct().toList();
+        assertThat(tiposDoCepUsadosPelaAgenda).isNotEmpty().allSatisfy(tipo -> assertThat(tipo)
+                .startsWith("io.github.k3vinrich4rd.altashoras.cep.").doesNotContain(".consulta."));
+        var alcanceUsadoPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
+                .stream().map(d -> d.getTargetType().getFullName()).filter(tipo -> tipo.contains("Alcance")).distinct().toList();
+        assertThat(alcanceUsadoPeloAdmin).isNotEmpty().allSatisfy(tipo -> assertThat(tipo)
+                .startsWith("io.github.k3vinrich4rd.altashoras.agenda.AlcanceDaAgenda").doesNotContain(".alcance."));
+    }
+
     private List<String> dependenciasDe(String modulo) {
         return modulos.getModuleByName(modulo).orElseThrow().getDirectDependencies(modulos).uniqueModules()
                 .map(m -> m.getIdentifier().toString()).toList();
