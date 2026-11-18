@@ -109,7 +109,7 @@ Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o *
 |---|---|---|---|
 | H1 | Dias e horário de funcionamento | **decidida (16/11)**: terça a sábado, 07h00 às 20h00; almoço 12h00 às 13h00 | `jornada` do barbeiro (painel) |
 | H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Cândido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
-| H3 | Serviços, duração e preço | **decidida (16/11)**: Corte Clássico/Social 30 min R$ 45,00 · Corte Degradê/Fade/Navalhado 30 min R$ 55,00 · Corte Moderno/Visagismo (tesoura) 60 min R$ 60,00 · Barba Completa/Desenhada 30 min R$ 30,00 · Acabamento (pezinho)/Sobrancelha 30 min R$ 20,00 · sem combos | cadastro de serviços (painel) |
+| H3 | Serviços, duração e preço | **decidida (16/11), duração revista em 18/11 (D94)**: todos os serviços duram **60 min** (2 slots) · Corte Clássico/Social R$ 45,00 · Corte Degradê/Fade/Navalhado R$ 55,00 · Corte Moderno/Visagismo (tesoura) R$ 60,00 · Barba Completa/Desenhada R$ 30,00 · Acabamento (pezinho)/Sobrancelha R$ 20,00 · sem combos | cadastro de serviços (painel) |
 | H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
 | H5 | Antecedência mínima para agendar | **decidida (16/11)**: 120 min | `configuracao_agenda.antecedencia_minima_min` |
 | H6 | Janela para cancelar ou remarcar | **decidida (16/11)**: não existe; o cliente não cancela nem remarca (R18) | — |
@@ -128,6 +128,7 @@ Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o *
 | H19 | Depois de quanto tempo um evento de webhook não processado é considerado preso (N) | 10 min desde `recebido_em` | `app.pagamento.webhook.reprocessamento.idade-minima` (variável de ambiente) |
 | H20 | Quantas tentativas o job faz antes de mandar o evento para revisão manual no painel (M) | 5 tentativas | `app.pagamento.webhook.reprocessamento.max-tentativas` (variável de ambiente) |
 | H21 | Limite da consulta pública de CEP (a spec da Fatia 6 a chama de "H15", número que já era da validade das sessões) | **proposta (17/11, Fatia 6A)**: 30 consultas por minuto por IP; passou, `429` com `Retry-After`. É a primeira rota pública que gasta serviço de terceiros (ViaCEP e BrasilAPI) | `app.limites.cep-max` e `app.limites.cep-janela` |
+| H22 | Limite da exportação de dados do titular (a spec da Fatia 6 o chama de "H15") | **proposta (17/11, Fatia 6B)**: 5 exportações por hora por conta; passou, `429` com `Retry-After`. Conta as próprias solicitações gravadas (`solicitacao_titular`), sem memória | `app.limites.exportacao-max` e `app.limites.exportacao-janela` |
 
 ## 5. Requisitos não funcionais
 
@@ -211,7 +212,7 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 | Senha | cliente, barbeiro, admin | autenticação | execução de contrato | `usuario.senha_hash` (BCrypt ou Argon2) | ninguém | enquanto a conta existir | só hash |
 | Consentimento de marketing | cliente | provar o consentimento | consentimento | `consentimento` | admin (auditoria) | enquanto a conta existir + prova | versão do texto e data |
 | IP | todos | limite de tentativas e auditoria do admin | legítimo interesse (segurança) | memória (limitador) e `auditoria_admin` | admin | auditoria: 1 ano (proposta) | não vai para log de aplicação junto com dado pessoal |
-
+**Direitos do titular (Fatia 6B):** `GET /me/dados` (exportar em JSON: conta, histórico de consentimentos e as próprias reservas; 5 por hora, H22), `DELETE /me` (só cliente: anonimiza a conta e cancela as reservas futuras **não pagas**; com reserva futura paga a exclusão é bloqueada, `409 EXCLUSAO_BLOQUEADA_POR_RESERVA`; o registro financeiro do sinal fica pelo prazo de H13). Consentimento revogável em `PUT /me/consentimentos/marketing`; texto e versão em `GET /politica-privacidade` (rascunho técnico, não é parecer jurídico). Retenção: contato do visitante 90 dias após o fim da reserva, IP da auditoria 1 ano (`RetencaoDeDados`, 3h).
 **Direitos do titular:** `GET /me/dados` (exportar em JSON), `DELETE /me` (excluir: anonimiza conta e reservas futuras são canceladas; o registro financeiro do sinal fica pelo prazo de H13). Consentimento revogável em `PUT /me/consentimentos/marketing`.
 
 ## 9. Dependências externas

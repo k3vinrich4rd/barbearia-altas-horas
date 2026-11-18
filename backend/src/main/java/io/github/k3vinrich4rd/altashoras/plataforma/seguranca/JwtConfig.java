@@ -12,11 +12,16 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -27,6 +32,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 import io.github.k3vinrich4rd.altashoras.plataforma.EmissorDeToken;
+import io.github.k3vinrich4rd.altashoras.plataforma.ValidadorDeConta;
 
 /**
  * Assinatura e leitura do JWT (HS256, ADR 0006). A validade é conferida com o Clock injetado, igual ao resto do
@@ -57,12 +63,35 @@ class JwtConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey chaveDoJwt, Clock clock) {
+    JwtDecoder jwtDecoder(SecretKey chaveDoJwt, Clock clock, ObjectProvider<ValidadorDeConta> contas) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chaveDoJwt).macAlgorithm(MacAlgorithm.HS256).build();
         JwtTimestampValidator validade = new JwtTimestampValidator(Duration.ZERO);
         validade.setClock(clock);
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validade));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validade, contaEmUso(contas)));
         return decoder;
+    }
+
+    /**
+     * A conta do token precisa continuar em uso (Fatia 6B, E16): depois da exclusão, o token de acesso já emitido deixa
+     * de valer na hora, e não só quando vencer. O validador da conta é buscado na hora de usar (a conta depende da
+     * plataforma, nunca o contrário).
+     */
+    private static OAuth2TokenValidator<Jwt> contaEmUso(ObjectProvider<ValidadorDeConta> contas) {
+        return token -> {
+            ValidadorDeConta validador = contas.getIfAvailable();
+            if (validador != null && token.getSubject() != null) {
+                try {
+                    if (!validador.podeAcessar(UUID.fromString(token.getSubject()))) {
+                        return OAuth2TokenValidatorResult.failure(
+                                new OAuth2Error("invalid_token", "A conta deste token não está mais em uso.", null));
+                    }
+                } catch (IllegalArgumentException subjectQueNaoEhUuid) {
+                    return OAuth2TokenValidatorResult.failure(
+                            new OAuth2Error("invalid_token", "Token sem uma conta válida.", null));
+                }
+            }
+            return OAuth2TokenValidatorResult.success();
+        };
     }
 
     @Bean

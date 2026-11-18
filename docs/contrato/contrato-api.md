@@ -58,10 +58,11 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/auth/logout` | encerra a família do refresh | 🌐 (com refresh) | `204` | — | [4.4](#44-autenticação-e-conta) |
 | `GET` | `/me` | meu perfil | 👤 ✂️ 🛠 | `200` | `401` | [4.4](#44-autenticação-e-conta) |
 | `PUT` | `/me/senha` | troca a própria senha e encerra as outras sessões | 👤 ✂️ 🛠 | `204` | `400`, `401 CREDENCIAIS_INVALIDAS` (senha atual errada), `401 NAO_AUTENTICADO` | [4.4](#44-autenticação-e-conta) |
-| `GET` | `/me/dados` | exportar meus dados (LGPD) | 👤 ✂️ 🛠 | `200` | `401` | [4.9](#49-privacidade) |
-| `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 | `204` | `401`, `403 ACESSO_NEGADO` (admin não se exclui) | [4.9](#49-privacidade) |
+| `GET` | `/me/dados` | exportar meus dados (LGPD) | 👤 ✂️ 🛠 | `200` | `401`, `429` (5 por hora por conta, H22) | [4.9](#49-privacidade) |
+| `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 (só cliente) | `204` | `401`, `403 ACESSO_NEGADO` (barbeiro e admin não se excluem), `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` | [4.9](#49-privacidade) |
 | `GET` | `/me/consentimentos` | meus consentimentos | 👤 | `200` | `401` | [4.9](#49-privacidade) |
 | `PUT` | `/me/consentimentos/marketing` | aceita ou revoga marketing | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
+| `GET` | `/politica-privacidade` | política de privacidade e texto da caixa de marketing, com a versão vigente | 🌐 | `200` | — | [4.9](#49-privacidade) |
 | `GET` | `/politica-pagamento` | texto e versão da política (sem cancelamento, remarcação ou estorno) | 🌐 | `200` | — | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 15 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
@@ -269,13 +270,17 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 
 ### 4.9 Privacidade
 
-`GET /me/dados` → `200` (exportação)
+`GET /me/dados` → `200` (exportação), com `Cache-Control: no-store`. Traz a conta, o **histórico inteiro** de consentimentos (do mais antigo para o mais novo) e só as reservas em que a conta é o cliente. Nunca sai hash de senha, refresh token, token de visitante, IP nem dado de outra pessoa. Limite de 5 por hora por conta (H22): passou, `429` com `Retry-After`.
 ```json
-{ "geradoEm": "2026-12-01T10:00:00-03:00", "conta": { "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "whatsapp": "11900000001", "endereco": { "cep": "01001000", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP" } }, "consentimentos": [ { "finalidade": "MARKETING_CEP", "aceito": false, "versaoTexto": "1.0", "registradoEm": "2026-11-20T09:00:00-03:00" } ], "agendamentos": [ { "id": "a0000000-0000-4000-8000-000000000101", "inicio": "2026-12-01T10:00:00-03:00", "status": "CONFIRMADO" } ] }
+{ "geradoEm": "2026-12-01T10:00:00-03:00", "conta": { "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "whatsapp": "11900000001", "endereco": { "cep": "01001000", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP" } }, "consentimentos": [ { "finalidade": "MARKETING_CEP", "aceito": false, "versaoTexto": "1.0", "registradoEm": "2026-11-20T09:00:00-03:00" } ], "agendamentos": [ { "id": "a0000000-0000-4000-8000-000000000101", "inicio": "2026-12-01T10:00:00-03:00", "fim": "2026-12-01T10:30:00-03:00", "status": "CONFIRMADO", "servico": "Corte Clássico", "precoCentavos": 4500, "motivoCancelamento": null } ] }
 ```
-`DELETE /me` → `204`; anonimiza a conta, revoga sessões e cancela reservas futuras (ADR 0009). O login seguinte dá `401`.
+`DELETE /me` → `204`; só `CLIENTE` (barbeiro e admin: `403 ACESSO_NEGADO`) e sem pedir a senha no beta. Numa única transação: anonimiza a conta (o e-mail fica livre para novo cadastro), apaga os refresh tokens, cancela as reservas futuras **não pagas** e grava a revogação final do consentimento (ADR 0009). O login e o token antigo dão `401` em seguida. Com reserva futura **paga** (`CONFIRMADO`) ou cobrança aguardando devolução a exclusão é recusada com `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda: o titular combina o cancelamento com a barbearia (R14, R18) e exclui depois.
 
-`PUT /me/consentimentos/marketing` `{ "aceito": true, "versaoTexto": "1.0" }` → `200` com o consentimento registrado (cada mudança é uma linha nova, R28).
+`GET /me/consentimentos` → `200` com o **estado atual** de cada finalidade (a linha mais recente); conta sem nenhum registro (o admin inicial) recebe `[]`.
+
+`PUT /me/consentimentos/marketing` `{ "aceito": true, "versaoTexto": "1.0" }` → `200` com o consentimento registrado (cada mudança é uma linha nova, R28). `versaoTexto` precisa ser a vigente (a de `GET /politica-privacidade`): outra versão é `400 VALIDACAO_INVALIDA` com `errors[].field = versaoTexto`. Pedir o estado que já vale, na mesma versão, devolve a linha existente e não grava outra. Revogar não apaga CEP, bairro nem cidade da conta.
+
+`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.0", "textoConsentimento": "...", "politica": "...", "atualizadaEm": "2026-11-17T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.0 é um **rascunho técnico, não é parecer jurídico**.
 
 ### 4.10 Regras de negócio citadas
 
@@ -324,6 +329,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 409 | <a id="conflito_de_versao"></a>`CONFLITO_DE_VERSAO` | `version` desatualizada | Registro alterado por outra pessoa |
 | 409 | <a id="nome_ja_existe"></a>`NOME_JA_EXISTE` | serviço com o mesmo nome | Nome já existe |
 | 409 | <a id="usuario_ja_vinculado"></a>`USUARIO_JA_VINCULADO` | conta já ligada a outro barbeiro (**novo na 1.4.0**, usado pelo cadastro de barbeiros da 5B) | Conta já vinculada |
+| 409 | <a id="exclusao_bloqueada_por_reserva"></a>`EXCLUSAO_BLOQUEADA_POR_RESERVA` | `DELETE /me` com reserva futura paga (**novo na 1.5.0**, Fatia 6B): combine o cancelamento com a barbearia | Exclusão bloqueada por reserva |
 | 422 | <a id="fora_do_expediente"></a>`FORA_DO_EXPEDIENTE` | fora da jornada ou em folga | Fora do horário de atendimento |
 | 422 | <a id="antecedencia_insuficiente"></a>`ANTECEDENCIA_INSUFICIENTE` | antes da antecedência mínima (H5) | Antecedência mínima não atendida |
 | 422 | <a id="fora_do_horizonte"></a>`FORA_DO_HORIZONTE` | data além do horizonte (H12) | Data além do permitido |
@@ -354,7 +360,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
-| 1.5.0 (proposta) | 2026-11-17 | Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31) | não (campos e códigos já existiam) |
+| 1.5.0 (proposta) | 2026-11-17 | Fatia 6B (privacidade): rota nova `GET /politica-privacidade` e schema `PoliticaPrivacidade`; `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` em `DELETE /me`; `429` em `GET /me/dados` (H22); `ExportacaoDados` detalhado (`conta`, `agendamentos`); `GET /me/consentimentos` devolve o estado atual por finalidade. Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31) | não (campos e códigos já existiam) |
 | 1.4.0 (proposta) | 2026-11-17 | Fatia 5 (painel): `AgendamentoAdmin` e `CobrancaAdmin` (sem Pix, cartão, CPF nem e-mail); rotas novas `GET /admin/pagamentos/eventos`, `POST /admin/pagamentos/eventos/{id}/revisao` e `GET /admin/barbeiros/{id}/folgas`; `409 USUARIO_JA_VINCULADO`; `ServicoRequest.precoCentavos` a partir de **1** centavo; `PaginaAuditoria` com `detalhe` (sem IP); `ConfiguracaoAgenda` sem `fuso` na entrada; `Location` nos `201` dos cadastros | não (nenhum campo renomeado; o preço mínimo só recusa o que a reserva já recusava) |
 | 1.2.0 (proposta) | 2026-11-17 | Fatia 3: `PUT /me/senha`; `deveTrocarSenha` no login e no perfil; `403 TROCA_DE_SENHA_OBRIGATORIA`; senha medida em bytes; `WWW-Authenticate: Bearer` nos `401`; limite também por IP; o cabeçalho de rastreio é `X-Trace-Id` (o texto citava `X-Trace-Id`) | não (não há front ainda) |
 | 1.1.2 (proposta) | 2026-11-16 | Fatia 2: exemplos do catálogo com dados reais; `GET /disponibilidade` detalha `422 FORA_DO_HORIZONTE` para data passada, `422 SERVICO_INATIVO`, `404` de barbeiro, formato fixo dos horários e os cabeçalhos de cache | não (não há front ainda) |
