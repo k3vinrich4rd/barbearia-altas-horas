@@ -853,7 +853,7 @@ Saída real (17/11/2026, 17h13), resumida:
 
 ✅ **Coberto por teste automatizado:** o pagamento tardio é provado pelo A38 (horário livre: a reserva volta a `CONFIRMADO`) e pelo A39 (horário já de outro cliente: a reserva continua `EXPIRADO` e a cobrança vira `PAGA_APOS_EXPIRACAO`), ambos em `PagamentoTardioIT` (Fatia 4), e pelo A24 da Fatia 5 (`CancelamentoPagamentoTardioIT`) para a reserva cancelada.
 
-### AL1 ⏳ Alcance por região (Fatia 6C)
+### AL1 ✅ Alcance por região (Fatia 6C)
 
 Os critérios A62 a A75 já têm teste automatizado (`AlcanceDaReservaIT`, `AlcancePainelIT`, `AlcancePublicoIT`, `RetencaoJobIT` e `SemDadoPessoalNoLogIT`). Este roteiro mostra o mesmo à mão, no perfil `dev`. Precisa do ADMIN com a senha já trocada (AD3) e do ViaCEP de verdade (internet) para o CEP ser resolvido.
 
@@ -874,7 +874,28 @@ curl -s "localhost:8080/admin/alcance?de=2026-11-10&ate=2026-11-01" -H "Authoriz
 curl -s "localhost:8080/alcance"                                                                         # sem token
 ```
 
-Saída real: a preencher no fluxo manual.
+Saída real (18/11/2026, perfil `dev`, ViaCEP de verdade, dados fictícios, resumida):
+
+```text
+POST /agendamentos/guest (cep 01001-000)   -> 201, resposta sem região nem CEP
+POST /agendamentos/guest (cep 123)         -> 400 CEP_INVALIDO, nada criado
+POST /agendamentos/guest (cep 99999999)    -> 201, sem região e sem CEP guardado
+banco: reserva.regiao_* = Sé / São Paulo / SP e reserva_guest.cep = 01001000 (só a 1ª); a do 99999999 ficou nula
+log:   "cep resolvido: sim, fonte=VIACEP" · "região resolvida: sim" / "região resolvida: não"
+
+GET /admin/alcance (ADMIN, 01/11 a 31/12) -> 200 total 14, semRegiao 6,
+      São Paulo 6 (42,9%) com bairro Sé 6 (42,9%), "Outras cidades" 2 (14,3%, sem bairros)
+      (Campinas/Cambuí tinha só 2 atendimentos: k < 5, por isso agrupou)
+GET /admin/alcance?de=2026-11-10&ate=2026-11-01 -> 400
+GET /admin/alcance (sem token)            -> 401
+GET /admin/alcance (BARBEIRO só dele)     -> 200 total 2, semRegiao 0, "Outras cidades" 2 (100,0%); com ?barbeiroId=<outro> a resposta é a mesma (continua só a dele)
+GET /alcance (sem token) 1ª e 2ª chamada  -> 200 {atualizadoEm, totalCidades:1, totalBairros:1, regioes:[{São Paulo/SP, ["Sé"]}]}, sem números;
+      a 2ª repete o mesmo atualizadoEm (veio do cache); Cache-Control: max-age=300, public
+```
+
+Como foi montado: os 2 primeiros atendimentos (01001-000 e 99999999) foram confirmados pelo pagamento simulado (V8/V9). A rota de visitante limita 3 reservas por IP por hora, então os outros 7 `CONCLUIDO` (5 em Sé/São Paulo e 2 em Cambuí/Campinas) foram inseridos por `INSERT ... SELECT` no banco de dev, copiando uma reserva real. O BARBEIRO sem papel de ADMIN foi criado por SQL (conta com o mesmo hash do admin, papel `BARBEIRO`) e vinculado por `POST /admin/barbeiros`; as 2 reservas de Campinas foram movidas para ele. O período padrão do painel são os últimos 30 dias, por isso os testes usaram `de` e `ate`.
+
+No log inteiro da API (uma subida, 59 linhas): `grep -c` por `01001000`, `01001-000`, `99999999`, `123`, e-mails dos testes, nomes fictícios, WhatsApp, senha, token de visitante, `127.0.0.1` e `::1`: **0** em todos.
 
 **O que deve acontecer:** a reserva com `cep` válido nasce `201` com a região (bairro, cidade e uf) e o CEP no contato do visitante, **sem** devolver nenhum dos dois na resposta; com os provedores fora ou um CEP que não existe, a reserva sai igual, sem região e sem CEP guardado; `cep` com formato errado dá `400 CEP_INVALIDO` e nada é criado. O painel só conta atendimentos `CONFIRMADO` e `CONCLUIDO`: bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades" (k ≥ 5), então com poucos atendimentos de teste quase tudo aparece agrupado. O período invertido ou com mais de 366 dias dá `400`. A vitrine `GET /alcance` devolve só nomes (sem contagens) e repete a mesma resposta por 1 hora; a 31ª chamada no mesmo minuto do mesmo IP dá `429` com `Retry-After`. No log da API: `grep` por CEP, e-mail, WhatsApp e IP deve dar 0 (o log só diz "região resolvida: sim/não").
 
