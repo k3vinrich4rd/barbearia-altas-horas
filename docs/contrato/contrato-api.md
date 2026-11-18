@@ -67,7 +67,8 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 15 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
-| `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`) | 🌐 (limite por IP) | `201` | `400`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
+| `GET` | `/alcance` | cidades e bairros atendidos, só nomes e sem contagens, últimos 12 meses (**novo na 1.5.0**, 6C) | 🌐 (30/min por IP) | `200` | `429` | [4.6](#46-guest) |
+| `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`); `cep` opcional (**6C**) | 🌐 (limite por IP) | `201` | `400` (`CEP_INVALIDO` se o `cep` tem formato errado), `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
 | `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
@@ -87,6 +88,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/admin/pagamentos/eventos/{id}/revisao` | marca o evento como revisado, sem reprocessar (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
 | `GET` `PUT` | `/admin/configuracao` | regras configuráveis da agenda (`fuso` só leitura) | 🛠 | `200` | `400`, `401`, `403`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/auditoria` | ações do painel (paginado, sem IP) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/alcance` | de onde vêm os atendimentos: cidades e bairros com contagem e percentual, k ≥ 5 (**novo na 1.5.0**, 6C). ADMIN vê tudo (filtro `barbeiroId`); BARBEIRO só os próprios | 🛠 | `200` | `400`, `401`, `403`, `404` | [4.6](#46-guest) |
 
 ## 3. Requisitos por endpoint
 
@@ -97,7 +99,9 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST /auth/cadastro` | — | `nome`, `email`, `whatsapp`, `senha`, `cep?`, `aceitaMarketing` | — | 5/h por IP | — | — |
 | `POST /agendamentos` | o próprio cliente (do token) | `servicoId`, `barbeiroId`, `inicio` | — | — | — (o horário já é único) | < 400 ms |
 | `GET /agendamentos/{id}` | `cliente_id = sub` senão `404` | — | — | — | — | — |
-| `POST /agendamentos/guest` | — | `servicoId`, `barbeiroId`, `inicio`, `nome`, `email`, `whatsapp` | — | 3/h por IP | — | < 400 ms |
+| `POST /agendamentos/guest` | — | `servicoId`, `barbeiroId`, `inicio`, `nome`, `email`, `whatsapp`, `cep?` | — | 3/h por IP | — | < 400 ms |
+| `GET /alcance` | — | — | — | 30/min por IP | — | — |
+| `GET /admin/alcance` | BARBEIRO só os próprios atendimentos (o `barbeiroId` da query vira o dele) | — | — | — | — | — |
 | `GET /agendamentos/guest/{id}` | hash do `X-Guest-Token` = `token_hash` senão `404` | — | — | — | — | — |
 | `POST /pagamentos/cobrancas` | `X-Guest-Token` da reserva | `reservaId`, `cpf` | — | 5/h por IP | **obrigatória** | depende do gateway |
 | `POST /pagamentos/webhook` | autenticação do provedor | corpo do provedor (só os campos usados são lidos) | — | — | id do evento único | < 300 ms (só grava) |
@@ -231,6 +235,22 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
 ```
 > O `tokenGuest` aparece **uma vez** (o banco guarda só o hash). É o que permite ao guest consultar a reserva e pagar: sem conta, sem expor a reserva a quem só tem o id. O CPF **não** é pedido aqui (R9).
 
+**Alcance por região (Fatia 6C).** O corpo aceita `cep` **opcional** (`01001000` ou `01001-000`). Formato errado: `400 CEP_INVALIDO` e nada é criado. CEP inexistente ou provedor fora **nunca** impedem a reserva (R31): ela nasce sem região. A resposta do `POST` não muda (não devolve CEP nem região).
+
+`GET /alcance` (🌐, 30 por minuto por IP, `429` com `Retry-After`) → `200`, sem contagens, últimos 12 meses, cache de 1 hora no servidor:
+```json
+{ "atualizadoEm": "2026-11-17T08:00:00-03:00", "totalCidades": 1, "totalBairros": 1,
+  "regioes": [ { "cidade": "Osasco", "uf": "SP", "bairros": ["Centro"] } ] }
+```
+`GET /admin/alcance?de=2026-11-01&ate=2026-11-17&barbeiroId=...` (🛠, nunca em cache) → `200`. `de` e `ate` são dias civis (padrão: os últimos 30 dias); `barbeiroId` só vale para ADMIN (o BARBEIRO vê sempre os próprios). Período invertido ou com mais de 366 dias: `400 VALIDACAO_INVALIDA`; barbeiro inexistente: `404`. Só entram reservas `CONFIRMADO` e `CONCLUIDO`; o `percentual` é sobre o `total` do período. Bairro com menos de 5 atendimentos vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades" (`uf` nula):
+```json
+{ "periodo": { "de": "2026-11-01", "ate": "2026-11-17" }, "total": 9, "semRegiao": 1,
+  "cidades": [
+    { "cidade": "Osasco", "uf": "SP", "atendimentos": 6, "percentual": 66.7,
+      "bairros": [ { "bairro": "Centro", "atendimentos": 6, "percentual": 66.7 } ] },
+    { "cidade": "Outras cidades", "uf": null, "atendimentos": 2, "percentual": 22.2, "bairros": [] } ] }
+```
+
 `GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix ou do checkout do cartão). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.
 
 ### 4.7 Pagamento 100% antecipado
@@ -354,13 +374,12 @@ Só a assinatura; não entram no beta.
 |---|---|---|---|---|
 | `GET` | `/auth/social/{provedor}` | inicia o login OIDC (Google, Facebook) | 🌐 | **atrás de flag** `app.features.social-login=false` → `404 FUNCIONALIDADE_DESLIGADA` |
 | `GET` | `/auth/social/{provedor}/retorno` | retorno do provedor; vincula conta só com `email_verified=true` **e** prova de posse da conta local | 🌐 | **atrás de flag** |
-| `GET` | `/admin/alcance` | agregados por bairro e cidade, só de quem consentiu, grupos < 5 ocultos | 🛠 ✂️ | **pós-beta** |
 
 ## 7. Histórico de versões
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
-| 1.5.0 (proposta) | 2026-11-17 | Fatia 6B (privacidade): rota nova `GET /politica-privacidade` e schema `PoliticaPrivacidade`; `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` em `DELETE /me`; `429` em `GET /me/dados` (H22); `ExportacaoDados` detalhado (`conta`, `agendamentos`); `GET /me/consentimentos` devolve o estado atual por finalidade. Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31) | não (campos e códigos já existiam) |
+| 1.5.0 (proposta) | 2026-11-17 | Fatia 6B (privacidade): rota nova `GET /politica-privacidade` e schema `PoliticaPrivacidade`; `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` em `DELETE /me`; `429` em `GET /me/dados` (H22); `ExportacaoDados` detalhado (`conta`, `agendamentos`); `GET /me/consentimentos` devolve o estado atual por finalidade. Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31). Fatia 6C (alcance): `cep` opcional em `POST /agendamentos/guest`; rotas novas `GET /admin/alcance` (`AlcancePainel`) e `GET /alcance` (`AlcancePublico`, pública); sem subir a versão. `redocly lint` 2.78.0: 0 erros | não (campos e códigos já existiam; `cep` é opcional) |
 | 1.4.0 (proposta) | 2026-11-17 | Fatia 5 (painel): `AgendamentoAdmin` e `CobrancaAdmin` (sem Pix, cartão, CPF nem e-mail); rotas novas `GET /admin/pagamentos/eventos`, `POST /admin/pagamentos/eventos/{id}/revisao` e `GET /admin/barbeiros/{id}/folgas`; `409 USUARIO_JA_VINCULADO`; `ServicoRequest.precoCentavos` a partir de **1** centavo; `PaginaAuditoria` com `detalhe` (sem IP); `ConfiguracaoAgenda` sem `fuso` na entrada; `Location` nos `201` dos cadastros | não (nenhum campo renomeado; o preço mínimo só recusa o que a reserva já recusava) |
 | 1.2.0 (proposta) | 2026-11-17 | Fatia 3: `PUT /me/senha`; `deveTrocarSenha` no login e no perfil; `403 TROCA_DE_SENHA_OBRIGATORIA`; senha medida em bytes; `WWW-Authenticate: Bearer` nos `401`; limite também por IP; o cabeçalho de rastreio é `X-Trace-Id` (o texto citava `X-Trace-Id`) | não (não há front ainda) |
 | 1.1.2 (proposta) | 2026-11-16 | Fatia 2: exemplos do catálogo com dados reais; `GET /disponibilidade` detalha `422 FORA_DO_HORIZONTE` para data passada, `422 SERVICO_INATIVO`, `404` de barbeiro, formato fixo dos horários e os cabeçalhos de cache | não (não há front ainda) |

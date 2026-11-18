@@ -31,6 +31,7 @@ tags:
   - name: guest
   - name: pagamento
   - name: privacidade
+  - name: alcance
   - name: admin
 security:
   - bearer: []
@@ -316,6 +317,25 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PoliticaPrivacidade' }
+  /alcance:
+    get:
+      tags: [alcance]
+      operationId: alcancePublico
+      summary: Cidades e bairros que a barbearia atende (só nomes, sem números)
+      description: |
+        Rota pública (sem token), vitrine para quem vai agendar (E35). Cobre os atendimentos (`CONFIRMADO` e `CONCLUIDO`)
+        dos últimos 12 meses e lista só as cidades e os bairros com 5 ou mais atendimentos no recorte (k-anonimato, ADR 0009),
+        ordenados por volume, **sem contagens**. Nada de "Outras cidades" nem "Outros bairros" aqui. O resultado fica em cache
+        no servidor por 1 hora (`atualizadoEm` diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou,
+        `429` com `Retry-After`.
+      security: []
+      responses:
+        '200':
+          description: Regiões atendidas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AlcancePublico' }
+        '429': { $ref: '#/components/responses/Erro429' }
   /agendamentos:
     post:
       tags: [agenda]
@@ -887,6 +907,32 @@ paths:
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
+  /admin/alcance:
+    get:
+      tags: [admin]
+      operationId: alcanceAdmin
+      summary: De onde vêm os atendimentos (cidades e bairros, com contagem e percentual)
+      description: |
+        ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os próprios** atendimentos (o
+        `barbeiroId` da query é trocado pelo dele, E36). Conta só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no
+        período (E31); reserva sem região entra em `semRegiao`. Período em dias civis no fuso da barbearia, inclusive nas
+        duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. K-anonimato (E32): bairro
+        com menos de 5 atendimentos na cidade vira "Outros bairros"; cidade com menos de 5 vira "Outras cidades" (`uf`
+        nula). O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
+      parameters:
+        - { name: de, in: query, required: false, schema: { type: string, format: date }, description: 'primeiro dia do período (padrão: 29 dias antes de `ate`)' }
+        - { name: ate, in: query, required: false, schema: { type: string, format: date }, description: 'último dia do período (padrão: hoje)' }
+        - { name: barbeiroId, in: query, required: false, schema: { type: string, format: uuid }, description: 'só para ADMIN; BARBEIRO é sempre o próprio' }
+      responses:
+        '200':
+          description: Alcance do período
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AlcancePainel' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
 components:
   securitySchemes:
     bearer:
@@ -1212,6 +1258,14 @@ components:
             nome: { type: string, minLength: 2, maxLength: 120 }
             email: { type: string, format: email }
             whatsapp: { type: string }
+            cep:
+              type: [string, 'null']
+              pattern: '^[0-9]{5}-?[0-9]{3}$'
+              example: '01001-000'
+              description: |
+                Opcional (Fatia 6C). Formato errado: `400 CEP_INVALIDO`, nada é criado. CEP inexistente ou provedor de CEP
+                fora **nunca** impedem a reserva (R31): ela nasce sem região. Guardado só para a estatística de alcance e
+                apagado na anonimização do visitante (90 dias).
     Agendamento:
       type: object
       required: [id, status, origem, inicio, fim, precoCentavos]
@@ -1483,6 +1537,58 @@ components:
         textoConsentimento: { type: string, description: 'o texto da caixa de marketing do cadastro' }
         politica: { type: string, description: 'texto corrido em Markdown (rascunho técnico, não é parecer jurídico)' }
         atualizadaEm: { type: string, format: date-time }
+    AlcancePainel:
+      type: object
+      required: [periodo, total, semRegiao, cidades]
+      properties:
+        periodo:
+          type: object
+          required: [de, ate]
+          properties:
+            de: { type: string, format: date }
+            ate: { type: string, format: date }
+        total: { type: integer, description: 'atendimentos CONFIRMADO e CONCLUIDO no período (inclui os sem região)' }
+        semRegiao: { type: integer, description: 'atendimentos cuja região não se conhece' }
+        cidades:
+          type: array
+          description: 'por volume; "Outras cidades" (uf nula) por último'
+          items:
+            type: object
+            required: [cidade, uf, atendimentos, percentual, bairros]
+            properties:
+              cidade: { type: string, example: Osasco }
+              uf: { type: [string, 'null'], example: SP }
+              atendimentos: { type: integer }
+              percentual: { type: number, format: double, description: 'sobre o total do período, 1 casa decimal', example: 66.7 }
+              bairros:
+                type: array
+                description: 'por volume; "Outros bairros" por último; vazio em "Outras cidades"'
+                items:
+                  type: object
+                  required: [bairro, atendimentos, percentual]
+                  properties:
+                    bairro: { type: string, example: Centro }
+                    atendimentos: { type: integer }
+                    percentual: { type: number, format: double, example: 66.7 }
+    AlcancePublico:
+      type: object
+      required: [atualizadoEm, totalCidades, totalBairros, regioes]
+      properties:
+        atualizadoEm: { type: string, format: date-time, description: 'quando o resultado em cache foi calculado' }
+        totalCidades: { type: integer }
+        totalBairros: { type: integer }
+        regioes:
+          type: array
+          description: 'por volume, sem os números'
+          items:
+            type: object
+            required: [cidade, uf, bairros]
+            properties:
+              cidade: { type: string, example: Osasco }
+              uf: { type: string, example: SP }
+              bairros:
+                type: array
+                items: { type: string, example: Centro }
     PaginaAuditoria:
       type: object
       required: [itens, pagina, tamanho, total]
