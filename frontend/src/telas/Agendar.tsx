@@ -48,17 +48,18 @@ export function Agendar() {
 
   return (
     <>
-      <h1>Agendar horário</h1>
+      <p className="sobretitulo">Agenda · Eduardo Cândido</p>
+      <h1>Agende seu horário</h1>
       {ocupado && <Aviso tipo="aviso">{mensagemDoErro({ code: "HORARIO_INDISPONIVEL", status: 409 })}</Aviso>}
 
       <section aria-labelledby="passo-servico">
-        <h2 id="passo-servico">1. Escolha o serviço</h2>
+        <h2 id="passo-servico">1 · Serviço</h2>
         <EstadoDaConsulta consulta={servicos}>
           {(lista) =>
             lista.length === 0 ? (
               <p>Sem serviços no momento.</p>
             ) : (
-              <div role="radiogroup" aria-labelledby="passo-servico" className="lista">
+              <div role="radiogroup" aria-labelledby="passo-servico" className="lista opcoes">
                 {lista.map((s) => (
                   <label key={s.id} className="opcao">
                     <input type="radio" name="servico" value={s.id} checked={servicoId === s.id} onChange={() => setServicoId(s.id)} />
@@ -76,7 +77,7 @@ export function Agendar() {
       </section>
 
       <section aria-labelledby="passo-dia">
-        <h2 id="passo-dia">2. Escolha o dia</h2>
+        <h2 id="passo-dia">2 · Dia</h2>
         <form onSubmit={(e) => e.preventDefault()}>
           <div className="campo">
             <label htmlFor="barbeiro">Barbeiro</label>
@@ -89,7 +90,6 @@ export function Agendar() {
               ))}
             </select>
           </div>
-          <ContatoWhatsapp barbeiro={barbeiroEscolhido} />
           <div className="campo">
             <label htmlFor="data">Dia</label>
             <input
@@ -116,7 +116,7 @@ export function Agendar() {
 
       {servicoId && dataValida && !disponibilidade.erro && (
         <section aria-labelledby="passo-horario">
-          <h2 id="passo-horario">3. Escolha o horário</h2>
+          <h2 id="passo-horario">3 · Horário</h2>
           <EstadoDaConsulta consulta={disponibilidade}>
             {(d) => {
               const dia = `${d.data}T12:00:00Z`;
@@ -124,8 +124,10 @@ export function Agendar() {
                 .map((b) => ({ ...b, horarios: b.horarios.filter((h) => h !== ocupado) }))
                 .filter((b) => b.horarios.length > 0);
               if (grupos.length === 0) return <p>Sem horário livre neste dia. Tente outro dia.</p>;
+              const livres = grupos.reduce((n, g) => n + g.horarios.length, 0);
               return (
                 <div>
+                  <p className="etiqueta">{livres} {livres === 1 ? "horário livre" : "horários livres"}</p>
                   {grupos.map((b) => (
                     <div key={b.barbeiroId} role="group" aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}>
                       <h3>{b.nomeExibicao}</h3>
@@ -144,6 +146,19 @@ export function Agendar() {
           </EstadoDaConsulta>
         </section>
       )}
+      <aside aria-labelledby="t-resumo" className="resumo">
+        <h2 id="t-resumo">Resumo</h2>
+        <dl>
+          <dt>Serviço</dt>
+          <dd>{servicos.dados?.find((x) => x.id === servicoId)?.nome ?? "Escolha o serviço"}</dd>
+          <dt>Dia</dt>
+          <dd>{dataValida ? formatarDataCurta(`${data}T12:00:00Z`) : "Escolha o dia"}</dd>
+          <dt>Total</dt>
+          <dd>{(() => { const x = servicos.dados?.find((y) => y.id === servicoId); return x ? formatarPreco(x) : "-"; })()}</dd>
+        </dl>
+        <p className="nota">Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até 30 dias à frente. Pix ou cartão: na próxima etapa, um contador mostra o prazo para pagar e o horário fica reservado só para você. Sem pagamento no prazo, o horário volta para a agenda.</p>
+        <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? (barbeiros.dados as BarbeiroComWhatsapp[] | undefined)?.find((b) => Boolean(b.whatsapp))} />
+      </aside>
     </>
   );
 }

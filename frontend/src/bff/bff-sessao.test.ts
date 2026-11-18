@@ -20,7 +20,7 @@ describe("sessão do BFF", () => {
     expect(c.ah_refresh).toContain("HttpOnly");
     expect(c.ah_refresh).toContain("Secure");
     expect(c.ah_refresh).toContain("SameSite=Strict");
-    expect(c.ah_refresh).toContain("Path=/api/auth");
+    expect(c.ah_refresh).toContain("Path=/api;");
     expect(c.ah_acesso).toContain("HttpOnly");
     expect(c.ah_acesso).toContain("Secure");
     expect(c.ah_acesso).toContain("SameSite=Strict");

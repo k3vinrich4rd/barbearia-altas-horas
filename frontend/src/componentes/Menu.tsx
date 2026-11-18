@@ -1,6 +1,8 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
 export function Menu() {
@@ -16,48 +18,54 @@ export function Menu() {
 
   return (
     <header className="cabecalho">
-      <nav aria-label="Principal" className="menu">
-        <Link href="/" className="menu-marca">
-          Barbearia Altas Horas
+      <div className="cabecalho-interno">
+        <Link href="/" className="marca">
+          <Image src={IMAGENS.logo.src} alt="" width={48} height={48} />
+          <span>Barbearia Altas Horas</span>
         </Link>
-        <ul>
-          <li>
-            <Link href="/agendar">Agendar horário</Link>
-          </li>
-          <li>
-            <Link href="/reserva">Consultar reserva</Link>
-          </li>
-          {sessao.autenticado ? (
-            <>
-              {equipe && (
+        <nav aria-label="Principal" className="menu">
+          <ul>
+            <li>
+              <Link href="/servicos">Serviços</Link>
+            </li>
+            <li>
+              <Link href="/reserva">Consultar reserva</Link>
+            </li>
+            {sessao.autenticado ? (
+              <>
+                {equipe && (
+                  <li>
+                    <Link href="/painel">Painel</Link>
+                  </li>
+                )}
                 <li>
-                  <Link href="/painel">Painel</Link>
+                  <Link href="/meus-agendamentos">Meus agendamentos</Link>
                 </li>
-              )}
-              <li>
-                <Link href="/meus-agendamentos">Meus agendamentos</Link>
-              </li>
-              <li>
-                <Link href="/minha-conta">Meus dados</Link>
-              </li>
-              <li>
-                <button type="button" className="botao botao-secundario" onClick={aoSair}>
-                  Sair
-                </button>
-              </li>
-            </>
-          ) : (
-            <>
-              <li>
-                <Link href="/entrar">Entrar</Link>
-              </li>
-              <li>
-                <Link href="/cadastro">Criar conta</Link>
-              </li>
-            </>
-          )}
-        </ul>
-      </nav>
+                <li>
+                  <Link href="/minha-conta">Meus dados</Link>
+                </li>
+                <li>
+                  <button type="button" className="botao botao-secundario" onClick={aoSair}>
+                    Sair
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link href="/entrar">Entrar</Link>
+                </li>
+                <li>
+                  <Link href="/cadastro">Criar conta</Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </nav>
+        <Link href="/agendar" className="botao botao-principal">
+          Agendar horário
+        </Link>
+      </div>
     </header>
   );
 }

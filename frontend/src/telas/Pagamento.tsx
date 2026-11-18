@@ -10,7 +10,8 @@ import { useConsulta, useEnvio } from "@/api/hooks";
 import type { components } from "@/api/schema";
 import { cpfValido } from "@/api/validacao";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
-import { Botao } from "@/componentes/Botao";
+import { Botao, LinkBotao } from "@/componentes/Botao";
+import { Icone } from "@/componentes/Icone";
 import { Campo } from "@/componentes/Campo";
 import { CopiarTexto } from "@/componentes/CopiarTexto";
 import { Cronometro } from "@/componentes/Cronometro";
@@ -153,30 +154,50 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
 
   return (
     <>
-      <h1>Pagamento</h1>
+      <p className="sobretitulo">Pagamento</p>
+      <h1>Pague para garantir seu horário</h1>
+      <p className="destaque">O horário já está separado para você. Ele só fica confirmado depois que o pagamento for aprovado.</p>
       <EstadoDaConsulta consulta={inicial}>
         {(r) => {
           const res = atual ?? r;
           return (
             <>
-              <section aria-labelledby="resumo-pagamento">
-                <h2 id="resumo-pagamento">Resumo da reserva</h2>
-                <p>
-                  {res.servico?.nome}
-                  {res.barbeiro ? ` com ${res.barbeiro.nomeExibicao}` : ""}
-                  <br />
-                  {formatarDataEHora(res.inicio)} · {formatarPreco(res)}
-                </p>
-              </section>
+              <aside aria-labelledby="resumo-pagamento" className="resumo">
+                {!expirada && res.expiraEm && <Cronometro expiraEm={res.expiraEm} aoZerar={() => void atualizarStatus()} />}
+                <h2 id="resumo-pagamento">Seu horário</h2>
+                <dl>
+                  <dt>Serviço</dt>
+                  <dd>{res.servico?.nome}</dd>
+                  <dt>Quando</dt>
+                  <dd>{formatarDataEHora(res.inicio)}</dd>
+                  {res.servico?.duracaoMin ? (
+                    <>
+                      <dt>Duração</dt>
+                      <dd>{res.servico.duracaoMin} min</dd>
+                    </>
+                  ) : null}
+                  {res.barbeiro ? (
+                    <>
+                      <dt>Barbeiro</dt>
+                      <dd>{res.barbeiro.nomeExibicao}</dd>
+                    </>
+                  ) : null}
+                  <dt>Total</dt>
+                  <dd>{formatarPreco(res)}</dd>
+                </dl>
+              </aside>
 
               {expirada ? (
-                <Aviso tipo="aviso" focar>
-                  O tempo para pagar acabou. <Link href="/agendar">Escolha outro horário</Link>.
-                </Aviso>
+                <>
+                  <Aviso tipo="aviso" focar>
+                    O tempo acabou e o horário voltou para a agenda. Nada foi cobrado.
+                  </Aviso>
+                  <LinkBotao href="/agendar" variante="principal">
+                    Escolher outro horário
+                  </LinkBotao>
+                </>
               ) : (
                 <>
-                  {res.expiraEm && <Cronometro expiraEm={res.expiraEm} aoZerar={() => void atualizarStatus()} />}
-
                   {!cobranca && !acompanhando && (
                     <form onSubmit={pagar} noValidate aria-label="Pagar">
                       <EstadoDaConsulta consulta={politica}>
@@ -246,7 +267,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                       )}
                       <p role="status">Aguardando a confirmação do pagamento…</p>
                       {mostrarSimular && (
-                        <Botao onClick={simular}>Simular pagamento</Botao>
+                        <Botao onClick={simular}><Icone nome="visto" /> Simular pagamento</Botao>
                       )}
                     </section>
                   )}

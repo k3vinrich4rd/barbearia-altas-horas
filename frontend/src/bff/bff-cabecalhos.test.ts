@@ -12,7 +12,7 @@ function pedir(caminho: string, cookie?: string) {
 describe("cabeçalhos de segurança", () => {
   test("A10: CSP, nosniff, Referrer-Policy e no-store onde há dado pessoal; nenhum Set-Cookie sem HttpOnly em /api/auth", async () => {
     for (const caminho of ["/", "/agendar", "/api/servicos", "/minha-conta", "/meus-agendamentos"]) {
-      const r = pedir(caminho, "ah_acesso=x");
+      const r = pedir(caminho, "ah_sessao=1");
       const csp = r.headers.get("content-security-policy") ?? "";
       expect(csp, caminho).toContain("frame-ancestors 'none'");
       expect(csp).toContain("default-src 'self'");
@@ -24,7 +24,7 @@ describe("cabeçalhos de segurança", () => {
       expect(r.headers.get("permissions-policy")).toBe("");
     }
     expect(pedir("/api/servicos").headers.get("cache-control")).toBe("no-store");
-    expect(pedir("/minha-conta", "ah_acesso=x").headers.get("cache-control")).toBe("no-store");
+    expect(pedir("/minha-conta", "ah_sessao=1").headers.get("cache-control")).toBe("no-store");
     // cada resposta com um nonce novo
     expect(pedir("/").headers.get("content-security-policy")).not.toBe(pedir("/").headers.get("content-security-policy"));
 

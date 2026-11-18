@@ -24,7 +24,7 @@ describe("home sem alcance", () => {
       expect(screen.queryByRole("heading", { name: "De onde vêm nossos clientes" }), nome).toBeNull();
       expect(screen.queryByText(/0 cidades/)).toBeNull();
       expect(screen.queryByRole("alert"), nome).toBeNull();
-      expect(screen.getByText(/Jardim Bonança, em Osasco/)).toBeInTheDocument();
+      expect(screen.getAllByText(/Jardim Bonança, em Osasco/).length).toBeGreaterThan(0);
       cleanup();
     }
   });

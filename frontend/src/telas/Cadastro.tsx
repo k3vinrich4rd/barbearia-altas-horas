@@ -84,6 +84,10 @@ export function Cadastro() {
 
   return (
     <>
+      <nav aria-label="Entrar ou criar conta" className="alternador">
+        <Link href="/entrar">Entrar</Link>
+        <Link href="/cadastro" aria-current="page">Criar conta</Link>
+      </nav>
       <h1>Criar conta</h1>
       <form onSubmit={aoEnviar} noValidate aria-label="Criar conta">
         <Campo id="nome" rotulo="Nome" autoComplete="name" value={v.nome} onChange={set("nome")} erro={campos.nome} />

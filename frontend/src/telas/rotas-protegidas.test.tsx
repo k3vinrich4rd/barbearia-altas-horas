@@ -24,7 +24,7 @@ describe("rotas protegidas", () => {
       expect(destino.pathname).toBe("/entrar");
       expect(destino.searchParams.get("voltar")).toBe(caminho);
       // com cookie de sessão, a navegação segue (a autorização de verdade é da API)
-      expect(pedir(caminho, "ah_acesso=x").headers.get("location"), caminho).toBeNull();
+      expect(pedir(caminho, "ah_sessao=1").headers.get("location"), caminho).toBeNull();
     }
     expect(pedir("/entrar").status).toBe(200);
     expect(pedir("/agendar").headers.get("location")).toBeNull();

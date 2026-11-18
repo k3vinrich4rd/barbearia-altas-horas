@@ -43,6 +43,10 @@ export function Entrar() {
 
   return (
     <>
+      <nav aria-label="Entrar ou criar conta" className="alternador">
+        <Link href="/entrar" aria-current="page">Entrar</Link>
+        <Link href="/cadastro">Criar conta</Link>
+      </nav>
       <h1>Entrar</h1>
       {aviso && <Aviso tipo="info">{aviso}</Aviso>}
       <form onSubmit={aoEnviar} aria-label="Entrar">

@@ -1,5 +1,6 @@
 "use client";
 // Meus dados (A39 a A41): consentimento de marketing, baixar os dados e excluir a conta.
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { baixarArquivo } from "@/api/arquivo";
@@ -12,6 +13,7 @@ import type { components } from "@/api/schema";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
+import { Icone } from "@/componentes/Icone";
 import { Dialogo } from "@/componentes/Dialogo";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { useSessao } from "@/componentes/Sessao";
@@ -27,10 +29,17 @@ export function MinhaConta() {
         {(p) => (
           <>
             <p>
-              {p.nome}
-              <br />
-              {p.email}
+              O que a barbearia guarda sobre você, e o que você pode fazer com isso. Saiba mais na <Link href="/privacidade">política de privacidade</Link>.
             </p>
+            <section aria-labelledby="t-pessoais" className="cartao">
+              <h2 id="t-pessoais">Dados pessoais</h2>
+              <dl>
+                <dt>Nome</dt>
+                <dd>{p.nome}</dd>
+                <dt>E-mail</dt>
+                <dd>{p.email}</dd>
+              </dl>
+            </section>
             <Marketing />
             <Exportar />
             {p.papeis.includes("CLIENTE") && !p.papeis.includes("ADMIN") && !p.papeis.includes("BARBEIRO") && <Excluir />}
@@ -77,7 +86,7 @@ function Marketing() {
   }
 
   return (
-    <section aria-labelledby="titulo-marketing">
+    <section aria-labelledby="titulo-marketing" className="cartao">
       <h2 id="titulo-marketing">Ofertas e novidades</h2>
       <EstadoDaConsulta consulta={consentimentos}>
         {() => (
@@ -108,7 +117,7 @@ function Exportar() {
     baixarArquivo(`dados-altas-horas-${diaNoFuso(new Date(dados.geradoEm))}.json`, JSON.stringify(dados, null, 2));
   }
   return (
-    <section aria-labelledby="titulo-exportar">
+    <section aria-labelledby="titulo-exportar" className="cartao">
       <h2 id="titulo-exportar">Seus dados</h2>
       <p>Baixe uma cópia dos dados que guardamos sobre você.</p>
       <Botao onClick={() => void baixar()} disabled={envio.enviando || envio.esperando}>
@@ -139,10 +148,14 @@ function Excluir() {
   }
 
   return (
+    <>
+    <hr />
     <section aria-labelledby="titulo-excluir">
       <h2 id="titulo-excluir">Excluir conta</h2>
       <p>Apaga seus dados pessoais. Não tem volta.</p>
-      <Botao onClick={() => setAberto(true)}>Excluir minha conta</Botao>
+      <button type="button" className="botao botao-perigo" onClick={() => setAberto(true)}>
+        <Icone nome="lixeira" /> Excluir minha conta
+      </button>
       {aberto && (
         <Dialogo
           titulo="Excluir a conta?"
@@ -174,5 +187,6 @@ function Excluir() {
         </Dialogo>
       )}
     </section>
+    </>
   );
 }

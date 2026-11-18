@@ -1,12 +1,16 @@
 "use client";
-// Componente neutro de aviso (D-3, V4): só forma e texto, sem cor nova. O Kevin redesenha depois sem mexer nas telas.
+// Mensagens do design system (README, "Mensagens"): cada tipo tem forma, ícone e palavra próprios, nunca só cor.
+//   erro   → caixa de contorno 2px em `erro`, ícone de alerta, prefixo "Erro:" e role="alert"
+//   aviso  → contorno tracejado de 1px em `aviso`, ícone de informação e role="status"
+//   sucesso→ bloco invertido (sucesso-fundo/sucesso-texto), ícone de visto e role="status"
 import { useEffect, useRef, type ReactNode } from "react";
 import { codigoParaSuporte, mensagemDoErro } from "@/api/mensagens";
 import type { ErroApi } from "@/api/erro";
+import { Icone, type NomeDeIcone } from "./Icone";
 
 export type TipoDeAviso = "erro" | "sucesso" | "aviso" | "info";
 
-const PREFIXO: Record<TipoDeAviso, string> = { erro: "Erro: ", sucesso: "Pronto: ", aviso: "Atenção: ", info: "" };
+const ICONE: Record<TipoDeAviso, NomeDeIcone> = { erro: "alerta", aviso: "info", info: "info", sucesso: "sucesso" };
 
 export function Aviso({
   tipo = "info",
@@ -17,7 +21,7 @@ export function Aviso({
   tipo?: TipoDeAviso;
   children: ReactNode;
   id?: string;
-  /** Leva o foco ao aviso quando ele aparece (erros de envio). */
+  /** Leva o foco ao aviso quando ele aparece (erro de página, sucesso). */
   focar?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -33,8 +37,11 @@ export function Aviso({
       className={`aviso aviso-${tipo}`}
       data-tipo={tipo}
     >
-      <span className="aviso-prefixo">{PREFIXO[tipo]}</span>
-      {children}
+      <Icone nome={ICONE[tipo]} tamanho="medio" />
+      <div className="aviso-texto">
+        {tipo === "erro" && <span className="aviso-prefixo">Erro: </span>}
+        {children}
+      </div>
     </div>
   );
 }

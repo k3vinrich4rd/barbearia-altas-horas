@@ -10,7 +10,9 @@ import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { CopiarTexto } from "@/componentes/CopiarTexto";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { useSessao } from "@/componentes/Sessao";
-import { STATUS_DA_RESERVA } from "./status";
+import { LinkBotao } from "@/componentes/Botao";
+import { ContatoWhatsapp, type BarbeiroComWhatsapp } from "@/componentes/ContatoWhatsapp";
+import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
 
 export function Confirmacao({ reservaId }: { reservaId: string }) {
   const sessao = useSessao();
@@ -49,7 +51,8 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
 
   return (
     <>
-      <h1>Reserva confirmada</h1>
+      <p className="sobretitulo">Etapa 3 · Confirmação</p>
+      <h1>Horário confirmado</h1>
       <EstadoDaConsulta consulta={reserva}>
         {(r) => (
           <>
@@ -63,10 +66,19 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
                 <br />
                 Valor pago: {formatarPreco(r)}
                 <br />
-                Situação: {STATUS_DA_RESERVA[r.status] ?? r.status}
+                Situação: <EtiquetaDeStatus status={r.status} />
               </p>
             </section>
             {politica.dados && <p className="nota">{politica.dados.texto}</p>}
+            <section aria-labelledby="t-depois">
+              <h2 id="t-depois">E agora?</h2>
+              <ul>
+                <li>Chegue alguns minutos antes. O horário é só seu.</li>
+                <li>Não há cancelamento nem remarcação pelo site, como você aceitou antes de pagar.</li>
+                <li>Vai se atrasar? Avise a barbearia.</li>
+              </ul>
+              <ContatoWhatsapp barbeiro={r.barbeiro as BarbeiroComWhatsapp | undefined} />
+            </section>
             {sessao.autenticado ? (
               <p>
                 <Link href="/meus-agendamentos">Ver meus agendamentos</Link>
@@ -85,6 +97,12 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
                   <p>O código só aparece neste navegador, logo depois da reserva.</p>
                 )}
               </section>
+            )}
+            {!sessao.autenticado && (
+              <p className="acoes">
+                <LinkBotao href="/cadastro">Criar conta para ver meus agendamentos</LinkBotao>
+                <LinkBotao href="/">Voltar para o início</LinkBotao>
+              </p>
             )}
           </>
         )}
