@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **331 testes, 0 falhas, 0 pulados** (17/11/2026, com a 6B: 281 anteriores + 46 da privacidade), `BUILD SUCCESS` em 2 min 31 s. A cobertura de instruções da 6A era **96%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **331 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6B: 282 anteriores, já com os serviços de 60 min, + 49 da privacidade), `BUILD SUCCESS` em 2 min 31 s. A cobertura de instruções da 6A era **96%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
