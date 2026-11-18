@@ -60,6 +60,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- CEP (Fatia 6A, ADR 0008): cache em memória dos encontrados e dos inexistentes; versões vêm do BOM do Spring Boot. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 		<!-- A API valida o JWT como Resource Server (padrão OAuth2 do Spring Security), sem filtro feito à mão. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

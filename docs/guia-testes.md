@@ -16,7 +16,7 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 250 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 281 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **250 testes, 0 falhas, 0 pulados** (17/11/2026, com a 5B), `BUILD SUCCESS`, cobertura de instruções **95,3%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **281 testes, 0 falhas, 0 pulados** (17/11/2026, com a 6A: 250 antigos + 31 do CEP), `BUILD SUCCESS` em 2 min 11 s, cobertura de instruções **96%**. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -82,10 +82,13 @@ cd backend && ./mvnw verify
 | `LimiteTentativasIT` · `LimitadorDeTentativasTest` | 5 · 3 | 429 com `Retry-After` por e-mail + IP e por IP; janela deslizante |
 | `AdminInicialIT` · `MatrizAcessoIT` · `SegurancaWebIT` | 5 · 3 · 3 | admin criado por variável sem sobrescrever, troca obrigatória, 401/403/404, negar por padrão, CORS e CSRF onde há cookie |
 | `SemDadoPessoalNoLogIT` · `ValueObjectsTest` | 1 · 1 | nenhum e-mail, telefone, CEP, senha ou token no log |
+| `CepIT` · `CepFallbackIT` · `CepDegradacaoIT` | 4 · 5 · 2 | ViaCEP com os 8 dígitos, formato inválido sem chamada externa, fallback para a BrasilAPI (timeout, 503, 429, corpo que não é JSON), 503 com os dois fora e cadastro sobrevivendo (A1 a A7, A16) |
+| `CepCacheIT` · `CepRespostaInvalidaIT` · `CepLimiteIT` | 5 · 4 · 2 | cache de 7 dias e de 1 hora com relógio falso, falha nunca em cache, teto de entradas, resposta do ViaCEP que não serve vira falha, 30 por minuto por IP (A8 a A14) |
+| `CadastroComCepIT` · `SemDadoPessoalNoLogCepIT` · `CepConfigTest` | 4 · 1 · 2 | bairro, cidade e uf gravados no cadastro (A15, A17 a A19), nenhum CEP no log (A20), timeouts de 1 s e 2 s e URLs só locais (A22). Todos os provedores são falsos: **nenhuma chamada de rede real** |
 | `ModulithTest` | 3 | 8 módulos e fronteiras verificadas |
 | `ArquiteturaTest` | 3 | ninguém lê o relógio do sistema fora do `Clock`; dinheiro nunca em `double`; o núcleo da regra não conhece framework |
 
-Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (44 de 44; fatias 1 e 2: 10 e 29).
+Conferir que todo critério da spec tem teste: `sh scripts/conferir-spec.sh 3 --exigir` (44 de 44; fatias 1 e 2: 10 e 29). Fatia 6: `sh scripts/conferir-spec.sh 6` mostra A1 a A22 (6A) cobertos; A23 em diante aparecem faltando até a 6B e a 6C.
 
 Rodar uma classe só: `./mvnw test -Dtest=ConcorrenciaReservaIT`.
 
@@ -358,7 +361,7 @@ Location: /me
  "endereco":{"cep":"01001000","bairro":null,"cidade":null,"uf":null,"completo":false},"deveTrocarSenha":false}
 ```
 
-**O que prova:** o CPF não é pedido; a resposta não tem senha; o CEP fica guardado e o endereço completo chega na Fatia 6.
+**O que prova:** o CPF não é pedido; a resposta não tem senha; o CEP fica guardado. A saída acima é a de quando os provedores de CEP estão fora do ar (`completo: false`, R31); com o ViaCEP respondendo o mesmo cadastro devolve bairro `Sé`, cidade `São Paulo`, uf `SP` e `completo: true` (B3).
 
 ### C2 ✅ Repetir o cadastro
 
@@ -499,6 +502,54 @@ Saída real (17/11/2026, 13h31):
 | # | O que fazer | O que deve acontecer | O que prova | |
 |---|---|---|---|:-:|
 | C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
+
+### B3 ✅ CEP com os provedores ligados (Fatia 6A)
+
+Precisa de internet: o perfil `dev` fala com o ViaCEP de verdade. Sem chave e sem conta.
+
+```bash
+curl -i http://localhost:8080/cep/01001-000
+curl -i http://localhost:8080/cep/01001000        # mesma resposta, agora com "fonte":"CACHE"
+curl -i http://localhost:8080/cep/123              # 400 CEP_INVALIDO, sem chamada externa
+curl -i http://localhost:8080/cep/99999999         # 404 CEP_NAO_ENCONTRADO
+curl -i -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json"   -d '{"nome":"Cliente Teste B","email":"cliente.b@exemplo.test","whatsapp":"(11) 90000-0002","senha":"Senha-de-teste-123","cep":"01001-000"}'
+```
+
+Saída real (17/11/2026, ViaCEP de verdade, resumida):
+
+```text
+GET /cep/01001000   -> 200 {"cep":"01001000","logradouro":"Praça da Sé","bairro":"Sé","cidade":"São Paulo","uf":"SP","fonte":"VIACEP"}
+GET /cep/01001000   -> 200 {... "fonte":"CACHE"}
+GET /cep/01001-000  -> 200 {"cep":"01001000", ... "fonte":"CACHE"}   (a máscara é normalizada)
+GET /cep/99999999   -> 404 application/problem+json  code=CEP_NAO_ENCONTRADO  traceId=...
+GET /cep/123        -> 400 application/problem+json  code=CEP_INVALIDO ("O CEP deve ter 8 dígitos.")
+POST /auth/cadastro (cep 01001000) -> 201 "endereco":{"cep":"01001000","bairro":"Sé","cidade":"São Paulo","uf":"SP","completo":true}
+```
+
+Limite por IP (30 por minuto): numa rajada de 31 consultas seguidas, as 26 primeiras deram `404` (CEPs válidos que não existem) e as 5 últimas `429` com `Retry-After` (ex.: `52`). As consultas de antes da rajada contaram na mesma janela; o `123` inválido não gastou chamada externa.
+
+**O que deve acontecer:** a primeira consulta vem com `"fonte":"VIACEP"` (Praça da Sé, Sé, São Paulo, SP) e a segunda com `"fonte":"CACHE"`; o cadastro devolve `endereco.completo: true`. O log da API tem a linha `cep resolvido: sim, fonte=...` e **nenhum** CEP.
+
+### B4 ✅ CEP com os provedores desligados (Fatia 6A)
+
+Para simular a queda sem desligar a internet, suba a API apontando os dois provedores para uma porta fechada:
+
+```bash
+APP_CEP_VIACEP_URL=http://localhost:1 APP_CEP_BRASILAPI_URL=http://localhost:1 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+curl -i http://localhost:8080/cep/01001000        # 503 CEP_INDISPONIVEL, em application/problem+json com traceId
+curl -i -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json"   -d '{"nome":"Cliente Teste C","email":"cliente.c@exemplo.test","whatsapp":"(11) 90000-0003","senha":"Senha-de-teste-123","cep":"01001-000"}'
+```
+
+Saída real (17/11/2026, provedores apontados para `http://localhost:1/`, resumida):
+
+```text
+GET /cep/01310100 -> 503 application/problem+json  code=CEP_INDISPONIVEL ("Preencha o endereço manualmente.")  traceId=...
+POST /auth/cadastro (cep 01310100) -> 201 "endereco":{"cep":"01310100","bairro":null,"cidade":null,"uf":null,"completo":false}
+```
+
+Com os provedores ligados de novo, o cadastro com `01001000` deu `201` e `completo: true`. No log: `provedor de CEP falhou: provedor=VIACEP tipo=REDE` (e `BRASILAPI`), sem nenhum CEP, e-mail ou nome. `grep -c` por CEP e por e-mail de teste no log inteiro: 0.
+
+**O que deve acontecer:** a consulta dá `503` e o cadastro dá `201` com `endereco.completo: false` e bairro, cidade e uf nulos (R31). Quando os provedores voltam, a falha **não** ficou em cache: a mesma consulta já responde `200`. O log tem `provedor de CEP falhou: provedor=... tipo=REDE` e nenhum CEP. Limite: a 31ª consulta do mesmo IP no mesmo minuto dá `429` com `Retry-After`.
 
 ## 6. Cenário do admin (o barbeiro)
 
