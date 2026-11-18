@@ -92,6 +92,25 @@ class ArquiteturaTest {
     }
 
     @Test
+    @DisplayName("A21: o módulo cep só expõe CepApi, Endereco e CepIndisponivel; os clientes dos provedores, o controller e o cache não são acessíveis de fora")
+    void cepSoExpoeAPortaEOsTiposDela() {
+        var publicas = CLASSES.stream().filter(c -> c.getPackageName().equals("io.github.k3vinrich4rd.altashoras.cep"))
+                .filter(c -> !c.getSimpleName().equals("package-info"))
+                .map(c -> c.getSimpleName()).toList();
+        org.assertj.core.api.Assertions.assertThat(publicas)
+                .containsExactlyInAnyOrder("CepApi", "Endereco", "Fonte", "CepIndisponivel");
+        noClasses().that().resideOutsideOfPackage("..cep.consulta..")
+                .should().dependOnClassesThat().resideInAPackage("..cep.consulta..")
+                .because("os clientes ViaCEP e BrasilAPI, o cache e o controller são detalhes do módulo cep (ADR 0002)")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("..cep..")
+                .should().dependOnClassesThat().resideInAnyPackage("..conta..", "..agenda..", "..pagamento..",
+                        "..privacidade..", "..admin..")
+                .because("o cep não conhece quem o usa")
+                .check(CLASSES);
+    }
+
+    @Test
     @DisplayName("A40: ninguém depende do módulo admin, e o admin só usa JdbcClient, JdbcTemplate ou EntityManager na própria auditoria")
     void adminIsoladoDasTabelasAlheias() {
         noClasses().that().resideOutsideOfPackage("..admin..")
