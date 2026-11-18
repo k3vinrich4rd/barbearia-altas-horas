@@ -92,15 +92,15 @@ Um barbeiro só, que faz todos os serviços. É para esse ritmo que a agenda foi
 
 <br/>
 
-`GET /disponibilidade` do **Corte Degradê** (30 min): **24 horários**.
+`GET /disponibilidade` do **Corte Degradê** (60 min, como todos os serviços): **22 horários**.
 
 | Manhã | | | | | Tarde | | | | | |
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | 07:00 | 07:30 | 08:00 | 08:30 | 09:00 | 13:00 | 13:30 | 14:00 | 14:30 | 15:00 | 15:30 |
-| 09:30 | 10:00 | 10:30 | 11:00 | 11:30 | 16:00 | 16:30 | 17:00 | 17:30 | 18:00 | 18:30 |
-| | | | | | 19:00 | 19:30 | | | | |
+| 09:30 | 10:00 | 10:30 | 11:00 | | 16:00 | 16:30 | 17:00 | 17:30 | 18:00 | 18:30 |
+| | | | | | 19:00 | | | | | |
 
-O **Corte Moderno / Visagismo** (60 min) tem **22**: some o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h). Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 15 min vence, ele volta sozinho.
+Com todos os serviços em 60 min, somem o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h): sobram os mesmos **22** para qualquer serviço do catálogo. Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 15 min vence, ele volta sozinho.
 
 ```bash
 curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=2026-12-01"
@@ -112,11 +112,11 @@ curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-00
 
 <table>
 <tr><th align="left">Serviço</th><th>Tempo</th><th align="right">Valor</th></tr>
-<tr><td>✂️ Corte Clássico / Social</td><td align="center">30 min</td><td align="right"><kbd>R$ 45,00</kbd></td></tr>
-<tr><td>✂️ Corte Degradê / Fade / Navalhado</td><td align="center">30 min</td><td align="right"><kbd>R$ 55,00</kbd></td></tr>
+<tr><td>✂️ Corte Clássico / Social</td><td align="center">60 min</td><td align="right"><kbd>R$ 45,00</kbd></td></tr>
+<tr><td>✂️ Corte Degradê / Fade / Navalhado</td><td align="center">60 min</td><td align="right"><kbd>R$ 55,00</kbd></td></tr>
 <tr><td>✂️ Corte Moderno / Visagismo (tesoura)</td><td align="center">60 min</td><td align="right"><kbd>R$ 60,00</kbd></td></tr>
-<tr><td>🪒 Barba Completa / Desenhada</td><td align="center">30 min</td><td align="right"><kbd>R$ 30,00</kbd></td></tr>
-<tr><td>🪒 Acabamento (pezinho) / Sobrancelha</td><td align="center">30 min</td><td align="right"><kbd>R$ 20,00</kbd></td></tr>
+<tr><td>🪒 Barba Completa / Desenhada</td><td align="center">60 min</td><td align="right"><kbd>R$ 30,00</kbd></td></tr>
+<tr><td>🪒 Acabamento (pezinho) / Sobrancelha</td><td align="center">60 min</td><td align="right"><kbd>R$ 20,00</kbd></td></tr>
 </table>
 
 <sub>Sem combos. Preços, horários e regras são dados que o Eduardo muda no painel, sem mexer no código.</sub>
