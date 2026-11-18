@@ -88,7 +88,7 @@ class PagamentoTardioIT {
         ReservaGuest reserva = reservarComoVisitante(mvc, barbeiro, servico, as(10, 0));
         cobrarPixComoVisitante(mvc, jdbc, reserva);
 
-        relogio.avancar(Duration.ofMinutes(16));
+        relogio.avancar(Duration.ofMinutes(4)); // o prazo é de 3 min (D121)
         job.executar();
         assertThat(statusDaReserva(jdbc, reserva.id())).isEqualTo("EXPIRADO");
         esperar(() -> "CANCELADA".equals(statusDaCobranca(jdbc, reserva.id())));
@@ -106,7 +106,7 @@ class PagamentoTardioIT {
         cobrarPixComoVisitante(mvc, jdbc, primeira);
 
         // O prazo da primeira passou; outro cliente pega o mesmo horário (a expiração preguiçosa libera a vencida).
-        relogio.avancar(Duration.ofMinutes(16));
+        relogio.avancar(Duration.ofMinutes(4)); // o prazo é de 3 min (D121)
         ReservaGuest segunda = reservarComoVisitante(mvc, barbeiro, servico, as(10, 30));
         assertThat(statusDaReserva(jdbc, primeira.id())).isEqualTo("EXPIRADO");
         assertThat(statusDaReserva(jdbc, segunda.id())).isEqualTo("AGUARDANDO_PAGAMENTO");
@@ -126,7 +126,7 @@ class PagamentoTardioIT {
         cobrarPixComoVisitante(mvc, jdbc, reserva);
         assertThat(statusDaCobranca(jdbc, reserva.id())).isEqualTo("PENDENTE");
 
-        relogio.avancar(Duration.ofMinutes(16));
+        relogio.avancar(Duration.ofMinutes(4)); // o prazo é de 3 min (D121)
         job.executar();
 
         assertThat(statusDaReserva(jdbc, reserva.id())).isEqualTo("EXPIRADO");

@@ -57,7 +57,7 @@ class ReservaGuestIT {
                 .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("/agendamentos/guest/")))
                 .andExpect(jsonPath("$.status").value("AGUARDANDO_PAGAMENTO"))
                 .andExpect(jsonPath("$.origem").value("GUEST"))
-                .andExpect(jsonPath("$.expiraEm").value("2026-11-17T08:15:00-03:00"))
+                .andExpect(jsonPath("$.expiraEm").value("2026-11-17T08:03:00-03:00"))
                 .andExpect(jsonPath("$.cpf").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 

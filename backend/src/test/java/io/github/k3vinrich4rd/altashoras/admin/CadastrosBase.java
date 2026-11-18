@@ -42,12 +42,12 @@ public abstract class CadastrosBase extends PainelBase {
         restaurarConfiguracao();
     }
 
-    /** Os valores da V1 (D36): outro teste do contexto pode ter mudado a configuração. */
+    /** Os valores da V1 (D36), com o prazo de pagamento da V7 (3 min, D121): outro teste do contexto pode ter mudado a configuração. */
     protected void restaurarConfiguracao() {
         jdbc.update("""
                 UPDATE configuracao_agenda
                 SET antecedencia_minima_min = 120, intervalo_entre_atendimentos_min = 0, granularidade_min = 30,
-                    horizonte_dias = 30, expiracao_pagamento_min = 15, atualizado_por = NULL, version = 0
+                    horizonte_dias = 30, expiracao_pagamento_min = 3, atualizado_por = NULL, version = 0
                 WHERE id = 1
                 """);
     }

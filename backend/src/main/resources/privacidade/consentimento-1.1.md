@@ -1,0 +1,1 @@
+Quero receber ofertas e novidades da Barbearia Altas Horas escolhidas pela minha região (CEP, bairro e cidade que informei). Posso mudar de ideia quando quiser, em "Meus dados", e isso não atrapalha meus agendamentos.

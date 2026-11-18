@@ -18,6 +18,7 @@ import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.AlteracaoDeBarbei
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.BarbeiroCadastrado;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.Intervalo;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
+import io.github.k3vinrich4rd.altashoras.comum.valor.Telefone;
 import io.github.k3vinrich4rd.altashoras.conta.Contas;
 
 /**
@@ -49,9 +50,11 @@ class CadastroDeBarbeiros {
     @Transactional
     BarbeiroAdmin criar(Ator ator, BarbeiroRequest pedido) {
         exigirContaDeBarbeiro(pedido.usuarioId());
-        BarbeiroCadastrado criado = agenda.criarBarbeiro(pedido.nomeExibicao(), pedido.usuarioId());
-        auditor.registrar(ator, "BARBEIRO_CRIADO", "barbeiro", criado.id(),
-                Map.of("campos", pedido.usuarioId() == null ? "nomeExibicao" : "nomeExibicao,usuarioId"));
+        BarbeiroCadastrado criado = agenda.criarBarbeiro(pedido.nomeExibicao(), pedido.usuarioId(), digitos(pedido.whatsapp()));
+        // Só nomes de campos na auditoria: nunca o nome nem o número (R30).
+        String campos = "nomeExibicao" + (pedido.usuarioId() == null ? "" : ",usuarioId")
+                + (pedido.whatsapp() == null ? "" : ",whatsapp");
+        auditor.registrar(ator, "BARBEIRO_CRIADO", "barbeiro", criado.id(), Map.of("campos", campos));
         return BarbeiroAdmin.de(criado);
     }
 
@@ -59,7 +62,8 @@ class CadastroDeBarbeiros {
     BarbeiroAdmin alterar(Ator ator, UUID id, BarbeiroAlteracaoRequest pedido) {
         exigirContaDeBarbeiro(pedido.usuarioId());
         PainelDaAgenda.Alterado<BarbeiroCadastrado> alterado = agenda.alterarBarbeiro(id,
-                new AlteracaoDeBarbeiro(pedido.nomeExibicao(), pedido.usuarioId(), pedido.ativo(), pedido.version()));
+                new AlteracaoDeBarbeiro(pedido.nomeExibicao(), pedido.usuarioId(), digitos(pedido.whatsapp()), pedido.ativo(),
+                        pedido.version()));
         auditor.registrar(ator, "BARBEIRO_ALTERADO", "barbeiro", id,
                 Map.of("campos", String.join(",", alterado.campos())));
         return BarbeiroAdmin.de(alterado.item());
@@ -76,6 +80,11 @@ class CadastroDeBarbeiros {
         auditor.registrar(ator, "JORNADA_SUBSTITUIDA", "barbeiro", barbeiroId,
                 Map.of("intervalos", Integer.toString(gravados.size())));
         return gravados.stream().map(IntervaloJornada::de).toList();
+    }
+
+    /** O número é guardado só com dígitos (a máscara do formulário não entra no banco). */
+    private static @Nullable String digitos(@Nullable String whatsapp) {
+        return whatsapp == null ? null : Telefone.de(whatsapp).digitos();
     }
 
     /** Conta que não existe ou não tem o papel BARBEIRO: 400 no campo {@code usuarioId} (E18). */
