@@ -16,8 +16,9 @@
 |---|---|:-:|:-:|
 | Agenda do dia e da semana | `GET /admin/agenda?data=&visao=DIA\|SEMANA&barbeiroId=` | todos os barbeiros | **só a própria** (H9) |
 | Fechar atendimento | `PATCH /admin/agendamentos/{id}/status` (`CONCLUIDO`, `NAO_COMPARECEU`, `CANCELADO` + motivo) | ✅ | só reservas da própria agenda (H9) |
+| Reserva manual: travar um horário combinado por WhatsApp (6D) | `POST /admin/agendamentos` (`servicoId`, `barbeiroId`, `inicio`, `nomeCliente?`, `observacao?`) | qualquer barbeiro | **só para si**; só o ADMIN cancela |
 | Serviços (nome, duração, preço, ativo) | `GET/POST /admin/servicos`, `PUT /admin/servicos/{id}` | ✅ | ❌ |
-| Barbeiros, jornada e folgas | `GET/POST /admin/barbeiros`, `PUT /admin/barbeiros/{id}`, `PUT .../jornada`, `POST/DELETE .../folgas` | ✅ | ❌ |
+| Barbeiros, WhatsApp comercial, jornada e folgas | `GET/POST /admin/barbeiros`, `PUT /admin/barbeiros/{id}`, `PUT .../jornada`, `POST/DELETE .../folgas` | ✅ | ❌ |
 | Sinais (pendentes, pagos, expirados, a devolver) | `GET /admin/pagamentos?status=`, `POST /admin/pagamentos/{id}/devolucao` | ✅ | ❌ |
 | Eventos de webhook em revisão manual (esgotaram as M tentativas do job, H20; ADR 0007) | rota a definir na fatia S13 (proposta: `GET /admin/pagamentos/eventos-em-revisao`) | ✅ | ❌ |
 | Regras configuráveis da agenda (H4 a H12) | `GET/PUT /admin/configuracao` | ✅ | ❌ |

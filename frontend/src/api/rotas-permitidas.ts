@@ -26,6 +26,7 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "GET /politica-privacidade",
   "GET /servicos",
   "PATCH /admin/agendamentos/{id}/status",
+  "POST /admin/agendamentos",
   "POST /admin/barbeiros",
   "POST /admin/barbeiros/{id}/folgas",
   "POST /admin/pagamentos/eventos/{id}/revisao",

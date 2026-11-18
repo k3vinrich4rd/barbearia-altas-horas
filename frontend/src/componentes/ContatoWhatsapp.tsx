@@ -1,9 +1,10 @@
 // "Prefere combinar pelo WhatsApp?" (README do design system, "WhatsApp do barbeiro"). O link é https://wa.me/55 + o número
-// PÚBLICO do barbeiro, que vem da API (Fatia 6D). O contrato 1.5.0 ainda não tem `whatsapp` no barbeiro: o campo é opcional
-// aqui e o bloco só aparece quando a API passar a mandá-lo. Sem número, o bloco some. Nenhum número escrito no código.
+// PÚBLICO do barbeiro, que vem de GET /barbeiros (contrato 1.6.0, Fatia 6D): só dígitos, com DDI opcional, ou nulo.
+// Sem número, o bloco some. Nenhum número escrito no código.
+import type { components } from "@/api/schema";
 import { Icone } from "./Icone";
 
-export type BarbeiroComWhatsapp = { id: string; nomeExibicao: string; whatsapp?: string | null };
+export type BarbeiroComWhatsapp = components["schemas"]["BarbeiroPublico"];
 
 export function linkDoWhatsapp(numero: string): string | undefined {
   const digitos = numero.replace(/\D/g, "");

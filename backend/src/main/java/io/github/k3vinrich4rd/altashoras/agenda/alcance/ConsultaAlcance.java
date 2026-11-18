@@ -25,7 +25,7 @@ import io.github.k3vinrich4rd.altashoras.agenda.AlcanceDaAgenda.Periodo;
 
 /**
  * A conta do alcance (Fatia 6C): uma consulta agrupa os atendimentos do período por cidade, uf e bairro, e o resto é
- * agregação em memória (poucas dezenas de grupos). Só CONFIRMADO e CONCLUIDO contam (E31). K-anonimato (E32): o bairro com
+ * agregação em memória (poucas dezenas de grupos). Só CONFIRMADO e CONCLUIDO contam (E31), e a reserva manual da 6D fica de fora (D127: sem região, só inflaria "sem região"). K-anonimato (E32): o bairro com
  * menos de 5 atendimentos na cidade vira "Outros bairros"; a cidade com menos de 5 vira "Outras cidades", sem uf e sem
  * bairros. Reserva sem região só entra em {@code semRegiao}. O banco nunca devolve nome de pessoa: só região e contagem.
  */
@@ -49,7 +49,7 @@ public class ConsultaAlcance {
         JdbcClient.StatementSpec consulta = jdbc.sql("""
                 SELECT regiao_cidade, regiao_uf, regiao_bairro, count(*) AS atendimentos
                 FROM reserva
-                WHERE status IN ('CONFIRMADO', 'CONCLUIDO') AND inicio >= :de AND inicio < :ate
+                WHERE status IN ('CONFIRMADO', 'CONCLUIDO') AND origem <> 'MANUAL' AND inicio >= :de AND inicio < :ate
                 """ + (barbeiroId == null ? "" : " AND barbeiro_id = :barbeiro") + """
                  GROUP BY regiao_cidade, regiao_uf, regiao_bairro
                 """).param("de", de).param("ate", ate);

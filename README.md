@@ -11,7 +11,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes-356_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
+[![Testes](https://img.shields.io/badge/testes-384_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
 
 <b><a href="#-a-história">A história</a></b> ·
 <a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
@@ -39,7 +39,7 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 
 - 💳 **Reserva com pagamento antecipado:** o cliente escolhe o serviço e o horário e paga na hora, por Pix ou cartão.
 - 🔒 **Vaga garantida, sem conflito:** o horário só entra na agenda depois que o pagamento é confirmado, e dois clientes nunca ficam com o mesmo horário.
-- ⏱️ **Liberação automática:** quem não conclui o pagamento em 15 minutos devolve a vaga para o próximo.
+- ⏱️ **Liberação automática:** quem não conclui o pagamento em 3 minutos devolve a vaga para o próximo.
 
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
@@ -52,6 +52,7 @@ No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, c
 
 - ▶️ **O que já funciona e dá para testar:** catálogo, horários livres, reserva (com e sem conta), pagamento simulado, expiração, conta e sessão, CEP com degradação (6A) e o painel completo. Como rodar e testar à mão, com a saída real de cada passo: **[guia de testes](docs/guia-testes.md)**.
 - 🗺 **Alcance por região (6C):** a vitrine pública `GET /alcance` mostra, sem login e sem números, as cidades e os bairros que a barbearia atende (últimos 12 meses); o painel `GET /admin/alcance` dá a contagem e o percentual ao Eduardo. Nenhum grupo com menos de 5 atendimentos aparece com nome. Como testar: [AL1 no guia](docs/guia-testes.md#al1--alcance-por-região-fatia-6c).
+- 💬 **WhatsApp e reserva manual (6D):** o site mostra o WhatsApp comercial de cada barbeiro (cadastrado só pelo admin), e o painel trava um horário combinado por fora do app (`POST /admin/agendamentos`: nasce confirmado, sem cobrança, sem WhatsApp do cliente). O prazo de pagamento passou a ser de **3 minutos**.
 - 🛤 **Fluxo de ponta a ponta:** visitante, cliente e painel, com rotas, classes e diagramas: **[docs/fluxo-ponta-a-ponta.md](docs/fluxo-ponta-a-ponta.md)**.
 - 🧩 **Padrões usados**, cada um com a classe real:
 
@@ -178,7 +179,7 @@ Na prática, a diferença aparece no dia do Eduardo:
 |---|---|
 | o cliente manda mensagem e espera o fim de um corte para ter resposta | vê os horários livres na hora, a qualquer hora |
 | dois clientes no mesmo horário: quem respondeu primeiro leva | só um consegue, mesmo clicando no mesmo instante |
-| o cliente desiste e nem sempre avisa | o horário só é dele depois de pagar; sem pagar em 15 min, a vaga volta |
+| o cliente desiste e nem sempre avisa | o horário só é dele depois de pagar; sem pagar em 3 min, a vaga volta |
 | a falta vira cadeira vazia e prejuízo | o valor já foi pago antes do corte |
 | a agenda de amanhã está espalhada entre caderno e conversas | o Eduardo abre o painel e o dia está pronto |
 
@@ -203,7 +204,7 @@ A reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` quando o meio de 
 </details>
 
 <details>
-<summary><b>Quem não paga em 15 minutos libera a vaga</b></summary>
+<summary><b>Quem não paga em 3 minutos libera a vaga</b></summary>
 
 <br/>
 
@@ -246,11 +247,11 @@ O primeiro acesso do Eduardo nasce de variáveis de ambiente na hora em que a AP
 |---|---|
 | **Todo** agendamento (com conta ou sem conta) paga 100% antes | a reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` pelo webhook do gateway |
 | Pix ou cartão de crédito | Pix devolve QR Code e copia e cola; cartão abre o checkout hospedado do gateway |
-| O horário fica travado por **15 min** enquanto o cliente paga | a constraint do banco conta a reserva pendente como ocupada até `expira_em` |
-| Não pagou em 15 min | a reserva vira `EXPIRADO` e o horário volta para a agenda |
+| O horário fica travado por **3 min** enquanto o cliente paga | a constraint do banco conta a reserva pendente como ocupada até `expira_em` |
+| Não pagou em 3 min | a reserva vira `EXPIRADO` e o horário volta para a agenda |
 | **Sem cancelamento, remarcação ou estorno** por desistência ou falta | não há botão nem rota para o cliente cancelar; antes de pagar, ele marca o aceite obrigatório (`aceitePolitica: true`, com a versão do texto gravada) |
 | Falta (*no-show*) | o barbeiro marca `NAO_COMPARECEU` no painel; o valor fica com a barbearia |
-| Pagamento que chega depois dos 15 min | com o horário ainda livre, confirma normalmente; com o horário já ocupado, vira pendência no painel do admin |
+| Pagamento que chega depois dos 3 min | com o horário ainda livre, confirma normalmente; com o horário já ocupado, vira pendência no painel do admin |
 
 > [!NOTE]
 > O CPF é pedido **só** na tela de pagamento, porque o gateway exige. Ele é validado, repassado ao gateway e **não é guardado** no banco.
@@ -269,7 +270,7 @@ sequenceDiagram
 
     C->>F: escolhe serviço e horário
     F->>A: POST /agendamentos
-    A->>DB: INSERT reserva AGUARDANDO_PAGAMENTO (expira_em = agora + 15 min)
+    A->>DB: INSERT reserva AGUARDANDO_PAGAMENTO (expira_em = agora + 3 min)
     alt horário já ocupado
         DB-->>A: 23P01 (EXCLUDE gist)
         A-->>F: 409 HORARIO_INDISPONIVEL (problem+json)
@@ -298,8 +299,8 @@ sequenceDiagram
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 stateDiagram-v2
     [*] --> AGUARDANDO_PAGAMENTO: cliente ou visitante reserva
-    AGUARDANDO_PAGAMENTO --> CONFIRMADO: webhook aprova em até 15 min
-    AGUARDANDO_PAGAMENTO --> EXPIRADO: 15 min sem pagamento
+    AGUARDANDO_PAGAMENTO --> CONFIRMADO: webhook aprova em até 3 min
+    AGUARDANDO_PAGAMENTO --> EXPIRADO: 3 min sem pagamento
     EXPIRADO --> CONFIRMADO: pagamento tardio e horário ainda livre
     CONFIRMADO --> CONCLUIDO: barbeiro conclui
     CONFIRMADO --> NAO_COMPARECEU: falta (valor retido)
@@ -420,7 +421,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 356 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 384 testes com PostgreSQL real via Testcontainers
 ```
 
 
@@ -516,11 +517,12 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
 - [x] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes)
 - [x] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo com detecção de reuso, troca de senha, admin inicial com troca obrigatória, limite de tentativas e negar por padrão ([spec](docs/sdd/fatia-3-conta-e-acesso.md): 44 critérios, 44 testes)
-- [x] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração (📝 [spec escrita](docs/sdd/fatia-4-agendamento-e-pagamento.md), 45 critérios)
+- [x] **Fatia 4 · Agendamento e checkout:** reserva com trava de 3 min (era 15 até a 6D), cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração (📝 [spec escrita](docs/sdd/fatia-4-agendamento-e-pagamento.md), 45 critérios)
 - [x] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
 - [x] **Fatia 6A · CEP:** ViaCEP, BrasilAPI e degradação (feita)
 - [x] **Fatia 6B · Privacidade (LGPD):** consentimento, exportar e excluir conta, retenção
 - [x] **Fatia 6C · Alcance por região:** CEP opcional do visitante, região na reserva, painel `GET /admin/alcance` e vitrine pública `GET /alcance`, com agrupamento mínimo de 5 (k-anonimato)
+- [x] **Fatia 6D · WhatsApp e reserva manual:** prazo de pagamento de 3 min, WhatsApp comercial do barbeiro em `GET /barbeiros` (o front monta `wa.me`) e `POST /admin/agendamentos` para travar no painel o horário combinado por WhatsApp, sem cobrança ([spec](docs/sdd/fatia-6d-whatsapp-e-reserva-manual.md), 28 critérios)
 - [ ] **Fatia 7 · Telas Next.js:** **7A pronta, aguardando revisão** (home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade); 7B (painel) planejada
 - [ ] **Fatia 8 · Deploy grátis (preparada, [spec](docs/sdd/fatia-8-deploy.md)):** imagem Docker, Blueprint do Render, banco Aiven PostgreSQL free e backup semanal criptografado, tudo testado localmente; falta a ativação (só com o OK do Kevin) e o front no Vercel, depois da 7
 - [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)
@@ -530,7 +532,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 | Documento | O que tem |
 |---|---|
 | [Contrato da API](docs/contrato/contrato-api.md) · [OpenAPI](docs/contrato/openapi.yaml) | rotas, exemplos, erros e histórico de versões |
-| [Dossiê de contexto](docs/contexto.md) | regras de negócio numeradas (R1 a R32) e decisões em aberto |
+| [Dossiê de contexto](docs/contexto.md) | regras de negócio numeradas (R1 a R34) e decisões em aberto |
 | [Modelo de domínio](docs/dominio/modelo-de-dominio.md) | agregados, eventos e máquina de estados |
 | [Arquitetura](docs/arquitetura/README.md) | módulos, dependências e fluxos críticos |
 | [Banco](docs/banco/erd.md) | ERD, constraints e DDL proposto |

@@ -52,7 +52,7 @@ class ReservaClienteIT {
     }
 
     @Test
-    @DisplayName("A1: horário livre → 201, Location, AGUARDANDO_PAGAMENTO, expira em 15 min, preço do serviço")
+    @DisplayName("A1: horário livre → 201, Location, AGUARDANDO_PAGAMENTO, expira em 3 min, preço do serviço")
     void reservaLivre() throws Exception {
         String resposta = reservar(mvc, acesso, corpo(servico30, barbeiro, as(10, 0)))
                 .andExpect(status().isCreated())
@@ -62,7 +62,7 @@ class ReservaClienteIT {
                 .andExpect(jsonPath("$.origem").value("CLIENTE"))
                 .andExpect(jsonPath("$.inicio").value("2026-12-01T10:00:00-03:00"))
                 .andExpect(jsonPath("$.fim").value("2026-12-01T10:30:00-03:00"))
-                .andExpect(jsonPath("$.expiraEm").value("2026-11-17T08:15:00-03:00"))
+                .andExpect(jsonPath("$.expiraEm").value("2026-11-17T08:03:00-03:00"))
                 .andExpect(jsonPath("$.precoCentavos").value(5500))
                 .andExpect(jsonPath("$.servico.id").value(servico30.toString()))
                 .andExpect(jsonPath("$.barbeiro.id").value(barbeiro.toString()))

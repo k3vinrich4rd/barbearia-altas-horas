@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.5.0
+  version: 1.6.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -13,11 +13,15 @@ info:
     Data e hora em ISO-8601 com offset.
 
     Política de pagamento (R6 a R8, R18): todo agendamento, de cliente logado ou de
-    guest, nasce `AGUARDANDO_PAGAMENTO`, trava o horário por 15 minutos e só vira
+    guest, nasce `AGUARDANDO_PAGAMENTO`, trava o horário por 3 minutos e só vira
     `CONFIRMADO` pelo webhook do gateway com 100% do valor pago (Pix ou cartão de
     crédito). Antes de pagar, o cliente aceita que não há cancelamento, remarcação
     nem estorno por desistência ou falta (`aceitePolitica: true`). Não existe rota
     de cancelamento ou remarcação para o cliente.
+
+    Exceção (1.6.0, Fatia 6D): a barbearia pode travar pelo painel um horário combinado por
+    WhatsApp, fora do app (`POST /admin/agendamentos`). Essa reserva nasce `CONFIRMADO`, com
+    origem `MANUAL`, sem cobrança e sem pagamento no sistema.
   license:
     name: Uso de portfólio
 servers:
@@ -54,7 +58,11 @@ paths:
     get:
       tags: [catalogo]
       operationId: listarBarbeiros
-      summary: Barbeiros ativos
+      summary: Barbeiros ativos, com o WhatsApp comercial
+      description: |
+        Cada item traz `whatsapp` (só dígitos, com DDD e DDI opcional) ou `null` quando o barbeiro não cadastrou número;
+        o front monta `https://wa.me/<whatsapp>` e esconde o botão quando é nulo. É contato comercial divulgado pelo
+        próprio barbeiro (D122), não dado de cliente.
       security: []
       responses:
         '200':
@@ -63,7 +71,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/BarbeiroResumo' }
+                items: { $ref: '#/components/schemas/BarbeiroPublico' }
   /disponibilidade:
     get:
       tags: [agenda]
@@ -340,7 +348,7 @@ paths:
     post:
       tags: [agenda]
       operationId: agendarComoCliente
-      summary: Reserva como cliente logado (nasce AGUARDANDO_PAGAMENTO, trava o horário por 15 min)
+      summary: Reserva como cliente logado (nasce AGUARDANDO_PAGAMENTO, trava o horário por 3 min)
       requestBody:
         required: true
         content:
@@ -393,7 +401,7 @@ paths:
     post:
       tags: [guest]
       operationId: agendarComoGuest
-      summary: Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, trava o horário por 15 min)
+      summary: Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, trava o horário por 3 min)
       security: []
       requestBody:
         required: true
@@ -532,6 +540,39 @@ paths:
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
+  /admin/agendamentos:
+    post:
+      tags: [admin]
+      operationId: criarReservaManual
+      summary: Trava um horário combinado por WhatsApp, fora do app (reserva manual)
+      description: |
+        ADMIN para qualquer barbeiro; BARBEIRO só para si (barbeiro alheio, inexistente ou conta sem vínculo: 404).
+        A reserva nasce `CONFIRMADO`, com `origem = MANUAL`, sem cobrança, sem aceite de política e sem prazo. Respeita
+        jornada, almoço, folga, granularidade, serviço ativo e o horizonte; a antecedência mínima **não** vale, mas um
+        horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado (inclusive por corrida): `409
+        HORARIO_INDISPONIVEL`. Grava auditoria na mesma transação. Pode ser concluída ou marcada como falta por
+        `PATCH /admin/agendamentos/{id}/status`; só o ADMIN cancela (sem cobrança, nada vai para devolução). Não guarda
+        WhatsApp, e-mail nem CPF do cliente; `nomeCliente` e `observacao` são anonimizados 90 dias depois do fim da
+        reserva. Pagamento por fora (dinheiro, Pix direto) não gera registro financeiro. Não conta no alcance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReservaManualRequest' }
+      responses:
+        '201':
+          description: Horário travado
+          headers:
+            Location: { schema: { type: string }, description: '/admin/agendamentos/{id}' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AgendamentoAdmin' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '422': { $ref: '#/components/responses/Erro422' }
   /admin/agendamentos/{id}/status:
     patch:
       tags: [admin]
@@ -670,9 +711,9 @@ paths:
     put:
       tags: [admin]
       operationId: alterarBarbeiro
-      summary: Altera nome, ativo ou login vinculado
+      summary: Altera nome, WhatsApp, ativo ou login vinculado
       description: |
-        Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta) e exige a `version` que a tela viu.
+        Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta; sem `whatsapp`, sem número) e exige a `version` que a tela viu.
         Inativar tira o barbeiro de `GET /barbeiros` e da disponibilidade, mas não cancela reserva futura.
         A conta ligada passa a ver a própria agenda em `GET /admin/agenda`.
       parameters: [ { $ref: '#/components/parameters/Id' } ]
@@ -1094,9 +1135,17 @@ components:
       properties:
         id: { type: string, format: uuid }
         nomeExibicao: { type: string }
-    BarbeiroAdmin:
+    BarbeiroPublico:
+      description: O barbeiro de `GET /barbeiros`, com o WhatsApp comercial (D122).
       allOf:
         - $ref: '#/components/schemas/BarbeiroResumo'
+        - type: object
+          required: [whatsapp]
+          properties:
+            whatsapp: { type: [string, 'null'], pattern: '^[0-9]{10,13}$', description: 'só dígitos, com DDD e DDI opcional', example: '5511912345678' }
+    BarbeiroAdmin:
+      allOf:
+        - $ref: '#/components/schemas/BarbeiroPublico'
         - type: object
           required: [ativo, version]
           properties:
@@ -1113,6 +1162,7 @@ components:
       properties:
         nomeExibicao: { type: string, minLength: 2, maxLength: 80 }
         usuarioId: { type: string, format: uuid, description: 'conta ativa com o papel BARBEIRO e ainda sem barbeiro (409 USUARIO_JA_VINCULADO)' }
+        whatsapp: { type: string, description: 'opcional; WhatsApp comercial, de 10 a 13 dígitos, com ou sem máscara (a resposta devolve só dígitos)', example: '(11) 91234-5678' }
     BarbeiroUpdateRequest:
       allOf:
         - $ref: '#/components/schemas/BarbeiroRequest'
@@ -1273,7 +1323,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/StatusReserva' }
-        origem: { type: string, enum: [CLIENTE, GUEST] }
+        origem: { type: string, enum: [CLIENTE, GUEST, MANUAL], description: 'MANUAL só aparece no painel (reserva travada pela barbearia, 1.6.0)' }
         servico:
           type: object
           properties:
@@ -1284,7 +1334,7 @@ components:
         inicio: { type: string, format: date-time }
         fim: { type: string, format: date-time }
         precoCentavos: { type: integer, format: int64, description: 'congelado na reserva; é o valor cobrado (100%)' }
-        expiraEm: { type: [string, 'null'], format: date-time, description: 'prazo do pagamento (15 min); nulo depois de CONFIRMADO' }
+        expiraEm: { type: [string, 'null'], format: date-time, description: 'prazo do pagamento (3 min por padrão, R7); nulo depois de CONFIRMADO' }
         motivoCancelamento: { type: [string, 'null'], description: 'só em cancelamento pela barbearia' }
         version: { type: integer, format: int64 }
     AgendamentoAdmin:
@@ -1296,11 +1346,12 @@ components:
         - type: object
           required: [cliente]
           properties:
+            observacao: { type: [string, 'null'], description: 'só na reserva manual; dado pessoal em potencial, anonimizado em 90 dias' }
             cliente:
               type: object
               required: [nome]
               properties:
-                nome: { type: string }
+                nome: { type: string, description: 'na reserva manual sem nome informado (ou já anonimizada): `Sem nome`' }
                 whatsapp: { type: [string, 'null'], description: 'só dígitos, com DDD', example: '11988880001' }
             cobrancaStatus:
               oneOf:
@@ -1323,6 +1374,16 @@ components:
         pagina: { type: integer }
         tamanho: { type: integer }
         total: { type: integer, format: int64 }
+    ReservaManualRequest:
+      type: object
+      additionalProperties: false
+      required: [servicoId, barbeiroId, inicio]
+      properties:
+        servicoId: { type: string, format: uuid }
+        barbeiroId: { type: string, format: uuid }
+        inicio: { type: string, format: date-time }
+        nomeCliente: { type: string, maxLength: 80, description: 'opcional; dado pessoal; vazio vira ausente' }
+        observacao: { type: string, maxLength: 200, description: 'opcional; não digitar telefone nem documento' }
     MudancaStatusRequest:
       type: object
       additionalProperties: false
@@ -1476,7 +1537,7 @@ components:
         intervaloEntreAtendimentosMin: { type: integer, minimum: 0, maximum: 120, example: 0, description: 'H4: sem intervalo' }
         granularidadeMin: { type: integer, enum: [5, 10, 15, 20, 30, 60], example: 30, description: 'H11: 30 min' }
         horizonteDias: { type: integer, minimum: 1, maximum: 365, example: 30, description: 'H12: 30 dias' }
-        expiracaoPagamentoMin: { type: integer, minimum: 5, maximum: 60, example: 15 }
+        expiracaoPagamentoMin: { type: integer, minimum: 3, maximum: 60, example: 3 }
         version: { type: integer, format: int64 }
     Consentimento:
       type: object
@@ -1534,7 +1595,7 @@ components:
       type: object
       required: [versao, textoConsentimento, politica, atualizadaEm]
       properties:
-        versao: { type: string, example: '1.0' }
+        versao: { type: string, example: '1.1' }
         textoConsentimento: { type: string, description: 'o texto da caixa de marketing do cadastro' }
         politica: { type: string, description: 'texto corrido em Markdown (rascunho técnico, não é parecer jurídico)' }
         atualizadaEm: { type: string, format: date-time }

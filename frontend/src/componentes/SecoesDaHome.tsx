@@ -13,7 +13,7 @@ export function WhatsappDaHome() {
   useEffect(() => {
     let vivo = true;
     chamar(api().GET("/barbeiros")).then(
-      (lista) => vivo && setBarbeiro((lista as BarbeiroComWhatsapp[]).find((b) => Boolean(b.whatsapp))),
+      (lista) => vivo && setBarbeiro(lista.find((b) => Boolean(b.whatsapp))),
       () => undefined,
     );
     return () => {

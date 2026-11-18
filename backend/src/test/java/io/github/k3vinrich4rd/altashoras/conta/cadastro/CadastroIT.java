@@ -150,7 +150,7 @@ class CadastroIT {
         String sql = "SELECT c.aceito FROM consentimento c JOIN usuario u ON u.id = c.usuario_id WHERE u.email = ?";
         assertThat(jdbc.queryForList(sql, Boolean.class, aceitou)).containsExactly(true);
         assertThat(jdbc.queryForList(sql, Boolean.class, semCampo.email())).containsExactly(false);
-        assertThat(jdbc.queryForObject("SELECT DISTINCT versao_texto FROM consentimento", String.class)).isEqualTo("1.0");
+        assertThat(jdbc.queryForObject("SELECT DISTINCT versao_texto FROM consentimento", String.class)).isEqualTo("1.1");
     }
 
     @Test

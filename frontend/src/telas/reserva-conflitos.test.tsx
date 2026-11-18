@@ -75,7 +75,9 @@ describe("conflitos de reserva", () => {
     renderizar(<Agendar />);
     expect(await screen.findByRole("button", { name: "11:00" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "10:00" })).toBeNull();
-    expect(screen.getByText(/Esse horário acabou de ser reservado por outra pessoa. Escolha outro./)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Esse horário acabou de ser reservado por outra pessoa. Escolha outro./),
+    ).toBeInTheDocument();
     expect(leituras).toBe(1);
     (await import("@testing-library/react")).cleanup();
 

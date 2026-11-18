@@ -16,13 +16,14 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 349 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 384 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) · ⏳ AL1 (alcance por região, Fatia 6C: saída real a preencher no fluxo manual) |
 | [5b. Deploy grátis](#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-) | imagem Docker no perfil prod, IP real, CORS, hibernação, backup e restauração | ✅ A1 a A22 (ativação: só com o OK do Kevin) |
+| [6D. WhatsApp, reserva manual e prazo de 3 min](#d1--fatia-6d-whatsapp-reserva-manual-e-prazo-de-3-min) | WhatsApp do barbeiro, reserva manual pelo painel e expiração em 3 min | ✅ D1 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
 | [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
@@ -65,7 +66,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **349 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6C: 331 anteriores, todos intactos, + 18 do alcance por região), `BUILD SUCCESS` em cerca de 2 min. A cobertura de instruções medida pelo JaCoCo foi de **96,6%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **384 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6D: 356 anteriores (349 mais 7 da Fatia 8), todos mantidos, + 28 novos; os que dependiam do prazo de 15 minutos mudaram só de valor, ver D129), `BUILD SUCCESS` em cerca de 2 min. A cobertura de instruções medida pelo JaCoCo foi de **96,6%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -269,7 +270,7 @@ Saída real (17/11/2026, 11h48; token encurtado aqui):
  "expiraEm":"2026-11-17T12:03:12-03:00","tokenGuest":"g1_8LI…(46 caracteres)", ...}
 ```
 
-**O que prova:** o horário fica travado por **15 minutos** esperando o pagamento de 100%. O `tokenGuest` aparece **só nesta resposta**; o banco guarda apenas o SHA-256 dele. A 4ª reserva sem conta do mesmo IP em uma hora recebe `429 LIMITE_EXCEDIDO` com `Retry-After`.
+**O que prova:** o horário fica travado por **3 minutos** (R7; eram 15 até a 6D) esperando o pagamento de 100%. O `tokenGuest` aparece **só nesta resposta**; o banco guarda apenas o SHA-256 dele. A 4ª reserva sem conta do mesmo IP em uma hora recebe `429 LIMITE_EXCEDIDO` com `Retry-After`.
 
 ### V5 ✅ Acompanhar a reserva pelo token
 
@@ -283,7 +284,7 @@ Saída real (17/11/2026, 11h48; token encurtado aqui):
 
 ### V6 ✅ O horário sumiu da agenda
 
-Repita o V3 para a mesma data. Saída real, entre 9h e 11h30: `['09:00', '09:30', '11:00', '11:30']`. As 10h (reservada pelo cliente do C8) e as 10h30 (do V4) saíram. Se ninguém pagar em 15 minutos, o job de expiração libera os dois de novo.
+Repita o V3 para a mesma data. Saída real, entre 9h e 11h30: `['09:00', '09:30', '11:00', '11:30']`. As 10h (reservada pelo cliente do C8) e as 10h30 (do V4) saíram. Se ninguém pagar em 3 minutos, o job de expiração libera os dois de novo.
 
 ### V7 ✅ Pagar sem aceitar a política
 
@@ -341,9 +342,9 @@ Saída real (17/11/2026, 13h31):
 
 **O que prova:** a confirmação passa pelo **mesmo** fluxo do webhook (evento gravado, gateway reconsultado, reserva confirmada). Prova também a porta de entrada real: `POST /pagamentos/webhook` sem o cabeçalho `asaas-access-token` responde `401 WEBHOOK_NAO_AUTENTICADO`. No modo real (`asaas`) a rota de simulação deixa de existir.
 
-### V10 ⏳ Não pagar em 15 minutos
+### V10 ✅ Não pagar em 3 minutos
 
-Faça outra reserva e **não** pague: em 15 minutos ela vira `EXPIRADO` e o horário volta no V3. A expiração já foi provada na Fatia 4A (job a cada minuto); aqui só repete o caminho.
+Faça outra reserva e **não** pague: em 3 minutos ela vira `EXPIRADO` e o horário volta no V3. A expiração já foi provada na Fatia 4A (job a cada minuto) e a saída real do prazo de 3 minutos está no [D1](#d1--fatia-6d-whatsapp-reserva-manual-e-prazo-de-3-min).
 
 ## 5. Cenário do cliente (com conta)
 
@@ -941,6 +942,66 @@ No log inteiro da API (uma subida, 59 linhas): `grep -c` por `01001000`, `01001-
 
 **O que deve acontecer:** a reserva com `cep` válido nasce `201` com a região (bairro, cidade e uf) e o CEP no contato do visitante, **sem** devolver nenhum dos dois na resposta; com os provedores fora ou um CEP que não existe, a reserva sai igual, sem região e sem CEP guardado; `cep` com formato errado dá `400 CEP_INVALIDO` e nada é criado. O painel só conta atendimentos `CONFIRMADO` e `CONCLUIDO`: bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades" (k ≥ 5), então com poucos atendimentos de teste quase tudo aparece agrupado. O período invertido ou com mais de 366 dias dá `400`. A vitrine `GET /alcance` devolve só nomes (sem contagens) e repete a mesma resposta por 1 hora; a 31ª chamada no mesmo minuto do mesmo IP dá `429` com `Retry-After`. No log da API: `grep` por CEP, e-mail, WhatsApp e IP deve dar 0 (o log só diz "região resolvida: sim/não").
 
+### D1 ✅ Fatia 6D: WhatsApp, reserva manual e prazo de 3 min
+
+Fluxo manual de 18/11/2026, no perfil `dev`, contra um banco só desta rodada (`altashoras_6d`, criado dentro do PostgreSQL do compose, porta 5433: `docker exec altas-horas-postgres psql -U altashoras -d postgres -c "CREATE DATABASE altashoras_6d"`). A API subiu em outra porta para não brigar com nada que já estivesse rodando:
+
+```bash
+cd backend
+POSTGRES_BANCO=altashoras_6d SERVER_PORT=8085 ADMIN_EMAIL="admin.local@exemplo.test" ADMIN_SENHA="troque-esta-senha-123" \
+  ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+O admin entrou, trocou a senha inicial (AD2 e AD3) e usou a senha nova nos passos abaixo. Todos os nomes e números são fictícios.
+
+**1. O prazo de 3 minutos (V4 e V10).** Visitante reserva a quarta 25/11 às 10h (relógio real da máquina):
+
+```text
+hora antes:  2026-11-18T11:38:37-03:00
+201 status = AGUARDANDO_PAGAMENTO | expiraEm = 2026-11-18T11:41:37-03:00
+10:00 livre agora?  False
+após 2min30: 10:00 livre? False
+após 3min05 (11:41:42): 10:00 livre? True
+status da reserva depois do job: EXPIRADO
+```
+
+**O que prova:** `expiraEm` é exatamente 3 minutos depois da criação; o horário continua ocupado até lá, volta para a disponibilidade logo depois e o job a minuto a minuto deixa a reserva `EXPIRADO`. O pagamento que chega depois disso, com o horário já de outro cliente, vira `PAGA_APOS_EXPIRACAO` e aparece em `GET /admin/pagamentos` (testes `A39` da 4B e `A6` da 6D).
+
+**2. O WhatsApp do barbeiro.** Antes e depois do cadastro pelo admin; a rota pública não precisa de token:
+
+```text
+GET /barbeiros antes: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": null}]
+PUT admin (whatsapp "(11) 91234-5678"): 200 whatsapp = 11912345678 version = 1
+GET /barbeiros (sem token): [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": "11912345678"}]
+link: https://wa.me/11912345678
+PUT com número inválido ("123"): 400 VALIDACAO_INVALIDA [{'message': 'deve ter de 10 a 13 dígitos', 'field': 'whatsapp'}]
+```
+
+**O que prova:** o seed dev fica sem número; o admin cadastra com máscara e o banco guarda só os dígitos; a rota pública devolve o número para o front montar o `wa.me`; formato errado dá `400` no campo certo.
+
+**3. A reserva manual.** Admin trava a quinta 26/11 às 10h (horário livre, `10:00` na disponibilidade):
+
+```text
+POST /admin/agendamentos {servicoId, barbeiroId, inicio, nomeCliente, observacao}
+201 {"status": "CONFIRMADO", "origem": "MANUAL", "inicio": "2026-11-26T10:00:00-03:00", "expiraEm": null, "cobrancaStatus": null,
+     "precoCentavos": 4500, "observacao": "combinado por WhatsApp", "cliente": {"nome": "Zeferino Ficticio", "whatsapp": null}, "version": 0}
+10:00 livre depois? False
+mesmo horário de novo: 409 HORARIO_INDISPONIVEL
+12:00 (almoço): 422 FORA_DO_EXPEDIENTE
+com campo "whatsapp" no corpo: 400 CAMPO_DESCONHECIDO
+agenda do dia: [{"inicio": "2026-11-26T10:00:00-03:00", "status": "CONFIRMADO", "origem": "MANUAL", "cobrancaStatus": null,
+                 "cliente": {"nome": "Zeferino Ficticio", "whatsapp": null}, "observacao": "combinado por WhatsApp"}]
+cancelar (ADMIN, com motivo): 200 CANCELADO cobrancaStatus = None
+pendências de devolução: 0
+10:00 de volta? True
+```
+
+**O que prova:** a reserva nasce confirmada, sem prazo, sem cobrança e sem WhatsApp do cliente; ocupa o horário na disponibilidade; a segunda tentativa dá `409`; o almoço continua valendo; campo fora do contrato é recusado; aparece na agenda com a origem `MANUAL`; cancelar não cria devolução e libera o horário.
+
+**4. Nada pessoal no log.** A API ficou de pé durante todo o roteiro (107 linhas de log). `grep -c` no log inteiro, todos com resultado **0**: o nome do cliente da reserva manual (`Zeferino`), a observação (`combinado por WhatsApp`), o nome, o e-mail e o WhatsApp do visitante, o número do barbeiro (`91234`, `11912345678`), o WhatsApp que mandei no corpo recusado (`11999990000`), qualquer token (`eyJ`) e as duas senhas do admin.
+
+Como conferir o banco: `SELECT origem, status, cliente_id, expira_em, nome_cliente FROM reserva WHERE origem = 'MANUAL';` mostra a linha sem `cliente_id` e sem `expira_em`, e `SELECT count(*) FROM cobranca WHERE reserva_id = '<id>';` dá `0`. Para ver a retenção sem esperar 90 dias, mude o `fim` da reserva para 91 dias atrás e rode a API de novo (o job de retenção roda na subida): `nome_cliente` e `observacao` ficam nulos.
+
 ## 7. As telas (frontend)
 
 > ✅ **Fatia 7A** (base, visitante e cliente) pronta, aguardando revisão. O painel (ADMIN e BARBEIRO) é a **7B**. O front é gerado com IA a partir do contrato e do design system do Kevin, e revisado por ele ([como](como-foi-construido.md)).
@@ -957,7 +1018,7 @@ npx playwright test                        # E2E na API REAL (perfil dev + Postg
 sh ../scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59
 ```
 
-Saída real de cada comando, de 18/11/2026: **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm test`: **37 arquivos, 54 testes verdes** (cobertura de linhas 84,37%) · `npm run build` ok · `npx playwright test`: **7 de 7 verdes em 1,3 min** (A54, A55 ×2, A57, A58 ×2 e A60) · `conferir-spec.sh 7 --exigir --exceto 44-53,59`: **49 de 49** · fatias 1 a 6: 10, 29, 44, 45, 71 e 75 de 100%**
+Saída real de cada comando, de 18/11/2026: **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm test`: **37 arquivos, 54 testes verdes** (cobertura de linhas 84,37%) · `npm run build` ok · `npx playwright test`: **7 de 7 verdes em 1,3 min** (A54, A55 ×2, A57, A58 ×2 e A60) · `conferir-spec.sh 7 --exigir --exceto 44-53,59`: **49 de 49** · fatias 1 a 6 e 6D: 10, 29, 44, 45, 71, 75 e 28 de 100% · `./mvnw verify`: 384 testes, 0 falhas**
 
 O E2E precisa do Docker aberto, do PostgreSQL (`docker compose up -d postgres`) e da API no ar (`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` com os limites do E24 elevados por variável de ambiente). Para o E2E não bater nos limites de reserva (3 por hora) e de cadastro (5 por hora), suba a API com `APP_LIMITES_GUEST_MAX`, `APP_LIMITES_CADASTRO_MAX`, `APP_LIMITES_LOGIN_MAX` e `APP_LIMITES_LOGIN_IP_MAX` altos. `docker compose down -v` zera o banco.
 
@@ -985,7 +1046,7 @@ Abra `http://localhost:3000` (API em `http://localhost:8080`, perfil `dev`).
 1. Subir tudo e conferir o health (parte 0).
 2. Como **visitante**, agendar um Corte Degradê (R$ 55,00), aceitar a política e pagar com **Pix** no sandbox: a tela muda sozinha para "Confirmado".
 3. Como **cliente** com conta, agendar o horário seguinte e pagar com **cartão** de teste.
-4. Numa terceira reserva, não pagar: em 15 min o horário volta.
+4. Numa terceira reserva, não pagar: em 3 min o horário volta.
 5. Como **admin**, concluir um atendimento e marcar falta em outro.
 6. Conferir o log da API: nenhum CPF, telefone ou CEP.
 

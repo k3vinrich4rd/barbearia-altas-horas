@@ -28,7 +28,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Barbeiros ativos */
+        /**
+         * Barbeiros ativos, com o WhatsApp comercial
+         * @description Cada item traz `whatsapp` (só dígitos, com DDD e DDI opcional) ou `null` quando o barbeiro não cadastrou número;
+         *     o front monta `https://wa.me/<whatsapp>` e esconde o botão quando é nulo. É contato comercial divulgado pelo
+         *     próprio barbeiro (D122), não dado de cliente.
+         */
         get: operations["listarBarbeiros"];
         put?: never;
         post?: never;
@@ -338,7 +343,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reserva como cliente logado (nasce AGUARDANDO_PAGAMENTO, trava o horário por 15 min) */
+        /** Reserva como cliente logado (nasce AGUARDANDO_PAGAMENTO, trava o horário por 3 min) */
         post: operations["agendarComoCliente"];
         delete?: never;
         options?: never;
@@ -389,7 +394,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, trava o horário por 15 min) */
+        /** Reserva sem conta (nasce AGUARDANDO_PAGAMENTO, trava o horário por 3 min) */
         post: operations["agendarComoGuest"];
         delete?: never;
         options?: never;
@@ -499,6 +504,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/agendamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trava um horário combinado por WhatsApp, fora do app (reserva manual)
+         * @description ADMIN para qualquer barbeiro; BARBEIRO só para si (barbeiro alheio, inexistente ou conta sem vínculo: 404).
+         *     A reserva nasce `CONFIRMADO`, com `origem = MANUAL`, sem cobrança, sem aceite de política e sem prazo. Respeita
+         *     jornada, almoço, folga, granularidade, serviço ativo e o horizonte; a antecedência mínima **não** vale, mas um
+         *     horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado (inclusive por corrida): `409
+         *     HORARIO_INDISPONIVEL`. Grava auditoria na mesma transação. Pode ser concluída ou marcada como falta por
+         *     `PATCH /admin/agendamentos/{id}/status`; só o ADMIN cancela (sem cobrança, nada vai para devolução). Não guarda
+         *     WhatsApp, e-mail nem CPF do cliente; `nomeCliente` e `observacao` são anonimizados 90 dias depois do fim da
+         *     reserva. Pagamento por fora (dinheiro, Pix direto) não gera registro financeiro. Não conta no alcance.
+         */
+        post: operations["criarReservaManual"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/agendamentos/{id}/status": {
         parameters: {
             query?: never;
@@ -600,8 +632,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * Altera nome, ativo ou login vinculado
-         * @description Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta) e exige a `version` que a tela viu.
+         * Altera nome, WhatsApp, ativo ou login vinculado
+         * @description Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta; sem `whatsapp`, sem número) e exige a `version` que a tela viu.
          *     Inativar tira o barbeiro de `GET /barbeiros` e da disponibilidade, mas não cancela reserva futura.
          *     A conta ligada passa a ver a própria agenda em `GET /admin/agenda`.
          */
@@ -900,7 +932,15 @@ export interface components {
             id: string;
             nomeExibicao: string;
         };
-        BarbeiroAdmin: components["schemas"]["BarbeiroResumo"] & {
+        /** @description O barbeiro de `GET /barbeiros`, com o WhatsApp comercial (D122). */
+        BarbeiroPublico: components["schemas"]["BarbeiroResumo"] & {
+            /**
+             * @description só dígitos, com DDD e DDI opcional
+             * @example 5511912345678
+             */
+            whatsapp: string | null;
+        };
+        BarbeiroAdmin: components["schemas"]["BarbeiroPublico"] & {
             /** Format: uuid */
             usuarioId?: string | null;
             ativo: boolean;
@@ -915,6 +955,11 @@ export interface components {
              * @description conta ativa com o papel BARBEIRO e ainda sem barbeiro (409 USUARIO_JA_VINCULADO)
              */
             usuarioId?: string;
+            /**
+             * @description opcional; WhatsApp comercial, de 10 a 13 dígitos, com ou sem máscara (a resposta devolve só dígitos)
+             * @example (11) 91234-5678
+             */
+            whatsapp?: string;
         };
         BarbeiroUpdateRequest: components["schemas"]["BarbeiroRequest"] & {
             ativo: boolean;
@@ -1058,8 +1103,11 @@ export interface components {
             /** Format: uuid */
             id: string;
             status: components["schemas"]["StatusReserva"];
-            /** @enum {string} */
-            origem: "CLIENTE" | "GUEST";
+            /**
+             * @description MANUAL só aparece no painel (reserva travada pela barbearia, 1.6.0)
+             * @enum {string}
+             */
+            origem: "CLIENTE" | "GUEST" | "MANUAL";
             servico?: {
                 /** Format: uuid */
                 id?: string;
@@ -1078,7 +1126,7 @@ export interface components {
             precoCentavos: number;
             /**
              * Format: date-time
-             * @description prazo do pagamento (15 min); nulo depois de CONFIRMADO
+             * @description prazo do pagamento (3 min por padrão, R7); nulo depois de CONFIRMADO
              */
             expiraEm?: string | null;
             /** @description só em cancelamento pela barbearia */
@@ -1091,7 +1139,10 @@ export interface components {
          *     da cobrança (nulo quando a reserva não tem cobrança).
          */
         AgendamentoAdmin: components["schemas"]["Agendamento"] & {
+            /** @description só na reserva manual; dado pessoal em potencial, anonimizado em 90 dias */
+            observacao?: string | null;
             cliente: {
+                /** @description na reserva manual sem nome informado (ou já anonimizada): `Sem nome` */
                 nome: string;
                 /**
                  * @description só dígitos, com DDD
@@ -1111,6 +1162,18 @@ export interface components {
             tamanho: number;
             /** Format: int64 */
             total: number;
+        };
+        ReservaManualRequest: {
+            /** Format: uuid */
+            servicoId: string;
+            /** Format: uuid */
+            barbeiroId: string;
+            /** Format: date-time */
+            inicio: string;
+            /** @description opcional; dado pessoal; vazio vira ausente */
+            nomeCliente?: string;
+            /** @description opcional; não digitar telefone nem documento */
+            observacao?: string;
         };
         MudancaStatusRequest: {
             /** @enum {string} */
@@ -1295,7 +1358,7 @@ export interface components {
              * @example 30
              */
             horizonteDias: number;
-            /** @example 15 */
+            /** @example 3 */
             expiracaoPagamentoMin: number;
             /** Format: int64 */
             version: number;
@@ -1345,7 +1408,7 @@ export interface components {
             }[];
         };
         PoliticaPrivacidade: {
-            /** @example 1.0 */
+            /** @example 1.1 */
             versao: string;
             /** @description o texto da caixa de marketing do cadastro */
             textoConsentimento: string;
@@ -1572,7 +1635,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BarbeiroResumo"][];
+                    "application/json": components["schemas"]["BarbeiroPublico"][];
                 };
             };
         };
@@ -2192,6 +2255,38 @@ export interface operations {
             401: components["responses"]["Erro401"];
             403: components["responses"]["Erro403"];
             404: components["responses"]["Erro404"];
+        };
+    };
+    criarReservaManual: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservaManualRequest"];
+            };
+        };
+        responses: {
+            /** @description Horário travado */
+            201: {
+                headers: {
+                    /** @description /admin/agendamentos/{id} */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgendamentoAdmin"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+            409: components["responses"]["Erro409"];
+            422: components["responses"]["Erro422"];
         };
     };
     mudarStatusAgendamento: {
