@@ -94,6 +94,32 @@ class RetencaoJobIT extends PrivacidadeBase {
     }
 
     @Test
+    @DisplayName("A74: visitante com cep vencido há 90 dias: o job zera reserva_guest.cep e a região da reserva continua igual; quem ainda não venceu mantém o cep")
+    void cepDoVisitanteSomeEARegiaoFica() {
+        UUID servico = DadosDeTeste.servico(jdbc, "Corte Clássico", 30, 4500, true);
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        // fim em 02/09/2026 09:30 = exatamente 90 dias antes de 01/12 09:30; o outro termina um minuto depois (ainda vale).
+        UUID vencido = reserva(barbeiro, servico, DadosDeTeste.em(java.time.LocalDate.of(2026, 9, 2), 9, 0), "CONCLUIDO",
+                null, null, "Visitante Fictício");
+        UUID vigente = reserva(barbeiro, servico, DadosDeTeste.em(java.time.LocalDate.of(2026, 9, 2), 9, 1), "CONCLUIDO",
+                null, null, "Visitante Fictício");
+        for (UUID id : List.of(vencido, vigente)) {
+            jdbc.update("UPDATE reserva_guest SET cep = '01001000' WHERE reserva_id = ?", id);
+            jdbc.update("UPDATE reserva SET regiao_bairro = 'Sé', regiao_cidade = 'São Paulo', regiao_uf = 'SP' WHERE id = ?", id);
+        }
+
+        retencao.executar();
+
+        assertThat(jdbc.queryForObject("SELECT cep FROM reserva_guest WHERE reserva_id = ?", String.class, vencido)).isNull();
+        assertThat(jdbc.queryForObject("SELECT anonimizado_em IS NOT NULL FROM reserva_guest WHERE reserva_id = ?",
+                Boolean.class, vencido)).isTrue();
+        assertThat(jdbc.queryForMap("SELECT regiao_bairro, regiao_cidade, regiao_uf FROM reserva WHERE id = ?", vencido))
+                .containsEntry("regiao_bairro", "Sé").containsEntry("regiao_cidade", "São Paulo").containsEntry("regiao_uf", "SP");
+        assertThat(jdbc.queryForObject("SELECT cep FROM reserva_guest WHERE reserva_id = ?", String.class, vigente))
+                .isEqualTo("01001000");
+    }
+
+    @Test
     @DisplayName("A58: dois disparos simultâneos do job com a mesma trava anonimizam cada linha uma só vez, sem erro; com app.jobs.habilitados=false o agendador não existe e o job não roda sozinho")
     void umaVezSoEDesligavel(CapturedOutput saida) throws Exception {
         visitantesVencidos(300);

@@ -16,6 +16,7 @@ Nenhuma linha de código de produção sem **spec aprovada** em `docs/sdd/fatia-
 | schema do banco | `backend/src/main/resources/db/migration/` (a verdade) |
 | critérios de aceite da fatia atual | `docs/sdd/fatia-N-*.md` |
 | roteiro de teste para visitantes | `docs/guia-testes.md` |
+| identidade visual do frontend (cores, tipografia, espaçamento, componentes, telas) | design system da Barbearia: https://claude.ai/code/artifact/61cecde3-94bd-40d0-88df-c2497b69a29a (ler o `project/README.md` dele e seguir os tokens; não decidir visual por conta própria; `docs/assets/` não muda de nome) |
 
 Pergunta em linguagem natural sobre a documentação: RAG em `ferramentas/rag` (`docs/ia/rag-vetorial.md`), se o banco `rag-db` estiver no ar.
 

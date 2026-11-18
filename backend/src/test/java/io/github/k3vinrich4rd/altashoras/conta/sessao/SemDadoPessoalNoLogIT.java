@@ -86,6 +86,31 @@ class SemDadoPessoalNoLogIT {
                 .doesNotContain(sessao.acesso()).doesNotContain(sessao.refresh()).doesNotContain(novo);
     }
 
+    @Test
+    @DisplayName("A75: o roteiro da 6C (visitante agenda com CEP, CEP de formato errado, painel e vitrine do alcance) não deixa CEP, e-mail, WhatsApp nem IP no log: ele diz só \"região resolvida: sim/não\"")
+    void nadaNoLogDoAlcance(CapturedOutput saida) throws Exception {
+        String ip = "203.0.113.75";
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        UUID servico = DadosDeTeste.servico(jdbc, 30);
+        String corpo = """
+                { "servicoId": "%s", "barbeiroId": "%s", "inicio": "%s", "nome": "Visitante Alcance",
+                  "email": "visitante.alcance@exemplo.test", "whatsapp": "(11) 90000-0075", "cep": "%s" }
+                """;
+        // Os provedores de CEP aqui apontam para uma porta fechada (nenhuma rede real): a região não é resolvida.
+        mvc.perform(post("/agendamentos/guest").contentType(MediaType.APPLICATION_JSON).with(ContaDeTeste.ip(ip))
+                .content(corpo.formatted(servico, barbeiro, DadosDeTeste.em(java.time.LocalDate.of(2026, 12, 1), 10, 0),
+                        "01001-000"))).andExpect(status().isCreated());
+        mvc.perform(post("/agendamentos/guest").contentType(MediaType.APPLICATION_JSON).with(ContaDeTeste.ip(ip))
+                .content(corpo.formatted(servico, barbeiro, DadosDeTeste.em(java.time.LocalDate.of(2026, 12, 1), 10, 30),
+                        "123"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/alcance").with(ContaDeTeste.ip(ip))).andExpect(status().isOk());
+
+        assertThat(saida.getAll()).contains("região resolvida: não")
+                .doesNotContain("01001000").doesNotContain("01001-000")
+                .doesNotContain("visitante.alcance@exemplo.test").doesNotContain("11900000075").doesNotContain("90000-0075")
+                .doesNotContain(ip);
+    }
+
     @Autowired
     RetencaoDeDados retencao;
 
