@@ -107,8 +107,14 @@ public class ReservarHorario {
      * a conta é lida FORA da transação da reserva e, se ele se mudar depois, a reserva não muda.
      */
     UUID comoCliente(UUID clienteId, Pedidos.Reserva pedido) {
-        RegiaoDaReserva regiao = contas.regiaoDoCliente(clienteId)
-                .map(r -> new RegiaoDaReserva(r.bairro(), r.cidade(), r.uf())).orElse(null);
+        RegiaoDaReserva regiao = null;
+        try {
+            regiao = contas.regiaoDoCliente(clienteId)
+                    .map(r -> new RegiaoDaReserva(r.bairro(), r.cidade(), r.uf())).orElse(null);
+        } catch (RuntimeException falha) {
+            // R31: a região nunca derruba a reserva. Do erro sobe só a classe (a mensagem pode trazer dado da conta, R30).
+            LOG.warn("reserva de cliente sem região ({})", falha.getClass().getSimpleName());
+        }
         return reservar(pedido, clienteId, null, regiao).getId();
     }
 

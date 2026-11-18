@@ -10,7 +10,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes-347_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
+[![Testes](https://img.shields.io/badge/testes-349_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
 
 <b><a href="#-a-história">A história</a></b> ·
 <a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
@@ -43,7 +43,7 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
-> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática, e o alcance por região (de onde vêm os atendimentos, com agrupamento mínimo de 5). São **347 testes** em PostgreSQL real, 0 falhas; telas e deploy chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
+> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática, e o alcance por região (de onde vêm os atendimentos, com agrupamento mínimo de 5). São **349 testes** em PostgreSQL real, 0 falhas; telas e deploy chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
 
 <br clear="right"/>
 
@@ -418,7 +418,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 347 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 349 testes com PostgreSQL real via Testcontainers
 ```
 
 | O que | Endereço local | |

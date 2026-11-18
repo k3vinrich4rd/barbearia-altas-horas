@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class AlcancePainelIT extends AlcanceBase {
 
     @Test
-    @DisplayName("A67: 6 atendimentos em Centro/Osasco, 2 em Sé/São Paulo, 1 EXPIRADO e 1 CONFIRMADO sem região: total 9 (o EXPIRADO fica fora), semRegiao 1, Osasco com Centro 6, os 2 de São Paulo em Outras cidades e percentuais com 1 casa decimal")
+    @DisplayName("A67: 6 atendimentos em Centro/Osasco, 2 em Sé/São Paulo, 1 EXPIRADO e 1 CONFIRMADO sem região: total 9 (o EXPIRADO fica fora), semRegiao 1, Osasco com Centro 6, os 2 de São Paulo em Outras cidades , percentuais com 1 casa decimal e, no grupo abaixo de 5 (Outras cidades), atendimentos e percentual nulos com abaixoDoLimite true")
     void adminVeTudoComKAnonimato() throws Exception {
         cenarioDoA67();
 
@@ -34,8 +34,10 @@ class AlcancePainelIT extends AlcanceBase {
                 .andExpect(jsonPath("$.cidades[0].bairros[0].percentual").value(66.7))
                 .andExpect(jsonPath("$.cidades[1].cidade").value("Outras cidades"))
                 .andExpect(jsonPath("$.cidades[1].uf").doesNotExist())
-                .andExpect(jsonPath("$.cidades[1].atendimentos").value(2))
-                .andExpect(jsonPath("$.cidades[1].percentual").value(22.2))
+                .andExpect(jsonPath("$.cidades[1].abaixoDoLimite").value(true))
+                .andExpect(jsonPath("$.cidades[1].atendimentos").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.cidades[1].percentual").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.cidades[0].abaixoDoLimite").value(false))
                 .andExpect(jsonPath("$.cidades[1].bairros.length()").value(0));
     }
 
@@ -54,7 +56,27 @@ class AlcancePainelIT extends AlcanceBase {
                 .andExpect(jsonPath("$.cidades[0].percentual").value(100.0))
                 .andExpect(jsonPath("$.cidades[0].bairros.length()").value(1))
                 .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Outros bairros"))
-                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5));
+                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].abaixoDoLimite").value(false));
+    }
+
+    @Test
+    @DisplayName("A68: com 7 atendimentos em Osasco (5 no Centro e 2 em bairros pequenos), o Outros bairros tem só 2 e vem sem número: atendimentos e percentual nulos, abaixoDoLimite true")
+    void outrosBairrosAbaixoDoLimiteSemNumero() throws Exception {
+        Catalogo c = catalogo();
+        atendimentos(5, c.barbeiro(), c.servico(), "Centro", "Osasco", "SP");
+        atendimentos(1, c.barbeiro(), c.servico(), "Presidente Altino", "Osasco", "SP");
+        atendimentos(1, c.barbeiro(), c.servico(), "Vila Yara", "Osasco", "SP");
+
+        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.cidades[0].atendimentos").value(7))
+                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(2))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Centro"))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].bairro").value("Outros bairros"))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].abaixoDoLimite").value(true))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].atendimentos").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].percentual").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

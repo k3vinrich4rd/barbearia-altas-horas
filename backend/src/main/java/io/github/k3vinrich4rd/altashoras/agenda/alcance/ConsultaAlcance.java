@@ -87,21 +87,25 @@ public class ConsultaAlcance {
             long deOutrosBairros = 0;
             for (Map.Entry<String, Long> bairro : entrada.getValue().entrySet()) {
                 if (!bairro.getKey().isEmpty() && bairro.getValue() >= K_MINIMO) {
-                    bairros.add(new Bairro(bairro.getKey(), bairro.getValue(), percentual(bairro.getValue(), total)));
+                    bairros.add(new Bairro(bairro.getKey(), bairro.getValue(), percentual(bairro.getValue(), total), false));
                 } else {
                     deOutrosBairros += bairro.getValue();
                 }
             }
-            bairros.sort(Comparator.comparingLong(Bairro::atendimentos).reversed().thenComparing(Bairro::bairro));
+            bairros.sort(Comparator.comparingLong((Bairro b) -> b.atendimentos()).reversed().thenComparing(Bairro::bairro));
             if (deOutrosBairros > 0) {
-                bairros.add(new Bairro(OUTROS_BAIRROS, deOutrosBairros, percentual(deOutrosBairros, total)));
+                boolean abaixo = deOutrosBairros < K_MINIMO; // D114: grupo pequeno não mostra número
+                bairros.add(new Bairro(OUTROS_BAIRROS, abaixo ? null : deOutrosBairros,
+                        abaixo ? null : percentual(deOutrosBairros, total), abaixo));
             }
-            cidades.add(new Cidade(entrada.getKey().cidade(), entrada.getKey().uf(), daCidade, percentual(daCidade, total),
+            cidades.add(new Cidade(entrada.getKey().cidade(), entrada.getKey().uf(), daCidade, percentual(daCidade, total), false,
                     bairros));
         }
-        cidades.sort(Comparator.comparingLong(Cidade::atendimentos).reversed().thenComparing(Cidade::cidade));
+        cidades.sort(Comparator.comparingLong((Cidade c) -> c.atendimentos()).reversed().thenComparing(Cidade::cidade));
         if (deOutrasCidades > 0) {
-            cidades.add(new Cidade(OUTRAS_CIDADES, null, deOutrasCidades, percentual(deOutrasCidades, total), List.of()));
+            boolean abaixoCidades = deOutrasCidades < K_MINIMO; // D114
+            cidades.add(new Cidade(OUTRAS_CIDADES, null, abaixoCidades ? null : deOutrasCidades,
+                    abaixoCidades ? null : percentual(deOutrasCidades, total), abaixoCidades, List.of()));
         }
         return new Painel(periodo, total, semRegiao, List.copyOf(cidades));
     }
