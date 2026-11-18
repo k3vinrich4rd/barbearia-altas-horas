@@ -22,6 +22,7 @@
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) · ⏳ AL1 (alcance por região, Fatia 6C: saída real a preencher no fluxo manual) |
+| [5b. Deploy grátis](#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-) | imagem Docker no perfil prod, IP real, CORS, hibernação, backup e restauração | ✅ A1 a A22 (ativação: só com o OK do Kevin) |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
 | [8. Jornada completa](#8-jornada-completa) | tudo junto, numa base limpa | ⏳ Fatia 7 |
 | [9. RAG da documentação](#9-rag-perguntar-à-documentação) | busca semântica com Spring AI + pgvector e a avaliação | ✅ |
@@ -600,6 +601,47 @@ POST /auth/cadastro (cep 01310100) -> 201 "endereco":{"cep":"01310100","bairro":
 Com os provedores ligados de novo, o cadastro com `01001000` deu `201` e `completo: true`. No log: `provedor de CEP falhou: provedor=VIACEP tipo=REDE` (e `BRASILAPI`), sem nenhum CEP, e-mail ou nome. `grep -c` por CEP e por e-mail de teste no log inteiro: 0.
 
 **O que deve acontecer:** a consulta dá `503` e o cadastro dá `201` com `endereco.completo: false` e bairro, cidade e uf nulos (R31). Quando os provedores voltam, a falha **não** ficou em cache: a mesma consulta já responde `200`. O log tem `provedor de CEP falhou: provedor=... tipo=REDE` e nenhum CEP. Limite: a 31ª consulta do mesmo IP no mesmo minuto dá `429` com `Retry-After`.
+
+## 5b. Deploy grátis: a imagem Docker e o backup (Fatia 8) ✅
+
+Nada aqui cria conta nem serviço: tudo roda na sua máquina, com o Docker Desktop aberto e **variáveis falsas**. O passo a passo para ligar de verdade (só com o OK do Kevin) está em [`ativar-deploy.md`](planejamento/ativar-deploy.md); os critérios, na [spec da Fatia 8](sdd/fatia-8-deploy.md).
+
+```bash
+sh scripts/testar-imagem.sh      # docker build + PostgreSQL 18 + API no perfil prod (A1 a A15); ~2 min na 1ª vez
+sh scripts/testar-backup.sh      # pg_dump + gpg + restauração num banco novo (A20)
+cd backend && ./mvnw -Dtest='IpRealNoPerfilProdIT,ArquivosDeImplantacaoTest' test   # A16 a A19, A21 e A22
+```
+
+Saída real de 18/11/2026 (Windows 10, Docker 28.3.2; a imagem final tem ~435 MB):
+
+```text
+  ✅ A1  docker build terminou
+  ✅ A2  imagem final só tem JRE (sem javac nem Maven)
+  ✅ A3  processo roda sem root
+  ✅ A4  imagem sem segredo e sem .env (só o app.jar)
+  ✅ A5  health UP em 22s, na porta da variável PORT=10000 (cold start da imagem)
+  ✅ A6  health público, UP e sem detalhes (sem components): {"groups":["liveness","readiness"],"status":"UP"}
+  ✅ A7  Flyway aplicou as 6 migrações na subida (e nenhuma do seed dev)
+  ✅ A8  btree_gist e a constraint anti double booking existem
+  ✅ A9a perfil ativo: prod        ✅ A9b banco sem seed fictício
+  ✅ A10 a retenção de dados rodou na subida
+  ✅ A11 CORS: origem do front aceita, outra origem recebe 403
+  ✅ A12 limite por IP usa o X-Forwarded-For (31ª consulta do IP .77 = 429; o IP .88 = 200)
+  ✅ A13a desligamento limpo no SIGTERM (código 143)
+  ✅ A13b religou do zero e voltou a UP em 18s (cold start depois da hibernação)
+      memória em uso depois da subida: 279.7MiB (limite do container: 512 MiB)
+  ✅ A14 container com --memory=512m segue vivo e UP
+  ✅ A15 sem DB_URL a API não sobe (código 1)
+Imagem OK: todos os critérios de A1 a A15 passaram.
+
+  ✅ A20a pg_dump -Fc gerou 48602 bytes
+  ✅ A20b arquivo criptografado sem o cabeçalho PGDMP legível
+  ✅ A20c senha errada não descriptografa
+  ✅ A20d restaurado num banco novo: dado, btree_gist e a constraint anti double booking voltaram
+Backup e restauração OK (A20).
+```
+
+**Depois do deploy real** (só o Kevin, depois do guia): `GET https://SEU-SERVICO.onrender.com/actuator/health` deve dar `UP`; para conferir o IP real no ar, faça 31 consultas seguidas a `/alcance` e veja o `429` (a 31ª). Se um cabeçalho `X-Forwarded-For` inventado por você escapar do limite, é o risco D-2 da spec.
 
 ## 6. Cenário do admin (o barbeiro)
 
