@@ -503,7 +503,7 @@ Saída real (17/11/2026, 13h31):
 |---|---|---|---|:-:|
 | C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
 
-### B3 ⏳ CEP com os provedores ligados (Fatia 6A)
+### B3 ✅ CEP com os provedores ligados (Fatia 6A)
 
 Precisa de internet: o perfil `dev` fala com o ViaCEP de verdade. Sem chave e sem conta.
 
@@ -530,7 +530,7 @@ Limite por IP (30 por minuto): numa rajada de 31 consultas seguidas, as 26 prime
 
 **O que deve acontecer:** a primeira consulta vem com `"fonte":"VIACEP"` (Praça da Sé, Sé, São Paulo, SP) e a segunda com `"fonte":"CACHE"`; o cadastro devolve `endereco.completo: true`. O log da API tem a linha `cep resolvido: sim, fonte=...` e **nenhum** CEP.
 
-### B4 ⏳ CEP com os provedores desligados (Fatia 6A)
+### B4 ✅ CEP com os provedores desligados (Fatia 6A)
 
 Para simular a queda sem desligar a internet, suba a API apontando os dois provedores para uma porta fechada:
 
