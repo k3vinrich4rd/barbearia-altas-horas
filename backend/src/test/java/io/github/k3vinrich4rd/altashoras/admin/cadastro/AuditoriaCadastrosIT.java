@@ -50,7 +50,7 @@ class AuditoriaCadastrosIT extends CadastrosBase {
         delete("/admin/barbeiros/" + barbeiro + "/folgas/" + folga, admin).andExpect(status().isNoContent());
         put("/admin/configuracao", admin, """
                 { "antecedenciaMinimaMin": 60, "intervaloEntreAtendimentosMin": 0, "granularidadeMin": 30,
-                  "horizonteDias": 30, "expiracaoPagamentoMin": 15, "version": 0 }
+                  "horizonteDias": 30, "expiracaoPagamentoMin": 3, "version": 0 }
                 """).andExpect(status().isOk());
 
         List<Map<String, Object>> linhas = jdbc.queryForList(
@@ -108,7 +108,7 @@ class AuditoriaCadastrosIT extends CadastrosBase {
         put("/admin/barbeiros/" + UUID.randomUUID() + "/jornada", admin, "[]").andExpect(status().isNotFound());
         put("/admin/configuracao", admin, """
                 { "antecedenciaMinimaMin": 60, "intervaloEntreAtendimentosMin": 0, "granularidadeMin": 30,
-                  "horizonteDias": 30, "expiracaoPagamentoMin": 15, "version": 9 }
+                  "horizonteDias": 30, "expiracaoPagamentoMin": 3, "version": 9 }
                 """).andExpect(status().isConflict());
         get("/admin/servicos", admin).andExpect(status().isOk());
         get("/admin/barbeiros", admin).andExpect(status().isOk());

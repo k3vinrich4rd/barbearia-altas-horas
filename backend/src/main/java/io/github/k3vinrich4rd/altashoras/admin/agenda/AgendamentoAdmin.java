@@ -9,12 +9,15 @@ import io.github.k3vinrich4rd.altashoras.admin.FormatoDeData;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda;
 
 /**
- * O "AgendamentoAdmin" do contrato 1.4.0: o Agendamento mais o contato de quem vem (nome e WhatsApp, nunca e-mail
+ * O "AgendamentoAdmin" do contrato (1.6.0 acrescentou {@code observacao} e a origem {@code MANUAL}): o Agendamento mais o contato de quem vem (nome e WhatsApp, nunca e-mail
  * nem CPF, D-4) e o status da cobrança. O toString só mostra o id e o status (R30).
  */
 public record AgendamentoAdmin(UUID id, String status, String origem, Servico servico, Barbeiro barbeiro,
         String inicio, String fim, long precoCentavos, @Nullable String expiraEm, @Nullable String motivoCancelamento,
-        long version, Cliente cliente, @Nullable String cobrancaStatus) {
+        long version, Cliente cliente, @Nullable String cobrancaStatus, @Nullable String observacao) {
+
+    /** Reserva manual sem nome informado (ou já anonimizada): a tela mostra este texto. */
+    static final String SEM_NOME = "Sem nome";
 
     public record Servico(UUID id, String nome, int duracaoMin) {
     }
@@ -36,7 +39,8 @@ public record AgendamentoAdmin(UUID id, String status, String origem, Servico se
                 new Barbeiro(item.barbeiroId(), item.barbeiroNome()), FormatoDeData.formatar(item.inicio(), fuso),
                 FormatoDeData.formatar(item.fim(), fuso), item.precoCentavos(),
                 FormatoDeData.formatar(item.expiraEm(), fuso), item.motivoCancelamento(), item.version(),
-                new Cliente(item.clienteNome(), item.clienteWhatsapp()), cobrancaStatus);
+                new Cliente(item.clienteNome() == null ? SEM_NOME : item.clienteNome(), item.clienteWhatsapp()), cobrancaStatus,
+                item.observacao());
     }
 
     @Override

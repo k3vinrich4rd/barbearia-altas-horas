@@ -19,7 +19,7 @@ record ConfiguracaoRequest(
         @ValorPermitido(value = {5, 10, 15, 20, 30, 60}, message = "deve ser 5, 10, 15, 20, 30 ou 60") Integer granularidadeMin,
         @NotNull(message = "obrigatório") @Min(value = 1, message = "deve ser de pelo menos 1 dia")
         @Max(value = 365, message = "deve ser de no máximo 365 dias") Integer horizonteDias,
-        @NotNull(message = "obrigatório") @Min(value = 5, message = "deve ser de pelo menos 5 minutos")
+        @NotNull(message = "obrigatório") @Min(value = 3, message = "deve ser de pelo menos 3 minutos")
         @Max(value = 60, message = "deve ser de no máximo 60 minutos") Integer expiracaoPagamentoMin,
         @NotNull(message = "obrigatório") Long version) {
 }

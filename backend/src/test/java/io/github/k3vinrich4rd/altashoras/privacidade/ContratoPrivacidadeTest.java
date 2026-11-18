@@ -85,7 +85,7 @@ class ContratoPrivacidadeTest extends PrivacidadeBase {
     void semTokenDa401() throws Exception {
         mvc.perform(MockMvcRequestBuilders.get("/me/consentimentos")).andExpect(status().isUnauthorized());
         mvc.perform(MockMvcRequestBuilders.put("/me/consentimentos/marketing").contentType("application/json")
-                .content(consentimento(true, "1.0"))).andExpect(status().isUnauthorized());
+                .content(consentimento(true, "1.1"))).andExpect(status().isUnauthorized());
         mvc.perform(MockMvcRequestBuilders.get("/me/dados")).andExpect(status().isUnauthorized());
         mvc.perform(MockMvcRequestBuilders.delete("/me")).andExpect(status().isUnauthorized());
         mvc.perform(MockMvcRequestBuilders.get("/politica-privacidade")).andExpect(status().isOk());
@@ -107,7 +107,7 @@ class ContratoPrivacidadeTest extends PrivacidadeBase {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code")
                         .value("TROCA_DE_SENHA_OBRIGATORIA"));
         get("/me/consentimentos", admin).andExpect(status().isForbidden());
-        put("/me/consentimentos/marketing", admin.token(), consentimento(true, "1.0")).andExpect(status().isForbidden());
+        put("/me/consentimentos/marketing", admin.token(), consentimento(true, "1.1")).andExpect(status().isForbidden());
         get("/me", admin).andExpect(status().isOk());
         put("/me/senha", admin.token(), "{}").andExpect(status().isBadRequest()); // chega ao controller (corpo inválido)
     }

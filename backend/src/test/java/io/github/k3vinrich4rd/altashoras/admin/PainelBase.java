@@ -110,6 +110,11 @@ public abstract class PainelBase {
         return new Conta(id, emissor.emitir(id, List.of(papeis), 0, deveTrocarSenha).valor());
     }
 
+    /** A mesma conta com um token novo, emitido no instante atual do relógio (depois de {@link #irPara}). */
+    protected Conta comTokenNovo(Conta conta, String... papeis) {
+        return new Conta(conta.id(), emissor.emitir(conta.id(), List.of(papeis), 0, false).valor());
+    }
+
     protected UUID cliente(String nome, String whatsapp) {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO usuario (id, nome, email, whatsapp) VALUES (?, ?, ?, ?)", id, nome,

@@ -90,18 +90,18 @@ class ExpiracaoJobIT {
     }
 
     @Test
-    @DisplayName("A18: 3 pendentes e o relógio 16 min à frente → o job expira as 3 e o horário volta na disponibilidade")
+    @DisplayName("A18: 3 pendentes e o relógio 4 min à frente (prazo de 3 min) → o job expira as 3 e o horário volta na disponibilidade")
     void expiraPendentes() throws Exception {
         UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
         UUID servico = DadosDeTeste.servico(jdbc, 30);
         for (OffsetDateTime inicio : List.of(as(10, 0), as(10, 30), as(11, 0))) {
             DadosDeTeste.reserva(jdbc, barbeiro, servico, inicio, "AGUARDANDO_PAGAMENTO",
-                    RelogioFixoDeTeste.AGORA.plus(Duration.ofMinutes(15)));
+                    RelogioFixoDeTeste.AGORA.plus(Duration.ofMinutes(3)));
         }
         job.executar();
         assertThat(pendentes(barbeiro)).allSatisfy(id -> assertThat(statusDe(id)).isEqualTo("AGUARDANDO_PAGAMENTO"));
 
-        relogio.avancar(Duration.ofMinutes(16));
+        relogio.avancar(Duration.ofMinutes(4));
         job.executar();
 
         assertThat(pendentes(barbeiro)).hasSize(3).allSatisfy(id -> assertThat(statusDe(id)).isEqualTo("EXPIRADO"));
