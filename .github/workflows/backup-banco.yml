@@ -1,0 +1,61 @@
+name: Backup do banco
+
+# Backup semanal do PostgreSQL do beta (Aiven free) FORA do provedor (D66, Fatia 8).
+# Roda só por agenda (domingo, 03:00 no horário de Brasília) ou à mão. NUNCA em pull request: o dump tem dado pessoal
+# e os segredos não podem chegar a código de fora.
+# O dump sai criptografado (gpg simétrico, AES-256) e fica como artefato por 30 dias. Segredos (cadastrados pelo Kevin
+# em Settings > Secrets and variables > Actions): DB_URL_BACKUP e BACKUP_SENHA. Como restaurar: docs/planejamento/ativar-deploy.md.
+
+on:
+  schedule:
+    - cron: "0 6 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-banco
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: pg_dump criptografado
+    # Só no repositório original: um fork não tem os segredos nem deve tentar.
+    if: github.repository == 'k3vinrich4rd/barbearia-altas-horas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB_URL_BACKUP: ${{ secrets.DB_URL_BACKUP }}
+      BACKUP_SENHA: ${{ secrets.BACKUP_SENHA }}
+    steps:
+      - name: Conferir que os segredos existem
+        run: |
+          [ -n "$DB_URL_BACKUP" ] || { echo "::error::Falta o segredo DB_URL_BACKUP (veja docs/planejamento/ativar-deploy.md)"; exit 1; }
+          [ -n "$BACKUP_SENHA" ] || { echo "::error::Falta o segredo BACKUP_SENHA (veja docs/planejamento/ativar-deploy.md)"; exit 1; }
+          [ "${#BACKUP_SENHA}" -ge 24 ] || { echo "::error::BACKUP_SENHA curta demais (use 24 caracteres ou mais)"; exit 1; }
+
+      # pg_dump da versão 18 (a mesma do banco): o do runner é mais antigo e recusa um servidor mais novo.
+      - name: pg_dump em formato custom
+        run: |
+          docker run --rm -e DB_URL_BACKUP postgres:18-alpine \
+            sh -c 'pg_dump "$DB_URL_BACKUP" -Fc --no-owner --no-privileges' > altashoras.dump
+          [ -s altashoras.dump ] || { echo "::error::dump vazio"; exit 1; }
+          docker run --rm -i postgres:18-alpine pg_restore -l < altashoras.dump | grep -c 'TABLE DATA' || true
+
+      - name: Criptografar (gpg simétrico, AES-256)
+        run: |
+          arquivo="altashoras-$(date -u +%Y-%m-%d).dump.gpg"
+          printf '%s' "$BACKUP_SENHA" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o "$arquivo" altashoras.dump
+          rm -f altashoras.dump
+          ls -l "$arquivo"
+          echo "ARQUIVO=$arquivo" >> "$GITHUB_ENV"
+
+      - name: Guardar como artefato (30 dias)
+        uses: actions/upload-artifact@v7
+        with:
+          name: backup-banco-${{ github.run_id }}
+          path: ${{ env.ARQUIVO }}
+          retention-days: 30
+          if-no-files-found: error
