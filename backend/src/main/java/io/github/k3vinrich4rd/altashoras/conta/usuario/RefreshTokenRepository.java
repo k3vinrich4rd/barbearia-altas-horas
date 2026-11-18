@@ -30,4 +30,9 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE RefreshToken r SET r.revogadoEm = :agora WHERE r.usuarioId = :usuario AND r.revogadoEm IS NULL")
     int revogarDoUsuario(UUID usuario, Instant agora);
+
+    /** Exclusão da conta (E16): os refresh tokens saem do banco, não só ficam revogados. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM RefreshToken r WHERE r.usuarioId = :usuario")
+    int apagarDoUsuario(UUID usuario);
 }

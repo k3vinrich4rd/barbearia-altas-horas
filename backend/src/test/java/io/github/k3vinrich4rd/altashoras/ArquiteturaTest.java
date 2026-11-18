@@ -14,6 +14,11 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
+
+import io.github.k3vinrich4rd.altashoras.privacidade.ExclusaoSolicitada;
+import io.github.k3vinrich4rd.altashoras.privacidade.FonteDeDadosDoTitular;
 
 /** A10: regras de arquitetura que o compilador não pega. */
 class ArquiteturaTest {
@@ -108,6 +113,53 @@ class ArquiteturaTest {
                         "..privacidade..", "..admin..")
                 .because("o cep não conhece quem o usa")
                 .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada, com @Order, e a agenda roda antes da conta")
+    void privacidadePublicaPortasEQuemTemDadoImplementa() {
+        noClasses().that().resideInAPackage("..privacidade..")
+                .should().dependOnClassesThat().resideInAnyPackage("..conta..", "..agenda..", "..pagamento..", "..admin..",
+                        "..plataforma..", "..cep..")
+                .because("a privacidade só publica portas e eventos; quem tem dado pessoal a implementa (ADR 0002, E10)")
+                .check(CLASSES);
+
+        var fontes = CLASSES.stream().filter(c -> c.isAssignableTo(FonteDeDadosDoTitular.class)
+                && !c.isInterface()).map(c -> c.getPackageName()).toList();
+        org.assertj.core.api.Assertions.assertThat(fontes)
+                .anyMatch(pacote -> pacote.contains(".conta.")).anyMatch(pacote -> pacote.contains(".agenda."));
+
+        var ouvintes = CLASSES.stream().flatMap(c -> c.getMethods().stream())
+                .filter(m -> m.isAnnotatedWith(EventListener.class)
+                        && m.getRawParameterTypes().stream().anyMatch(t -> t.isEquivalentTo(ExclusaoSolicitada.class)))
+                .toList();
+        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(2)
+                .allSatisfy(m -> org.assertj.core.api.Assertions.assertThat(m.isAnnotatedWith(Order.class))
+                        .as("@Order explícito em " + m.getOwner().getSimpleName()).isTrue());
+        org.assertj.core.api.Assertions.assertThat(ouvintes.stream().map(m -> m.getOwner().getPackageName()).toList())
+                .anyMatch(pacote -> pacote.contains(".conta.")).anyMatch(pacote -> pacote.contains(".agenda."));
+        org.assertj.core.api.Assertions.assertThat(ExclusaoSolicitada.ORDEM_DA_AGENDA)
+                .as("a agenda confere o bloqueio ANTES de a conta anonimizar").isLessThan(ExclusaoSolicitada.ORDEM_DA_CONTA);
+    }
+
+    @Test
+    @DisplayName("A60: só a privacidade toca as tabelas consentimento e solicitacao_titular (nenhum outro módulo as menciona em SQL)")
+    void soAPrivacidadeToscaSuasTabelas() throws java.io.IOException {
+        java.nio.file.Path fontes = java.nio.file.Path.of("src/main/java/io/github/k3vinrich4rd/altashoras");
+        java.util.regex.Pattern sql = java.util.regex.Pattern
+                .compile("(?is)\\b(from|into|update|join|delete\\s+from)\\s+(consentimento|solicitacao_titular)\\b");
+        try (var arquivos = java.nio.file.Files.walk(fontes)) {
+            var infratores = arquivos.filter(p -> p.toString().endsWith(".java"))
+                    .filter(p -> !p.toString().replace('\\', '/').contains("/privacidade/"))
+                    .filter(p -> {
+                        try {
+                            return sql.matcher(java.nio.file.Files.readString(p)).find();
+                        } catch (java.io.IOException falha) {
+                            throw new java.io.UncheckedIOException(falha);
+                        }
+                    }).toList();
+            org.assertj.core.api.Assertions.assertThat(infratores).isEmpty();
+        }
     }
 
     @Test
