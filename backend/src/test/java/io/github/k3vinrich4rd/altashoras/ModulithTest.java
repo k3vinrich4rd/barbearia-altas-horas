@@ -75,6 +75,20 @@ class ModulithTest {
         assertThat(tiposDaContaUsadosPeloAdmin).containsExactly("io.github.k3vinrich4rd.altashoras.conta.Contas");
     }
 
+    @Test
+    @DisplayName("A21: a conta depende do cep, e nada do cep depende da conta (nem do admin, da agenda ou do pagamento)")
+    void contaUsaOCepECepNaoUsaAConta() {
+        modulos.verify();
+        assertThat(dependenciasDe("conta")).contains("cep");
+        assertThat(dependenciasDe("cep")).isSubsetOf("comum", "plataforma")
+                .doesNotContain("conta", "agenda", "pagamento", "privacidade", "admin");
+        var tiposDoCepUsadosPelaConta = modulos.getModuleByName("conta").orElseThrow().getDirectDependencies(modulos)
+                .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("cep"))
+                .map(d -> d.getTargetType().getFullName()).distinct().toList();
+        assertThat(tiposDoCepUsadosPelaConta).isNotEmpty().allSatisfy(tipo -> assertThat(tipo)
+                .startsWith("io.github.k3vinrich4rd.altashoras.cep.").doesNotContain(".consulta."));
+    }
+
     private List<String> dependenciasDe(String modulo) {
         return modulos.getModuleByName(modulo).orElseThrow().getDirectDependencies(modulos).uniqueModules()
                 .map(m -> m.getIdentifier().toString()).toList();
