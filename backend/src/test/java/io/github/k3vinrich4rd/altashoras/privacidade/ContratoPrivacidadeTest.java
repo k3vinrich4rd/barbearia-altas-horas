@@ -97,4 +97,18 @@ class ContratoPrivacidadeTest extends PrivacidadeBase {
         delete("/me", conta("BARBEIRO").token()).andExpect(status().isForbidden());
         delete("/me", conta("ADMIN", "BARBEIRO").token()).andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("A61c: o admin com a senha inicial ainda em uso recebe 403 TROCA_DE_SENHA_OBRIGATORIA nas rotas /me/dados e /me/consentimentos, e continua chegando a /me e /me/senha para trocá-la")
+    void senhaInicialBarraAsRotasDeConta() throws Exception {
+        Conta admin = conta(true, "ADMIN", "BARBEIRO");
+
+        get("/me/dados", admin).andExpect(status().isForbidden())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code")
+                        .value("TROCA_DE_SENHA_OBRIGATORIA"));
+        get("/me/consentimentos", admin).andExpect(status().isForbidden());
+        put("/me/consentimentos/marketing", admin.token(), consentimento(true, "1.0")).andExpect(status().isForbidden());
+        get("/me", admin).andExpect(status().isOk());
+        put("/me/senha", admin.token(), "{}").andExpect(status().isBadRequest()); // chega ao controller (corpo inválido)
+    }
 }
