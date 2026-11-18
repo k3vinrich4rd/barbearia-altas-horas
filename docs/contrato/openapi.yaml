@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.4.0
+  version: 1.5.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -92,12 +92,19 @@ paths:
       tags: [cep]
       operationId: buscarCep
       summary: Endereço pelo CEP (ViaCEP com fallback BrasilAPI e cache)
+      description: |
+        Rota pública (sem token). Aceita `01001000` ou `01001-000`; qualquer outro formato é `400 CEP_INVALIDO`
+        antes de qualquer chamada externa. Tenta o ViaCEP e, se ele falhar (timeout, erro de rede, 5xx, 429 ou
+        resposta inválida), a BrasilAPI. Se o ViaCEP diz que o CEP não existe, a resposta é `404` sem consultar a
+        BrasilAPI. Os dois fora: `503 CEP_INDISPONIVEL` (o cadastro não usa esta rota para decidir, R31).
+        Encontrados ficam 7 dias em cache e inexistentes 1 hora (`fonte: CACHE`); falha de provedor nunca fica em cache.
+        Limite de 30 consultas por minuto por IP (H15): passou, `429` com `Retry-After`.
       security: []
       parameters:
         - { name: cep, in: path, required: true, schema: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$' }, example: '01001000' }
       responses:
         '200':
-          description: Endereço encontrado
+          description: Endereço encontrado (`fonte` diz de onde veio)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Endereco' }
@@ -1081,7 +1088,7 @@ components:
         bairro: { type: [string, 'null'] }
         cidade: { type: [string, 'null'] }
         uf: { type: [string, 'null'] }
-        fonte: { type: string, enum: [VIACEP, BRASILAPI, CACHE] }
+        fonte: { type: string, enum: [VIACEP, BRASILAPI, CACHE], description: 'quem respondeu; CACHE quando veio da memória da API (7 dias se encontrado, 1 hora se inexistente)' }
     CadastroRequest:
       type: object
       additionalProperties: false
