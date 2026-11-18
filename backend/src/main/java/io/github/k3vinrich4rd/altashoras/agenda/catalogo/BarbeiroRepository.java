@@ -9,12 +9,12 @@ import org.springframework.data.jpa.repository.Query;
 public interface BarbeiroRepository extends JpaRepository<Barbeiro, UUID> {
 
     @Query("""
-            SELECT new io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroResumo(b.id, b.nomeExibicao)
+            SELECT new io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroNoCatalogo(b.id, b.nomeExibicao, b.whatsapp)
             FROM Barbeiro b
             WHERE b.ativo = true
             ORDER BY lower(b.nomeExibicao)
             """)
-    List<BarbeiroResumo> listarAtivos();
+    List<BarbeiroNoCatalogo> listarAtivos();
 
     /**
      * Barbeiros ativos já com as jornadas, em UMA consulta (E15). Sem o JOIN FETCH, cada getJornadas() faria

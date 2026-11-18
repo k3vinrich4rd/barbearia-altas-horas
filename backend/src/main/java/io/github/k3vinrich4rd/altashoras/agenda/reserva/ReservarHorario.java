@@ -5,10 +5,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import jakarta.persistence.EntityManager;
@@ -115,7 +117,7 @@ public class ReservarHorario {
             // R31: a região nunca derruba a reserva. Do erro sobe só a classe (a mensagem pode trazer dado da conta, R30).
             LOG.warn("reserva de cliente sem região ({})", falha.getClass().getSimpleName());
         }
-        return reservar(pedido, clienteId, null, regiao).getId();
+        return reservar(pedido, clienteId, null, regiao, null, null).getId();
     }
 
     /**
@@ -141,9 +143,29 @@ public class ReservarHorario {
         Contato contato = new Contato(pedido.nome().strip(), Email.de(pedido.email()).valor(),
                 Telefone.de(pedido.whatsapp()).digitos(), TokenGuest.hash(token),
                 regiao.isPresent() ? cep.digitos() : null);
-        UUID id = reservar(pedido.horario(), null, contato, regiao.orElse(null)).getId();
+        UUID id = reservar(pedido.horario(), null, contato, regiao.orElse(null), null, null).getId();
         limitador.registrar(chave, janelaGuest);
         return new ReservaDoVisitante(id, token);
+    }
+
+    /** O que a barbearia informa ao travar um horário combinado por fora (Fatia 6D). Nome e observação são dado pessoal. */
+    public record Manual(UUID servicoId, UUID barbeiroId, OffsetDateTime inicio, @Nullable String nomeCliente,
+            @Nullable String observacao, UUID criadoPor) {
+
+        @Override
+        public String toString() {
+            return "Manual[dados pessoais omitidos]";
+        }
+    }
+
+    /**
+     * Reserva manual (D124): as mesmas regras de grade, jornada, almoço, folga e disputa da reserva do cliente, mas a
+     * antecedência mínima não vale (quem trava é a barbearia) e nada é cobrado. {@code aoGravar} roda na mesma transação,
+     * depois do flush: o painel grava a auditoria ali e, se ela falhar, a reserva desfaz.
+     */
+    public UUID comoBarbearia(Manual manual, Consumer<UUID> aoGravar) {
+        return reservar(new Pedidos.Reserva(manual.servicoId(), manual.barbeiroId(), manual.inicio()), null, null, null,
+                manual, aoGravar).getId();
     }
 
     private static Cep cepValido(String bruto) {
@@ -191,12 +213,12 @@ public class ReservarHorario {
     }
 
     private Reserva reservar(Pedidos.Reserva pedido, @Nullable UUID clienteId, @Nullable Contato contato,
-            @Nullable RegiaoDaReserva regiao) {
+            @Nullable RegiaoDaReserva regiao, @Nullable Manual manual, @Nullable Consumer<UUID> aoGravar) {
         ConfiguracaoAgenda config = configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow();
         Instant agora = clock.instant();
         Servico servico = servicoAtivo(pedido.servicoId());
         // Conferência rápida, sem trava: recusa cedo (e com os mesmos códigos) o que já está errado.
-        validar(pedido, servico, config, agora);
+        validar(pedido, servico, config, agora, manual != null);
 
         for (int tentativa = 1; ; tentativa++) {
             try {
@@ -206,12 +228,15 @@ public class ReservarHorario {
                     // serviço, barbeiro ativo e jornada) e confere de novo, na mesma ordem de erros.
                     ConfiguracaoAgenda configAtual = configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow();
                     Servico servicoAtual = servicoAtivo(pedido.servicoId());
-                    Previa previa = validar(pedido, servicoAtual, configAtual, agora);
+                    Previa previa = validar(pedido, servicoAtual, configAtual, agora, manual != null);
                     conferirNaGrade(previa, servicoAtual, agora);
                     Horario horario = previa.horario();
                     Instant expiraEm = agora.plus(Duration.ofMinutes(configAtual.getExpiracaoPagamentoMin()));
                     expiracao.vencidasNoHorario(horario.barbeiroId(), horario.inicio(), horario.fimOcupacao(), agora);
-                    Reserva reserva = Reserva.nova(horario, clienteId, servicoAtual.getPrecoCentavos(), expiraEm, agora);
+                    Reserva reserva = manual == null
+                            ? Reserva.nova(horario, clienteId, servicoAtual.getPrecoCentavos(), expiraEm, agora)
+                            : Reserva.manual(horario, servicoAtual.getPrecoCentavos(), manual.nomeCliente(),
+                                    manual.observacao(), manual.criadoPor(), agora);
                     if (regiao != null) {
                         reserva.definirRegiao(regiao);
                     }
@@ -221,6 +246,9 @@ public class ReservarHorario {
                                 contato.tokenHash(), contato.cep(), agora));
                     }
                     em.flush();
+                    if (aoGravar != null) {
+                        aoGravar.accept(reserva.getId());
+                    }
                     return reserva;
                 });
             } catch (ExcecaoDeNegocio regra) {
@@ -260,7 +288,8 @@ public class ReservarHorario {
      * E1 e E2: a ordem das checagens decide o código de erro que o front recebe. Aqui vai tudo o que não depende da
      * folga; a grade (jornada, folga, granularidade) se confere depois, dentro da transação e com a trava do barbeiro.
      */
-    private Previa validar(Pedidos.Reserva pedido, Servico servico, ConfiguracaoAgenda config, Instant agora) {
+    private Previa validar(Pedidos.Reserva pedido, Servico servico, ConfiguracaoAgenda config, Instant agora,
+            boolean manual) {
         Barbeiro barbeiro = barbeiros.listarAtivosComJornadas().stream()
                 .filter(b -> b.getId().equals(pedido.barbeiroId()))
                 .findFirst()
@@ -274,7 +303,12 @@ public class ReservarHorario {
             throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_HORIZONTE,
                     "A agenda aceita datas de hoje até " + config.getHorizonteDias() + " dias à frente.");
         }
-        if (inicio.isBefore(agora.plus(Duration.ofMinutes(config.getAntecedenciaMinimaMin())))) {
+        if (manual) {
+            // D124: quem trava é a barbearia, então a antecedência mínima não vale; mas o horário não pode ter passado.
+            if (inicio.isBefore(agora)) {
+                throw new ExcecaoDeNegocio(CodigoErro.ANTECEDENCIA_INSUFICIENTE, "Este horário já passou.");
+            }
+        } else if (inicio.isBefore(agora.plus(Duration.ofMinutes(config.getAntecedenciaMinimaMin())))) {
             throw new ExcecaoDeNegocio(CodigoErro.ANTECEDENCIA_INSUFICIENTE,
                     "Reservas com pelo menos " + config.getAntecedenciaMinimaMin() / 60 + " h de antecedência.");
         }
