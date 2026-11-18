@@ -37,7 +37,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </SessaoProvider>
         <footer className="rodape">
           <p>
-            <span aria-hidden="true">★ 19 ✂ 97 ★ · </span>Barbearia Altas Horas · R. São Judas Tadeu, 313, Jd. Bonança · Osasco/SP
+            <span aria-hidden="true">★ 19 ✂ 97 ★ · </span>Barbearia Altas Horas · R. São Judas Tadeu, 313, Jd. Bonança ·
+            Osasco/SP
           </p>
           <p>Terça a sábado, das 7h às 20h · almoço das 12h às 13h · domingo e segunda: fechado</p>
           <p>

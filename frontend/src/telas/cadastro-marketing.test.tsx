@@ -27,7 +27,10 @@ describe("marketing no cadastro", () => {
     const corpos: Record<string, unknown>[] = [];
     servidor.use(
       http.get(`${BFF}/politica-privacidade`, () => HttpResponse.json(POLITICA_PRIVACIDADE)),
-      http.post(`${BFF}/auth/cadastro`, async ({ request }) => { corpos.push((await request.json()) as Record<string, unknown>); return HttpResponse.json({ sessao: true, usuario: {}, deveTrocarSenha: false }, { status: 201 }); }),
+      http.post(`${BFF}/auth/cadastro`, async ({ request }) => {
+        corpos.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ sessao: true, usuario: {}, deveTrocarSenha: false }, { status: 201 });
+      }),
     );
 
     let r = renderizar(<Cadastro />);

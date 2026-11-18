@@ -19,7 +19,9 @@ export function ServicosDaHome() {
     <section aria-labelledby="servicos-titulo" className="secao">
       <p className="sobretitulo">Serviços</p>
       <h2 id="servicos-titulo">Um barbeiro, todos os serviços</h2>
-      <p className="subtitulo-secao">Todos com a duração mostrada em cada cartão. Sem combos. O valor é pago na reserva.</p>
+      <p className="subtitulo-secao">
+        Todos com a duração mostrada em cada cartão. Sem combos. O valor é pago na reserva.
+      </p>
       <EstadoDaConsulta consulta={consulta}>
         {(servicos) =>
           servicos.length === 0 ? (

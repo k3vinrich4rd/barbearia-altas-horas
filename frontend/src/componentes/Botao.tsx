@@ -16,7 +16,15 @@ export function Botao({
 }
 
 /** Navegação com cara de botão (continua sendo link). */
-export function LinkBotao({ href, children, variante = "secundario" }: { href: string; children: ReactNode; variante?: Variante }) {
+export function LinkBotao({
+  href,
+  children,
+  variante = "secundario",
+}: {
+  href: string;
+  children: ReactNode;
+  variante?: Variante;
+}) {
   return (
     <Link href={href} className={`botao botao-${variante}`}>
       {children}

@@ -18,7 +18,13 @@ export function ContatoWhatsapp({ barbeiro }: { barbeiro?: { nomeExibicao: strin
   return (
     <p className="contato-whatsapp">
       Prefere combinar pelo WhatsApp?{" "}
-      <a href={link} rel="noopener noreferrer" target="_blank" className="link-whatsapp" aria-label={`Falar com ${primeiroNome} no WhatsApp (abre o WhatsApp)`}>
+      <a
+        href={link}
+        rel="noopener noreferrer"
+        target="_blank"
+        className="link-whatsapp"
+        aria-label={`Falar com ${primeiroNome} no WhatsApp (abre o WhatsApp)`}
+      >
         <Icone nome="conversa" />
         <span>Falar com {primeiroNome} no WhatsApp</span>
       </a>

@@ -82,7 +82,14 @@ export function Historia() {
       <h3>Linha do tempo</h3>
       <div role="group" aria-label="Escolha um ano da linha do tempo" className="linha-do-tempo">
         {MARCOS.map((m, i) => (
-          <button key={m.ano} type="button" aria-pressed={marco === i} aria-controls="marco-detalhe" onClick={() => setMarco(i)} className="marco">
+          <button
+            key={m.ano}
+            type="button"
+            aria-pressed={marco === i}
+            aria-controls="marco-detalhe"
+            onClick={() => setMarco(i)}
+            className="marco"
+          >
             <span className="marco-ano">{m.ano}</span>
             <span>{m.titulo}</span>
           </button>
@@ -104,8 +111,8 @@ export function Premios() {
       <p className="sobretitulo">Trajetória e prêmios</p>
       <h2 id="t-premios">Reconhecido duas vezes em 2017</h2>
       <p>
-        Vinte anos depois de abrir a barbearia, o trabalho do Eduardo foi premiado duas vezes no mesmo ano. Os troféus vieram para Osasco e hoje ficam na
-        prateleira do salão, à vista de quem senta na cadeira.
+        Vinte anos depois de abrir a barbearia, o trabalho do Eduardo foi premiado duas vezes no mesmo ano. Os troféus
+        vieram para Osasco e hoje ficam na prateleira do salão, à vista de quem senta na cadeira.
       </p>
       <ul className="grade-fotos">
         {IMAGENS.premios.map((p, i) => (
@@ -115,7 +122,9 @@ export function Premios() {
               <figcaption>
                 <strong>{i === 0 ? "Prêmio Barbeiros do Brasil" : "Prêmio Master Barber · Êxito Profissional"}</strong>
                 <span className="destaque">
-                  {i === 0 ? "2017 · o troféu com a barra de barbeiro que ele fez questão de trazer para Osasco" : "2017 · reconhecimento pela trajetória e pelo êxito profissional"}
+                  {i === 0
+                    ? "2017 · o troféu com a barra de barbeiro que ele fez questão de trazer para Osasco"
+                    : "2017 · reconhecimento pela trajetória e pelo êxito profissional"}
                 </span>
               </figcaption>
             </figure>
@@ -129,8 +138,16 @@ export function Premios() {
 export function ComoFunciona() {
   const passos = [
     ["01", "Escolha", "O serviço e um horário livre, em até 30 dias, com pelo menos 2 horas de antecedência."],
-    ["02", "Pague", "Por Pix ou cartão, no prazo que o contador mostra. Enquanto isso, o horário fica reservado só para você."],
-    ["03", "Confirmado", "O pagamento confirma o horário na agenda do Eduardo. Dois clientes nunca ficam com o mesmo horário."],
+    [
+      "02",
+      "Pague",
+      "Por Pix ou cartão, no prazo que o contador mostra. Enquanto isso, o horário fica reservado só para você.",
+    ],
+    [
+      "03",
+      "Confirmado",
+      "O pagamento confirma o horário na agenda do Eduardo. Dois clientes nunca ficam com o mesmo horário.",
+    ],
   ];
   return (
     <section id="como-funciona" aria-labelledby="t-como" className="secao">
@@ -168,16 +185,33 @@ export function Galeria() {
         </figcaption>
       </figure>
       <div className="acoes">
-        <button type="button" className="botao botao-secundario" aria-label="Foto anterior" onClick={() => setI((i + GALERIA.length - 1) % GALERIA.length)}>
+        <button
+          type="button"
+          className="botao botao-secundario"
+          aria-label="Foto anterior"
+          onClick={() => setI((i + GALERIA.length - 1) % GALERIA.length)}
+        >
           Anterior
         </button>
-        <button type="button" className="botao botao-secundario" aria-label="Próxima foto" onClick={() => setI((i + 1) % GALERIA.length)}>
+        <button
+          type="button"
+          className="botao botao-secundario"
+          aria-label="Próxima foto"
+          onClick={() => setI((i + 1) % GALERIA.length)}
+        >
           Próxima
         </button>
       </div>
       <div role="group" aria-label="Miniaturas da galeria" className="miniaturas">
         {GALERIA.map((f, n) => (
-          <button key={f.src} type="button" aria-pressed={n === i} aria-label={`Ver foto: ${f.legenda}`} onClick={() => setI(n)} className="miniatura">
+          <button
+            key={f.src}
+            type="button"
+            aria-pressed={n === i}
+            aria-label={`Ver foto: ${f.legenda}`}
+            onClick={() => setI(n)}
+            className="miniatura"
+          >
             <Image src={f.src} alt="" width={96} height={96} />
           </button>
         ))}
@@ -227,4 +261,3 @@ export function OndeEstamos() {
     </section>
   );
 }
-

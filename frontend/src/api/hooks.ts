@@ -73,7 +73,7 @@ export function useEnvio() {
   const espera = useEspera();
 
   const executar = useCallback(
-    async <R,>(acao: () => Promise<R>): Promise<R | undefined> => {
+    async <R>(acao: () => Promise<R>): Promise<R | undefined> => {
       if (emCurso.current) return undefined;
       emCurso.current = true;
       setEnviando(true);
@@ -94,5 +94,12 @@ export function useEnvio() {
     [],
   );
 
-  return { enviando, erro, limparErro: () => setErro(undefined), esperando: espera.restante > 0, restante: espera.restante, executar };
+  return {
+    enviando,
+    erro,
+    limparErro: () => setErro(undefined),
+    esperando: espera.restante > 0,
+    restante: espera.restante,
+    executar,
+  };
 }

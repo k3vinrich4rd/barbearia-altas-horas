@@ -21,7 +21,11 @@ async function pedir<T>(caminho: string, init?: RequestInit): Promise<T> {
 }
 
 const postar = <T>(caminho: string, corpo?: unknown) =>
-  pedir<T>(caminho, { method: "POST", headers: { "content-type": "application/json" }, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+  pedir<T>(caminho, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: corpo === undefined ? undefined : JSON.stringify(corpo),
+  });
 
 export interface UsuarioDaSessao {
   id?: string;

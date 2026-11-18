@@ -13,8 +13,13 @@ const INICIO = "2026-11-24T10:00:00-03:00";
 beforeEach(() => {
   zerarNavegacao();
   fixarRelogio();
-  definirBusca(new URLSearchParams({ servicoId: CINCO_SERVICOS[1].id, barbeiroId: BARBEIRO.id, inicio: INICIO }).toString());
-  servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)), http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
+  definirBusca(
+    new URLSearchParams({ servicoId: CINCO_SERVICOS[1].id, barbeiroId: BARBEIRO.id, inicio: INICIO }).toString(),
+  );
+  servidor.use(
+    http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+    http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
+  );
 });
 afterEach(() => vi.useRealTimers());
 
@@ -22,7 +27,12 @@ describe("reserva do cliente logado", () => {
   test("A25: POST /agendamentos só com servicoId, barbeiroId e inicio; 401 e 403 têm mensagem própria; o resto segue igual", async () => {
     const corpos: Record<string, unknown>[] = [];
     let resposta = () => HttpResponse.json(reserva({ origem: "CLIENTE" }), { status: 201 });
-    servidor.use(http.post(`${BFF}/agendamentos`, async ({ request }) => { corpos.push((await request.json()) as Record<string, unknown>); return resposta(); }));
+    servidor.use(
+      http.post(`${BFF}/agendamentos`, async ({ request }) => {
+        corpos.push((await request.json()) as Record<string, unknown>);
+        return resposta();
+      }),
+    );
 
     const { user, unmount } = renderizar(<ReservaDados />, CLIENTE);
     await screen.findByRole("button", { name: "Reservar" });

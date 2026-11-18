@@ -14,8 +14,15 @@ afterEach(() => vi.useRealTimers());
 function Formulario() {
   const envio = useEnvio();
   return (
-    <form onSubmit={(e) => { e.preventDefault(); void envio.executar(() => chamar(api().GET("/servicos"))); }}>
-      <Botao type="submit" disabled={envio.enviando || envio.esperando}>Enviar</Botao>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void envio.executar(() => chamar(api().GET("/servicos")));
+      }}
+    >
+      <Botao type="submit" disabled={envio.enviando || envio.esperando}>
+        Enviar
+      </Botao>
       {envio.esperando && <Aviso tipo="aviso">Tente de novo em {envio.restante} s.</Aviso>}
     </form>
   );
@@ -31,9 +38,13 @@ describe("limite de tentativas", () => {
     expect(screen.getByRole("button", { name: "Enviar" })).toBeDisabled();
     const lerEspera = () => Number(/em (\d+) s/.exec(screen.getByRole("status").textContent ?? "")?.[1]);
     const antes = lerEspera();
-    await act(async () => { await vi.advanceTimersByTimeAsync(1100); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1100);
+    });
     expect(lerEspera()).toBeLessThan(antes);
-    await act(async () => { await vi.advanceTimersByTimeAsync(5200); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5200);
+    });
     expect(screen.getByRole("button", { name: "Enviar" })).toBeEnabled();
     expect(screen.queryByText(/Tente de novo em/)).toBeNull();
   });

@@ -26,13 +26,19 @@ export function api(opcoes: { status?: () => string; politica?: object; expiraEm
     http.get(`${BFF}/politica-pagamento`, () => HttpResponse.json(opcoes.politica ?? POLITICA_PAGAMENTO)),
     http.get(`${BFF}/agendamentos/guest/:id`, () => {
       leituras.reserva++;
-      return HttpResponse.json(reserva({ status: opcoes.status?.() ?? "AGUARDANDO_PAGAMENTO", ...(opcoes.expiraEm ? { expiraEm: opcoes.expiraEm } : {}) }));
+      return HttpResponse.json(
+        reserva({
+          status: opcoes.status?.() ?? "AGUARDANDO_PAGAMENTO",
+          ...(opcoes.expiraEm ? { expiraEm: opcoes.expiraEm } : {}),
+        }),
+      );
     }),
   );
   return leituras;
 }
 
-export const montar = (opcoesUsuario: Parameters<typeof renderizar>[2] = {}) => renderizar(<Pagamento reservaId={reserva().id} />, { autenticado: false }, opcoesUsuario);
+export const montar = (opcoesUsuario: Parameters<typeof renderizar>[2] = {}) =>
+  renderizar(<Pagamento reservaId={reserva().id} />, { autenticado: false }, opcoesUsuario);
 
 export async function preencher(user: ReturnType<typeof renderizar>["user"], cpf = CPF_DE_TESTE) {
   await screen.findByText(POLITICA_PAGAMENTO.texto.slice(0, 30), { exact: false });
@@ -40,4 +46,5 @@ export async function preencher(user: ReturnType<typeof renderizar>["user"], cpf
   await user.type(screen.getByLabelText("CPF"), cpf);
 }
 
-export const espiarConsole = () => (["log", "info", "warn", "error"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));
+export const espiarConsole = () =>
+  (["log", "info", "warn", "error"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));

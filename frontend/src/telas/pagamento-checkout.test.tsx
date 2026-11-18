@@ -21,7 +21,12 @@ describe("checkout", () => {
   test("A26: política inteira, caixa desmarcada, Pagar só depois de aceitar, versão vinda da API, CPF validado antes de enviar, sem cancelar nem remarcar", async () => {
     api({ politica: { versao: 7, texto: POLITICA_PAGAMENTO.texto } });
     let corpo: Record<string, unknown> | undefined;
-    servidor.use(http.post(`${BFF}/pagamentos/cobrancas`, async ({ request }) => { corpo = (await request.json()) as Record<string, unknown>; return HttpResponse.json(cobrancaPix(), { status: 201 }); }));
+    servidor.use(
+      http.post(`${BFF}/pagamentos/cobrancas`, async ({ request }) => {
+        corpo = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(cobrancaPix(), { status: 201 });
+      }),
+    );
     const { user } = montar();
 
     expect(await screen.findByText(POLITICA_PAGAMENTO.texto)).toBeInTheDocument();

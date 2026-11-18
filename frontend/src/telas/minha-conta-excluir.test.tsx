@@ -60,7 +60,9 @@ describe("excluir conta", () => {
     // 409: explica sem culpar e nada muda
     servidor.use(http.delete(`${BFF}/me`, () => erro(409, "EXCLUSAO_BLOQUEADA_POR_RESERVA")));
     await r.user.click(screen.getByRole("button", { name: "Excluir para sempre" }));
-    expect(await screen.findByText(/Você tem um agendamento pago\. Combine o cancelamento com a barbearia/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Você tem um agendamento em aberto. Para excluir a conta, fale com a barbearia/),
+    ).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(roteador.push).not.toHaveBeenCalled();
     r.unmount();

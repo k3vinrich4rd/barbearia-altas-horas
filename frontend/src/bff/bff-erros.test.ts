@@ -14,7 +14,11 @@ describe("erros no BFF", () => {
     ];
     for (const [status, code, extra, cabecalhos] of casos) {
       const api = apiFalsa(() => problemaApi(status, code, extra, { ...quente, ...cabecalhos }));
-      const r = await encaminhar(requisicao("/api/agendamentos/guest", { metodo: "POST", corpo: {} }), ["agendamentos", "guest"], api.deps);
+      const r = await encaminhar(
+        requisicao("/api/agendamentos/guest", { metodo: "POST", corpo: {} }),
+        ["agendamentos", "guest"],
+        api.deps,
+      );
       expect(r.status).toBe(status);
       const corpo = await r.json();
       expect(corpo.code).toBe(code);
@@ -35,7 +39,13 @@ describe("erros no BFF", () => {
     expect(JSON.parse(t1).code).toBe("API_INDISPONIVEL");
     expect(t1).not.toMatch(/ECONNREFUSED|127\.0\.0\.1|api\.interna|at \w+\./);
 
-    const html = apiFalsa(() => new Response("<html>Whitelabel Error Page at org.spring.Foo(Foo.java:1)</html>", { status: 500, headers: { "content-type": "text/html", server: "Tomcat" } }));
+    const html = apiFalsa(
+      () =>
+        new Response("<html>Whitelabel Error Page at org.spring.Foo(Foo.java:1)</html>", {
+          status: 500,
+          headers: { "content-type": "text/html", server: "Tomcat" },
+        }),
+    );
     const r2 = await encaminhar(requisicao("/api/servicos"), ["servicos"], html.deps);
     expect(r2.status).toBe(502);
     const t2 = await r2.text();

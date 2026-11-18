@@ -22,7 +22,15 @@ describe("escolha de serviço", () => {
       http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
       http.get(`${BFF}/disponibilidade`, ({ request }) => {
         consulta = new URL(request.url).searchParams;
-        return HttpResponse.json({ data: "2026-11-24", fuso: "America/Sao_Paulo", servicoId: CINCO_SERVICOS[2].id, duracaoMin: 60, barbeiros: [{ barbeiroId: BARBEIRO.id, nomeExibicao: BARBEIRO.nomeExibicao, horarios: ["2026-11-24T10:00:00-03:00"] }] });
+        return HttpResponse.json({
+          data: "2026-11-24",
+          fuso: "America/Sao_Paulo",
+          servicoId: CINCO_SERVICOS[2].id,
+          duracaoMin: 60,
+          barbeiros: [
+            { barbeiroId: BARBEIRO.id, nomeExibicao: BARBEIRO.nomeExibicao, horarios: ["2026-11-24T10:00:00-03:00"] },
+          ],
+        });
       }),
     );
     const { user } = renderizar(<Agendar />);
@@ -48,7 +56,10 @@ describe("escolha de serviço", () => {
 
   test("A18: sem serviços mostra 'sem serviços no momento'", async () => {
     definirBusca("");
-    servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json([])), http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
+    servidor.use(
+      http.get(`${BFF}/servicos`, () => HttpResponse.json([])),
+      http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
+    );
     renderizar(<Agendar />);
     expect(await screen.findByText("Sem serviços no momento.")).toBeInTheDocument();
     expect(screen.queryByRole("radio")).toBeNull();

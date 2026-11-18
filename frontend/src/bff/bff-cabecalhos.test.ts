@@ -26,11 +26,16 @@ describe("cabeçalhos de segurança", () => {
     expect(pedir("/api/servicos").headers.get("cache-control")).toBe("no-store");
     expect(pedir("/minha-conta", "ah_sessao=1").headers.get("cache-control")).toBe("no-store");
     // cada resposta com um nonce novo
-    expect(pedir("/").headers.get("content-security-policy")).not.toBe(pedir("/").headers.get("content-security-policy"));
+    expect(pedir("/").headers.get("content-security-policy")).not.toBe(
+      pedir("/").headers.get("content-security-policy"),
+    );
 
     const api = apiFalsa(() => json(tokensDeExemplo()));
     const respostas = [
-      await login(requisicao("/api/auth/login", { metodo: "POST", corpo: { email: "a@b.test", senha: "x" } }), api.deps),
+      await login(
+        requisicao("/api/auth/login", { metodo: "POST", corpo: { email: "a@b.test", senha: "x" } }),
+        api.deps,
+      ),
       await logout(requisicao("/api/auth/logout", { metodo: "POST", cookies: { ah_refresh: "r" } }), api.deps),
     ];
     for (const r of respostas) {

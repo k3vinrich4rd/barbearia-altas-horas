@@ -63,7 +63,9 @@ export function montarErro(status: number, corpo: unknown, retryAfter?: string |
   const erros = Array.isArray(p!.errors)
     ? (p!.errors as unknown[]).flatMap((e) => {
         const o = e as Record<string, unknown>;
-        return typeof o?.field === "string" && typeof o?.message === "string" ? [{ field: o.field, message: o.message }] : [];
+        return typeof o?.field === "string" && typeof o?.message === "string"
+          ? [{ field: o.field, message: o.message }]
+          : [];
       })
     : [];
   return new ErroApi({

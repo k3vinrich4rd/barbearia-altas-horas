@@ -67,7 +67,13 @@ export function ReservaDados() {
         ? chamar(api().POST("/agendamentos", { body: corpoCliente }))
         : chamar(
             api().POST("/agendamentos/guest", {
-              body: { ...corpoCliente, nome: valores.nome, email: valores.email, whatsapp: valores.whatsapp, ...(valores.cep.trim() ? { cep: valores.cep } : {}) },
+              body: {
+                ...corpoCliente,
+                nome: valores.nome,
+                email: valores.email,
+                whatsapp: valores.whatsapp,
+                ...(valores.cep.trim() ? { cep: valores.cep } : {}),
+              },
             }),
           );
     let reserva;
@@ -132,7 +138,9 @@ export function ReservaDados() {
         <section aria-labelledby="como-reservar">
           <h2 id="como-reservar">Como você quer reservar?</h2>
           <div className="acoes">
-            <LinkBotao href={`/entrar?voltar=${encodeURIComponent(`${caminho}?${busca.toString()}`)}`}>Entrar</LinkBotao>
+            <LinkBotao href={`/entrar?voltar=${encodeURIComponent(`${caminho}?${busca.toString()}`)}`}>
+              Entrar
+            </LinkBotao>
             <Botao variante="principal" onClick={() => setSemConta(true)}>
               Continuar sem conta
             </Botao>
@@ -143,11 +151,14 @@ export function ReservaDados() {
       {erro && !erro.acordando && <ErroDaReserva erro={erro} voltar={voltarParaEscolha()} />}
       {erro?.acordando && (
         <Aviso tipo="erro" focar>
-          Não sabemos se a reserva foi criada. {sessao.autenticado ? "Confira em " : "Confira antes de tentar de novo. "}
+          Não sabemos se a reserva foi criada.{" "}
+          {sessao.autenticado ? "Confira em " : "Confira antes de tentar de novo. "}
           {sessao.autenticado && <Link href="/meus-agendamentos">Meus agendamentos</Link>}
         </Aviso>
       )}
-      {erro && Object.keys(camposComErro).length > 0 && <Aviso tipo="erro">{mensagemDoErro({ code: "VALIDACAO_INVALIDA", status: 400 })}</Aviso>}
+      {erro && Object.keys(camposComErro).length > 0 && (
+        <Aviso tipo="erro">{mensagemDoErro({ code: "VALIDACAO_INVALIDA", status: 400 })}</Aviso>
+      )}
       {envio.esperando && <Aviso tipo="aviso">Tente de novo em {envio.restante} s.</Aviso>}
 
       {sessao.autenticado ? (
@@ -157,9 +168,32 @@ export function ReservaDados() {
       ) : (
         semConta && (
           <form onSubmit={aoEnviar} noValidate aria-label="Dados do visitante">
-            <Campo id="nome" rotulo="Nome" autoComplete="name" value={valores.nome} onChange={(e) => setValores({ ...valores, nome: e.target.value })} erro={camposComErro.nome} />
-            <Campo id="email" rotulo="E-mail" type="email" autoComplete="email" value={valores.email} onChange={(e) => setValores({ ...valores, email: e.target.value })} erro={camposComErro.email} />
-            <Campo id="whatsapp" rotulo="WhatsApp" type="tel" autoComplete="tel" value={valores.whatsapp} onChange={(e) => setValores({ ...valores, whatsapp: e.target.value })} erro={camposComErro.whatsapp} />
+            <Campo
+              id="nome"
+              rotulo="Nome"
+              autoComplete="name"
+              value={valores.nome}
+              onChange={(e) => setValores({ ...valores, nome: e.target.value })}
+              erro={camposComErro.nome}
+            />
+            <Campo
+              id="email"
+              rotulo="E-mail"
+              type="email"
+              autoComplete="email"
+              value={valores.email}
+              onChange={(e) => setValores({ ...valores, email: e.target.value })}
+              erro={camposComErro.email}
+            />
+            <Campo
+              id="whatsapp"
+              rotulo="WhatsApp"
+              type="tel"
+              autoComplete="tel"
+              value={valores.whatsapp}
+              onChange={(e) => setValores({ ...valores, whatsapp: e.target.value })}
+              erro={camposComErro.whatsapp}
+            />
             <Campo
               id="cep"
               rotulo="CEP (opcional)"
@@ -192,7 +226,9 @@ function ErroDaReserva({ erro, voltar }: { erro: ErroApi; voltar: string }) {
         Contas da equipe não fazem reservas como cliente. Use uma conta de cliente ou reserve sem conta.
       </Aviso>
     );
-  const volta = ["FORA_DO_EXPEDIENTE", "ANTECEDENCIA_INSUFICIENTE", "FORA_DO_HORIZONTE", "SERVICO_INATIVO"].includes(erro.code);
+  const volta = ["FORA_DO_EXPEDIENTE", "ANTECEDENCIA_INSUFICIENTE", "FORA_DO_HORIZONTE", "SERVICO_INATIVO"].includes(
+    erro.code,
+  );
   return (
     <>
       <AvisoDeErro erro={erro} />

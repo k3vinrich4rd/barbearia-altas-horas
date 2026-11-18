@@ -108,7 +108,8 @@ hr {
 /* Xadrez: faixa fina de uma casa de altura, nunca atrás de texto */
 .xadrez {
   height: var(--xadrez-14);
-  background: repeating-conic-gradient(var(--texto) 0 25%, var(--fundo) 0 50%) 0 0 / calc(var(--xadrez-14) * 2) calc(var(--xadrez-14) * 2);
+  background: repeating-conic-gradient(var(--texto) 0 25%, var(--fundo) 0 50%) 0 0 / calc(var(--xadrez-14) * 2)
+    calc(var(--xadrez-14) * 2);
 }
 
 .divisor {
@@ -123,7 +124,8 @@ hr {
   content: "";
   flex: 1;
   height: var(--xadrez-12);
-  background: repeating-conic-gradient(var(--texto) 0 25%, var(--fundo) 0 50%) 0 0 / calc(var(--xadrez-12) * 2) calc(var(--xadrez-12) * 2);
+  background: repeating-conic-gradient(var(--texto) 0 25%, var(--fundo) 0 50%) 0 0 / calc(var(--xadrez-12) * 2)
+    calc(var(--xadrez-12) * 2);
 }
 
 .selo {
@@ -647,7 +649,11 @@ input[aria-invalid="true"] {
 
 /* último minuto: a barra fica listrada (as listras do almoço), além do texto */
 .cronometro-barra[data-ultimo] .cronometro-barra-cheia {
-  background: repeating-linear-gradient(45deg, var(--almoco-fundo) 0 var(--space-2), var(--almoco-listra) var(--space-2) var(--space-3));
+  background: repeating-linear-gradient(
+    45deg,
+    var(--almoco-fundo) 0 var(--space-2),
+    var(--almoco-listra) var(--space-2) var(--space-3)
+  );
   border: var(--traco-1) solid var(--texto);
 }
 
@@ -656,17 +662,39 @@ input[aria-invalid="true"] {
   font-weight: var(--tipo-rotulo-peso);
 }
 
-.cronometro-barra-cheia[data-largura="0"] { width: 0%; }
-.cronometro-barra-cheia[data-largura="10"] { width: 10%; }
-.cronometro-barra-cheia[data-largura="20"] { width: 20%; }
-.cronometro-barra-cheia[data-largura="30"] { width: 30%; }
-.cronometro-barra-cheia[data-largura="40"] { width: 40%; }
-.cronometro-barra-cheia[data-largura="50"] { width: 50%; }
-.cronometro-barra-cheia[data-largura="60"] { width: 60%; }
-.cronometro-barra-cheia[data-largura="70"] { width: 70%; }
-.cronometro-barra-cheia[data-largura="80"] { width: 80%; }
-.cronometro-barra-cheia[data-largura="90"] { width: 90%; }
-.cronometro-barra-cheia[data-largura="100"] { width: 100%; }
+.cronometro-barra-cheia[data-largura="0"] {
+  width: 0%;
+}
+.cronometro-barra-cheia[data-largura="10"] {
+  width: 10%;
+}
+.cronometro-barra-cheia[data-largura="20"] {
+  width: 20%;
+}
+.cronometro-barra-cheia[data-largura="30"] {
+  width: 30%;
+}
+.cronometro-barra-cheia[data-largura="40"] {
+  width: 40%;
+}
+.cronometro-barra-cheia[data-largura="50"] {
+  width: 50%;
+}
+.cronometro-barra-cheia[data-largura="60"] {
+  width: 60%;
+}
+.cronometro-barra-cheia[data-largura="70"] {
+  width: 70%;
+}
+.cronometro-barra-cheia[data-largura="80"] {
+  width: 80%;
+}
+.cronometro-barra-cheia[data-largura="90"] {
+  width: 90%;
+}
+.cronometro-barra-cheia[data-largura="100"] {
+  width: 100%;
+}
 
 /* Resumo (checkout e agendar) */
 .resumo {

@@ -17,7 +17,9 @@ beforeEach(() => {
   zerarNavegacao();
   irPara.mockReset();
   servidor.use(
-    http.get(`${BFF}/me`, () => HttpResponse.json({ id: "u", nome: "Admin", email: "a@exemplo.test", papeis: ["ADMIN"], deveTrocarSenha: true })),
+    http.get(`${BFF}/me`, () =>
+      HttpResponse.json({ id: "u", nome: "Admin", email: "a@exemplo.test", papeis: ["ADMIN"], deveTrocarSenha: true }),
+    ),
     http.get(`${BFF}/sessao`, () => HttpResponse.json({ autenticado: false })),
   );
 });
@@ -30,12 +32,21 @@ describe("troca da senha inicial", () => {
       const r = proxy(new NextRequest(`http://localhost:3000${caminho}`, { headers: { cookie: sessao } }));
       expect(new URL(r.headers.get("location")!).pathname, caminho).toBe("/conta/trocar-senha");
     }
-    expect(proxy(new NextRequest("http://localhost:3000/conta/trocar-senha", { headers: { cookie: sessao } })).headers.get("location")).toBeNull();
+    expect(
+      proxy(new NextRequest("http://localhost:3000/conta/trocar-senha", { headers: { cookie: sessao } })).headers.get(
+        "location",
+      ),
+    ).toBeNull();
 
     // tela: senha curta não envia; erra a atual (401); acerta
     const corpos: Record<string, unknown>[] = [];
     let resposta: () => Response = () => erro(401, "CREDENCIAIS_INVALIDAS");
-    servidor.use(http.put(`${BFF}/me/senha`, async ({ request }) => { corpos.push((await request.json()) as Record<string, unknown>); return resposta(); }));
+    servidor.use(
+      http.put(`${BFF}/me/senha`, async ({ request }) => {
+        corpos.push((await request.json()) as Record<string, unknown>);
+        return resposta();
+      }),
+    );
     const { user } = renderizar(<TrocarSenha />, CLIENTE);
     expect(await screen.findByText("Antes de continuar, troque a senha inicial.")).toBeInTheDocument();
     await user.type(screen.getByLabelText("Senha atual"), "senha-inicial-123");

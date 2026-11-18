@@ -15,7 +15,8 @@ describe("política de privacidade", () => {
           versao: "1.0",
           textoConsentimento: "x",
           atualizadaEm: "2026-11-10T01:00:00Z", // 09/11 22:00 em São Paulo
-          politica: "# Política de dados\n\n## Seus direitos\n\n- exportar\n- excluir\n\n<script>alert(1)</script>\n\n<img src=x onerror=alert(2)>\n\n[link](javascript:alert(3))",
+          politica:
+            "# Política de dados\n\n## Seus direitos\n\n- exportar\n- excluir\n\n<script>alert(1)</script>\n\n<img src=x onerror=alert(2)>\n\n[link](javascript:alert(3))",
         }),
       ),
     );
@@ -23,7 +24,11 @@ describe("política de privacidade", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Política de dados" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Política de privacidade");
     expect(screen.getByRole("heading", { level: 3, name: "Seus direitos" })).toBeInTheDocument();
-    expect(within(container.querySelector("article")!).getAllByRole("listitem").map((i) => i.textContent)).toEqual(["exportar", "excluir"]);
+    expect(
+      within(container.querySelector("article")!)
+        .getAllByRole("listitem")
+        .map((i) => i.textContent),
+    ).toEqual(["exportar", "excluir"]);
     expect(screen.getByRole("link", { name: "Seus direitos" })).toHaveAttribute("href", "#seus-direitos");
     expect(screen.getByText(/Versão 1\.0 · atualizada em 09\/11\/2026/)).toBeInTheDocument();
     expect(container.querySelector("script")).toBeNull();

@@ -20,7 +20,9 @@ describe("contrato × cliente", () => {
       const saida = join(pasta, "schema.d.ts");
       const cli = resolve(raiz, "node_modules/openapi-typescript/bin/cli.js");
       execFileSync(process.execPath, [cli, contrato, "-o", saida], { stdio: "pipe" });
-      expect(normalizar(readFileSync(saida, "utf8"))).toBe(normalizar(readFileSync(resolve(raiz, "src/api/schema.d.ts"), "utf8")));
+      expect(normalizar(readFileSync(saida, "utf8"))).toBe(
+        normalizar(readFileSync(resolve(raiz, "src/api/schema.d.ts"), "utf8")),
+      );
     } finally {
       rmSync(pasta, { recursive: true, force: true });
     }
@@ -29,13 +31,16 @@ describe("contrato × cliente", () => {
     const spec = parse(readFileSync(contrato, "utf8")) as { paths: Record<string, Record<string, unknown>> };
     const esperadas: string[] = [];
     for (const [caminho, item] of Object.entries(spec.paths)) {
-      for (const m of ["get", "post", "put", "patch", "delete"]) if (item[m] && caminho !== "/pagamentos/webhook") esperadas.push(`${m.toUpperCase()} ${caminho}`);
+      for (const m of ["get", "post", "put", "patch", "delete"])
+        if (item[m] && caminho !== "/pagamentos/webhook") esperadas.push(`${m.toUpperCase()} ${caminho}`);
     }
     expect([...ROTAS_PERMITIDAS].sort()).toEqual(esperadas.sort());
     expect(ROTAS_PERMITIDAS.some((r) => r.includes("webhook") || r.includes("actuator"))).toBe(false);
 
     // o arquivo versionado é exatamente o que o gerador produz hoje
-    expect(normalizar(readFileSync(resolve(raiz, "src/api/rotas-permitidas.ts"), "utf8"))).toBe(gerarArquivo(readFileSync(contrato, "utf8")));
+    expect(normalizar(readFileSync(resolve(raiz, "src/api/rotas-permitidas.ts"), "utf8"))).toBe(
+      gerarArquivo(readFileSync(contrato, "utf8")),
+    );
     // o achado da spec: o código do DELETE /me está no enum
     expect(readFileSync(resolve(raiz, "src/api/schema.d.ts"), "utf8")).toContain("EXCLUSAO_BLOQUEADA_POR_RESERVA");
   }, 60000);

@@ -3,7 +3,15 @@ import { Suspense } from "react";
 import { AvisoDaHome } from "@/componentes/AvisoDaHome";
 import { LinkBotao } from "@/componentes/Botao";
 import { AlcanceDaHome, ServicosDaHome } from "@/componentes/ListaDeServicos";
-import { ComoFunciona, Duvidas, Galeria, Historia, OndeEstamos, Premios, WhatsappDaHome } from "@/componentes/SecoesDaHome";
+import {
+  ComoFunciona,
+  Duvidas,
+  Galeria,
+  Historia,
+  OndeEstamos,
+  Premios,
+  WhatsappDaHome,
+} from "@/componentes/SecoesDaHome";
 import { FATOS_DA_HOME, IMAGENS, SUBTITULO_DA_HOME, TITULO_DA_HOME } from "@/conteudo/historia";
 
 export default function Home() {

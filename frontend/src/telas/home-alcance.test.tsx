@@ -9,7 +9,8 @@ vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modu
 ligarServidor();
 
 const respostas = {
-  vazio: () => HttpResponse.json({ atualizadoEm: "2026-11-18T00:00:00Z", totalCidades: 0, totalBairros: 0, regioes: [] }),
+  vazio: () =>
+    HttpResponse.json({ atualizadoEm: "2026-11-18T00:00:00Z", totalCidades: 0, totalBairros: 0, regioes: [] }),
   limite: () => erro(429, "LIMITE_EXCEDIDO", {}, { "retry-after": "30" }),
   rede: () => HttpResponse.error(),
 };
@@ -17,7 +18,10 @@ const respostas = {
 describe("home sem alcance", () => {
   test("A17: regiões vazias, 429 ou rede fora: o bloco some e a home continua sem erro de página inteira", async () => {
     for (const [nome, resposta] of Object.entries(respostas)) {
-      servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)), http.get(`${BFF}/alcance`, resposta));
+      servidor.use(
+        http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+        http.get(`${BFF}/alcance`, resposta),
+      );
       renderizar(<Home />);
       expect(await screen.findByText("Corte Clássico / Social"), nome).toBeInTheDocument();
       await new Promise((r) => setTimeout(r, 50));

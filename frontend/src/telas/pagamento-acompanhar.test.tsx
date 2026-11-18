@@ -19,7 +19,10 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
 });
-const avancar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+const avancar = (ms: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
 const opcoes = () => ({ advanceTimers: vi.advanceTimersByTime });
 
 describe("acompanhar o pagamento", () => {
@@ -28,7 +31,12 @@ describe("acompanhar o pagamento", () => {
     let status = "AGUARDANDO_PAGAMENTO";
     const leituras = api({ status: () => status });
     let simulacoes = 0;
-    servidor.use(http.post(`${BFF}/pagamentos/simulacao/:id/confirmar`, () => { simulacoes++; return HttpResponse.json(cobrancaPix({ status: "PAGA" })); }));
+    servidor.use(
+      http.post(`${BFF}/pagamentos/simulacao/:id/confirmar`, () => {
+        simulacoes++;
+        return HttpResponse.json(cobrancaPix({ status: "PAGA" }));
+      }),
+    );
     const { user, unmount } = montar(opcoes());
     await preencher(user);
     await user.click(screen.getByRole("button", { name: "Pagar" }));

@@ -34,14 +34,23 @@ describe("confirmação", () => {
 
     expect(await screen.findByLabelText("Código")).toHaveValue("CODIGO-ABC-123");
     expect(screen.getAllByRole("button", { name: "Copiar" })).toHaveLength(2);
-    expect(screen.getByLabelText("Link para acompanhar")).toHaveValue(`http://localhost:3000/reserva#id=${ID}&codigo=CODIGO-ABC-123`);
+    expect(screen.getByLabelText("Link para acompanhar")).toHaveValue(
+      `http://localhost:3000/reserva#id=${ID}&codigo=CODIGO-ABC-123`,
+    );
     expect(screen.getByText(/Guarde este código: ele é a única forma de ver esta reserva/)).toBeInTheDocument();
     v.unmount();
 
     // cliente: link para Meus agendamentos e nenhum código
-    servidor.use(http.get(`${BFF}/agendamentos/${ID}`, () => HttpResponse.json(reserva({ status: "CONFIRMADO", origem: "CLIENTE", expiraEm: null }))));
+    servidor.use(
+      http.get(`${BFF}/agendamentos/${ID}`, () =>
+        HttpResponse.json(reserva({ status: "CONFIRMADO", origem: "CLIENTE", expiraEm: null })),
+      ),
+    );
     const c = renderizar(<Confirmacao reservaId={ID} />, CLIENTE);
-    expect(await screen.findByRole("link", { name: "Ver meus agendamentos" })).toHaveAttribute("href", "/meus-agendamentos");
+    expect(await screen.findByRole("link", { name: "Ver meus agendamentos" })).toHaveAttribute(
+      "href",
+      "/meus-agendamentos",
+    );
     expect(screen.queryByText(/Código da reserva/)).toBeNull();
     c.unmount();
 

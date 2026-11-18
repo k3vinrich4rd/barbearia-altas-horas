@@ -17,13 +17,13 @@ export const MENSAGENS: Record<string, string> = {
   WEBHOOK_NAO_AUTENTICADO: "Não foi possível concluir. Tente de novo mais tarde.",
   ACESSO_NEGADO: "Você não tem acesso a esta área.",
   RECURSO_NAO_ENCONTRADO: "Não encontramos o que você procura.",
-  TROCA_DE_SENHA_OBRIGATORIA: "Antes de continuar, troque a senha inicial.",
+  TROCA_DE_SENHA_OBRIGATORIA: "Crie uma senha nova para continuar.",
   CEP_NAO_ENCONTRADO: "Não encontramos este CEP. Confira os números.",
   FUNCIONALIDADE_DESLIGADA: "Este recurso ainda não está disponível.",
   METODO_NAO_PERMITIDO: "Algo mudou por aqui. Recarregue a página.",
   MIDIA_NAO_SUPORTADA: "Algo mudou por aqui. Recarregue a página.",
   EMAIL_JA_CADASTRADO: "Já existe uma conta com este e-mail. Entre ou use outro.",
-  HORARIO_INDISPONIVEL: "Esse horário acabou de ser reservado. Escolha outro.",
+  HORARIO_INDISPONIVEL: "Esse horário acabou de ser reservado por outra pessoa. Escolha outro.",
   CONFLITO_DE_VERSAO: "Alguém alterou isto antes de você. Mostramos a versão atual.",
   CONFLITO_CONCORRENTE: "Muitas reservas ao mesmo tempo. Tente de novo.",
   NOME_JA_EXISTE: "Já existe um item com este nome.",
@@ -42,10 +42,10 @@ export const MENSAGENS: Record<string, string> = {
   USUARIO_JA_VINCULADO: "Esta conta já está ligada a outro barbeiro.",
   LIMITE_EXCEDIDO: "Muitas tentativas. Tente de novo em {n} segundos.",
   GATEWAY_INDISPONIVEL:
-    "O pagamento está fora do ar agora. Tente de novo em instantes; seu horário continua guardado até o prazo.",
+    "Não conseguimos gerar o pagamento agora. Seu horário continua reservado até o fim do prazo; tente de novo.",
   CEP_INDISPONIVEL: "Não conseguimos buscar o endereço agora. O cadastro continua e o CEP é salvo.",
   EXCLUSAO_BLOQUEADA_POR_RESERVA:
-    "Você tem um agendamento pago. Combine o cancelamento com a barbearia e depois exclua a conta.",
+    "Você tem um agendamento em aberto. Para excluir a conta, fale com a barbearia.",
   ERRO_INTERNO: "Algo deu errado do nosso lado. Tente de novo.",
   [API_INDISPONIVEL]: "O servidor está acordando. Aguarde alguns segundos.",
 };
@@ -55,7 +55,10 @@ export const MENSAGEM_GENERICA = "Algo deu errado. Tente de novo.";
 /** Texto do erro pelo `code`. Código desconhecido (versão nova da API) cai no texto genérico. */
 export function textoDoCodigo(code: string, retryAfter?: number): string {
   const texto = MENSAGENS[code] ?? MENSAGEM_GENERICA;
-  return texto.replace("{n}", String(retryAfter ?? 5));
+  const espera = retryAfter ?? 5;
+  // texto aceito no design system: acima de um minuto a espera vem em minutos
+  if (code === "LIMITE_EXCEDIDO" && espera >= 60) return `Muitas tentativas. Tente de novo daqui a ${Math.ceil(espera / 60)} min.`;
+  return texto.replace("{n}", String(espera));
 }
 
 /** Texto para o usuário. Um 429 sem `code` conhecido mostra a espera do Retry-After. */

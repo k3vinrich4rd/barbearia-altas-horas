@@ -15,14 +15,26 @@ const DADOS = {
   geradoEm: "2026-11-18T11:00:00-03:00",
   conta: { nome: "Cliente Teste", email: "cliente@exemplo.test", whatsapp: "11900000001", endereco: null },
   consentimentos: [],
-  agendamentos: [{ id: "a1", inicio: "2026-11-24T10:00:00-03:00", fim: "2026-11-24T11:00:00-03:00", status: "CONFIRMADO", servico: "Corte", precoCentavos: 5500, motivoCancelamento: null }],
+  agendamentos: [
+    {
+      id: "a1",
+      inicio: "2026-11-24T10:00:00-03:00",
+      fim: "2026-11-24T11:00:00-03:00",
+      status: "CONFIRMADO",
+      servico: "Corte",
+      precoCentavos: 5500,
+      motivoCancelamento: null,
+    },
+  ],
 };
 
 beforeEach(() => {
   zerarNavegacao();
   baixar.mockReset();
   servidor.use(
-    http.get(`${BFF}/me`, () => HttpResponse.json({ id: "u", nome: "Cliente Teste", email: "cliente@exemplo.test", papeis: ["CLIENTE"] })),
+    http.get(`${BFF}/me`, () =>
+      HttpResponse.json({ id: "u", nome: "Cliente Teste", email: "cliente@exemplo.test", papeis: ["CLIENTE"] }),
+    ),
     http.get(`${BFF}/me/consentimentos`, () => HttpResponse.json([])),
     http.get(`${BFF}/politica-privacidade`, () => HttpResponse.json(POLITICA_PRIVACIDADE)),
   );

@@ -47,7 +47,17 @@ export function Aviso({
 }
 
 /** Erro da API como aviso: texto pelo `code` (catálogo) e o código para suporte. */
-export function AvisoDeErro({ erro, id, focar = true, final }: { erro: ErroApi; id?: string; focar?: boolean; final?: string }) {
+export function AvisoDeErro({
+  erro,
+  id,
+  focar = true,
+  final,
+}: {
+  erro: ErroApi;
+  id?: string;
+  focar?: boolean;
+  final?: string;
+}) {
   const suporte = codigoParaSuporte(erro);
   return (
     <Aviso tipo="erro" id={id} focar={focar}>

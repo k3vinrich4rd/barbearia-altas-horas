@@ -14,7 +14,9 @@ beforeEach(() => {
   definirBusca("");
   servidor.use(
     http.get(`${BFF}/politica-privacidade`, () => HttpResponse.json(POLITICA_PRIVACIDADE)),
-    http.get(`${BFF}/sessao`, () => HttpResponse.json({ autenticado: true, usuario: { id: "u", nome: "F" }, papeis: ["CLIENTE"] })),
+    http.get(`${BFF}/sessao`, () =>
+      HttpResponse.json({ autenticado: true, usuario: { id: "u", nome: "F" }, papeis: ["CLIENTE"] }),
+    ),
   );
 });
 
@@ -30,7 +32,12 @@ describe("cadastro", () => {
   test("A35: e-mail repetido e erros da API caem no campo certo; senha de 10 a 72 bytes é validada antes; 201 leva ao destino; só o login falhando manda para /entrar", async () => {
     let posts = 0;
     let resposta: () => Response = () => erro(409, "EMAIL_JA_CADASTRADO");
-    servidor.use(http.post(`${BFF}/auth/cadastro`, () => { posts++; return resposta(); }));
+    servidor.use(
+      http.post(`${BFF}/auth/cadastro`, () => {
+        posts++;
+        return resposta();
+      }),
+    );
 
     // e-mail repetido: no campo e-mail, sem revelar mais nada
     let r = renderizar(<Cadastro />);
@@ -41,7 +48,13 @@ describe("cadastro", () => {
     r.unmount();
 
     // errors[] nos campos
-    resposta = () => erro(400, "VALIDACAO_INVALIDA", { errors: [{ field: "whatsapp", message: "WhatsApp inválido" }, { field: "nome", message: "nome curto" }] });
+    resposta = () =>
+      erro(400, "VALIDACAO_INVALIDA", {
+        errors: [
+          { field: "whatsapp", message: "WhatsApp inválido" },
+          { field: "nome", message: "nome curto" },
+        ],
+      });
     r = renderizar(<Cadastro />);
     await enviar(r.user);
     await waitFor(() => expect(screen.getByLabelText("WhatsApp")).toHaveAttribute("aria-invalid", "true"));
@@ -61,7 +74,11 @@ describe("cadastro", () => {
     expect(new TextEncoder().encode("a" + "é".repeat(36)).length).toBe(73);
 
     // 201 com sessão: vai para onde o cliente estava (voltar) ou Meus agendamentos
-    resposta = () => HttpResponse.json({ sessao: true, usuario: { id: "u", nome: "F", papeis: ["CLIENTE"] }, deveTrocarSenha: false }, { status: 201 }) as never;
+    resposta = () =>
+      HttpResponse.json(
+        { sessao: true, usuario: { id: "u", nome: "F", papeis: ["CLIENTE"] }, deveTrocarSenha: false },
+        { status: 201 },
+      ) as never;
     definirBusca("voltar=%2Fagendar%2Fdados%3FservicoId%3D1");
     r = renderizar(<Cadastro />);
     await enviar(r.user);

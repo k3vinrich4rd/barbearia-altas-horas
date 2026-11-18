@@ -24,9 +24,11 @@ export function verificar(dir = join(raiz, "src")) {
       const onde = `${relative(raiz, arquivo)}:${i + 1}`;
       if (/#[0-9a-fA-F]{3,8}\b/.test(linha)) problemas.push(`${onde} cor literal (#)`);
       if (/\b(rgb|rgba|hsl|hsla)\(/i.test(linha)) problemas.push(`${onde} cor literal (rgb/hsl)`);
-      if (/font-family\s*:/.test(linha) && !/font-family\s*:\s*var\(--(font|tipo)-[a-z-]+\)\s*;?/.test(linha)) problemas.push(`${onde} font-family fora de var(--font-*)`);
+      if (/font-family\s*:/.test(linha) && !/font-family\s*:\s*var\(--(font|tipo)-[a-z-]+\)\s*;?/.test(linha))
+        problemas.push(`${onde} font-family fora de var(--font-*)`);
       if (/box-shadow\s*:/.test(linha)) problemas.push(`${onde} box-shadow (o design system não tem sombra)`);
-      if (/(^|[^\w.-])-?\d*\.?\d+px\b/.test(linha)) problemas.push(`${onde} medida em px solta (use var(--space-*), var(--radius-*) ou var(--traco-*))`);
+      if (/(^|[^\w.-])-?\d*\.?\d+px\b/.test(linha))
+        problemas.push(`${onde} medida em px solta (use var(--space-*), var(--radius-*) ou var(--traco-*))`);
     });
   }
   return problemas;

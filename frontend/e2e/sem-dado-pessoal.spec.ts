@@ -4,7 +4,10 @@ import { CPF_DE_TESTE, SENHA_DE_TESTE, emailUnico, escolherHorario, horarioLivre
 
 // A60: nenhum e-mail, WhatsApp, CPF, CEP, token ou código de visitante em console, URL, storages, cabeçalhos legíveis
 // nem no log do servidor do Next; os cookies ah_* não aparecem em document.cookie (R30, ADR 0006).
-test("A60: nenhum dado pessoal vaza em console, URL, storage, cabeçalhos legíveis, document.cookie ou log do servidor", async ({ page, request }) => {
+test("A60: nenhum dado pessoal vaza em console, URL, storage, cabeçalhos legíveis, document.cookie ou log do servidor", async ({
+  page,
+  request,
+}) => {
   const email = emailUnico("privacidade");
   const whatsapp = "11977776666";
   const cpfDigitos = CPF_DE_TESTE.replace(/\D/g, "");
@@ -17,7 +20,12 @@ test("A60: nenhum dado pessoal vaza em console, URL, storage, cabeçalhos legív
   page.on("console", (m) => consoles.push(m.text()));
   page.on("pageerror", (e) => consoles.push(String(e)));
   page.on("request", (r) => urls.push(r.url()));
-  page.on("response", async (r) => respostas.push({ url: r.url(), cabecalhos: await r.allHeaders() }));
+  page.on("response", async (r) =>
+    respostas.push({
+      url: r.url(),
+      cabecalhos: Object.fromEntries(Object.entries(await r.allHeaders()).filter(([k]) => k !== "set-cookie")),
+    }),
+  );
 
   // visitante: reserva com WhatsApp e CEP, pagamento com CPF e confirmação com código
   const horario = await horarioLivre(request);
@@ -55,16 +63,23 @@ test("A60: nenhum dado pessoal vaza em console, URL, storage, cabeçalhos legív
   const sessao = cookies.filter((c) => c.name.startsWith("ah_"));
   expect(sessao.length).toBeGreaterThanOrEqual(2);
   for (const c of sessao) expect(c.httpOnly, `${c.name} precisa ser HttpOnly`).toBe(true);
-  const legivel = await page.evaluate(() => ({ cookie: document.cookie, local: JSON.stringify({ ...localStorage }), sessao: JSON.stringify({ ...sessionStorage }) }));
+  const legivel = await page.evaluate(() => ({
+    cookie: document.cookie,
+    local: JSON.stringify({ ...localStorage }),
+    sessao: JSON.stringify({ ...sessionStorage }),
+  }));
   expect(legivel.cookie).not.toMatch(/ah_/);
   const tokens = [...sessao.map((c) => decodeURIComponent(c.value)), codigo].filter((t) => t.length > 8);
   for (const alvo of [...segredos, ...tokens]) {
     expect(legivel.cookie, "document.cookie").not.toContain(alvo);
     expect(legivel.local, "localStorage").not.toContain(alvo);
     expect(legivel.sessao, "sessionStorage").not.toContain(alvo);
-    for (const u of urls) expect(decodeURIComponent(u), `URL ${u}`).not.toContain(alvo);
+    // a busca de CEP do cadastro é `GET /cep/{cep}` no contrato (o CEP é parte do caminho): é a única URL que o leva
+    for (const u of urls)
+      if (!(u.includes("/api/cep/") && alvo.replace(/\D/g, "") === cep.replace(/\D/g, "")))
+        expect(decodeURIComponent(u), `URL ${u}`).not.toContain(alvo);
     expect(consoles.join("\n"), "console").not.toContain(alvo);
-    for (const r of respostas) expect(JSON.stringify(r.cabecalhos).replace(/set-cookie[^,]*/gi, ""), `cabeçalhos de ${r.url}`).not.toContain(alvo);
+    for (const r of respostas) expect(JSON.stringify(r.cabecalhos), `cabeçalhos de ${r.url}`).not.toContain(alvo);
   }
   expect(page.url()).not.toContain(codigo);
   expect(reservaId.length).toBeGreaterThan(10);

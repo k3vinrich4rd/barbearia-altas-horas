@@ -13,8 +13,13 @@ const INICIO = "2026-11-24T10:00:00-03:00";
 beforeEach(() => {
   zerarNavegacao();
   fixarRelogio();
-  definirBusca(new URLSearchParams({ servicoId: CINCO_SERVICOS[1].id, barbeiroId: BARBEIRO.id, inicio: INICIO }).toString());
-  servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)), http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
+  definirBusca(
+    new URLSearchParams({ servicoId: CINCO_SERVICOS[1].id, barbeiroId: BARBEIRO.id, inicio: INICIO }).toString(),
+  );
+  servidor.use(
+    http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+    http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
+  );
 });
 afterEach(() => vi.useRealTimers());
 
@@ -38,14 +43,23 @@ describe("reserva do visitante", () => {
       http.post(`${BFF}/agendamentos/guest`, async () => {
         posts++;
         await delay(50);
-        return erro(400, "VALIDACAO_INVALIDA", { errors: [{ field: "email", message: "e-mail inválido" }, { field: "nome", message: "nome obrigatório" }] });
+        return erro(400, "VALIDACAO_INVALIDA", {
+          errors: [
+            { field: "email", message: "e-mail inválido" },
+            { field: "nome", message: "nome obrigatório" },
+          ],
+        });
       }),
     );
     const { user } = renderizar(<ReservaDados />);
-    expect(await screen.findByRole("link", { name: "Entrar" })).toHaveAttribute("href", expect.stringContaining("/entrar?voltar="));
+    expect(await screen.findByRole("link", { name: "Entrar" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/entrar?voltar="),
+    );
     expect(screen.queryByLabelText("Nome")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Continuar sem conta" }));
-    for (const rotulo of ["Nome", "E-mail", "WhatsApp", "CEP (opcional)"]) expect(screen.getByLabelText(rotulo)).toBeInTheDocument();
+    for (const rotulo of ["Nome", "E-mail", "WhatsApp", "CEP (opcional)"])
+      expect(screen.getByLabelText(rotulo)).toBeInTheDocument();
 
     await preencher(user);
     await user.dblClick(screen.getByRole("button", { name: "Reservar" }));
@@ -68,7 +82,9 @@ describe("reserva do visitante", () => {
       http.post(`${BFF}/agendamentos/guest`, async ({ request }) => {
         const corpo = (await request.json()) as Record<string, unknown>;
         corpos.push(corpo);
-        return corpo.cep === "123" ? erro(400, "CEP_INVALIDO") : HttpResponse.json({ ...reserva(), tokenGuest: "codigo-x" }, { status: 201 });
+        return corpo.cep === "123"
+          ? erro(400, "CEP_INVALIDO")
+          : HttpResponse.json({ ...reserva(), tokenGuest: "codigo-x" }, { status: 201 });
       }),
     );
     // (qualquer GET /api/cep/* cairia em onUnhandledRequest: "error" e derrubaria o teste)
@@ -92,8 +108,14 @@ describe("reserva do visitante", () => {
   });
 
   test("A23: com 201 vai ao pagamento com o resumo; o código do visitante não aparece na URL, nos storages nem no console", async () => {
-    const consoles = (["log", "info", "warn", "error"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));
-    servidor.use(http.post(`${BFF}/agendamentos/guest`, () => HttpResponse.json({ ...reserva(), tokenGuest: "CODIGO-SECRETO-123" }, { status: 201 })));
+    const consoles = (["log", "info", "warn", "error"] as const).map((m) =>
+      vi.spyOn(console, m).mockImplementation(() => {}),
+    );
+    servidor.use(
+      http.post(`${BFF}/agendamentos/guest`, () =>
+        HttpResponse.json({ ...reserva(), tokenGuest: "CODIGO-SECRETO-123" }, { status: 201 }),
+      ),
+    );
     const { user } = await abrirFormulario();
     expect(screen.getByText(/Corte Degradê/)).toBeInTheDocument();
     expect(screen.getByText(/terça, 24\/11 às 10:00/)).toBeInTheDocument();
@@ -105,7 +127,12 @@ describe("reserva do visitante", () => {
     expect(JSON.stringify({ ...localStorage })).not.toContain("CODIGO-SECRETO");
     expect(JSON.stringify({ ...sessionStorage })).not.toContain("CODIGO-SECRETO");
     expect(localStorage.length + sessionStorage.length).toBe(0);
-    expect(consoles.flatMap((c) => c.mock.calls).flat().join(" ")).not.toContain("CODIGO-SECRETO");
+    expect(
+      consoles
+        .flatMap((c) => c.mock.calls)
+        .flat()
+        .join(" "),
+    ).not.toContain("CODIGO-SECRETO");
     expect(window.location.href).not.toContain("CODIGO-SECRETO");
     consoles.forEach((c) => c.mockRestore());
   });

@@ -43,7 +43,11 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
     return (
       <>
         <h1>Confirmação</h1>
-        {reserva.erro.status === 404 ? <Aviso tipo="erro">Não encontramos esta reserva.</Aviso> : <AvisoDeErro erro={reserva.erro} />}
+        {reserva.erro.status === 404 ? (
+          <Aviso tipo="erro">Não encontramos esta reserva.</Aviso>
+        ) : (
+          <AvisoDeErro erro={reserva.erro} />
+        )}
         <Link href="/agendar">Agendar horário</Link>
       </>
     );
@@ -90,8 +94,14 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
                 {codigo ? (
                   <>
                     <CopiarTexto id="codigo" rotulo="Código" texto={codigo} />
-                    <CopiarTexto id="link-acompanhamento" rotulo="Link para acompanhar" texto={`${window.location.origin}/reserva#id=${r.id}&codigo=${codigo}`} />
-                    <p className="nota">O link fica guardado no histórico deste navegador. Quem tiver o link vê a reserva.</p>
+                    <CopiarTexto
+                      id="link-acompanhamento"
+                      rotulo="Link para acompanhar"
+                      texto={`${window.location.origin}/reserva#id=${r.id}&codigo=${codigo}`}
+                    />
+                    <p className="nota">
+                      O link fica guardado no histórico deste navegador. Quem tiver o link vê a reserva.
+                    </p>
                   </>
                 ) : (
                   <p>O código só aparece neste navegador, logo depois da reserva.</p>

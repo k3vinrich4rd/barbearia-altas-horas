@@ -4,7 +4,12 @@
 import { STATUS_DA_RESERVA } from "@/telas/status";
 import { Icone, type NomeDeIcone } from "./Icone";
 
-const ICONES: Record<string, NomeDeIcone | undefined> = { CONFIRMADO: "visto", CONCLUIDO: "visto", NAO_COMPARECEU: "x", EXPIRADO: "relogio" };
+const ICONES: Record<string, NomeDeIcone | undefined> = {
+  CONFIRMADO: "visto",
+  CONCLUIDO: "visto",
+  NAO_COMPARECEU: "x",
+  EXPIRADO: "relogio",
+};
 
 export function EtiquetaDeStatus({ status }: { status: string }) {
   const icone = ICONES[status];

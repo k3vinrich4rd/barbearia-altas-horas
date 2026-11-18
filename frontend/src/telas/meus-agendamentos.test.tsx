@@ -25,9 +25,20 @@ describe("meus agendamentos", () => {
           tamanho: 10,
           total: 45,
           itens: [
-            reserva({ id: "a1", status: "AGUARDANDO_PAGAMENTO", expiraEm: "2026-11-18T08:03:00-03:00", origem: "CLIENTE" }),
+            reserva({
+              id: "a1",
+              status: "AGUARDANDO_PAGAMENTO",
+              expiraEm: "2026-11-18T08:03:00-03:00",
+              origem: "CLIENTE",
+            }),
             reserva({ id: "a2", status: "CONFIRMADO", expiraEm: null, origem: "CLIENTE" }),
-            reserva({ id: "a3", status: "CANCELADO", expiraEm: null, origem: "CLIENTE", motivoCancelamento: "Barbeiro doente" }),
+            reserva({
+              id: "a3",
+              status: "CANCELADO",
+              expiraEm: null,
+              origem: "CLIENTE",
+              motivoCancelamento: "Barbeiro doente",
+            }),
           ],
         });
       }),
@@ -53,7 +64,9 @@ describe("meus agendamentos", () => {
     unmount();
 
     // vazio
-    servidor.use(http.get(`${BFF}/me/agendamentos`, () => HttpResponse.json({ pagina: 0, tamanho: 10, total: 0, itens: [] })));
+    servidor.use(
+      http.get(`${BFF}/me/agendamentos`, () => HttpResponse.json({ pagina: 0, tamanho: 10, total: 0, itens: [] })),
+    );
     const v = renderizar(<MeusAgendamentos />, CLIENTE);
     expect(await screen.findByText(/Você ainda não tem agendamentos/)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Agendar horário" })[0]).toHaveAttribute("href", "/agendar");
