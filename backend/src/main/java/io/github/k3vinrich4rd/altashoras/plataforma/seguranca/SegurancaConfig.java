@@ -28,10 +28,14 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+
+import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
+import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
 /**
  * Quem pode chamar o quê. Regra central: NEGAR POR PADRÃO. Só o que está listado como público abre sem login;
@@ -70,6 +74,8 @@ class SegurancaConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/servicos", "/barbeiros", "/politica-pagamento",
                                 "/disponibilidade", "/actuator/health", "/actuator/health/**").permitAll()
+                        // CEP (Fatia 6A): pública, mas com limite por IP; é a primeira rota que gasta serviço de terceiros (H21).
+                        .requestMatchers(HttpMethod.GET, "/cep/**").permitAll()
                         // Visitante sem conta (R26): reserva com limite por IP; a consulta exige o X-Guest-Token.
                         .requestMatchers(HttpMethod.POST, "/agendamentos/guest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/agendamentos/guest/*").permitAll()
@@ -138,6 +144,24 @@ class SegurancaConfig {
         if (temPapelDoPainel && quem.getPrincipal() instanceof Jwt jwt && Boolean.TRUE.equals(jwt.getClaim("trocar"))) {
             throw new TrocaDeSenhaObrigatoriaException();
         }
+    }
+
+    /**
+     * O firewall do Spring Security recusa caminho com barra ou percentual codificado (`%2F`, `%25`) antes de qualquer
+     * controller, e o padrão é um 400 sem corpo. Aqui sai no formato de todo o resto (RFC 9457): em `/cep/` é
+     * `CEP_INVALIDO` (A3); nas demais rotas, `VALIDACAO_INVALIDA`. A recusa continua acontecendo antes de qualquer chamada.
+     */
+    @Bean
+    RequestRejectedHandler pedidoRecusadoPeloFirewall(
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver tratadorDeErros) {
+        return (request, response, recusa) -> {
+            CodigoErro codigo = request.getRequestURI().startsWith("/cep/")
+                    ? CodigoErro.CEP_INVALIDO : CodigoErro.VALIDACAO_INVALIDA;
+            // Sem a URI: ela pode trazer o CEP (R30). Só o método e o código, para notar se as recusas virarem ataque.
+            org.slf4j.LoggerFactory.getLogger(SegurancaConfig.class)
+                    .debug("pedido recusado pelo firewall: metodo={} code={}", request.getMethod(), codigo);
+            tratadorDeErros.resolveException(request, response, null, new ExcecaoDeNegocio(codigo));
+        };
     }
 
     /** Só as origens de CORS_ORIGENS; nunca "*". Vazio = nenhum navegador de outra origem chama a API (E15). */

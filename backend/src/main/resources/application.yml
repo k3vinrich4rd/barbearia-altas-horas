@@ -60,6 +60,17 @@ app:
     cadastro-janela: 1h
     guest-max: 3          # reservas de visitante por IP (R26, E9)
     guest-janela: 1h
+    cep-max: 30           # consultas de CEP por IP (H21, E7)
+    cep-janela: 1m
+  cep:
+    # ViaCEP primeiro, BrasilAPI de fallback; sem chave e sem conta (D59, ADR 0008).
+    viacep-url: https://viacep.com.br
+    brasilapi-url: https://brasilapi.com.br
+    conexao-timeout: 1s
+    leitura-timeout: 2s
+    cache-encontrado-ttl: 7d
+    cache-inexistente-ttl: 1h
+    cache-max: 10000
   pagamento:
     # simulado (padrão em todo o beta, D59): sem conta externa e sem dinheiro real; asaas só na produção.
     modo: simulado

@@ -147,7 +147,7 @@ Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDAN
 ```json
 { "cep": "01001000", "logradouro": "Praça da Sé", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP", "fonte": "VIACEP" }
 ```
-Aceita `01001-000` ou `01001000`; outro formato → `400 CEP_INVALIDO` sem chamada externa. Os dois provedores fora → `503 CEP_INDISPONIVEL` (o cadastro **não** usa esta rota para decidir: R31).
+Aceita `01001-000` ou `01001000`; outro formato → `400 CEP_INVALIDO` sem chamada externa. Os dois provedores fora → `503 CEP_INDISPONIVEL` (o cadastro **não** usa esta rota para decidir: R31). `fonte` é `VIACEP`, `BRASILAPI` ou `CACHE` (encontrado fica 7 dias em memória; inexistente, 1 hora; falha de provedor nunca fica). Limite de 30 consultas por minuto por IP (H21): passou, `429` com `Retry-After`.
 
 ### 4.4 Autenticação e conta
 
@@ -354,6 +354,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.5.0 (proposta) | 2026-11-17 | Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31) | não (campos e códigos já existiam) |
 | 1.4.0 (proposta) | 2026-11-17 | Fatia 5 (painel): `AgendamentoAdmin` e `CobrancaAdmin` (sem Pix, cartão, CPF nem e-mail); rotas novas `GET /admin/pagamentos/eventos`, `POST /admin/pagamentos/eventos/{id}/revisao` e `GET /admin/barbeiros/{id}/folgas`; `409 USUARIO_JA_VINCULADO`; `ServicoRequest.precoCentavos` a partir de **1** centavo; `PaginaAuditoria` com `detalhe` (sem IP); `ConfiguracaoAgenda` sem `fuso` na entrada; `Location` nos `201` dos cadastros | não (nenhum campo renomeado; o preço mínimo só recusa o que a reserva já recusava) |
 | 1.2.0 (proposta) | 2026-11-17 | Fatia 3: `PUT /me/senha`; `deveTrocarSenha` no login e no perfil; `403 TROCA_DE_SENHA_OBRIGATORIA`; senha medida em bytes; `WWW-Authenticate: Bearer` nos `401`; limite também por IP; o cabeçalho de rastreio é `X-Trace-Id` (o texto citava `X-Trace-Id`) | não (não há front ainda) |
 | 1.1.2 (proposta) | 2026-11-16 | Fatia 2: exemplos do catálogo com dados reais; `GET /disponibilidade` detalha `422 FORA_DO_HORIZONTE` para data passada, `422 SERVICO_INATIVO`, `404` de barbeiro, formato fixo dos horários e os cabeçalhos de cache | não (não há front ainda) |
