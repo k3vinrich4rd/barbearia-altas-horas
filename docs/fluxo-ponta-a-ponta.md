@@ -23,9 +23,10 @@ O caminho completo de quem usa a agenda: **visitante** (sem conta), **cliente** 
 | De | Para | Quem dispara |
 |---|---|---|
 | `AGUARDANDO_PAGAMENTO` | `CONFIRMADO` | pagamento confirmado (webhook ou conciliação) |
-| `AGUARDANDO_PAGAMENTO` | `EXPIRADO` | `ExpiracaoJob`, passados os 15 min |
+| `AGUARDANDO_PAGAMENTO` | `EXPIRADO` | `ExpiracaoJob`, passados os 3 min (R7) |
 | `AGUARDANDO_PAGAMENTO` | `CANCELADO` | painel, com motivo |
 | `EXPIRADO` | `CONFIRMADO` | pagamento tardio com o horário ainda livre |
+| (nasce) | `CONFIRMADO` | **reserva manual** do painel (6D, `origem = MANUAL`, sem cobrança): não passa por `AGUARDANDO_PAGAMENTO` |
 | `CONFIRMADO` | `CONCLUIDO` · `NAO_COMPARECEU` · `CANCELADO` | painel |
 | `CONCLUIDO` · `NAO_COMPARECEU` · `CANCELADO` | (nenhum) | estados finais |
 
@@ -100,7 +101,7 @@ Pontos que costumam surpreender:
 - **Conciliação:** se o webhook atrasou, a leitura da reserva (`ConciliacaoDePagamento`, via `ConciliadorDePagamento` da agenda) reconsulta o gateway, no máximo uma vez a cada 10 s por cobrança, e aplica o mesmo fluxo do webhook.
 - **Webhook que falhou no meio:** `ReprocessamentoWebhookJob` retoma os eventos pendentes há mais de 10 min.
 
-### 2.2 Não pagou em 15 minutos ✅
+### 2.2 Não pagou em 3 minutos ✅
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','actorBkg':'#0A0A0A','actorTextColor':'#FFFFFF','actorBorder':'#C0C0C0','noteBkgColor':'#2B2B2B','noteTextColor':'#FFFFFF','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
@@ -221,6 +222,8 @@ Todas as rotas `/admin/**` exigem login e papel; o admin inicial precisa **troca
 | Pendências de pagamento | `GET /admin/pagamentos` · `POST /admin/pagamentos/{id}/devolucao` · `GET /admin/pagamentos/eventos` · `POST /admin/pagamentos/eventos/{id}/revisao` | `PagamentosAdminController` → `ListarPendencias`, `RegistrarDevolucao`, `RevisarEvento` |
 | Cadastros | `/admin/servicos`, `/admin/barbeiros` (+ `/jornada`, `/folgas`), `/admin/configuracao` | `ServicosAdminController`, `BarbeirosAdminController`, `ConfiguracaoAdminController` → `CadastroDeServicos`, `CadastroDeBarbeiros`, `CadastroDeFolgas`, `ConfigurarAgenda` → `CadastrosDoPainel` |
 | Auditoria | `GET /admin/auditoria` | `AuditoriaController`; cada ação grava ator, ação e recurso via `Auditor` |
+| Reserva manual ✅ (6D) | `POST /admin/agendamentos` (`servicoId`, `barbeiroId`, `inicio`, `nomeCliente?`, `observacao?`) | `AgendaAdminController` → `CriarReservaManual` (não é `@Transactional`) → `PainelDaAgenda.criarReservaManual` (confere o escopo: BARBEIRO só para si, senão `404`) → `ReservarHorario.comoBarbearia`: a mesma validação e a mesma transação da reserva do cliente (trava `FOR SHARE` do barbeiro, grade, folga, constraint `EXCLUDE` → `409`), com `Reserva.manual` (origem `MANUAL`, `CONFIRMADO`, sem prazo, sem aceite) e, **dentro da mesma transação**, o `Auditor` (`AGENDAMENTO_MANUAL_CRIADO`). Sem cobrança, sem WhatsApp do cliente. Fechar e cancelar usam a rota de status; o cancelamento não cria devolução porque `TransicoesDeCobranca` só troca cobranças que existem. `RetencaoDeReservasManuais` apaga nome e observação 90 dias depois do fim |
+| WhatsApp do barbeiro ✅ (6D) | `POST`/`PUT /admin/barbeiros` (campo `whatsapp`, só ADMIN) · `GET /barbeiros` (público) | `CadastroDeBarbeiros` guarda só os dígitos (`barbeiro.whatsapp`); `CatalogoController` devolve `BarbeiroNoCatalogo`; o front monta `https://wa.me/<número>` |
 | Alcance por região ✅ (6C) | `GET /admin/alcance?de&ate&barbeiroId` | `AlcanceController` (módulo `admin`) → `AlcanceDaAgenda.painel` (API pública da `agenda`: confere o escopo, o período de até 366 dias e o barbeiro) → `ConsultaAlcance` (uma consulta agrupa `CONFIRMADO` e `CONCLUIDO` por cidade, uf e bairro e agrega em memória). **K-anonimato (k ≥ 5):** bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades". O ADMIN vê tudo ou filtra por barbeiro; o BARBEIRO vê só os próprios (o `barbeiroId` da query é trocado pelo dele). Nunca em cache |
 | Vitrine pública do alcance ✅ (6C) | `GET /alcance` (sem token) | `AlcancePublicoController` (módulo `agenda`): limite de 30 por minuto por IP (`LimitadorDeTentativas`), cache Caffeine de 1 hora com `Ticker` injetável → `AlcanceDaAgenda.publico`: últimos 12 meses, **só nomes** das cidades e dos bairros que passam no k ≥ 5, sem contagens |
 
@@ -250,7 +253,8 @@ No [guia de testes](guia-testes.md): suba o banco e a API na [seção 0](guia-te
 | Catálogo, política e horários livres | [V1](guia-testes.md#v1--ver-os-serviços), [V2](guia-testes.md#v2--ler-a-política-de-pagamento), [V3](guia-testes.md#v3--ver-os-horários-livres) |
 | Reserva de visitante e consulta pelo token | [V4](guia-testes.md#v4--reservar-sem-conta), [V5](guia-testes.md#v5--acompanhar-a-reserva-pelo-token), [V6](guia-testes.md#v6--o-horário-sumiu-da-agenda) |
 | Pagamento, aceite e idempotência | [V7](guia-testes.md#v7--pagar-sem-aceitar-a-política), [V8](guia-testes.md#v8--gerar-o-pix-e-repetir-sem-cobrar-duas-vezes), [V9](guia-testes.md#v9--confirmar-o-pagamento-simulado) |
-| Expiração de 15 minutos | [V10](guia-testes.md#v10--não-pagar-em-15-minutos) |
+| Expiração de 3 minutos | [V10](guia-testes.md#v10--não-pagar-em-3-minutos) |
+| WhatsApp do barbeiro e reserva manual (6D) | [D1 a D4](guia-testes.md#d1--fatia-6d-whatsapp-reserva-manual-e-prazo-de-3-min) |
 | Dois clientes no mesmo horário (banco) | [2.2](guia-testes.md#22--dois-clientes-não-pegam-o-mesmo-horário) |
 | Erros padronizados | [3](guia-testes.md#3-erros-padronizados-rfc-9457) |
 | Cadastro, login, refresh rotativo | [C1 a C7](guia-testes.md#c1--criar-a-conta) |
