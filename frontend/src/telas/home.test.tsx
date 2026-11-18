@@ -19,10 +19,10 @@ describe("home", () => {
     renderizar(<Home />);
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Desde 1997");
-    expect(screen.getByText(/Jardim Bonança, em Osasco, desde 1997/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Seu horário com o Eduardo");
+    expect(screen.getAllByText(/no Jardim Bonança, em Osasco/).length).toBeGreaterThan(0);
 
-    const servicos = await screen.findByRole("heading", { name: "Serviços" });
+    const servicos = await screen.findByRole("heading", { name: "Um barbeiro, todos os serviços" });
     const lista = within(servicos.closest("section")!).getAllByRole("listitem");
     expect(lista).toHaveLength(5);
     expect(lista[1]).toHaveTextContent("Corte Degradê / Fade / Navalhado");

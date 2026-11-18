@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { BFF, erro, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { renderizar } from "@/testes/render";
@@ -23,7 +23,8 @@ describe("política de privacidade", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Política de dados" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Política de privacidade");
     expect(screen.getByRole("heading", { level: 3, name: "Seus direitos" })).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem").map((i) => i.textContent)).toEqual(["exportar", "excluir"]);
+    expect(within(container.querySelector("article")!).getAllByRole("listitem").map((i) => i.textContent)).toEqual(["exportar", "excluir"]);
+    expect(screen.getByRole("link", { name: "Seus direitos" })).toHaveAttribute("href", "#seus-direitos");
     expect(screen.getByText(/Versão 1\.0 · atualizada em 09\/11\/2026/)).toBeInTheDocument();
     expect(container.querySelector("script")).toBeNull();
     expect(container.querySelector("img")).toBeNull();

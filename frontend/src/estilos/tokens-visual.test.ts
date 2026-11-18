@@ -2,7 +2,10 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+
+// next/font/google só funciona dentro do compilador do Next: aqui entra um falso com a mesma forma
+vi.mock("next/font/google", () => ({ Playfair_Display: () => ({ variable: "fonte-falsa", className: "fonte-falsa" }) }));
 // @ts-expect-error scripts .mjs sem tipos
 import { gerarCss } from "../../scripts/gerar-tokens.mjs";
 // @ts-expect-error scripts .mjs sem tipos

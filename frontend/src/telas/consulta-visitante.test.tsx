@@ -30,7 +30,7 @@ describe("consulta do visitante", () => {
     // 1) link com fragmento
     window.history.replaceState(null, "", `/reserva#id=${ID}&codigo=CODIGO-CERTO`);
     const a = renderizar(<ConsultaVisitante />);
-    expect(await screen.findByText(/Situação: Confirmado/)).toBeInTheDocument();
+    expect(await screen.findByText("Confirmado")).toBeInTheDocument();
     expect(vistos).toEqual(["CODIGO-CERTO"]);
     expect(window.location.hash).toBe("");
     expect(window.location.href).not.toContain("CODIGO-CERTO");

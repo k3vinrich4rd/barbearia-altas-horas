@@ -42,7 +42,7 @@ describe("meus agendamentos", () => {
     expect(itens[1]).toHaveTextContent("Confirmado");
     expect(within(itens[1]).queryByRole("link", { name: "Pagar" })).toBeNull();
     expect(itens[2]).toHaveTextContent("Cancelado");
-    expect(itens[2]).toHaveTextContent("Motivo do cancelamento: Barbeiro doente");
+    expect(itens[2]).toHaveTextContent("Motivo: Barbeiro doente");
     expect(itens[0]).toHaveTextContent("terça, 24/11 às 10:00");
     expect(itens[0]).toHaveTextContent("R$ 55,00");
     expect(screen.queryByRole("button", { name: /cancelar|remarcar/i })).toBeNull();
@@ -56,7 +56,7 @@ describe("meus agendamentos", () => {
     servidor.use(http.get(`${BFF}/me/agendamentos`, () => HttpResponse.json({ pagina: 0, tamanho: 10, total: 0, itens: [] })));
     const v = renderizar(<MeusAgendamentos />, CLIENTE);
     expect(await screen.findByText(/Você ainda não tem agendamentos/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Agendar horário" })).toHaveAttribute("href", "/agendar");
+    expect(screen.getAllByRole("link", { name: "Agendar horário" })[0]).toHaveAttribute("href", "/agendar");
     v.unmount();
 
     // 401 leva ao login

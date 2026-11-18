@@ -29,11 +29,11 @@ describe("prazo do pagamento", () => {
     expect(leituras).toBe(1);
     await avancar(60_000);
     expect(screen.getByText("02:00")).toBeInTheDocument();
-    expect(screen.getByText(/Faltam cerca de 2 minutos/)).toBeInTheDocument();
+    expect(screen.getByText(/Faltam 2 minutos para pagar/)).toBeInTheDocument();
 
     await avancar(PRAZO_MS - 60_000 + 1000);
-    expect(await screen.findByText(/O tempo para pagar acabou/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Escolha outro horário" })).toHaveAttribute("href", "/agendar");
+    expect(await screen.findByText(/O tempo acabou e o horário voltou para a agenda/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Escolher outro horário" })).toHaveAttribute("href", "/agendar");
     expect(screen.queryByRole("button", { name: "Pagar" })).toBeNull();
     expect(leituras).toBe(2); // uma consulta ao zerar
     await avancar(20_000);
@@ -56,6 +56,6 @@ describe("prazo do pagamento", () => {
     await avancar(PRAZO_MS + 1000);
     expect(await screen.findByText("00:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Pagar" })).toBeInTheDocument();
-    expect(screen.queryByText(/O tempo para pagar acabou/)).toBeNull();
+    expect(screen.queryByText(/O tempo acabou e o horário voltou/)).toBeNull();
   });
 });

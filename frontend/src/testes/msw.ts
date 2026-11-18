@@ -1,7 +1,7 @@
 // Servidor falso (MSW) SÓ para os testes unitários (spec, E22). Os E2E usam a API real.
-import { HttpResponse } from "msw";
+import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
 export { http, HttpResponse, delay } from "msw";
 
@@ -11,6 +11,8 @@ export const BFF = "http://localhost:3000/api";
 
 export function ligarServidor() {
   beforeAll(() => servidor.listen({ onUnhandledRequest: "error" }));
+  // padrão de todas as telas: a lista de barbeiros (a home e o agendamento a consultam); cada teste pode sobrepor
+  beforeEach(() => servidor.use(http.get(`${BFF}/barbeiros`, () => HttpResponse.json([{ id: "b0000000-0000-4000-8000-000000000001", nomeExibicao: "Carlos Eduardo" }]))));
   afterEach(() => servidor.resetHandlers());
   afterAll(() => servidor.close());
 }

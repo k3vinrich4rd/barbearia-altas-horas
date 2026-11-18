@@ -25,7 +25,7 @@ beforeEach(() => {
 describe("troca da senha inicial", () => {
   test("A43: bloqueia toda navegação até trocar; valida 10 a 72 bytes; 204 pede novo login; 403 de outra rota leva à troca", async () => {
     // toda navegação (menos a troca) é desviada enquanto vale o cookie de senha inicial
-    const sessao = "ah_acesso=x; ah_troca=1";
+    const sessao = "ah_sessao=1; ah_troca=1";
     for (const caminho of ["/", "/meus-agendamentos", "/painel", "/agendar"]) {
       const r = proxy(new NextRequest(`http://localhost:3000${caminho}`, { headers: { cookie: sessao } }));
       expect(new URL(r.headers.get("location")!).pathname, caminho).toBe("/conta/trocar-senha");

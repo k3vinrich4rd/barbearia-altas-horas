@@ -9,7 +9,8 @@ import type { components } from "@/api/schema";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
-import { STATUS_DA_RESERVA } from "./status";
+import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
+import { LinkBotao } from "@/componentes/Botao";
 
 type Reserva = components["schemas"]["Agendamento"];
 
@@ -54,6 +55,7 @@ export function ConsultaVisitante() {
 
   return (
     <>
+      <p className="sobretitulo">Sua reserva</p>
       <h1>Consultar reserva</h1>
       <form
         onSubmit={(e) => {
@@ -85,8 +87,10 @@ export function ConsultaVisitante() {
             <br />
             {formatarDataEHora(reserva.inicio)} · {formatarPreco(reserva)}
             <br />
-            Situação: {STATUS_DA_RESERVA[reserva.status] ?? reserva.status}
+            Situação: <EtiquetaDeStatus status={reserva.status} />
           </p>
+          {reserva.status === "AGUARDANDO_PAGAMENTO" && <LinkBotao href={`/agendar/pagamento/${reserva.id}`} variante="principal">Voltar ao pagamento</LinkBotao>}
+          {(reserva.status === "EXPIRADO" || reserva.status === "CANCELADO") && <LinkBotao href="/agendar" variante="principal">Escolher outro horário</LinkBotao>}
         </section>
       )}
     </>

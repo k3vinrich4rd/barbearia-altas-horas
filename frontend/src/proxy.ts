@@ -2,7 +2,7 @@
 // encaminhamento de quem não tem sessão (E9). A autorização de verdade continua na API (401, 403, 404).
 import { NextResponse, type NextRequest } from "next/server";
 import { cabecalhosDeSeguranca, exigeLogin, semCache } from "@/bff/cabecalhos";
-import { COOKIE_ACESSO, COOKIE_REFRESH, COOKIE_TROCA } from "@/bff/cookies";
+import { COOKIE_PRESENCA, COOKIE_TROCA } from "@/bff/cookies";
 
 const TROCA = "/conta/trocar-senha";
 
@@ -13,7 +13,7 @@ export function proxy(request: NextRequest): NextResponse {
   const ehApi = pathname.startsWith("/api/");
 
   let resposta: NextResponse;
-  const temSessao = request.cookies.has(COOKIE_ACESSO) || request.cookies.has(COOKIE_REFRESH);
+  const temSessao = request.cookies.has(COOKIE_PRESENCA);
   if (!ehApi && request.method === "GET" && request.cookies.has(COOKIE_TROCA) && temSessao && pathname !== TROCA) {
     resposta = NextResponse.redirect(new URL(TROCA, request.url));
   } else if (!ehApi && exigeLogin(pathname) && !temSessao) {
