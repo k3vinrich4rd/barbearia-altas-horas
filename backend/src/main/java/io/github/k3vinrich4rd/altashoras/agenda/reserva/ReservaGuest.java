@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Os dados de contato do visitante sem conta, numa tabela separada da reserva (E8): anonimizar depois (Fatia 6)
@@ -36,13 +37,20 @@ class ReservaGuest {
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
 
+    /** O CEP que o visitante informou e a API conseguiu resolver (Fatia 6C): dado pessoal, some na anonimização (A74). */
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(length = 8)
+    private @Nullable String cep;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
     protected ReservaGuest() {
     }
 
-    ReservaGuest(UUID reservaId, String nome, String email, String whatsapp, String tokenHash, Instant agora) {
+    ReservaGuest(UUID reservaId, String nome, String email, String whatsapp, String tokenHash, @Nullable String cep,
+            Instant agora) {
+        this.cep = cep;
         this.reservaId = reservaId;
         this.nome = nome;
         this.email = email;

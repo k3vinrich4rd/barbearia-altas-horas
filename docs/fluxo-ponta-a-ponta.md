@@ -2,10 +2,10 @@
 
 O caminho completo de quem usa a agenda: **visitante** (sem conta), **cliente** (com conta) e **painel** (`ADMIN` e `BARBEIRO`). Cada passo diz a rota, a classe que atende e o teste manual que o reproduz no [guia de testes](guia-testes.md). As rotas são as do [`openapi.yaml`](contrato/openapi.yaml).
 
-**Legenda:** ✅ pronto (na `develop` ou na branch da 6B, ainda em revisão) · 🗓 planejado (6C, 7, 8, 9).
+**Legenda:** ✅ pronto (na `develop` ou na branch da 6C, ainda em revisão) · 🗓 planejado (7, 8, 9).
 
 > [!NOTE]
-> As rotas da 6B (privacidade) já rodam na `develop`/nesta branch; só a **6C (alcance por região)** tem rotas no contrato **sem código**. Tudo marcado 🗓 da 6C abaixo vem da spec, não de código rodando.
+> As rotas das Fatias 1 a 6 (inclusive a 6C, alcance por região) já têm código e teste. O que está marcado 🗓 (telas, deploy e assistente) vem da spec, não de código rodando.
 
 ## Sumário
 
@@ -85,6 +85,7 @@ sequenceDiagram
 | Política | `GET /politica-pagamento` | `PoliticaPagamentoController` |
 | Disponibilidade | `GET /disponibilidade` | `DisponibilidadeController` → `ConsultaDisponibilidade` → `CalculadoraDeHorarios` (regra pura, sem banco) |
 | Reservar | `POST /agendamentos/guest` | `AgendamentosController` → `ReservarHorario.comoVisitante` (até 3 reservas por hora por IP, `LimitadorDeTentativas`) → `Reserva.nova` |
+| CEP opcional ✅ (6C) | o mesmo `POST`, campo `cep` | formato errado: `400 CEP_INVALIDO`, antes do limite e de qualquer chamada. Formato certo: `ReservarHorario.resolverRegiao` pergunta ao `CepApi` **fora da transação** (gasta a cota `cep\|IP` de 30 por minuto) e `Reserva.definirRegiao` copia bairro, cidade e uf (`RegiaoDaReserva`); `ReservaGuest` guarda o `cep`. CEP inexistente, provedor fora ou cota estourada: a reserva sai igual, **sem região** (R31). O log diz só "região resolvida: sim/não" |
 | Token | (devolvido na resposta do `POST`) | `TokenGuest`: 32 bytes aleatórios, prefixo `g1_`, só o hash SHA-256 é guardado, conferido com `MessageDigest.isEqual` |
 | Cobrança | `POST /pagamentos/cobrancas` | `CobrancaController` → `CriarCobranca` → `GatewayDePagamento` (aqui `GatewaySimulado`) |
 | Confirmar (simulado) | `POST /pagamentos/simulacao/{cobrancaId}/confirmar` | `SimulacaoController` (só existe com `app.pagamento.modo=simulado`, o padrão) |
@@ -167,7 +168,7 @@ sequenceDiagram
 | Entrar | `POST /auth/login` | `SessaoController` → `Sessoes`; JWT de acesso (`EmissorDeToken`) + refresh em cookie |
 | Renovar | `POST /auth/refresh` | `Sessoes.renovar`: refresh **rotativo**, guardado só como hash; reuso derruba a família inteira |
 | Sair · perfil · senha | `POST /auth/logout` · `GET /me` · `PUT /me/senha` | `SessaoController` |
-| Reservar | `POST /agendamentos` | `AgendamentosController` → `ReservarHorario.comoCliente` (o dono vem do token, nunca do corpo) |
+| Reservar | `POST /agendamentos` | `AgendamentosController` → `ReservarHorario.comoCliente` (o dono vem do token, nunca do corpo). A região (bairro, cidade e uf do cadastro) vem de `Contas.regiaoDoCliente` e é **copiada** na reserva (6C, `Reserva.definirRegiao`): mudar o endereço depois não muda a reserva |
 | Pagar | `POST /pagamentos/cobrancas` | igual ao visitante (Pix ou cartão simulado) |
 | Meus agendamentos | `GET /me/agendamentos` · `GET /agendamentos/{id}` | `ConsultaAgendamentos`; reserva de outra pessoa responde `404`, não `403` |
 | Cancelar | não existe | não há rota para o cliente cancelar ou remarcar (R18) |
@@ -220,7 +221,8 @@ Todas as rotas `/admin/**` exigem login e papel; o admin inicial precisa **troca
 | Pendências de pagamento | `GET /admin/pagamentos` · `POST /admin/pagamentos/{id}/devolucao` · `GET /admin/pagamentos/eventos` · `POST /admin/pagamentos/eventos/{id}/revisao` | `PagamentosAdminController` → `ListarPendencias`, `RegistrarDevolucao`, `RevisarEvento` |
 | Cadastros | `/admin/servicos`, `/admin/barbeiros` (+ `/jornada`, `/folgas`), `/admin/configuracao` | `ServicosAdminController`, `BarbeirosAdminController`, `ConfiguracaoAdminController` → `CadastroDeServicos`, `CadastroDeBarbeiros`, `CadastroDeFolgas`, `ConfigurarAgenda` → `CadastrosDoPainel` |
 | Auditoria | `GET /admin/auditoria` | `AuditoriaController`; cada ação grava ator, ação e recurso via `Auditor` |
-| Alcance por região | `GET /admin/alcance` (painel) e `GET /alcance` (vitrine pública) | 🗓 **6C, planejado.** Só spec: cidades e bairros dos atendimentos, com agrupamento mínimo de 5 (k-anonimato). **O k-anonimato ainda não existe em código** |
+| Alcance por região ✅ (6C) | `GET /admin/alcance?de&ate&barbeiroId` | `AlcanceController` (módulo `admin`) → `AlcanceDaAgenda.painel` (API pública da `agenda`: confere o escopo, o período de até 366 dias e o barbeiro) → `ConsultaAlcance` (uma consulta agrupa `CONFIRMADO` e `CONCLUIDO` por cidade, uf e bairro e agrega em memória). **K-anonimato (k ≥ 5):** bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades". O ADMIN vê tudo ou filtra por barbeiro; o BARBEIRO vê só os próprios (o `barbeiroId` da query é trocado pelo dele). Nunca em cache |
+| Vitrine pública do alcance ✅ (6C) | `GET /alcance` (sem token) | `AlcancePublicoController` (módulo `agenda`): limite de 30 por minuto por IP (`LimitadorDeTentativas`), cache Caffeine de 1 hora com `Ticker` injetável → `AlcanceDaAgenda.publico`: últimos 12 meses, **só nomes** das cidades e dos bairros que passam no k ≥ 5, sem contagens |
 
 ## 5. Por baixo: o que sustenta tudo
 
@@ -253,6 +255,7 @@ No [guia de testes](guia-testes.md): suba o banco e a API na [seção 0](guia-te
 | Erros padronizados | [3](guia-testes.md#3-erros-padronizados-rfc-9457) |
 | Cadastro, login, refresh rotativo | [C1 a C7](guia-testes.md#c1--criar-a-conta) |
 | Reservar com conta, meus agendamentos, cartão | [C8 a C12](guia-testes.md#c8--reservar-com-a-conta) |
+| Alcance por região (6C): CEP do visitante, painel e vitrine | [AL1](guia-testes.md#al1--alcance-por-região-fatia-6c) (saída real a preencher no fluxo manual) |
 | CEP com e sem provedores | [B3](guia-testes.md#b3--cep-com-os-provedores-ligados-fatia-6a), [B4](guia-testes.md#b4--cep-com-os-provedores-desligados-fatia-6a) |
 | Dados, consentimento e exclusão da conta (6B) | [C13](guia-testes.md#c13--fatia-6b-dados-consentimento-e-exclusão-da-conta-fluxo-manual-no-perfil-dev) ✅ (saída real em 18/11/2026) · [rotina dos 90 dias](guia-testes.md#rotina-do-visitante-depois-dos-90-dias--retenção) ✅ |
 | Painel: agenda, fechar, cancelar, devolver, auditoria | [AD1 a AD9b](guia-testes.md#ad1--criar-o-primeiro-admin) |
