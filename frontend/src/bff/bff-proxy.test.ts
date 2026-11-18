@@ -18,10 +18,17 @@ describe("proxy do BFF", () => {
   test("A3: com 401 renova UMA vez, repete UMA vez e duas chamadas simultâneas dividem a renovação", async () => {
     // renovação bem-sucedida e repetição com o token novo
     const api = apiFalsa((c) => {
-      if (c.caminho === "/auth/refresh") return json(tokensDeExemplo({ accessToken: "jwt.novo", refreshToken: "refresh-novo" }));
-      return c.headers.get("authorization") === "Bearer jwt.novo" ? json({ itens: [] }) : problemaApi(401, "NAO_AUTENTICADO");
+      if (c.caminho === "/auth/refresh")
+        return json(tokensDeExemplo({ accessToken: "jwt.novo", refreshToken: "refresh-novo" }));
+      return c.headers.get("authorization") === "Bearer jwt.novo"
+        ? json({ itens: [] })
+        : problemaApi(401, "NAO_AUTENTICADO");
     });
-    const r = await encaminhar(requisicao("/api/me/agendamentos", { cookies: { ah_acesso: "jwt.velho", ah_refresh: "refresh-A3-a" } }), ["me", "agendamentos"], api.deps);
+    const r = await encaminhar(
+      requisicao("/api/me/agendamentos", { cookies: { ah_acesso: "jwt.velho", ah_refresh: "refresh-A3-a" } }),
+      ["me", "agendamentos"],
+      api.deps,
+    );
     expect(r.status).toBe(200);
     expect(api.quantas("/auth/refresh")).toBe(1);
     expect(api.quantas("/me/agendamentos")).toBe(2);
@@ -29,8 +36,14 @@ describe("proxy do BFF", () => {
     expect(cookiesDe(r).ah_refresh).toBeDefined();
 
     // a repetição também dá 401: o navegador recebe 401 e não há terceira tentativa
-    const sempre401 = apiFalsa((c) => (c.caminho === "/auth/refresh" ? json(tokensDeExemplo()) : problemaApi(401, "NAO_AUTENTICADO")));
-    const r2 = await encaminhar(requisicao("/api/me/agendamentos", { cookies: { ah_acesso: "jwt.velho", ah_refresh: "refresh-A3-b" } }), ["me", "agendamentos"], sempre401.deps);
+    const sempre401 = apiFalsa((c) =>
+      c.caminho === "/auth/refresh" ? json(tokensDeExemplo()) : problemaApi(401, "NAO_AUTENTICADO"),
+    );
+    const r2 = await encaminhar(
+      requisicao("/api/me/agendamentos", { cookies: { ah_acesso: "jwt.velho", ah_refresh: "refresh-A3-b" } }),
+      ["me", "agendamentos"],
+      sempre401.deps,
+    );
     expect(r2.status).toBe(401);
     expect(sempre401.quantas("/me/agendamentos")).toBe(2);
     expect(sempre401.quantas("/auth/refresh")).toBe(1);
@@ -43,7 +56,12 @@ describe("proxy do BFF", () => {
       }
       return c.headers.get("authorization") === "Bearer jwt.novo" ? json({}) : problemaApi(401, "NAO_AUTENTICADO");
     });
-    const pedir = () => encaminhar(requisicao("/api/me", { cookies: { ah_acesso: "jwt.velho", ah_refresh: "refresh-A3-c" } }), ["me"], par.deps);
+    const pedir = () =>
+      encaminhar(
+        requisicao("/api/me", { cookies: { ah_acesso: "jwt.velho", ah_refresh: "refresh-A3-c" } }),
+        ["me"],
+        par.deps,
+      );
     const [a, b] = await Promise.all([pedir(), pedir()]);
     expect([a.status, b.status]).toEqual([200, 200]);
     expect(par.quantas("/auth/refresh")).toBe(1);

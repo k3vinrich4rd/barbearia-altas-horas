@@ -2,7 +2,8 @@
 // Diálogo modal acessível (E17): role="dialog", foco preso, Esc fecha e o foco volta ao botão de origem.
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
-const FOCAVEIS = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCAVEIS =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Dialogo({ titulo, aoFechar, children }: { titulo: string; aoFechar: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -18,12 +19,20 @@ export function Dialogo({ titulo, aoFechar, children }: { titulo: string; aoFech
     };
   }, []);
 
+  // Esc fecha mesmo que o foco tenha caído no corpo da página (botão que ficou desabilitado durante o envio)
+  const fechar = useRef(aoFechar);
+  useEffect(() => {
+    fechar.current = aoFechar;
+  });
+  useEffect(() => {
+    const aoApertar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") fechar.current();
+    };
+    document.addEventListener("keydown", aoApertar);
+    return () => document.removeEventListener("keydown", aoApertar);
+  }, []);
+
   function aoTeclar(e: React.KeyboardEvent) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      aoFechar();
-      return;
-    }
     if (e.key !== "Tab") return;
     const itens = Array.from(ref.current?.querySelectorAll<HTMLElement>(FOCAVEIS) ?? []);
     if (itens.length === 0) {
@@ -44,7 +53,15 @@ export function Dialogo({ titulo, aoFechar, children }: { titulo: string; aoFech
 
   return (
     <div className="dialogo-fundo">
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1} className="dialogo" onKeyDown={aoTeclar}>
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={tituloId}
+        tabIndex={-1}
+        className="dialogo"
+        onKeyDown={aoTeclar}
+      >
         <h2 id={tituloId}>{titulo}</h2>
         {children}
       </div>

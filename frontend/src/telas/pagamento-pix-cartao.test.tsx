@@ -7,7 +7,9 @@ import { fixarRelogio } from "@/testes/render";
 import { api, cobrancaPix, montar, preencher } from "@/testes/pagamento";
 
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
-vi.mock("qrcode", () => ({ default: { toDataURL: vi.fn(async (t: string) => `data:image/png;base64,GERADO-${t.length}`) } }));
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn(async (t: string) => `data:image/png;base64,GERADO-${t.length}`) },
+}));
 ligarServidor();
 
 beforeEach(() => {
@@ -18,7 +20,8 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-const responder = (cobranca: object) => servidor.use(http.post(`${BFF}/pagamentos/cobrancas`, () => HttpResponse.json(cobranca, { status: 201 })));
+const responder = (cobranca: object) =>
+  servidor.use(http.post(`${BFF}/pagamentos/cobrancas`, () => HttpResponse.json(cobranca, { status: 201 })));
 
 describe("Pix e cartão", () => {
   test("A28: Pix gera o QR no navegador a partir do copia e cola, usa a imagem da API quando vier e o cartão só leva ao checkout, sem campo de cartão", async () => {
@@ -39,7 +42,9 @@ describe("Pix e cartão", () => {
 
     // API mandou a imagem: usa a imagem e não gera outra
     vi.mocked(QRCode.toDataURL).mockClear();
-    responder(cobrancaPix({ pix: { copiaECola: "000201-REAL", qrCodeBase64: "AAAA", expiraEm: "2026-11-18T08:03:00-03:00" } }));
+    responder(
+      cobrancaPix({ pix: { copiaECola: "000201-REAL", qrCodeBase64: "AAAA", expiraEm: "2026-11-18T08:03:00-03:00" } }),
+    );
     ({ user, unmount } = montar());
     await preencher(user);
     await user.click(screen.getByRole("button", { name: "Pagar" }));
@@ -49,7 +54,13 @@ describe("Pix e cartão", () => {
     unmount();
 
     // cartão: um único botão para o checkout hospedado; nenhum campo de cartão em lugar nenhum
-    responder(cobrancaPix({ metodo: "CARTAO_CREDITO", pix: null, cartao: { urlCheckout: "https://checkout.exemplo.test/pagar/abc", expiraEm: "2026-11-18T08:03:00-03:00" } }));
+    responder(
+      cobrancaPix({
+        metodo: "CARTAO_CREDITO",
+        pix: null,
+        cartao: { urlCheckout: "https://checkout.exemplo.test/pagar/abc", expiraEm: "2026-11-18T08:03:00-03:00" },
+      }),
+    );
     ({ user, unmount } = montar());
     await preencher(user);
     await user.click(screen.getByLabelText("Cartão de crédito"));

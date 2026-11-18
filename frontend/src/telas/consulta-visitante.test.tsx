@@ -23,7 +23,9 @@ describe("consulta do visitante", () => {
     servidor.use(
       http.get(`${BFF}/agendamentos/guest/:id`, ({ request, params }) => {
         vistos.push(request.headers.get("x-guest-token"));
-        return params.id === ID && request.headers.get("x-guest-token") === "CODIGO-CERTO" ? HttpResponse.json(reserva({ status: "CONFIRMADO", expiraEm: null })) : erro(404, "RECURSO_NAO_ENCONTRADO");
+        return params.id === ID && request.headers.get("x-guest-token") === "CODIGO-CERTO"
+          ? HttpResponse.json(reserva({ status: "CONFIRMADO", expiraEm: null }))
+          : erro(404, "RECURSO_NAO_ENCONTRADO");
       }),
     );
 

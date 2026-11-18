@@ -48,11 +48,15 @@ export function lerCookies(request: Request): Record<string, string> {
 /** Os Set-Cookie de uma sessão nova (login ou renovação). */
 export function cookiesDeSessao(tokens: Tokens, deveTrocarSenha?: boolean): string[] {
   const saida = [
-    serializar(COOKIE_REFRESH, tokens.refreshToken, { path: CAMINHO_REFRESH, expires: new Date(tokens.refreshExpiraEm) }),
+    serializar(COOKIE_REFRESH, tokens.refreshToken, {
+      path: CAMINHO_REFRESH,
+      expires: new Date(tokens.refreshExpiraEm),
+    }),
     serializar(COOKIE_ACESSO, tokens.accessToken, { path: CAMINHO_API, maxAge: tokens.expiraEmSegundos }),
     serializar(COOKIE_PRESENCA, "1", { path: "/", expires: new Date(tokens.refreshExpiraEm) }),
   ];
-  if (deveTrocarSenha === true) saida.push(serializar(COOKIE_TROCA, "1", { path: "/", expires: new Date(tokens.refreshExpiraEm) }));
+  if (deveTrocarSenha === true)
+    saida.push(serializar(COOKIE_TROCA, "1", { path: "/", expires: new Date(tokens.refreshExpiraEm) }));
   if (deveTrocarSenha === false) saida.push(apagar(COOKIE_TROCA, "/"));
   return saida;
 }
@@ -63,7 +67,12 @@ function apagar(nome: string, path: string): string {
 
 /** Apaga a sessão inteira (logout, refresh inválido, troca de senha, exclusão da conta). */
 export function cookiesApagados(): string[] {
-  return [apagar(COOKIE_REFRESH, CAMINHO_REFRESH), apagar(COOKIE_ACESSO, CAMINHO_API), apagar(COOKIE_PRESENCA, "/"), apagar(COOKIE_TROCA, "/")];
+  return [
+    apagar(COOKIE_REFRESH, CAMINHO_REFRESH),
+    apagar(COOKIE_ACESSO, CAMINHO_API),
+    apagar(COOKIE_PRESENCA, "/"),
+    apagar(COOKIE_TROCA, "/"),
+  ];
 }
 
 export function cookieVisitante(reservaId: string, token: string): string {

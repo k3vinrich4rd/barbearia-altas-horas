@@ -29,7 +29,8 @@ export function MinhaConta() {
         {(p) => (
           <>
             <p>
-              O que a barbearia guarda sobre você, e o que você pode fazer com isso. Saiba mais na <Link href="/privacidade">política de privacidade</Link>.
+              O que a barbearia guarda sobre você, e o que você pode fazer com isso. Saiba mais na{" "}
+              <Link href="/privacidade">política de privacidade</Link>.
             </p>
             <section aria-labelledby="t-pessoais" className="cartao">
               <h2 id="t-pessoais">Dados pessoais</h2>
@@ -42,7 +43,9 @@ export function MinhaConta() {
             </section>
             <Marketing />
             <Exportar />
-            {p.papeis.includes("CLIENTE") && !p.papeis.includes("ADMIN") && !p.papeis.includes("BARBEIRO") && <Excluir />}
+            {p.papeis.includes("CLIENTE") && !p.papeis.includes("ADMIN") && !p.papeis.includes("BARBEIRO") && (
+              <Excluir />
+            )}
           </>
         )}
       </EstadoDaConsulta>
@@ -66,7 +69,8 @@ function Marketing() {
 
   async function alternar(aceito: boolean) {
     if (!politica.dados) return;
-    const registrar = (versaoTexto: string) => chamar(api().PUT("/me/consentimentos/marketing", { body: { aceito, versaoTexto } }));
+    const registrar = (versaoTexto: string) =>
+      chamar(api().PUT("/me/consentimentos/marketing", { body: { aceito, versaoTexto } }));
     const r = await envio.executar(async () => {
       try {
         return await registrar(politica.dados!.versao);
@@ -98,11 +102,15 @@ function Marketing() {
               disabled={!politica.dados || envio.enviando || envio.esperando}
               onChange={(e) => void alternar(e.target.checked)}
             />
-            <label htmlFor="marketing">{politica.dados?.textoConsentimento ?? "Quero receber ofertas e novidades."}</label>
+            <label htmlFor="marketing">
+              {politica.dados?.textoConsentimento ?? "Quero receber ofertas e novidades."}
+            </label>
           </div>
         )}
       </EstadoDaConsulta>
-      <p role="status">{avisoEstado || (consentimentos.dados ? (marcado ? "Marketing: aceito." : "Marketing: não aceito.") : "")}</p>
+      <p role="status">
+        {avisoEstado || (consentimentos.dados ? (marcado ? "Marketing: aceito." : "Marketing: não aceito.") : "")}
+      </p>
       {envio.erro && <AvisoDeErro erro={envio.erro} />}
       {envio.esperando && <Aviso tipo="aviso">Tente de novo em {envio.restante} s.</Aviso>}
     </section>
@@ -149,44 +157,54 @@ function Excluir() {
 
   return (
     <>
-    <hr />
-    <section aria-labelledby="titulo-excluir">
-      <h2 id="titulo-excluir">Excluir conta</h2>
-      <p>Apaga seus dados pessoais. Não tem volta.</p>
-      <button type="button" className="botao botao-perigo" onClick={() => setAberto(true)}>
-        <Icone nome="lixeira" /> Excluir minha conta
-      </button>
-      {aberto && (
-        <Dialogo
-          titulo="Excluir a conta?"
-          aoFechar={() => {
-            setAberto(false);
-            setConfirmacao("");
-          }}
-        >
-          <p>Seus dados pessoais serão apagados e você não poderá mais entrar. Isso não tem volta.</p>
-          <Campo id="confirmar-exclusao" rotulo="Digite EXCLUIR para confirmar" autoComplete="off" value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} />
-          {envio.erro?.code === "EXCLUSAO_BLOQUEADA_POR_RESERVA" ? (
-            <Aviso tipo="aviso">{textoDoCodigo("EXCLUSAO_BLOQUEADA_POR_RESERVA")}</Aviso>
-          ) : (
-            envio.erro && <AvisoDeErro erro={envio.erro} focar={false} />
-          )}
-          <div className="acoes">
-            <Botao
-              onClick={() => {
-                setAberto(false);
-                setConfirmacao("");
-              }}
-            >
-              Cancelar
-            </Botao>
-            <Botao variante="principal" disabled={confirmacao !== "EXCLUIR" || envio.enviando} onClick={() => void excluir()}>
-              Excluir para sempre
-            </Botao>
-          </div>
-        </Dialogo>
-      )}
-    </section>
+      <hr />
+      <section aria-labelledby="titulo-excluir">
+        <h2 id="titulo-excluir">Excluir conta</h2>
+        <p>Apaga seus dados pessoais. Não tem volta.</p>
+        <button type="button" className="botao botao-perigo" onClick={() => setAberto(true)}>
+          <Icone nome="lixeira" /> Excluir minha conta
+        </button>
+        {aberto && (
+          <Dialogo
+            titulo="Excluir a conta?"
+            aoFechar={() => {
+              setAberto(false);
+              setConfirmacao("");
+            }}
+          >
+            <p>Seus dados pessoais serão apagados e você não poderá mais entrar. Isso não tem volta.</p>
+            <Campo
+              id="confirmar-exclusao"
+              rotulo="Digite EXCLUIR para confirmar"
+              autoComplete="off"
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+            />
+            {envio.erro?.code === "EXCLUSAO_BLOQUEADA_POR_RESERVA" ? (
+              <Aviso tipo="aviso">{textoDoCodigo("EXCLUSAO_BLOQUEADA_POR_RESERVA")}</Aviso>
+            ) : (
+              envio.erro && <AvisoDeErro erro={envio.erro} focar={false} />
+            )}
+            <div className="acoes">
+              <Botao
+                onClick={() => {
+                  setAberto(false);
+                  setConfirmacao("");
+                }}
+              >
+                Cancelar
+              </Botao>
+              <Botao
+                variante="principal"
+                disabled={confirmacao !== "EXCLUIR" || envio.enviando}
+                onClick={() => void excluir()}
+              >
+                Excluir para sempre
+              </Botao>
+            </div>
+          </Dialogo>
+        )}
+      </section>
     </>
   );
 }

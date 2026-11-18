@@ -27,11 +27,13 @@ export function PainelDeAcessibilidade() {
   return (
     <div role="region" aria-label="Recursos de acessibilidade" className="painel-a11y">
       <span className="painel-a11y-titulo">Acessibilidade</span>
-      <button type="button" className="botao-mini" onClick={() => mudarTexto(-1)} disabled={passo === 0} aria-label="Diminuir o tamanho do texto">
-        A−
+      <button type="button" className="botao-mini" onClick={() => mudarTexto(-1)} disabled={passo === 0}>
+        <span aria-hidden="true">A−</span>
+        <span className="so-leitor">Diminuir o tamanho do texto</span>
       </button>
-      <button type="button" className="botao-mini" onClick={() => mudarTexto(1)} disabled={passo === PASSOS.length - 1} aria-label="Aumentar o tamanho do texto">
-        A+
+      <button type="button" className="botao-mini" onClick={() => mudarTexto(1)} disabled={passo === PASSOS.length - 1}>
+        <span aria-hidden="true">A+</span>
+        <span className="so-leitor">Aumentar o tamanho do texto</span>
       </button>
       <button
         type="button"

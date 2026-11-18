@@ -19,6 +19,15 @@ export function QrPix({ copiaECola, qrCodeBase64 }: { copiaECola: string; qrCode
 
   const src = qrCodeBase64 ? `data:image/png;base64,${qrCodeBase64}` : gerado;
   if (!src) return null;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} width={256} height={256} alt="QR Code do Pix: aponte a câmera do app do seu banco para pagar" className="qr" />;
+  return (
+    // imagem de dados gerada no navegador: o otimizador do next/image não se aplica
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      width={256}
+      height={256}
+      alt="QR Code do Pix: aponte a câmera do app do seu banco para pagar"
+      className="qr"
+    />
+  );
 }

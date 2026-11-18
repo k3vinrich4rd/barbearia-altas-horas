@@ -11,13 +11,20 @@ vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modu
 ligarServidor();
 
 const INICIO = "2026-11-24T10:00:00-03:00";
-const DADOS = new URLSearchParams({ servicoId: CINCO_SERVICOS[1].id, barbeiroId: BARBEIRO.id, inicio: INICIO }).toString();
+const DADOS = new URLSearchParams({
+  servicoId: CINCO_SERVICOS[1].id,
+  barbeiroId: BARBEIRO.id,
+  inicio: INICIO,
+}).toString();
 
 beforeEach(() => {
   zerarNavegacao();
   fixarRelogio();
   definirBusca(DADOS);
-  servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)), http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
+  servidor.use(
+    http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+    http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
+  );
 });
 afterEach(() => vi.useRealTimers());
 
@@ -49,14 +56,26 @@ describe("conflitos de reserva", () => {
       http.get(`${BFF}/disponibilidade`, () => {
         leituras++;
         // a API (cache de leitura) ainda lista o horário velho: a tela precisa escondê-lo
-        return HttpResponse.json({ data: "2026-11-24", fuso: "America/Sao_Paulo", servicoId: CINCO_SERVICOS[1].id, duracaoMin: 60, barbeiros: [{ barbeiroId: BARBEIRO.id, nomeExibicao: "Carlos Eduardo", horarios: [INICIO, "2026-11-24T11:00:00-03:00"] }] });
+        return HttpResponse.json({
+          data: "2026-11-24",
+          fuso: "America/Sao_Paulo",
+          servicoId: CINCO_SERVICOS[1].id,
+          duracaoMin: 60,
+          barbeiros: [
+            {
+              barbeiroId: BARBEIRO.id,
+              nomeExibicao: "Carlos Eduardo",
+              horarios: [INICIO, "2026-11-24T11:00:00-03:00"],
+            },
+          ],
+        });
       }),
     );
     definirBusca(volta.searchParams.toString());
     renderizar(<Agendar />);
     expect(await screen.findByRole("button", { name: "11:00" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "10:00" })).toBeNull();
-    expect(screen.getByText(/Esse horário acabou de ser reservado. Escolha outro./)).toBeInTheDocument();
+    expect(screen.getByText(/Esse horário acabou de ser reservado por outra pessoa. Escolha outro./)).toBeInTheDocument();
     expect(leituras).toBe(1);
     (await import("@testing-library/react")).cleanup();
 
@@ -78,7 +97,13 @@ describe("conflitos de reserva", () => {
 
     // 2b) conflito na primeira, sucesso na repetição
     let n = 0;
-    servidor.use(http.post(`${BFF}/agendamentos/guest`, () => (++n === 1 ? erro(409, "CONFLITO_CONCORRENTE") : HttpResponse.json({ ...reserva(), tokenGuest: "x" }, { status: 201 }))));
+    servidor.use(
+      http.post(`${BFF}/agendamentos/guest`, () =>
+        ++n === 1
+          ? erro(409, "CONFLITO_CONCORRENTE")
+          : HttpResponse.json({ ...reserva(), tokenGuest: "x" }, { status: 201 }),
+      ),
+    );
     await reservar();
     await waitFor(() => expect(roteador.push).toHaveBeenCalledWith(`/agendar/pagamento/${reserva().id}`));
     expect(n).toBe(2);

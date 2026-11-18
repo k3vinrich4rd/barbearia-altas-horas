@@ -143,7 +143,9 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
   async function simular() {
     if (!cobranca) return;
     try {
-      await chamar(api().POST("/pagamentos/simulacao/{cobrancaId}/confirmar", { params: { path: { cobrancaId: cobranca.id } } }));
+      await chamar(
+        api().POST("/pagamentos/simulacao/{cobrancaId}/confirmar", { params: { path: { cobrancaId: cobranca.id } } }),
+      );
       await atualizarStatus();
     } catch (e) {
       if (e instanceof ErroApi && e.status === 404) setSimuladoDisponivel(false);
@@ -156,14 +158,18 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
     <>
       <p className="sobretitulo">Pagamento</p>
       <h1>Pague para garantir seu horário</h1>
-      <p className="destaque">O horário já está separado para você. Ele só fica confirmado depois que o pagamento for aprovado.</p>
+      <p className="destaque">
+        O horário já está separado para você. Ele só fica confirmado depois que o pagamento for aprovado.
+      </p>
       <EstadoDaConsulta consulta={inicial}>
         {(r) => {
           const res = atual ?? r;
           return (
             <>
               <aside aria-labelledby="resumo-pagamento" className="resumo">
-                {!expirada && res.expiraEm && <Cronometro expiraEm={res.expiraEm} aoZerar={() => void atualizarStatus()} />}
+                {!expirada && res.expiraEm && (
+                  <Cronometro expiraEm={res.expiraEm} aoZerar={() => void atualizarStatus()} />
+                )}
                 <h2 id="resumo-pagamento">Seu horário</h2>
                 <dl>
                   <dt>Serviço</dt>
@@ -206,7 +212,13 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                             <legend>Política de pagamento</legend>
                             <p>{p.texto}</p>
                             <div className="caixa">
-                              <input ref={aceiteRef} id="aceite" type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
+                              <input
+                                ref={aceiteRef}
+                                id="aceite"
+                                type="checkbox"
+                                checked={aceite}
+                                onChange={(e) => setAceite(e.target.checked)}
+                              />
                               <label htmlFor="aceite">Li e aceito a política de pagamento</label>
                             </div>
                           </fieldset>
@@ -225,21 +237,43 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                       <fieldset>
                         <legend>Como você quer pagar?</legend>
                         <label className="opcao">
-                          <input type="radio" name="metodo" value="PIX" checked={metodo === "PIX"} onChange={() => setMetodo("PIX")} />
+                          <input
+                            type="radio"
+                            name="metodo"
+                            value="PIX"
+                            checked={metodo === "PIX"}
+                            onChange={() => setMetodo("PIX")}
+                          />
                           <span>Pix</span>
                         </label>
                         <label className="opcao">
-                          <input type="radio" name="metodo" value="CARTAO_CREDITO" checked={metodo === "CARTAO_CREDITO"} onChange={() => setMetodo("CARTAO_CREDITO")} />
+                          <input
+                            type="radio"
+                            name="metodo"
+                            value="CARTAO_CREDITO"
+                            checked={metodo === "CARTAO_CREDITO"}
+                            onChange={() => setMetodo("CARTAO_CREDITO")}
+                          />
                           <span>Cartão de crédito</span>
                         </label>
                       </fieldset>
-                      {envio.erro && !envio.erro.acordando && envio.erro.code !== "COBRANCA_EM_ANDAMENTO" && envio.erro.code !== "CPF_INVALIDO" && (
-                        <>
-                          <AvisoDeErro erro={envio.erro} />
-                          {envio.erro.code === "RESERVA_EXPIRADA" && <Link href="/agendar">Escolher outro horário</Link>}
-                        </>
+                      {envio.erro &&
+                        !envio.erro.acordando &&
+                        envio.erro.code !== "COBRANCA_EM_ANDAMENTO" &&
+                        envio.erro.code !== "CPF_INVALIDO" && (
+                          <>
+                            <AvisoDeErro erro={envio.erro} />
+                            {envio.erro.code === "RESERVA_EXPIRADA" && (
+                              <Link href="/agendar">Escolher outro horário</Link>
+                            )}
+                          </>
+                        )}
+                      {envio.erro?.acordando && (
+                        <Aviso tipo="aviso">
+                          O servidor está acordando. Toque em Pagar de novo em instantes: o pagamento não será cobrado
+                          duas vezes.
+                        </Aviso>
                       )}
-                      {envio.erro?.acordando && <Aviso tipo="aviso">O servidor está acordando. Toque em Pagar de novo em instantes: o pagamento não será cobrado duas vezes.</Aviso>}
                       {envio.esperando && <Aviso tipo="aviso">Tente de novo em {envio.restante} s.</Aviso>}
                       <Botao type="submit" variante="principal" disabled={!aceite || envio.enviando || envio.esperando}>
                         {envio.enviando ? "Gerando cobrança…" : "Pagar"}
@@ -247,11 +281,17 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                     </form>
                   )}
 
-                  {acompanhando && !cobranca && <Aviso tipo="aviso">Já existe um pagamento em andamento para esta reserva. Estamos acompanhando.</Aviso>}
+                  {acompanhando && !cobranca && (
+                    <Aviso tipo="aviso">
+                      Já existe um pagamento em andamento para esta reserva. Estamos acompanhando.
+                    </Aviso>
+                  )}
 
                   {cobranca && (
                     <section aria-labelledby="como-pagar">
-                      <h2 id="como-pagar">{cobranca.metodo === "CARTAO_CREDITO" ? "Pague com cartão" : "Pague com Pix"}</h2>
+                      <h2 id="como-pagar">
+                        {cobranca.metodo === "CARTAO_CREDITO" ? "Pague com cartão" : "Pague com Pix"}
+                      </h2>
                       {cobranca.pix?.copiaECola && (
                         <>
                           <CopiarTexto id="pix" rotulo="Pix copia e cola" texto={cobranca.pix.copiaECola} />
@@ -267,7 +307,9 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                       )}
                       <p role="status">Aguardando a confirmação do pagamento…</p>
                       {mostrarSimular && (
-                        <Botao onClick={simular}><Icone nome="visto" /> Simular pagamento</Botao>
+                        <Botao onClick={simular}>
+                          <Icone nome="visto" /> Simular pagamento
+                        </Botao>
                       )}
                     </section>
                   )}

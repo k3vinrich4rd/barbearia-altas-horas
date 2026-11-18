@@ -129,7 +129,12 @@ export async function sessao(request: Request, depsEntrada?: DepsBff): Promise<R
   if (!resposta.ok) return resposta;
   const perfil = (await resposta.json()) as { id: string; nome: string; papeis: string[]; deveTrocarSenha?: boolean };
   return json(
-    { autenticado: true, usuario: { id: perfil.id, nome: perfil.nome }, papeis: perfil.papeis, deveTrocarSenha: perfil.deveTrocarSenha === true },
+    {
+      autenticado: true,
+      usuario: { id: perfil.id, nome: perfil.nome },
+      papeis: perfil.papeis,
+      deveTrocarSenha: perfil.deveTrocarSenha === true,
+    },
     200,
     setCookies,
   );

@@ -10,12 +10,24 @@ vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modu
 ligarServidor();
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  servidor.use(http.get(`${BFF}/alcance`, () => HttpResponse.json({ atualizadoEm: "2026-11-18T00:00:00Z", totalCidades: 0, totalBairros: 0, regioes: [] })));
+  servidor.use(
+    http.get(`${BFF}/alcance`, () =>
+      HttpResponse.json({ atualizadoEm: "2026-11-18T00:00:00Z", totalCidades: 0, totalBairros: 0, regioes: [] }),
+    ),
+  );
 });
 afterEach(() => vi.useRealTimers());
 
-const tela = () => render(<SessaoProvider inicial={{ autenticado: false }}><Home /></SessaoProvider>);
-const avancar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+const tela = () =>
+  render(
+    <SessaoProvider inicial={{ autenticado: false }}>
+      <Home />
+    </SessaoProvider>,
+  );
+const avancar = (ms: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
 
 describe("servidor acordando", () => {
   test("A14: nova tentativa a cada 3 s com aviso role=status; some quando a API responde", async () => {

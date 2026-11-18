@@ -21,12 +21,21 @@ beforeEach(() => {
   zerarNavegacao();
   fixarRelogio();
   definirBusca(`servicoId=${CINCO_SERVICOS[1].id}`);
-  servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)), http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
+  servidor.use(
+    http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+    http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
+  );
 });
 afterEach(() => vi.useRealTimers());
 
 const disponibilidade = (barbeiros: unknown[]) =>
-  HttpResponse.json({ data: "2026-11-24", fuso: "America/Sao_Paulo", servicoId: CINCO_SERVICOS[1].id, duracaoMin: 60, barbeiros });
+  HttpResponse.json({
+    data: "2026-11-24",
+    fuso: "America/Sao_Paulo",
+    servicoId: CINCO_SERVICOS[1].id,
+    duracaoMin: 60,
+    barbeiros,
+  });
 
 describe("horários", () => {
   test("A19: horários no fuso da barbearia, agrupados por barbeiro, com grupo nomeado; dia vazio avisa; seletor respeita os limites", async () => {
@@ -34,7 +43,11 @@ describe("horários", () => {
     servidor.use(
       http.get(`${BFF}/disponibilidade`, () =>
         disponibilidade([
-          { barbeiroId: BARBEIRO.id, nomeExibicao: "Carlos Eduardo", horarios: ["2026-11-24T10:00:00-03:00", "2026-11-24T10:30:00-03:00"] },
+          {
+            barbeiroId: BARBEIRO.id,
+            nomeExibicao: "Carlos Eduardo",
+            horarios: ["2026-11-24T10:00:00-03:00", "2026-11-24T10:30:00-03:00"],
+          },
           { barbeiroId: "b2", nomeExibicao: "Outro Barbeiro", horarios: ["2026-11-24T10:30:00-03:00"] },
         ]),
       ),
@@ -46,13 +59,26 @@ describe("horários", () => {
 
     fireEvent.change(dia, { target: { value: "2026-11-24" } });
     const grupo = await screen.findByRole("group", { name: "Horários de Carlos Eduardo, terça 24/11" });
-    expect(within(grupo).getAllByRole("button").map((b) => b.textContent)).toEqual(["10:00", "10:30"]);
+    expect(
+      within(grupo)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["10:00", "10:30"]);
     const outro = screen.getByRole("group", { name: "Horários de Outro Barbeiro, terça 24/11" });
-    expect(within(outro).getAllByRole("button").map((b) => b.textContent)).toEqual(["10:30"]);
+    expect(
+      within(outro)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["10:30"]);
 
     // fora do intervalo: avisa e não chama a API (handler só responde à data válida)
     let chamadas = 0;
-    servidor.use(http.get(`${BFF}/disponibilidade`, () => { chamadas++; return disponibilidade([]); }));
+    servidor.use(
+      http.get(`${BFF}/disponibilidade`, () => {
+        chamadas++;
+        return disponibilidade([]);
+      }),
+    );
     fireEvent.change(dia, { target: { value: "2027-01-30" } });
     expect(await screen.findByText(/Escolha um dia de hoje até/)).toBeInTheDocument();
     fireEvent.change(dia, { target: { value: "2026-11-10" } });
@@ -70,7 +96,9 @@ describe("horários", () => {
       http.get(`${BFF}/disponibilidade`, ({ request }) =>
         new URL(request.url).searchParams.get("data") === "2026-12-10"
           ? erro(422, "FORA_DO_HORIZONTE")
-          : disponibilidade([{ barbeiroId: BARBEIRO.id, nomeExibicao: "Carlos Eduardo", horarios: ["2026-11-24T10:00:00-03:00"] }]),
+          : disponibilidade([
+              { barbeiroId: BARBEIRO.id, nomeExibicao: "Carlos Eduardo", horarios: ["2026-11-24T10:00:00-03:00"] },
+            ]),
       ),
     );
     renderizar(<Agendar />);

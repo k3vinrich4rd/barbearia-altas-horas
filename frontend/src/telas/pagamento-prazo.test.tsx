@@ -16,7 +16,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-const avancar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+const avancar = (ms: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
 const PRAZO_MS = new Date(reserva().expiraEm).getTime() - new Date("2026-11-18T08:00:00-03:00").getTime();
 
 describe("prazo do pagamento", () => {

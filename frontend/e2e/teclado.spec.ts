@@ -17,11 +17,19 @@ async function foco(page: Page) {
   return page.evaluate(() => {
     const el = document.activeElement as HTMLElement;
     const css = getComputedStyle(el);
-    return { tag: el.tagName, texto: (el.textContent ?? "").trim().slice(0, 40), saida: css.outlineStyle, largura: css.outlineWidth };
+    return {
+      tag: el.tagName,
+      texto: (el.textContent ?? "").trim().slice(0, 40),
+      saida: css.outlineStyle,
+      largura: css.outlineWidth,
+    };
   });
 }
 
-test("A55: o fluxo do visitante se faz só com o teclado, com foco visível, link de pular e foco no h1 ao mudar de rota", async ({ page, request }) => {
+test("A55: o fluxo do visitante se faz só com o teclado, com foco visível, link de pular e foco no h1 ao mudar de rota", async ({
+  page,
+  request,
+}) => {
   const horario = await horarioLivre(request);
   await page.goto("/");
 
@@ -35,7 +43,9 @@ test("A55: o fluxo do visitante se faz só com o teclado, com foco visível, lin
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   await page.keyboard.press("Enter"); // pula para o conteúdo
-  await expect(page.locator("#conteudo")).toBeFocused().catch(() => undefined);
+  await expect(page.locator("#conteudo"))
+    .toBeFocused()
+    .catch(() => undefined);
 
   // Enter no link principal da home: a rota muda e o foco vai para o h1
   await tabAte(page, page.getByRole("main").getByRole("link", { name: "Agendar horário" }).first());
@@ -59,7 +69,11 @@ test("A55: o fluxo do visitante se faz só com o teclado, com foco visível, lin
   // dados do visitante
   await tabAte(page, page.getByRole("button", { name: "Continuar sem conta" }));
   await page.keyboard.press("Space");
-  for (const [rotulo, valor] of [["Nome", "Visitante Teclado"], ["E-mail", emailUnico("teclado")], ["WhatsApp", "11900000005"]] as const) {
+  for (const [rotulo, valor] of [
+    ["Nome", "Visitante Teclado"],
+    ["E-mail", emailUnico("teclado")],
+    ["WhatsApp", "11900000005"],
+  ] as const) {
     await tabAte(page, page.getByLabel(rotulo, { exact: true }));
     await page.keyboard.type(valor);
   }

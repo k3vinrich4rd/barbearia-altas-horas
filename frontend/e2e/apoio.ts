@@ -20,7 +20,12 @@ export interface Horario {
 function somar(dias: number): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + dias);
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 }
 
 /** Primeiro dia (a partir de amanhã) com horário livre, escolhido pela própria API, e um horário dele (sem data fixa). */
@@ -32,7 +37,9 @@ export async function horarioLivre(request: APIRequestContext, opcoes: { ignorar
     const r = await request.get(`${API_URL}/disponibilidade`, { params: { servicoId, data: dia } });
     if (!r.ok()) continue;
     const d = await r.json();
-    const barbeiro = d.barbeiros.find((b: { horarios: string[] }) => b.horarios.some((h) => !opcoes.ignorar?.includes(h)));
+    const barbeiro = d.barbeiros.find((b: { horarios: string[] }) =>
+      b.horarios.some((h) => !opcoes.ignorar?.includes(h)),
+    );
     if (!barbeiro) continue;
     const livres: string[] = barbeiro.horarios.filter((h: string) => !opcoes.ignorar?.includes(h));
     // um horário do meio do dia, para não colidir com outros testes sempre no primeiro
@@ -61,7 +68,11 @@ export async function pagarComPixESimular(page: Page) {
   await expect(page).toHaveURL(/\/agendar\/confirmacao\//, { timeout: 30_000 });
 }
 
-export async function cadastrarCliente(page: Page, email = emailUnico("cliente"), extra: { cep?: string; marketing?: boolean } = {}) {
+export async function cadastrarCliente(
+  page: Page,
+  email = emailUnico("cliente"),
+  extra: { cep?: string; marketing?: boolean } = {},
+) {
   await page.goto("/cadastro");
   await page.getByLabel("Nome").fill("Cliente de Teste");
   await page.getByLabel("E-mail").fill(email);
@@ -80,7 +91,14 @@ export async function cadastrarCliente(page: Page, email = emailUnico("cliente")
 /** Cria uma reserva de visitante direto na API real (sem UI), para telas que precisam de uma reserva pronta. */
 export async function reservaDeVisitanteNaApi(request: APIRequestContext, h: Horario) {
   const r = await request.post(`${API_URL}/agendamentos/guest`, {
-    data: { servicoId: h.servicoId, barbeiroId: h.barbeiroId, inicio: h.inicio, nome: "Visitante de Teste", email: emailUnico("visitante"), whatsapp: "11900000002" },
+    data: {
+      servicoId: h.servicoId,
+      barbeiroId: h.barbeiroId,
+      inicio: h.inicio,
+      nome: "Visitante de Teste",
+      email: emailUnico("visitante"),
+      whatsapp: "11900000002",
+    },
   });
   expect(r.status()).toBe(201);
   return (await r.json()) as { id: string; tokenGuest: string };

@@ -1,7 +1,13 @@
 // Dados de exemplo (fictícios) no formato do contrato.
 export const servico = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `6f1c2a8e-0000-4000-8000-00000000000${n}`,
-  nome: ["Corte Clássico / Social", "Corte Degradê / Fade / Navalhado", "Corte Moderno / Visagismo (Tesoura)", "Barba Completa / Desenhada", "Acabamento (Pezinho) / Sobrancelha"][n - 1],
+  nome: [
+    "Corte Clássico / Social",
+    "Corte Degradê / Fade / Navalhado",
+    "Corte Moderno / Visagismo (Tesoura)",
+    "Barba Completa / Desenhada",
+    "Acabamento (Pezinho) / Sobrancelha",
+  ][n - 1],
   duracaoMin: 60,
   precoCentavos: [4500, 5500, 6000, 3000, 2000][n - 1],
   precoFormatado: ["R$ 45,00", "R$ 55,00", "R$ 60,00", "R$ 30,00", "R$ 20,00"][n - 1],
@@ -30,7 +36,8 @@ export const reserva = (extra: Record<string, unknown> = {}) => ({
 
 export const POLITICA_PAGAMENTO = {
   versao: 1,
-  texto: "Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta.",
+  texto:
+    "Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta.",
 };
 
 export const POLITICA_PRIVACIDADE = {

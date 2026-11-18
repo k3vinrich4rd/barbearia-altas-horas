@@ -28,6 +28,7 @@ export function EstadoDaConsulta<T>({
       </div>
     );
   }
-  if (consulta.carregando || consulta.dados === undefined) return esconderErro ? null : <p role="status">Carregando…</p>;
+  if (consulta.carregando || consulta.dados === undefined)
+    return esconderErro ? null : <p role="status">Carregando…</p>;
   return <>{children(consulta.dados)}</>;
 }

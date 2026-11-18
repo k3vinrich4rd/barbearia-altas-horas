@@ -13,6 +13,11 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
     testTimeout: 15000,
-    coverage: { provider: "v8", include: ["src/**"], exclude: ["src/**/*.test.*", "src/testes/**", "src/api/schema.d.ts"], reporter: ["text-summary", "lcov"] },
+    coverage: {
+      provider: "v8",
+      include: ["src/**"],
+      exclude: ["src/**/*.test.*", "src/testes/**", "src/api/schema.d.ts"],
+      reporter: ["text-summary", "lcov"],
+    },
   },
 });

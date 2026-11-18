@@ -5,7 +5,9 @@ import { join, resolve } from "node:path";
 import { describe, expect, test, vi } from "vitest";
 
 // next/font/google só funciona dentro do compilador do Next: aqui entra um falso com a mesma forma
-vi.mock("next/font/google", () => ({ Playfair_Display: () => ({ variable: "fonte-falsa", className: "fonte-falsa" }) }));
+vi.mock("next/font/google", () => ({
+  Playfair_Display: () => ({ variable: "fonte-falsa", className: "fonte-falsa" }),
+}));
 // @ts-expect-error scripts .mjs sem tipos
 import { gerarCss } from "../../scripts/gerar-tokens.mjs";
 // @ts-expect-error scripts .mjs sem tipos
@@ -30,9 +32,13 @@ describe("tokens visuais", () => {
     const pasta = mkdtempSync(join(tmpdir(), "css-"));
     try {
       mkdirSync(join(pasta, "x"));
-      writeFileSync(join(pasta, "x", "ruim.module.css"), ".a { color: #fff; font-family: Arial; box-shadow: 0 0 1px red; padding: 12px; border-radius: 4px; background: rgb(0,0,0); }");
+      writeFileSync(
+        join(pasta, "x", "ruim.module.css"),
+        ".a { color: #fff; font-family: Arial; box-shadow: 0 0 1px red; padding: 12px; border-radius: 4px; background: rgb(0,0,0); }",
+      );
       const problemas: string[] = verificar(pasta);
-      for (const trecho of ["cor literal (#)", "cor literal (rgb/hsl)", "font-family", "box-shadow", "medida em px"]) expect(problemas.join("\n")).toContain(trecho);
+      for (const trecho of ["cor literal (#)", "cor literal (rgb/hsl)", "font-family", "box-shadow", "medida em px"])
+        expect(problemas.join("\n")).toContain(trecho);
     } finally {
       rmSync(pasta, { recursive: true, force: true });
     }

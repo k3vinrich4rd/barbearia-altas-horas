@@ -12,11 +12,16 @@ ligarServidor();
 beforeEach(() => {
   zerarNavegacao();
   definirBusca("");
-  servidor.use(http.get(`${BFF}/sessao`, () => HttpResponse.json({ autenticado: true, usuario: { id: "u", nome: "N" }, papeis: ["CLIENTE"] })));
+  servidor.use(
+    http.get(`${BFF}/sessao`, () =>
+      HttpResponse.json({ autenticado: true, usuario: { id: "u", nome: "N" }, papeis: ["CLIENTE"] }),
+    ),
+  );
 });
 
 const login = (r: () => Response | Promise<Response>) => servidor.use(http.post(`${BFF}/auth/login`, () => r()));
-const resposta = (papeis: string[], deveTrocarSenha = false) => HttpResponse.json({ usuario: { id: "u", nome: "N", papeis }, deveTrocarSenha });
+const resposta = (papeis: string[], deveTrocarSenha = false) =>
+  HttpResponse.json({ usuario: { id: "u", nome: "N", papeis }, deveTrocarSenha });
 
 async function entrar(user: ReturnType<typeof renderizar>["user"]) {
   await user.type(screen.getByLabelText("E-mail"), "alguem@exemplo.test");
@@ -71,7 +76,13 @@ describe("login e logout", () => {
     // logout: chama a rota, volta à home e o menu muda
     zerarNavegacao();
     let saiu = 0;
-    servidor.use(http.post(`${BFF}/auth/logout`, async () => { saiu++; await delay(5); return new HttpResponse(null, { status: 204 }); }));
+    servidor.use(
+      http.post(`${BFF}/auth/logout`, async () => {
+        saiu++;
+        await delay(5);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
     const m = renderizar(<Menu />, CLIENTE);
     expect(screen.getByRole("link", { name: "Meus agendamentos" })).toBeInTheDocument();
     await m.user.click(screen.getByRole("button", { name: "Sair" }));

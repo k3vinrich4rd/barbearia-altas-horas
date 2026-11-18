@@ -13,7 +13,12 @@ describe("home", () => {
     servidor.use(
       http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
       http.get(`${BFF}/alcance`, () =>
-        HttpResponse.json({ atualizadoEm: "2026-11-18T00:00:00Z", totalCidades: 1, totalBairros: 1, regioes: [{ cidade: "Osasco", uf: "SP", bairros: ["Centro"] }] }),
+        HttpResponse.json({
+          atualizadoEm: "2026-11-18T00:00:00Z",
+          totalCidades: 1,
+          totalBairros: 1,
+          regioes: [{ cidade: "Osasco", uf: "SP", bairros: ["Centro"] }],
+        }),
       ),
     );
     renderizar(<Home />);

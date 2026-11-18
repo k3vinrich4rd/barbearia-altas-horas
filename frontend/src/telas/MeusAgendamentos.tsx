@@ -56,7 +56,17 @@ export function MeusAgendamentos() {
                       <h2>{titulo as string}</h2>
                       <ul className="lista">
                         {(itens as typeof p.itens).map((a) => (
-                          <li key={a.id} className="item item-reserva" data-estado={a.status === "CONFIRMADO" ? "confirmado" : a.status === "AGUARDANDO_PAGAMENTO" ? "aguardando" : undefined}>
+                          <li
+                            key={a.id}
+                            className="item item-reserva"
+                            data-estado={
+                              a.status === "CONFIRMADO"
+                                ? "confirmado"
+                                : a.status === "AGUARDANDO_PAGAMENTO"
+                                  ? "aguardando"
+                                  : undefined
+                            }
+                          >
                             <h3>
                               {a.servico?.nome}
                               {a.barbeiro ? ` com ${a.barbeiro.nomeExibicao}` : ""}
@@ -67,11 +77,13 @@ export function MeusAgendamentos() {
                             <p>
                               <EtiquetaDeStatus status={a.status} />
                             </p>
-                            {a.status === "AGUARDANDO_PAGAMENTO" && a.expiraEm && new Date(a.expiraEm).getTime() > Date.now() && (
-                              <Link href={`/agendar/pagamento/${a.id}`} className="botao botao-principal">
-                                Pagar
-                              </Link>
-                            )}
+                            {a.status === "AGUARDANDO_PAGAMENTO" &&
+                              a.expiraEm &&
+                              new Date(a.expiraEm).getTime() > Date.now() && (
+                                <Link href={`/agendar/pagamento/${a.id}`} className="botao botao-principal">
+                                  Pagar
+                                </Link>
+                              )}
                             {a.status === "CANCELADO" && a.motivoCancelamento && <p>Motivo: {a.motivoCancelamento}</p>}
                           </li>
                         ))}

@@ -35,7 +35,8 @@ const PERMITIDAS = compilar(ROTAS_PERMITIDAS);
 const PUBLICAS = compilar(ROTAS_PUBLICAS);
 const COM_GUEST = compilar(ROTAS_COM_TOKEN_GUEST);
 
-const casa = (lista: Padrao[], metodo: string, caminho: string) => lista.some((p) => p.metodo === metodo && p.regex.test(caminho));
+const casa = (lista: Padrao[], metodo: string, caminho: string) =>
+  lista.some((p) => p.metodo === metodo && p.regex.test(caminho));
 
 /** Segmentos sem `..`, `.`, vazios, barras, contrabarras ou caracteres de controle. */
 function caminhoSeguro(segmentos: string[]): string | undefined {
@@ -250,16 +251,19 @@ async function cookiesDoPos(metodo: string, caminho: string, resposta: Response)
   if (metodo === "POST" && caminho === "/agendamentos/guest" && resposta.status === 201) {
     try {
       const dados = await resposta.clone().json();
-      if (typeof dados?.id === "string" && typeof dados?.tokenGuest === "string") return [cookieVisitante(dados.id, dados.tokenGuest)];
+      if (typeof dados?.id === "string" && typeof dados?.tokenGuest === "string")
+        return [cookieVisitante(dados.id, dados.tokenGuest)];
     } catch {
       return [];
     }
   }
-  if (resposta.status === 204 && ((metodo === "PUT" && caminho === "/me/senha") || (metodo === "DELETE" && caminho === "/me"))) {
+  if (
+    resposta.status === 204 &&
+    ((metodo === "PUT" && caminho === "/me/senha") || (metodo === "DELETE" && caminho === "/me"))
+  ) {
     return cookiesApagados();
   }
   return [];
 }
-
 
 export { problema };

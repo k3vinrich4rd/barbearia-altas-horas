@@ -5,7 +5,16 @@ const config = [
   ...coreWebVitals,
   ...typescript,
   {
-    ignores: [".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "coverage/**", "public/**", "src/api/schema.d.ts", "next-env.d.ts"],
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "playwright-report/**",
+      "test-results/**",
+      "coverage/**",
+      "public/**",
+      "src/api/schema.d.ts",
+      "next-env.d.ts",
+    ],
   },
   {
     rules: {
@@ -16,7 +25,15 @@ const config = [
     },
   },
   {
-    files: ["scripts/**", "e2e/**", "**/*.test.ts", "**/*.test.tsx", "src/testes/**", "vitest.*.ts", "playwright.config.ts"],
+    files: [
+      "scripts/**",
+      "e2e/**",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "src/testes/**",
+      "vitest.*.ts",
+      "playwright.config.ts",
+    ],
     rules: { "no-console": "off" },
   },
 ];

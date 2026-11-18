@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { API_URL, emailUnico, escolherHorario, horarioLivre, pagarComPixESimular, statusDaReservaGuest } from "./apoio";
 
-test("A57: o visitante vai da home à confirmação, consulta pelo código e o horário some para o próximo", async ({ page, request, browser }) => {
+test("A57: o visitante vai da home à confirmação, consulta pelo código e o horário some para o próximo", async ({
+  page,
+  request,
+  browser,
+}) => {
   const horario = await horarioLivre(request);
 
   // home → agendar
@@ -47,20 +51,24 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await outro.close();
 
   // o horário some da disponibilidade
-  const d = await (await request.get(`${API_URL}/disponibilidade`, { params: { servicoId: horario.servicoId, data: horario.dia } })).json();
+  const d = await (
+    await request.get(`${API_URL}/disponibilidade`, { params: { servicoId: horario.servicoId, data: horario.dia } })
+  ).json();
   const livres: string[] = d.barbeiros.flatMap((b: { horarios: string[] }) => b.horarios);
   expect(livres).not.toContain(horario.inicio);
 
   // um segundo visitante no mesmo horário recebe a mensagem de horário ocupado
   const segundo = await browser.newContext();
   const p2 = await segundo.newPage();
-  await p2.goto(`/agendar/dados?${new URLSearchParams({ servicoId: horario.servicoId, barbeiroId: horario.barbeiroId, inicio: horario.inicio })}`);
+  await p2.goto(
+    `/agendar/dados?${new URLSearchParams({ servicoId: horario.servicoId, barbeiroId: horario.barbeiroId, inicio: horario.inicio })}`,
+  );
   await p2.getByRole("button", { name: "Continuar sem conta" }).click();
   await p2.getByLabel("Nome").fill("Segundo Visitante");
   await p2.getByLabel("E-mail").fill(emailUnico("visitante2"));
   await p2.getByLabel("WhatsApp").fill("11900000004");
   await p2.getByRole("button", { name: "Reservar" }).click();
   await expect(p2).toHaveURL(/\/agendar\?/);
-  await expect(p2.getByText("Esse horário acabou de ser reservado. Escolha outro.")).toBeVisible();
+  await expect(p2.getByText("Esse horário acabou de ser reservado por outra pessoa. Escolha outro.")).toBeVisible();
   await segundo.close();
 });

@@ -35,9 +35,17 @@ export function apiFalsa(manipulador: ManipuladorApi) {
 }
 
 export const json = (corpo: unknown, status = 200, headers: Record<string, string> = {}) =>
-  new Response(status === 204 ? null : JSON.stringify(corpo), { status, headers: { "content-type": "application/json", ...headers } });
+  new Response(status === 204 ? null : JSON.stringify(corpo), {
+    status,
+    headers: { "content-type": "application/json", ...headers },
+  });
 
-export const problemaApi = (status: number, code: string, extra: Record<string, unknown> = {}, headers: Record<string, string> = {}) =>
+export const problemaApi = (
+  status: number,
+  code: string,
+  extra: Record<string, unknown> = {},
+  headers: Record<string, string> = {},
+) =>
   new Response(JSON.stringify({ type: "about:blank", title: "t", status, code, traceId: "trace-9", ...extra }), {
     status,
     headers: { "content-type": "application/problem+json", ...headers },
@@ -56,12 +64,24 @@ export const tokensDeExemplo = (extra: Record<string, unknown> = {}) => ({
 
 export function requisicao(
   caminho: string,
-  opcoes: { metodo?: string; origem?: string | null; cookies?: Record<string, string>; corpo?: unknown; headers?: Record<string, string> } = {},
+  opcoes: {
+    metodo?: string;
+    origem?: string | null;
+    cookies?: Record<string, string>;
+    corpo?: unknown;
+    headers?: Record<string, string>;
+  } = {},
 ): Request {
   const h = new Headers(opcoes.headers);
   const origem = opcoes.origem === undefined ? SITE : opcoes.origem;
   if (origem) h.set("origin", origem);
-  if (opcoes.cookies) h.set("cookie", Object.entries(opcoes.cookies).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("; "));
+  if (opcoes.cookies)
+    h.set(
+      "cookie",
+      Object.entries(opcoes.cookies)
+        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+        .join("; "),
+    );
   if (opcoes.corpo !== undefined) h.set("content-type", "application/json");
   return new Request(`${SITE}${caminho}`, {
     method: opcoes.metodo ?? "GET",

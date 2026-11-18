@@ -45,7 +45,14 @@ export function TrocarSenha() {
       <h1>Trocar senha</h1>
       {perfil.dados?.deveTrocarSenha && <Aviso tipo="aviso">Antes de continuar, troque a senha inicial.</Aviso>}
       <form onSubmit={aoEnviar} noValidate aria-label="Trocar senha">
-        <Campo id="senha-atual" rotulo="Senha atual" type="password" autoComplete="current-password" value={atual} onChange={(e) => setAtual(e.target.value)} />
+        <Campo
+          id="senha-atual"
+          rotulo="Senha atual"
+          type="password"
+          autoComplete="current-password"
+          value={atual}
+          onChange={(e) => setAtual(e.target.value)}
+        />
         <Campo
           id="nova-senha"
           rotulo="Nova senha"

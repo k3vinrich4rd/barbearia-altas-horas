@@ -3,7 +3,15 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { api, chamar } from "@/api/cliente";
-import { diaNoFuso, formatarDataCurta, formatarDiaDaSemana, formatarHora, formatarPreco, FUSO_PADRAO, somarDias } from "@/api/formato";
+import {
+  diaNoFuso,
+  formatarDataCurta,
+  formatarDiaDaSemana,
+  formatarHora,
+  formatarPreco,
+  FUSO_PADRAO,
+  somarDias,
+} from "@/api/formato";
 import { useConsulta } from "@/api/hooks";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
@@ -62,11 +70,18 @@ export function Agendar() {
               <div role="radiogroup" aria-labelledby="passo-servico" className="lista opcoes">
                 {lista.map((s) => (
                   <label key={s.id} className="opcao">
-                    <input type="radio" name="servico" value={s.id} checked={servicoId === s.id} onChange={() => setServicoId(s.id)} />
+                    <input
+                      type="radio"
+                      name="servico"
+                      value={s.id}
+                      checked={servicoId === s.id}
+                      onChange={() => setServicoId(s.id)}
+                    />
                     <span>
                       <strong>{s.nome}</strong>
                       <br />
-                      <span className="hora">{s.duracaoMin} min</span> · <span className="preco">{formatarPreco(s)}</span>
+                      <span className="hora">{s.duracaoMin} min</span> ·{" "}
+                      <span className="preco">{formatarPreco(s)}</span>
                     </span>
                   </label>
                 ))}
@@ -127,13 +142,23 @@ export function Agendar() {
               const livres = grupos.reduce((n, g) => n + g.horarios.length, 0);
               return (
                 <div>
-                  <p className="etiqueta">{livres} {livres === 1 ? "horário livre" : "horários livres"}</p>
+                  <p className="etiqueta">
+                    {livres} {livres === 1 ? "horário livre" : "horários livres"}
+                  </p>
                   {grupos.map((b) => (
-                    <div key={b.barbeiroId} role="group" aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}>
+                    <div
+                      key={b.barbeiroId}
+                      role="group"
+                      aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}
+                    >
                       <h3>{b.nomeExibicao}</h3>
                       <div className="horarios">
                         {b.horarios.map((h) => (
-                          <Botao key={h} className="botao botao-secundario horario" onClick={() => escolher(b.barbeiroId, h)}>
+                          <Botao
+                            key={h}
+                            className="botao botao-secundario horario"
+                            onClick={() => escolher(b.barbeiroId, h)}
+                          >
                             {formatarHora(h, d.fuso ?? FUSO_PADRAO)}
                           </Botao>
                         ))}
@@ -154,10 +179,24 @@ export function Agendar() {
           <dt>Dia</dt>
           <dd>{dataValida ? formatarDataCurta(`${data}T12:00:00Z`) : "Escolha o dia"}</dd>
           <dt>Total</dt>
-          <dd>{(() => { const x = servicos.dados?.find((y) => y.id === servicoId); return x ? formatarPreco(x) : "-"; })()}</dd>
+          <dd>
+            {(() => {
+              const x = servicos.dados?.find((y) => y.id === servicoId);
+              return x ? formatarPreco(x) : "-";
+            })()}
+          </dd>
         </dl>
-        <p className="nota">Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até 30 dias à frente. Pix ou cartão: na próxima etapa, um contador mostra o prazo para pagar e o horário fica reservado só para você. Sem pagamento no prazo, o horário volta para a agenda.</p>
-        <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? (barbeiros.dados as BarbeiroComWhatsapp[] | undefined)?.find((b) => Boolean(b.whatsapp))} />
+        <p className="nota">
+          Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até 30 dias à frente. Pix ou cartão:
+          na próxima etapa, um contador mostra o prazo para pagar e o horário fica reservado só para você. Sem pagamento
+          no prazo, o horário volta para a agenda.
+        </p>
+        <ContatoWhatsapp
+          barbeiro={
+            barbeiroEscolhido ??
+            (barbeiros.dados as BarbeiroComWhatsapp[] | undefined)?.find((b) => Boolean(b.whatsapp))
+          }
+        />
       </aside>
     </>
   );

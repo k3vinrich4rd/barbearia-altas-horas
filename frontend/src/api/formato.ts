@@ -2,9 +2,12 @@
 export const FUSO_PADRAO = "America/Sao_Paulo";
 
 export function formatarHora(iso: string, fuso: string = FUSO_PADRAO): string {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: fuso, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
-    new Date(iso),
-  );
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: fuso,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
 }
 
 export function formatarDataCurta(iso: string, fuso: string = FUSO_PADRAO): string {
@@ -12,7 +15,9 @@ export function formatarDataCurta(iso: string, fuso: string = FUSO_PADRAO): stri
 }
 
 export function formatarDiaDaSemana(iso: string, fuso: string = FUSO_PADRAO): string {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: fuso, weekday: "long" }).format(new Date(iso)).replace("-feira", "");
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: fuso, weekday: "long" })
+    .format(new Date(iso))
+    .replace("-feira", "");
 }
 
 /** "terça, 24/11 às 10:00" */
@@ -28,7 +33,12 @@ export function formatarDataLonga(iso: string, fuso: string = FUSO_PADRAO): stri
 
 /** Dia (YYYY-MM-DD) de um instante no fuso da barbearia. */
 export function diaNoFuso(data: Date, fuso: string = FUSO_PADRAO): string {
-  const p = new Intl.DateTimeFormat("en-CA", { timeZone: fuso, year: "numeric", month: "2-digit", day: "2-digit" }).format(data);
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone: fuso,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(data);
   return p;
 }
 

@@ -42,7 +42,10 @@ export function SessaoProvider({ children, inicial }: { children: ReactNode; ini
     if (!inicial) void atualizar();
   }, [inicial, atualizar]);
 
-  const valor = useMemo(() => ({ ...estado, carregando, atualizar, encerrar }), [estado, carregando, atualizar, encerrar]);
+  const valor = useMemo(
+    () => ({ ...estado, carregando, atualizar, encerrar }),
+    [estado, carregando, atualizar, encerrar],
+  );
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 

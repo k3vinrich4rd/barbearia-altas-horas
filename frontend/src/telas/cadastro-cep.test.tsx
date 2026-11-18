@@ -14,22 +14,45 @@ beforeEach(() => {
   definirBusca("");
   servidor.use(
     http.get(`${BFF}/politica-privacidade`, () => HttpResponse.json(POLITICA_PRIVACIDADE)),
-    http.get(`${BFF}/sessao`, () => HttpResponse.json({ autenticado: true, usuario: { id: "u", nome: "F" }, papeis: ["CLIENTE"] })),
+    http.get(`${BFF}/sessao`, () =>
+      HttpResponse.json({ autenticado: true, usuario: { id: "u", nome: "F" }, papeis: ["CLIENTE"] }),
+    ),
   );
 });
 
 describe("CEP no cadastro", () => {
   test("A33: CEP achado mostra o endereço; 404, 503, 429, rede e demora avisam; em TODOS os casos Criar conta continua habilitado e o corpo leva só o cep", async () => {
     const cenarios: { nome: string; resposta: () => Response | Promise<Response>; texto: RegExp }[] = [
-      { nome: "achou", resposta: () => HttpResponse.json({ cep: "01001000", bairro: "Sé", cidade: "São Paulo", uf: "SP", fonte: "VIACEP" }), texto: /^Sé, São Paulo - SP$/ },
+      {
+        nome: "achou",
+        resposta: () =>
+          HttpResponse.json({ cep: "01001000", bairro: "Sé", cidade: "São Paulo", uf: "SP", fonte: "VIACEP" }),
+        texto: /^Sé, São Paulo - SP$/,
+      },
       { nome: "404", resposta: () => erro(404, "CEP_NAO_ENCONTRADO"), texto: /Não encontramos este CEP/ },
       { nome: "503", resposta: () => erro(503, "CEP_INDISPONIVEL"), texto: /o cadastro continua e o CEP é salvo/i },
-      { nome: "429", resposta: () => erro(429, "LIMITE_EXCEDIDO", {}, { "retry-after": "10" }), texto: /o cadastro continua e o CEP é salvo/i },
+      {
+        nome: "429",
+        resposta: () => erro(429, "LIMITE_EXCEDIDO", {}, { "retry-after": "10" }),
+        texto: /o cadastro continua e o CEP é salvo/i,
+      },
       { nome: "rede", resposta: () => HttpResponse.error(), texto: /o cadastro continua e o CEP é salvo/i },
-      { nome: "demora de 4 s", resposta: async () => { await delay(4000); return HttpResponse.json({ cep: "01001000", bairro: "Sé", cidade: "São Paulo", uf: "SP" }); }, texto: /o cadastro continua e o CEP é salvo/i },
+      {
+        nome: "demora de 4 s",
+        resposta: async () => {
+          await delay(4000);
+          return HttpResponse.json({ cep: "01001000", bairro: "Sé", cidade: "São Paulo", uf: "SP" });
+        },
+        texto: /o cadastro continua e o CEP é salvo/i,
+      },
     ];
     const corpos: Record<string, unknown>[] = [];
-    servidor.use(http.post(`${BFF}/auth/cadastro`, async ({ request }) => { corpos.push((await request.json()) as Record<string, unknown>); return HttpResponse.json({ sessao: true, usuario: {}, deveTrocarSenha: false }, { status: 201 }); }));
+    servidor.use(
+      http.post(`${BFF}/auth/cadastro`, async ({ request }) => {
+        corpos.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ sessao: true, usuario: {}, deveTrocarSenha: false }, { status: 201 });
+      }),
+    );
 
     for (const c of cenarios) {
       servidor.use(http.get(`${BFF}/cep/01001000`, () => c.resposta()));
@@ -47,7 +70,14 @@ describe("CEP no cadastro", () => {
       await waitFor(() => expect(corpos.length).toBeGreaterThan(0));
       const corpo = corpos.pop()!;
       expect(corpo.cep, c.nome).toBe("01001-000");
-      expect(Object.keys(corpo).sort(), c.nome).toEqual(["aceitaMarketing", "cep", "email", "nome", "senha", "whatsapp"]);
+      expect(Object.keys(corpo).sort(), c.nome).toEqual([
+        "aceitaMarketing",
+        "cep",
+        "email",
+        "nome",
+        "senha",
+        "whatsapp",
+      ]);
       unmount();
     }
   }, 60000);

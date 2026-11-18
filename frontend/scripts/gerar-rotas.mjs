@@ -37,7 +37,11 @@ export function gerarArquivo(yaml) {
   const { todas, publicas, comGuest } = listarRotas(yaml);
   return [
     "// GERADO por scripts/gerar-rotas.mjs a partir de docs/contrato/openapi.yaml. NÃO EDITAR.",
-    lista("ROTAS_PERMITIDAS", todas, "Rotas que o BFF aceita (método + caminho do contrato). O webhook do gateway nunca entra (E4)."),
+    lista(
+      "ROTAS_PERMITIDAS",
+      todas,
+      "Rotas que o BFF aceita (método + caminho do contrato). O webhook do gateway nunca entra (E4).",
+    ),
     lista("ROTAS_PUBLICAS", publicas, "Rotas sem segurança no contrato (security: []): o BFF não manda token."),
     lista("ROTAS_COM_TOKEN_GUEST", comGuest, "Rotas que aceitam X-Guest-Token (visitante)."),
   ].join("\n");

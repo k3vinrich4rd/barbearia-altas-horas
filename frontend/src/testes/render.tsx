@@ -6,11 +6,23 @@ import { SessaoProvider } from "@/componentes/Sessao";
 import { vi } from "vitest";
 
 export const ANONIMO: EstadoDaSessao = { autenticado: false };
-export const CLIENTE: EstadoDaSessao = { autenticado: true, usuario: { id: "u1", nome: "Cliente Teste" }, papeis: ["CLIENTE"] };
-export const ADMIN: EstadoDaSessao = { autenticado: true, usuario: { id: "u2", nome: "Admin Teste" }, papeis: ["ADMIN"] };
+export const CLIENTE: EstadoDaSessao = {
+  autenticado: true,
+  usuario: { id: "u1", nome: "Cliente Teste" },
+  papeis: ["CLIENTE"],
+};
+export const ADMIN: EstadoDaSessao = {
+  autenticado: true,
+  usuario: { id: "u2", nome: "Admin Teste" },
+  papeis: ["ADMIN"],
+};
 
 /** Renderiza a tela dentro da sessão (sem chamar /api/sessao) e devolve o `user` do user-event. */
-export function renderizar(ui: ReactElement, sessao: EstadoDaSessao = ANONIMO, opcoesUsuario: Parameters<typeof userEvent.setup>[0] = {}) {
+export function renderizar(
+  ui: ReactElement,
+  sessao: EstadoDaSessao = ANONIMO,
+  opcoesUsuario: Parameters<typeof userEvent.setup>[0] = {},
+) {
   const user = userEvent.setup(opcoesUsuario);
   return { user, ...render(<SessaoProvider inicial={sessao}>{ui}</SessaoProvider>) };
 }

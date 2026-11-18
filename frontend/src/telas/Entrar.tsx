@@ -44,14 +44,30 @@ export function Entrar() {
   return (
     <>
       <nav aria-label="Entrar ou criar conta" className="alternador">
-        <Link href="/entrar" aria-current="page">Entrar</Link>
+        <Link href="/entrar" aria-current="page">
+          Entrar
+        </Link>
         <Link href="/cadastro">Criar conta</Link>
       </nav>
       <h1>Entrar</h1>
       {aviso && <Aviso tipo="info">{aviso}</Aviso>}
       <form onSubmit={aoEnviar} aria-label="Entrar">
-        <Campo id="email" rotulo="E-mail" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Campo id="senha" rotulo="Senha" type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+        <Campo
+          id="email"
+          rotulo="E-mail"
+          type="email"
+          autoComplete="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Campo
+          id="senha"
+          rotulo="Senha"
+          type="password"
+          autoComplete="current-password"
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+        />
         {envio.erro && <AvisoDeErro erro={envio.erro} />}
         {envio.esperando && <Aviso tipo="aviso">Tente de novo em {envio.restante} s.</Aviso>}
         <Botao type="submit" variante="principal" disabled={envio.enviando || envio.esperando}>

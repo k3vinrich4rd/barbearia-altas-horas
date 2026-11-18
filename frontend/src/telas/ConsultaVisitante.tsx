@@ -30,7 +30,10 @@ export function ConsultaVisitante() {
     setReserva(undefined);
     try {
       const r = await chamar(
-        api().GET("/agendamentos/guest/{id}", { params: { path: { id: reservaId.trim() } }, headers: { "X-Guest-Token": token.trim() } }),
+        api().GET("/agendamentos/guest/{id}", {
+          params: { path: { id: reservaId.trim() } },
+          headers: { "X-Guest-Token": token.trim() },
+        }),
       );
       setReserva(r);
     } catch (e) {
@@ -64,8 +67,20 @@ export function ConsultaVisitante() {
         }}
         aria-label="Consultar reserva"
       >
-        <Campo id="reserva-id" rotulo="Número da reserva" autoComplete="off" value={id} onChange={(e) => setId(e.target.value)} />
-        <Campo id="reserva-codigo" rotulo="Código da reserva" autoComplete="off" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+        <Campo
+          id="reserva-id"
+          rotulo="Número da reserva"
+          autoComplete="off"
+          value={id}
+          onChange={(e) => setId(e.target.value)}
+        />
+        <Campo
+          id="reserva-codigo"
+          rotulo="Código da reserva"
+          autoComplete="off"
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+        />
         <Botao type="submit" variante="principal" disabled={buscando}>
           Consultar
         </Botao>
@@ -89,8 +104,16 @@ export function ConsultaVisitante() {
             <br />
             Situação: <EtiquetaDeStatus status={reserva.status} />
           </p>
-          {reserva.status === "AGUARDANDO_PAGAMENTO" && <LinkBotao href={`/agendar/pagamento/${reserva.id}`} variante="principal">Voltar ao pagamento</LinkBotao>}
-          {(reserva.status === "EXPIRADO" || reserva.status === "CANCELADO") && <LinkBotao href="/agendar" variante="principal">Escolher outro horário</LinkBotao>}
+          {reserva.status === "AGUARDANDO_PAGAMENTO" && (
+            <LinkBotao href={`/agendar/pagamento/${reserva.id}`} variante="principal">
+              Voltar ao pagamento
+            </LinkBotao>
+          )}
+          {(reserva.status === "EXPIRADO" || reserva.status === "CANCELADO") && (
+            <LinkBotao href="/agendar" variante="principal">
+              Escolher outro horário
+            </LinkBotao>
+          )}
         </section>
       )}
     </>
