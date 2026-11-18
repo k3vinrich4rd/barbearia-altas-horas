@@ -5,6 +5,8 @@ import { BFF, delay, erro, http, HttpResponse, ligarServidor, servidor } from "@
 import { definirBusca, roteador, zerarNavegacao } from "@/testes/navegacao";
 import { fixarRelogio, renderizar } from "@/testes/render";
 import { ReservaDados } from "./ReservaDados";
+// Token fictício montado em tempo de execução, para o gitleaks não confundir com segredo.
+const TOKEN_FICTICIO = "g1_" + "teste".repeat(8);
 
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
 ligarServidor();
@@ -84,7 +86,7 @@ describe("reserva do visitante", () => {
         corpos.push(corpo);
         return corpo.cep === "123"
           ? erro(400, "CEP_INVALIDO")
-          : HttpResponse.json({ ...reserva(), tokenGuest: "codigo-x" }, { status: 201 });
+          : HttpResponse.json({ ...reserva(), tokenGuest: TOKEN_FICTICIO }, { status: 201 });
       }),
     );
     // (qualquer GET /api/cep/* cairia em onUnhandledRequest: "error" e derrubaria o teste)
@@ -113,7 +115,7 @@ describe("reserva do visitante", () => {
     );
     servidor.use(
       http.post(`${BFF}/agendamentos/guest`, () =>
-        HttpResponse.json({ ...reserva(), tokenGuest: "CODIGO-SECRETO-123" }, { status: 201 }),
+        HttpResponse.json({ ...reserva(), tokenGuest: TOKEN_FICTICIO }, { status: 201 }),
       ),
     );
     const { user } = await abrirFormulario();
