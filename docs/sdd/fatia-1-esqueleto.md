@@ -41,7 +41,7 @@
 | A6 | reserva `CANCELADO` ou `EXPIRADO` no horário | inserir outra no mesmo horário | passa | `SobreposicaoConstraintIT` |
 | A7 | N threads disputando o mesmo horário | inserções simultâneas | exatamente 1 vence | `ConcorrenciaReservaIT` |
 | A8 | `AGUARDANDO_PAGAMENTO` sem `expira_em` | inserir | check constraint recusa | `V1MigracaoIT` |
-| A9 | perfil `dev` | subir | seed com 1 barbeiro, 5 serviços (R$ 45, 55, 60, 30, 20; o de 60 min com `duracao_min = 60`) e jornada com almoço | `SeedDevIT` |
+| A9 | perfil `dev` | subir | seed com 1 barbeiro, 5 serviços (R$ 45, 55, 60, 30, 20; todos com `duracao_min = 60`, D94) e jornada com almoço | `SeedDevIT` |
 | A10 | código do projeto | `./mvnw verify` | regras ArchUnit e `ApplicationModules.verify()` verdes | `ArquiteturaTest`, `ModulithTest` |
 
 ## 3. Riscos e cuidados

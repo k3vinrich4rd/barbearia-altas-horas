@@ -73,7 +73,7 @@ cd backend && ./mvnw verify
 | `V1MigracaoIT` | 6 | V1 aplicada, `btree_gist`, constraint e índices; regras reais na configuração; o banco recusa `AGUARDANDO_PAGAMENTO` sem prazo, `CONFIRMADO` sem aceite e método fora de PIX/cartão |
 | `SobreposicaoConstraintIT` | 6 | mesmo horário e sobreposição parcial dão `23P01`; encostadas `[)` passam; `CANCELADO` e `EXPIRADO` não ocupam |
 | `ConcorrenciaReservaIT` | 3 | 12 conexões disputando o mesmo horário: **exatamente 1 vence** (repetido 3 vezes) |
-| `SeedDevIT` | 4 | perfil `dev` com o Carlos, os 5 serviços, a jornada com almoço e 24 horários pela API |
+| `SeedDevIT` | 5 | perfil `dev` com o Carlos, os 5 serviços, a jornada com almoço e 22 horários pela API |
 | `CalculadoraDeHorariosTest` | 12 | a regra dos horários, pura: almoço, serviço de 60 min, antecedência inclusiva, folga, intervalo meio aberto |
 | `DisponibilidadeIT` | 19 | a rota inteira no banco real: o que ocupa, pendente vencida, horizonte, erros 400/404/422, formato e **sem N+1** |
 | `CatalogoIT` · `PoliticaPagamentoIT` · `PrecoFormatadoTest` | 3 · 1 · 6 | só ativos, só os campos do contrato, cache, política vigente, `R$ 1.234,56` |
@@ -111,14 +111,14 @@ SELECT nome, duracao_min, preco_centavos FROM servico ORDER BY preco_centavos;
 ```text
                 nome                 | duracao_min | preco_centavos
 -------------------------------------+-------------+----------------
- Acabamento (Pezinho) / Sobrancelha  |          30 |           2000
- Barba Completa / Desenhada          |          30 |           3000
- Corte Clássico / Social             |          30 |           4500
- Corte Degradê / Fade / Navalhado    |          30 |           5500
+ Acabamento (Pezinho) / Sobrancelha  |          60 |           2000
+ Barba Completa / Desenhada          |          60 |           3000
+ Corte Clássico / Social             |          60 |           4500
+ Corte Degradê / Fade / Navalhado    |          60 |           5500
  Corte Moderno / Visagismo (Tesoura) |          60 |           6000
 ```
 
-**O que prova:** preço em centavos (inteiro, nunca `float`) e o visagismo ocupando 60 min.
+**O que prova:** preço em centavos (inteiro, nunca `float`) e todos os serviços ocupando 60 min (2 slots). (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual).
 
 ### 2.2 ✅ Dois clientes não pegam o mesmo horário
 
@@ -197,10 +197,10 @@ curl -i http://localhost:8080/servicos
 HTTP/1.1 200
 Cache-Control: max-age=60, public
 
-[{"id":"6f1c2a8e-0000-4000-8000-000000000005","nome":"Acabamento (Pezinho) / Sobrancelha","duracaoMin":30,"precoCentavos":2000,"precoFormatado":"R$ 20,00"},
- {"id":"6f1c2a8e-0000-4000-8000-000000000004","nome":"Barba Completa / Desenhada","duracaoMin":30,"precoCentavos":3000,"precoFormatado":"R$ 30,00"},
- {"id":"6f1c2a8e-0000-4000-8000-000000000001","nome":"Corte Clássico / Social","duracaoMin":30,"precoCentavos":4500,"precoFormatado":"R$ 45,00"},
- {"id":"6f1c2a8e-0000-4000-8000-000000000002","nome":"Corte Degradê / Fade / Navalhado","duracaoMin":30,"precoCentavos":5500,"precoFormatado":"R$ 55,00"},
+[{"id":"6f1c2a8e-0000-4000-8000-000000000005","nome":"Acabamento (Pezinho) / Sobrancelha","duracaoMin":60,"precoCentavos":2000,"precoFormatado":"R$ 20,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000004","nome":"Barba Completa / Desenhada","duracaoMin":60,"precoCentavos":3000,"precoFormatado":"R$ 30,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000001","nome":"Corte Clássico / Social","duracaoMin":60,"precoCentavos":4500,"precoFormatado":"R$ 45,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000002","nome":"Corte Degradê / Fade / Navalhado","duracaoMin":60,"precoCentavos":5500,"precoFormatado":"R$ 55,00"},
  {"id":"6f1c2a8e-0000-4000-8000-000000000003","nome":"Corte Moderno / Visagismo (Tesoura)","duracaoMin":60,"precoCentavos":6000,"precoFormatado":"R$ 60,00"}]
 ```
 
@@ -234,7 +234,7 @@ Cache-Control: no-store
              "2026-12-01T13:00:00-03:00", "...", "2026-12-01T19:00:00-03:00"]}]}
 ```
 
-**O que prova:** 22 horários; depois das 11:00 vem 13:00 (às 11:30 o serviço de 60 min invadiria o almoço) e o último é 19:00 (às 19:30 passaria das 20h). Com o Corte Degradê (`...000002`, 30 min) são 24.
+**O que prova:** 22 horários; depois das 11:00 vem 13:00 (às 11:30 o serviço de 60 min invadiria o almoço) e o último é 19:00 (às 19:30 passaria das 20h). Como todos os serviços duram 60 min, o Corte Degradê (`...000002`) também tem 22. (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual).
 
 Agora mexa e veja a regra reagir:
 
@@ -445,11 +445,11 @@ Saída real (17/11/2026, 11h48):
 
 ```
 201  Location: /agendamentos/20b31b02-5bc5-4bec-9ef7-057a24d37f5d
-{"status":"AGUARDANDO_PAGAMENTO","origem":"CLIENTE","servico":{"nome":"Corte Degradê / Fade / Navalhado","duracaoMin":30},
- "inicio":"2026-11-24T10:00:00-03:00","fim":"2026-11-24T10:30:00-03:00","precoCentavos":5500,"expiraEm":"2026-11-17T12:03:11-03:00", ...}
+{"status":"AGUARDANDO_PAGAMENTO","origem":"CLIENTE","servico":{"nome":"Corte Degradê / Fade / Navalhado","duracaoMin":60},
+ "inicio":"2026-11-24T10:00:00-03:00","fim":"2026-11-24T11:00:00-03:00","precoCentavos":5500,"expiraEm":"2026-11-17T12:03:11-03:00", ...}
 ```
 
-**O que prova:** quem tem conta **também** paga 100% antes (R6); o preço vem do serviço e fica congelado na reserva.
+**O que prova:** quem tem conta **também** paga 100% antes (R6); o preço vem do serviço e fica congelado na reserva. (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual).
 
 E os erros, todos com saída real:
 
@@ -777,11 +777,11 @@ curl -s -i -X DELETE localhost:8080/admin/barbeiros/b0000000-0000-4000-8000-0000
 Saída real (17/11/2026, 17h13), resumida:
 
 ```text
-24 horários em 10/12 (07:00 a 19:30) antes da folga
+22 horários em 10/12 (07:00 a 19:00) antes da folga (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual)
 201  folga 14:00-16:00 em 10/12 (Location da folga)
-20 horários: somem 14:00, 14:30, 15:00 e 15:30; 16:00 continua
+17 horários: somem 13:30, 14:00, 14:30, 15:00 e 15:30 (o serviço de 60 min não pode terminar dentro da folga); 16:00 continua
 200  GET folgas: 1 folga
-204  DELETE: os 24 horários voltam; DELETE de novo: 404
+204  DELETE: os 22 horários voltam; DELETE de novo: 404
 201  reserva do cliente em 09/12 às 15:00 (AGUARDANDO_PAGAMENTO)
 422  FOLGA_COM_RESERVAS   (folga 14:00-16:00 em 09/12 por cima dela); nada gravado
 ```

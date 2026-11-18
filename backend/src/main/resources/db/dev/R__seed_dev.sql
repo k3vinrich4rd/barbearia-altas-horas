@@ -3,7 +3,9 @@
 -- NUNCA em prod. Catálogo, jornada e barbeiro reais da Barbearia Altas Horas
 -- (16/11/2026, D36 e D37); nenhum dado pessoal de cliente.
 -- Repetível (R__): roda de novo quando este arquivo muda; ON CONFLICT mantém
--- o que o admin já alterou no painel.
+-- o que o admin já alterou no painel (nome, preço, ativo), exceto a duração:
+-- todos os serviços duram 60 min desde 18/11/2026 (D38) e o upsert corrige
+-- bancos dev que ainda tinham 30.
 -- =============================================================================
 
 INSERT INTO barbeiro (id, nome_exibicao)
@@ -11,12 +13,16 @@ VALUES ('b0000000-0000-4000-8000-000000000001', 'Carlos Eduardo Cândido')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO servico (id, nome, duracao_min, preco_centavos) VALUES
-    ('6f1c2a8e-0000-4000-8000-000000000001', 'Corte Clássico / Social',             30, 4500),
-    ('6f1c2a8e-0000-4000-8000-000000000002', 'Corte Degradê / Fade / Navalhado',    30, 5500),
+    ('6f1c2a8e-0000-4000-8000-000000000001', 'Corte Clássico / Social',             60, 4500),
+    ('6f1c2a8e-0000-4000-8000-000000000002', 'Corte Degradê / Fade / Navalhado',    60, 5500),
     ('6f1c2a8e-0000-4000-8000-000000000003', 'Corte Moderno / Visagismo (Tesoura)', 60, 6000),
-    ('6f1c2a8e-0000-4000-8000-000000000004', 'Barba Completa / Desenhada',          30, 3000),
-    ('6f1c2a8e-0000-4000-8000-000000000005', 'Acabamento (Pezinho) / Sobrancelha',  30, 2000)
-ON CONFLICT (id) DO NOTHING;
+    ('6f1c2a8e-0000-4000-8000-000000000004', 'Barba Completa / Desenhada',          60, 3000),
+    ('6f1c2a8e-0000-4000-8000-000000000005', 'Acabamento (Pezinho) / Sobrancelha',  60, 2000)
+ON CONFLICT (id) DO UPDATE
+    SET duracao_min = EXCLUDED.duracao_min,
+        version = servico.version + 1,
+        atualizado_em = now()
+    WHERE servico.duracao_min <> EXCLUDED.duracao_min;
 
 -- Terça (2) a sábado (6), ISO-8601. Dois intervalos por dia: o buraco das
 -- 12h00 às 13h00 é o almoço, editável pelo admin como qualquer intervalo.
