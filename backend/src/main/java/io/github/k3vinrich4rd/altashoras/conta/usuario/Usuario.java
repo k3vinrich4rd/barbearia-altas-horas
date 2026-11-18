@@ -1,5 +1,6 @@
 package io.github.k3vinrich4rd.altashoras.conta.usuario;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -57,6 +58,9 @@ public class Usuario {
     @Column(name = "versao_credencial", nullable = false)
     private int versaoCredencial;
 
+    @Column(name = "anonimizado_em")
+    private Instant anonimizadoEm;
+
     @Column(name = "deve_trocar_senha", nullable = false)
     private boolean deveTrocarSenha;
 
@@ -99,8 +103,32 @@ public class Usuario {
         this.deveTrocarSenha = false;
     }
 
+    /**
+     * Exclusão da conta (LGPD, Fatia 6B, E16): a linha fica (reservas, auditoria e solicitações apontam para ela), mas
+     * sem nenhum dado pessoal. O e-mail vira um valor único e inválido, o que o deixa livre para um novo cadastro; a
+     * conta é desativada e a versão da credencial sobe, o que derruba os tokens já emitidos.
+     */
+    public void anonimizar(Instant agora) {
+        this.nome = "Conta excluída";
+        this.email = "excluido-" + id + "@anonimo.invalid";
+        this.whatsapp = null;
+        this.senhaHash = null;
+        this.cep = null;
+        this.bairro = null;
+        this.cidade = null;
+        this.uf = null;
+        this.ativo = false;
+        this.deveTrocarSenha = false;
+        this.versaoCredencial++;
+        this.anonimizadoEm = agora;
+    }
+
     public UUID getId() {
         return id;
+    }
+
+    public String getWhatsapp() {
+        return whatsapp;
     }
 
     public String getNome() {

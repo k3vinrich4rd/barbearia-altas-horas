@@ -1,6 +1,6 @@
 # 0009. LGPD: marketing por consentimento, CPF não persistido e retenção do guest
 
-- Status: **proposta** (dono: Quarteto Dev; o Alicerce revisa o impacto)
+- Status: **aceita** (17/11/2026, Fatia 6B: números finais abaixo; dono: Quarteto Dev; o Alicerce revisa o impacto)
 - Data: 2026-11-13
 - Decisores: Quarteto Dev. **Não é parecer jurídico**: bases legais e prazos marcados como proposta precisam de validação antes de uso real.
 
@@ -12,7 +12,7 @@ O sistema trata nome, e-mail, WhatsApp, CEP (opcional) e, só no pagamento do gu
 ### 1. Marketing por CEP só com consentimento
 - Finalidade `MARKETING_CEP` separada da operação. Caixa **opcional e desmarcada** no cadastro; o texto tem versão (`versao_texto`).
 - Cada aceite ou revogação é uma **linha nova** em `consentimento` (prova com data e versão). Revogação a qualquer momento em `PUT /me/consentimentos/marketing`.
-- O painel de alcance (pós-beta) mostra **só agregados por bairro e cidade**, conta só quem consentiu e **esconde grupos com menos de 5 pessoas** (k ≥ 5).
+- O alcance por região (Fatia 6C) mostra **só agregados por bairro e cidade** e **esconde grupos com menos de 5 atendimentos** (k ≥ 5). **Atualização (D-8, E33):** o agregado com k ≥ 5 usa **legítimo interesse** (estatística da própria barbearia) e conta todos os atendimentos, não só quem consentiu; a política 1.0 já explica. **Mandar promoção** a alguém continua exigindo o consentimento `MARKETING_CEP`.
 - Opções consideradas: (a) usar o CEP do cadastro para marketing sem perguntar (descartada: finalidade diferente sem base legal); (b) consentimento separado (**escolhida**).
 
 ### 2. CPF não persistido
@@ -26,11 +26,11 @@ O sistema trata nome, e-mail, WhatsApp, CEP (opcional) e, só no pagamento do gu
 ### 3. Retenção e descarte
 | Dado | Retenção proposta | Como |
 |---|---|---|
-| Contato do guest (`reserva_guest`) | **HIPÓTESE H13:** 90 dias após o atendimento | job com ShedLock no módulo `privacidade` anonimiza nome, e-mail e WhatsApp (`anonimizado_em`) |
+| Contato do guest (`reserva_guest`) | **HIPÓTESE H13:** 90 dias após o **fim** da reserva (inclusivo), `app.privacidade.retencao-guest-dias` | job `RetencaoDeDados` (3h, ShedLock, lotes de 500) anonimiza nome, e-mail e WhatsApp, troca o token do link (`anonimizado_em`) |
 | Registro financeiro do sinal (`cobranca`) | **HIPÓTESE H13:** 5 anos, **pendente de fonte legal** | sem dado pessoal na tabela (só ids e valores) |
-| Conta excluída (`DELETE /me`) | imediata | anonimiza `usuario`, revoga refresh tokens, cancela reservas futuras; histórico de reservas passadas fica sem dado pessoal |
-| Auditoria do admin | 1 ano (proposta) | job de limpeza |
-| Eventos de webhook | 1 ano (proposta) | sem payload, só ids |
+| Conta excluída (`DELETE /me`) | imediata, sem pedir a senha no beta (D-3) | anonimiza `usuario`, apaga os refresh tokens, cancela as reservas futuras **não pagas**; com reserva futura **paga** a exclusão é bloqueada (`409 EXCLUSAO_BLOQUEADA_POR_RESERVA`, D-1); histórico de reservas passadas fica sem dado pessoal |
+| Auditoria do admin | **só o IP** some depois de 1 ano (`app.privacidade.retencao-ip-dias`); a linha fica (D-2) | job de retenção |
+| Eventos de webhook | 1 ano, só os já processados (`app.privacidade.retencao-webhook-dias`) | sem payload, só ids; job de retenção |
 
 ### 4. Nada pessoal em log
 - Logs estruturados com `traceId`; nunca corpo de requisição. `Cpf`, `Telefone`, `Cep` e `Email` mascaram no `toString()`.

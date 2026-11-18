@@ -32,6 +32,8 @@ public enum CodigoErro {
     NOME_JA_EXISTE(409, "Nome já existe", "Já existe um registro com este nome."),
     USUARIO_JA_VINCULADO(409, "Conta já vinculada", "Esta conta já é de outro barbeiro."),
     COBRANCA_EM_ANDAMENTO(409, "Cobrança em andamento", "Esta reserva já tem uma cobrança pendente."),
+    EXCLUSAO_BLOQUEADA_POR_RESERVA(409, "Exclusão bloqueada por reserva",
+            "Há uma reserva futura já paga. Combine o cancelamento com a barbearia e peça a exclusão de novo."),
     MIDIA_NAO_SUPORTADA(415, "Tipo de conteúdo não suportado", "Envie o corpo como application/json."),
     FORA_DO_EXPEDIENTE(422, "Fora do horário de atendimento", "A barbearia não atende neste horário."),
     ANTECEDENCIA_INSUFICIENTE(422, "Antecedência mínima não atendida", "Escolha um horário mais à frente."),

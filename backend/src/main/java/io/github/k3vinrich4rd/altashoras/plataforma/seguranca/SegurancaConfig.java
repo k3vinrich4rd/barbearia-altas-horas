@@ -73,7 +73,7 @@ class SegurancaConfig {
                 .authorizeHttpRequests(regras -> regras
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/servicos", "/barbeiros", "/politica-pagamento",
-                                "/disponibilidade", "/actuator/health", "/actuator/health/**").permitAll()
+                                "/disponibilidade", "/politica-privacidade", "/actuator/health", "/actuator/health/**").permitAll()
                         // CEP (Fatia 6A): pública, mas com limite por IP; é a primeira rota que gasta serviço de terceiros (H21).
                         .requestMatchers(HttpMethod.GET, "/cep/**").permitAll()
                         // Visitante sem conta (R26): reserva com limite por IP; a consulta exige o X-Guest-Token.
@@ -91,6 +91,10 @@ class SegurancaConfig {
                                 "/admin/servicos/**", "/admin/servicos", "/admin/barbeiros/**", "/admin/barbeiros",
                                 "/admin/configuracao").access(soAdmin())
                         .requestMatchers("/admin/**").access(painel())
+                        // Exclusão da própria conta (LGPD, Fatia 6B): só cliente; a conta de equipe está ligada a
+                        // barbeiro e à auditoria e se encerra pelo ADMIN fora do app (E15).
+                        .requestMatchers(HttpMethod.DELETE, "/me").access(soCliente())
+                        .requestMatchers("/me/dados", "/me/consentimentos", "/me/consentimentos/**").access(contaComSenhaTrocada())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(servidor -> servidor
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversor))
@@ -132,6 +136,29 @@ class SegurancaConfig {
             Authentication quem = autenticacao.get();
             barrarSenhaInicial(quem, temAlgumPapel(quem, "ROLE_ADMIN", "ROLE_BARBEIRO"));
             return new AuthorizationDecision(temAlgumPapel(quem, "ROLE_ADMIN"));
+        };
+    }
+
+    /**
+     * Rotas da privacidade do titular (Fatia 6B): exigem login e, como as demais rotas de conta, com a senha inicial
+     * ainda em uso devolvem 403 TROCA_DE_SENHA_OBRIGATORIA. {@code /me} e {@code /me/senha} ficam de fora de propósito:
+     * é por elas que o admin chega à troca de senha.
+     */
+    private static AuthorizationManager<RequestAuthorizationContext> contaComSenhaTrocada() {
+        return (autenticacao, contexto) -> {
+            Authentication quem = autenticacao.get();
+            boolean logado = temAlgumPapel(quem, "ROLE_CLIENTE", "ROLE_BARBEIRO", "ROLE_ADMIN");
+            barrarSenhaInicial(quem, logado);
+            return new AuthorizationDecision(logado);
+        };
+    }
+
+    /** {@code DELETE /me}: logado com o papel CLIENTE e sem papel de equipe. BARBEIRO e ADMIN recebem 403 (E15). */
+    private static AuthorizationManager<RequestAuthorizationContext> soCliente() {
+        return (autenticacao, contexto) -> {
+            Authentication quem = autenticacao.get();
+            boolean cliente = temAlgumPapel(quem, "ROLE_CLIENTE") && !temAlgumPapel(quem, "ROLE_BARBEIRO", "ROLE_ADMIN");
+            return new AuthorizationDecision(cliente);
         };
     }
 

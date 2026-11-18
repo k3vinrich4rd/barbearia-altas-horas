@@ -16,7 +16,7 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 281 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 331 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **281 testes, 0 falhas, 0 pulados** (17/11/2026, com a 6A: 250 antigos + 31 do CEP), `BUILD SUCCESS` em 2 min 11 s, cobertura de instruções **96%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **331 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6B: 282 anteriores, já com os serviços de 60 min, + 49 da privacidade), `BUILD SUCCESS` em 2 min 31 s. A cobertura de instruções da 6A era **96%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -73,7 +73,7 @@ cd backend && ./mvnw verify
 | `V1MigracaoIT` | 6 | V1 aplicada, `btree_gist`, constraint e índices; regras reais na configuração; o banco recusa `AGUARDANDO_PAGAMENTO` sem prazo, `CONFIRMADO` sem aceite e método fora de PIX/cartão |
 | `SobreposicaoConstraintIT` | 6 | mesmo horário e sobreposição parcial dão `23P01`; encostadas `[)` passam; `CANCELADO` e `EXPIRADO` não ocupam |
 | `ConcorrenciaReservaIT` | 3 | 12 conexões disputando o mesmo horário: **exatamente 1 vence** (repetido 3 vezes) |
-| `SeedDevIT` | 4 | perfil `dev` com o Carlos, os 5 serviços, a jornada com almoço e 24 horários pela API |
+| `SeedDevIT` | 5 | perfil `dev` com o Carlos, os 5 serviços, a jornada com almoço e 22 horários pela API |
 | `CalculadoraDeHorariosTest` | 12 | a regra dos horários, pura: almoço, serviço de 60 min, antecedência inclusiva, folga, intervalo meio aberto |
 | `DisponibilidadeIT` | 19 | a rota inteira no banco real: o que ocupa, pendente vencida, horizonte, erros 400/404/422, formato e **sem N+1** |
 | `CatalogoIT` · `PoliticaPagamentoIT` · `PrecoFormatadoTest` | 3 · 1 · 6 | só ativos, só os campos do contrato, cache, política vigente, `R$ 1.234,56` |
@@ -111,14 +111,14 @@ SELECT nome, duracao_min, preco_centavos FROM servico ORDER BY preco_centavos;
 ```text
                 nome                 | duracao_min | preco_centavos
 -------------------------------------+-------------+----------------
- Acabamento (Pezinho) / Sobrancelha  |          30 |           2000
- Barba Completa / Desenhada          |          30 |           3000
- Corte Clássico / Social             |          30 |           4500
- Corte Degradê / Fade / Navalhado    |          30 |           5500
+ Acabamento (Pezinho) / Sobrancelha  |          60 |           2000
+ Barba Completa / Desenhada          |          60 |           3000
+ Corte Clássico / Social             |          60 |           4500
+ Corte Degradê / Fade / Navalhado    |          60 |           5500
  Corte Moderno / Visagismo (Tesoura) |          60 |           6000
 ```
 
-**O que prova:** preço em centavos (inteiro, nunca `float`) e o visagismo ocupando 60 min.
+**O que prova:** preço em centavos (inteiro, nunca `float`) e todos os serviços ocupando 60 min (2 slots). (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual).
 
 ### 2.2 ✅ Dois clientes não pegam o mesmo horário
 
@@ -197,10 +197,10 @@ curl -i http://localhost:8080/servicos
 HTTP/1.1 200
 Cache-Control: max-age=60, public
 
-[{"id":"6f1c2a8e-0000-4000-8000-000000000005","nome":"Acabamento (Pezinho) / Sobrancelha","duracaoMin":30,"precoCentavos":2000,"precoFormatado":"R$ 20,00"},
- {"id":"6f1c2a8e-0000-4000-8000-000000000004","nome":"Barba Completa / Desenhada","duracaoMin":30,"precoCentavos":3000,"precoFormatado":"R$ 30,00"},
- {"id":"6f1c2a8e-0000-4000-8000-000000000001","nome":"Corte Clássico / Social","duracaoMin":30,"precoCentavos":4500,"precoFormatado":"R$ 45,00"},
- {"id":"6f1c2a8e-0000-4000-8000-000000000002","nome":"Corte Degradê / Fade / Navalhado","duracaoMin":30,"precoCentavos":5500,"precoFormatado":"R$ 55,00"},
+[{"id":"6f1c2a8e-0000-4000-8000-000000000005","nome":"Acabamento (Pezinho) / Sobrancelha","duracaoMin":60,"precoCentavos":2000,"precoFormatado":"R$ 20,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000004","nome":"Barba Completa / Desenhada","duracaoMin":60,"precoCentavos":3000,"precoFormatado":"R$ 30,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000001","nome":"Corte Clássico / Social","duracaoMin":60,"precoCentavos":4500,"precoFormatado":"R$ 45,00"},
+ {"id":"6f1c2a8e-0000-4000-8000-000000000002","nome":"Corte Degradê / Fade / Navalhado","duracaoMin":60,"precoCentavos":5500,"precoFormatado":"R$ 55,00"},
  {"id":"6f1c2a8e-0000-4000-8000-000000000003","nome":"Corte Moderno / Visagismo (Tesoura)","duracaoMin":60,"precoCentavos":6000,"precoFormatado":"R$ 60,00"}]
 ```
 
@@ -234,7 +234,7 @@ Cache-Control: no-store
              "2026-12-01T13:00:00-03:00", "...", "2026-12-01T19:00:00-03:00"]}]}
 ```
 
-**O que prova:** 22 horários; depois das 11:00 vem 13:00 (às 11:30 o serviço de 60 min invadiria o almoço) e o último é 19:00 (às 19:30 passaria das 20h). Com o Corte Degradê (`...000002`, 30 min) são 24.
+**O que prova:** 22 horários; depois das 11:00 vem 13:00 (às 11:30 o serviço de 60 min invadiria o almoço) e o último é 19:00 (às 19:30 passaria das 20h). Como todos os serviços duram 60 min, o Corte Degradê (`...000002`) também tem 22. (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual).
 
 Agora mexa e veja a regra reagir:
 
@@ -445,11 +445,11 @@ Saída real (17/11/2026, 11h48):
 
 ```
 201  Location: /agendamentos/20b31b02-5bc5-4bec-9ef7-057a24d37f5d
-{"status":"AGUARDANDO_PAGAMENTO","origem":"CLIENTE","servico":{"nome":"Corte Degradê / Fade / Navalhado","duracaoMin":30},
- "inicio":"2026-11-24T10:00:00-03:00","fim":"2026-11-24T10:30:00-03:00","precoCentavos":5500,"expiraEm":"2026-11-17T12:03:11-03:00", ...}
+{"status":"AGUARDANDO_PAGAMENTO","origem":"CLIENTE","servico":{"nome":"Corte Degradê / Fade / Navalhado","duracaoMin":60},
+ "inicio":"2026-11-24T10:00:00-03:00","fim":"2026-11-24T11:00:00-03:00","precoCentavos":5500,"expiraEm":"2026-11-17T12:03:11-03:00", ...}
 ```
 
-**O que prova:** quem tem conta **também** paga 100% antes (R6); o preço vem do serviço e fica congelado na reserva.
+**O que prova:** quem tem conta **também** paga 100% antes (R6); o preço vem do serviço e fica congelado na reserva. (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual).
 
 E os erros, todos com saída real:
 
@@ -497,12 +497,60 @@ Saída real (17/11/2026, 13h31):
 
 **O que prova:** a API nunca vê o número do cartão, só devolve a `urlCheckout` onde ele seria digitado. Quem não é dono da reserva recebe `404` (não `403`), e depois do pagamento a reserva aparece `CONFIRMADO` em "meus agendamentos".
 
-### C13 ⏳ Fatia 6: dados e exclusão da conta
+### C13 ✅ Fatia 6B: dados, consentimento e exclusão da conta (fluxo manual no perfil `dev`)
 
-| # | O que fazer | O que deve acontecer | O que prova | |
-|---|---|---|---|:-:|
-| C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
+Os critérios A23 a A61 já são testados pelo `./mvnw verify`. Este roteiro é o conferido à mão, com a API no perfil `dev`. Use dados fictícios e preencha `<ACESSO>` e `<REFRESH>` com o que o login devolver.
 
+```bash
+curl -s http://localhost:8080/politica-privacidade                       # 200: versao 1.0, textoConsentimento, politica
+curl -s -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json" -d '{"nome":"Cliente Teste D","email":"cliente.d@exemplo.test","whatsapp":"(11) 90000-0004","senha":"Senha-de-teste-123","aceitaMarketing":true}'
+curl -s -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{"email":"cliente.d@exemplo.test","senha":"Senha-de-teste-123"}'
+curl -s http://localhost:8080/me/consentimentos -H "Authorization: Bearer <ACESSO>"
+curl -s -X PUT http://localhost:8080/me/consentimentos/marketing -H "Authorization: Bearer <ACESSO>" -H "Content-Type: application/json" -d '{"aceito":false,"versaoTexto":"1.0"}'
+curl -i http://localhost:8080/me/dados -H "Authorization: Bearer <ACESSO>"   # 200, Cache-Control: no-store
+curl -i -X DELETE http://localhost:8080/me -H "Authorization: Bearer <ACESSO>"   # 204
+curl -i -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{"email":"cliente.d@exemplo.test","senha":"Senha-de-teste-123"}'   # 401
+curl -i http://localhost:8080/me -H "Authorization: Bearer <ACESSO>"        # 401 (o token antigo deixou de valer)
+```
+
+Saída real (18/11/2026, perfil `dev`, dados fictícios, resumida):
+
+```text
+GET    /politica-privacidade             -> 200 {versao:"1.0", textoConsentimento, politica, atualizadaEm}
+POST   /auth/cadastro (aceitaMarketing)  -> 201
+GET    /me/consentimentos                -> 200 [{finalidade:"MARKETING_CEP", aceito:true,  versaoTexto:"1.0"}]
+PUT    /me/consentimentos/marketing      -> 200 {aceito:false, versaoTexto:"1.0"}
+GET    /me/consentimentos                -> 200 [{finalidade:"MARKETING_CEP", aceito:false, versaoTexto:"1.0"}]
+GET    /me/dados  x5                     -> 200, Cache-Control: no-store, chaves: geradoEm, conta, consentimentos, agendamentos
+                                            (sem senha, token, CPF nem IP)
+GET    /me/dados  (6a chamada)           -> 429 LIMITE_EXCEDIDO, Retry-After: 3599
+DELETE /me (reserva futura não paga)     -> 204; a reserva ficou CANCELADO no banco
+POST   /auth/login (conta excluída)      -> 401 CREDENCIAIS_INVALIDAS
+GET    /me (token antigo)                -> 401 NAO_AUTENTICADO
+POST   /auth/cadastro (mesmo e-mail)     -> 201
+DELETE /me (reserva PAGA, CONFIRMADO)    -> 409 EXCLUSAO_BLOQUEADA_POR_RESERVA; a reserva continua CONFIRMADO
+DELETE /me (admin)                       -> 403 ACESSO_NEGADO
+```
+
+No log inteiro da API (duas subidas): `grep -c` por e-mails, nome, WhatsApp (com e sem máscara), `127.0.0.1`, `::1` e `exemplo.test`: **0** em todos.
+
+**O que deve acontecer:** a exportação traz a conta, o histórico dos consentimentos (do mais antigo para o mais novo) e só as reservas do próprio cliente, sem senha, token, IP nem CPF; depois do `204` o login e o token antigo dão `401`. Com uma reserva futura **paga**, o `DELETE /me` dá `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda. No log: `grep` de e-mail, WhatsApp, CEP e IP com 0 ocorrências.
+
+### Rotina do visitante depois dos 90 dias ✅ (retenção)
+
+O job `RetencaoDeDados` roda todo dia às 3h (fuso da barbearia) e loga `Retenção de dados: limpeza=reserva_guest linhas=N`. Para conferir à mão sem esperar, no perfil `dev`: crie uma reserva de visitante, mude o `fim` da reserva no banco para mais de 90 dias atrás (`UPDATE reserva SET inicio = now() - interval '91 days', fim = now() - interval '91 days' + interval '30 minutes' WHERE id = '<ID>'`, ajustando `fim_ocupacao`) e suba a API com `APP_JOBS_RETENCAO_CRON="0 * * * * *"` para rodar no próximo minuto.
+
+Saída real (18/11/2026, perfil `dev`): reserva de visitante criada, envelhecida por SQL e API reiniciada; a retenção rodou na subida.
+
+```text
+log:    Retenção de dados: limpeza=reserva_guest linhas=1   (auditoria_ip e evento_webhook: linhas=0)
+antes:  nome do visitante, whatsapp 11900000063, anonimizado_em nulo, token_hash 7c378da3…
+depois: nome = 'Visitante anonimizado', whatsapp = '00000000000', anonimizado_em preenchido, token_hash 1d492a0b…
+        reserva continua EXPIRADO, 0 cobranças alteradas
+GET /agendamentos/guest/{id} com o token antigo -> 404
+```
+
+O que deve acontecer: `reserva_guest` fica com `nome = 'Visitante anonimizado'`, `whatsapp = '00000000000'` e `anonimizado_em` preenchido; o link do visitante (`GET /agendamentos/guest/{id}` com o token antigo) dá `404`; a reserva e a cobrança não mudam; o log traz só o nome da limpeza e a contagem.
 ### B3 ✅ CEP com os provedores ligados (Fatia 6A)
 
 Precisa de internet: o perfil `dev` fala com o ViaCEP de verdade. Sem chave e sem conta.
@@ -758,11 +806,11 @@ curl -s -i -X DELETE localhost:8080/admin/barbeiros/b0000000-0000-4000-8000-0000
 Saída real (17/11/2026, 17h13), resumida:
 
 ```text
-24 horários em 10/12 (07:00 a 19:30) antes da folga
+22 horários em 10/12 (07:00 a 19:00) antes da folga (durações atualizadas em 18/11; saída a reconferir no próximo fluxo manual)
 201  folga 14:00-16:00 em 10/12 (Location da folga)
-20 horários: somem 14:00, 14:30, 15:00 e 15:30; 16:00 continua
+17 horários: somem 13:30, 14:00, 14:30, 15:00 e 15:30 (o serviço de 60 min não pode terminar dentro da folga); 16:00 continua
 200  GET folgas: 1 folga
-204  DELETE: os 24 horários voltam; DELETE de novo: 404
+204  DELETE: os 22 horários voltam; DELETE de novo: 404
 201  reserva do cliente em 09/12 às 15:00 (AGUARDANDO_PAGAMENTO)
 422  FOLGA_COM_RESERVAS   (folga 14:00-16:00 em 09/12 por cima dela); nada gravado
 ```

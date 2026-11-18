@@ -118,11 +118,11 @@ flowchart LR
 | `comum` | nenhum | — |
 | `plataforma` | `comum` | — |
 | `cep` | `comum` | — |
-| `conta` | `cep`, `comum` | `privacidade.ExclusaoSolicitada` |
-| `agenda` | `conta`, `comum` | `pagamento.PagamentoConfirmado`, `pagamento.PagamentoFalhou`, `privacidade.ExclusaoSolicitada` |
-| `pagamento` | `agenda`, `comum` | `agenda.ReservaCancelada`, `agenda.ReservaExpirada`, `privacidade.ExclusaoSolicitada` |
-| `privacidade` | `conta`, `agenda`, `pagamento`, `comum` (só leitura) | `conta.ContaCriada` |
-| `admin` | `agenda`, `conta`, `pagamento`, `comum` | — |
+| `conta` | `cep`, `privacidade`, `plataforma`, `comum` | `privacidade.ExclusaoSolicitada` (síncrono, `@Order` 20) |
+| `agenda` | `conta`, `privacidade`, `comum` | `pagamento.PagamentoConfirmado`, `pagamento.PagamentoFalhou`, `privacidade.ExclusaoSolicitada` (síncrono, `@Order` 10, antes da conta) |
+| `pagamento` | `agenda`, `privacidade`, `comum` | `agenda.ReservaCancelada`, `agenda.ReservaExpirada` (e publica a limpeza de `evento_webhook`) |
+| `privacidade` | `comum` (só publica portas e o evento; conta, agenda, admin e pagamento a usam) | — |
+| `admin` | `agenda`, `conta`, `pagamento`, `privacidade`, `comum` | — |
 
 Ouvir um evento depende só do pacote `eventos` do emissor, liberado no `package-info.java` com `allowedDependencies = {"pagamento::eventos", ...}`. Assim `agenda` ouve `pagamento::eventos` sem depender de `pagamento`, e não há ciclo.
 
@@ -257,4 +257,4 @@ sequenceDiagram
 
 ### 6.3 Excluir conta
 
-`DELETE /me` → privacidade grava a solicitação e publica `ExclusaoSolicitada` → conta anonimiza o usuário e revoga refresh tokens; agenda cancela reservas futuras e anonimiza; pagamento mantém o registro financeiro pelo prazo de H13 → conta publica `ContaAnonimizada` → privacidade conclui a solicitação.
+`DELETE /me` (só cliente) → `ExcluirConta` abre UMA transação, grava a solicitação e publica `ExclusaoSolicitada`. Os listeners são **síncronos** (`@EventListener`, não o outbox: o `204` precisa significar "acabou") e têm ordem explícita com `@Order`: 1º a agenda (`CancelaReservasDaExclusao`: reserva futura paga bloqueia com `409`; as não pagas viram `CANCELADO` e publicam `ReservaCancelada` pelo outbox), 2º a conta (`AnonimizaContaDaExclusao`: anonimiza, sobe `versao_credencial`, apaga os refresh tokens); por fim a privacidade grava a revogação final do consentimento e conclui a solicitação. Qualquer falha desfaz tudo. O token de acesso já emitido deixa de valer na hora (`ValidadorDeConta`). O registro financeiro fica pelo prazo de H13. A exportação (`GET /me/dados`) usa a porta `FonteDeDadosDoTitular`, implementada por conta e agenda; a retenção usa `LimpezaPorRetencao` (agenda, admin e pagamento).

@@ -42,7 +42,7 @@ class SeedDevIT {
     Clock clock;
 
     @Test
-    @DisplayName("A28: no perfil dev, a API mostra os 5 serviços reais e 24 horários do Corte Degradê numa terça")
+    @DisplayName("A28: no perfil dev, a API mostra os 5 serviços reais e 22 horários do Corte Degradê (60 min) numa terça")
     void catalogoEDisponibilidadePelaApi() throws Exception {
         mvc.perform(get("/servicos"))
                 .andExpect(status().isOk())
@@ -58,7 +58,7 @@ class SeedDevIT {
                         .param("data", terca.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.barbeiros[0].nomeExibicao").value("Carlos Eduardo Cândido"))
-                .andExpect(jsonPath("$.barbeiros[0].horarios.length()").value(24));
+                .andExpect(jsonPath("$.barbeiros[0].horarios.length()").value(22));
     }
 
     @Test
@@ -69,16 +69,37 @@ class SeedDevIT {
     }
 
     @Test
-    @DisplayName("A9: 5 serviços com os preços reais em centavos; o de visagismo dura 60 min (2 slots)")
+    @DisplayName("A9: 5 serviços com os preços reais em centavos; todos duram 60 min (2 slots)")
     void catalogo() {
         List<Map<String, Object>> servicos = jdbc.queryForList(
                 "SELECT nome, duracao_min, preco_centavos FROM servico ORDER BY preco_centavos");
         assertThat(servicos).extracting(s -> s.get("preco_centavos"))
                 .containsExactly(2000L, 3000L, 4500L, 5500L, 6000L);
-        assertThat(jdbc.queryForObject("SELECT duracao_min FROM servico WHERE preco_centavos = 6000", Integer.class))
-                .isEqualTo(60);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM servico WHERE duracao_min = 30", Integer.class))
-                .isEqualTo(4);
+        assertThat(servicos).extracting(s -> s.get("duracao_min")).containsOnly(60);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM servico WHERE duracao_min = 60", Integer.class))
+                .isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("A9: o seed, rodando de novo sobre um banco que ainda tinha 30 min, corrige a duração para 60 sem tocar no preço nem no nome")
+    void seedCorrigeDuracaoDeBancoAntigo() throws Exception {
+        jdbc.update("UPDATE servico SET duracao_min = 30, nome = 'Nome alterado pelo admin' "
+                + "WHERE id = '6f1c2a8e-0000-4000-8000-000000000001'");
+        jdbc.update("UPDATE servico SET duracao_min = 30 WHERE id <> '6f1c2a8e-0000-4000-8000-000000000001'");
+
+        String sql;
+        try (var in = getClass().getResourceAsStream("/db/dev/R__seed_dev.sql")) {
+            sql = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        jdbc.execute(sql);
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM servico WHERE duracao_min = 60", Integer.class))
+                .isEqualTo(5);
+        assertThat(jdbc.queryForObject(
+                "SELECT nome FROM servico WHERE id = '6f1c2a8e-0000-4000-8000-000000000001'", String.class))
+                .isEqualTo("Nome alterado pelo admin");
+        jdbc.update("UPDATE servico SET nome = 'Corte Clássico / Social' "
+                + "WHERE id = '6f1c2a8e-0000-4000-8000-000000000001'");
     }
 
     @Test
