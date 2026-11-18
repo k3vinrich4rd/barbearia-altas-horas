@@ -91,7 +91,7 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 | R23 | Quem não é dono de uma reserva recebe `404` ao acessá-la (não confirma que o id existe). | P | `ReservaBolaIT` (S08) |
 | R24 | E-mail é único por conta, sem diferença de maiúsculas. | P | `CadastroIT` (S04) |
 | R25 | O primeiro admin é criado na subida a partir de `ADMIN_EMAIL` e `ADMIN_SENHA` só se ainda não existir admin; a senha é gravada só como hash e nunca é sobrescrita por variável depois. | P | `AdminInicialIT` (S06) |
-| R26 | Login (inclusive do admin), cadastro e reserva guest têm limite de tentativas (**H14**); passou do limite: `429` com `Retry-After`. | P, H14 | `LimiteTentativasIT` (S06, S11) |
+| R26 | Login (inclusive do admin), cadastro e reserva guest têm limite de tentativas (**H14**), e a consulta pública de CEP também (**H21**); passou do limite: `429` com `Retry-After`. | P, H14, H21 | `LimiteTentativasIT` (S06, S11), `CepLimiteIT` (S15) |
 | R27 | Refresh token é de uso único e rotativo; reuso de um refresh já usado revoga toda a família da sessão. | P, A | `RefreshRotativoIT` (S05) |
 | R28 | Consentimento de marketing é opcional, nasce desmarcado, guarda versão do texto e data, e pode ser revogado a qualquer momento. | P | `ConsentimentoIT` (S16) |
 | R29 | Dados de contato do guest são anonimizados depois do prazo de retenção (**H13**). | P | `RetencaoGuestIT` (S16) |
@@ -127,6 +127,7 @@ Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o *
 | H18 | Tolerância para pagamento no limite do prazo | nenhuma: expira em `expira_em`; alternativa a decidir: alguns minutos de tolerância e prazo do Pix no gateway igual a `expira_em` (crítica do Gemini) | `configuracao_agenda` (se adotado) |
 | H19 | Depois de quanto tempo um evento de webhook não processado é considerado preso (N) | 10 min desde `recebido_em` | `app.pagamento.webhook.reprocessamento.idade-minima` (variável de ambiente) |
 | H20 | Quantas tentativas o job faz antes de mandar o evento para revisão manual no painel (M) | 5 tentativas | `app.pagamento.webhook.reprocessamento.max-tentativas` (variável de ambiente) |
+| H21 | Limite da consulta pública de CEP (a spec da Fatia 6 a chama de "H15", número que já era da validade das sessões) | **proposta (17/11, Fatia 6A)**: 30 consultas por minuto por IP; passou, `429` com `Retry-After`. É a primeira rota pública que gasta serviço de terceiros (ViaCEP e BrasilAPI) | `app.limites.cep-max` e `app.limites.cep-janela` |
 
 ## 5. Requisitos não funcionais
 

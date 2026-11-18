@@ -82,6 +82,13 @@ public class Usuario {
         this.papeis = new TreeSet<>(papeis);
     }
 
+    /** Endereço que o CEP resolveu (Fatia 6A, R31): só é chamado quando o provedor respondeu. */
+    public void resolverEndereco(String bairro, String cidade, String uf) {
+        this.bairro = bairro;
+        this.cidade = cidade;
+        this.uf = uf;
+    }
+
     /**
      * Senha nova: sobe a versão da credencial. Os tokens já emitidos carregam a versão antiga e param de ser
      * renovados (E8, E23).
