@@ -1,0 +1,420 @@
+/*
+ * Layout mínimo e neutro, de uma coluna, feito SÓ com os tokens do design system (E1, E2).
+ * Nenhuma cor, fonte, espaço, raio ou traço literal: o verificador de tokens (A56) reprova.
+ * O acabamento visual das telas (V1 a V12) é do Kevin e entra depois, trocando só este CSS.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--tipo-corpo-familia);
+  font-size: var(--tipo-corpo-tamanho);
+  line-height: var(--tipo-corpo-altura);
+}
+
+main {
+  max-width: 80ch;
+  margin-inline: auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+h1 {
+  font-family: var(--tipo-titulo-secao-familia);
+  font-size: var(--tipo-titulo-secao-tamanho);
+  line-height: var(--tipo-titulo-secao-altura);
+  font-weight: var(--tipo-titulo-secao-peso);
+  margin: 0 0 var(--space-6);
+}
+
+h2 {
+  font-family: var(--tipo-titulo-banner-familia);
+  font-size: var(--tipo-titulo-banner-tamanho);
+  line-height: var(--tipo-titulo-banner-altura);
+  margin: var(--space-8) 0 var(--space-3);
+}
+
+h3 {
+  font-family: var(--tipo-rotulo-familia);
+  font-size: var(--tipo-rotulo-tamanho);
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+a {
+  color: var(--texto);
+  text-decoration-thickness: var(--traco-1);
+  text-underline-offset: var(--space-1);
+}
+
+:focus-visible {
+  outline: var(--traco-2) solid var(--foco);
+  outline-offset: var(--traco-2);
+}
+
+small,
+.nota {
+  font-size: var(--tipo-nota-tamanho);
+  line-height: var(--tipo-nota-altura);
+  color: var(--texto-suave);
+}
+
+.pular-conteudo {
+  position: absolute;
+  inset-inline-start: var(--space-2);
+  top: var(--space-2);
+  transform: translateY(-300%);
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  padding: var(--space-2) var(--space-4);
+  z-index: 10;
+}
+
+.pular-conteudo:focus {
+  transform: translateY(0);
+}
+
+.so-leitor {
+  position: absolute;
+  width: var(--traco-1);
+  height: var(--traco-1);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Cabeçalho e menu */
+.cabecalho {
+  border-bottom: var(--traco-1) solid var(--borda);
+}
+
+.menu {
+  max-width: 80ch;
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  align-items: center;
+}
+
+.menu ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+
+.menu-marca {
+  font-family: var(--tipo-titulo-agenda-familia);
+  font-weight: var(--tipo-titulo-agenda-peso);
+  text-decoration: none;
+}
+
+.rodape {
+  max-width: 80ch;
+  margin-inline: auto;
+  padding: var(--space-6) var(--space-4);
+  border-top: var(--traco-1) solid var(--borda);
+  color: var(--texto-suave);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+/* Botões: um principal por tela; o secundário é contorno em borda-forte */
+.botao {
+  display: inline-block;
+  min-height: var(--space-12);
+  padding: var(--space-3) var(--space-4);
+  border: var(--traco-2) solid var(--borda-forte);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--texto);
+  font-family: var(--tipo-rotulo-familia);
+  font-size: var(--tipo-rotulo-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+  line-height: var(--tipo-rotulo-altura);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.botao-principal {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+}
+
+.botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Formulários */
+form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+fieldset {
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin: 0;
+}
+
+legend {
+  padding-inline: var(--space-2);
+  font-family: var(--tipo-rotulo-familia);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.campo {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.campo label,
+.copiar label {
+  font-family: var(--tipo-rotulo-familia);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.campo-ajuda {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: var(--tipo-legenda-tamanho);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  min-height: var(--space-12);
+  padding: var(--space-2) var(--space-3);
+  border: var(--traco-2) solid var(--borda-forte);
+  border-radius: var(--radius-sm);
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--tipo-corpo-familia);
+  font-size: var(--tipo-corpo-tamanho);
+  width: 100%;
+}
+
+input[aria-invalid="true"] {
+  border-style: dashed;
+  border-color: var(--texto);
+}
+
+.campo-erro {
+  margin: 0;
+  border-inline-start: var(--traco-3) solid var(--texto);
+  padding-inline-start: var(--space-2);
+}
+
+.caixa {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.caixa input {
+  margin-top: var(--space-1);
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: none;
+}
+
+/* Avisos (D-3): forma e texto, sem cor nova */
+.aviso {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-sm);
+  background: var(--superficie);
+}
+
+.aviso-erro {
+  border-inline-start: var(--traco-3) solid var(--texto);
+}
+
+.aviso-aviso {
+  border: var(--traco-2) dashed var(--borda-forte);
+}
+
+.aviso-prefixo {
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.aviso-suporte {
+  display: block;
+}
+
+/* Listas e cartões simples */
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.item {
+  padding: var(--space-4);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+}
+
+.item h3 {
+  margin-top: 0;
+}
+
+.opcao {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+}
+
+.opcao input {
+  margin-top: var(--space-1);
+  flex: none;
+}
+
+.horarios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.horario {
+  min-width: var(--space-16);
+}
+
+.horario[aria-pressed="true"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+}
+
+/* Estados da agenda: forma, não cor (README do design system) */
+[data-estado="confirmado"] {
+  background: var(--status-confirmado);
+  color: var(--status-confirmado-texto);
+}
+
+[data-estado="aguardando"] {
+  border: var(--traco-2) dashed var(--status-aguardando);
+  background: transparent;
+  color: var(--status-aguardando);
+}
+
+[data-estado="livre"] {
+  background: var(--superficie);
+  border: var(--traco-1) dashed var(--borda);
+}
+
+/* Tabelas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: start;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--traco-1) solid var(--borda-forte);
+}
+
+caption {
+  text-align: start;
+  font-family: var(--tipo-rotulo-familia);
+  font-weight: var(--tipo-rotulo-peso);
+  padding-bottom: var(--space-2);
+}
+
+/* Diálogo */
+.dialogo-fundo {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--fundo);
+  z-index: 20;
+}
+
+.dialogo {
+  max-width: 60ch;
+  width: 100%;
+  background: var(--superficie);
+  border: var(--traco-2) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.copiar {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.copiar-texto {
+  font-family: var(--tipo-corpo-familia);
+}
+
+.qr {
+  background: var(--branco);
+  padding: var(--space-2);
+}
+
+.paginacao {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+.politica {
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--space-4);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+}
+
+.logo {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.destaque {
+  font-family: var(--tipo-subtitulo-familia);
+  font-size: var(--tipo-subtitulo-tamanho);
+  line-height: var(--tipo-subtitulo-altura);
+  letter-spacing: var(--tipo-subtitulo-espacamento);
+  color: var(--texto-suave);
+}
+
+.preco,
+.hora {
+  white-space: nowrap;
+}
