@@ -4,13 +4,13 @@
 
 <img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Cândido, com horário garantido."/>
 
-[![Status](https://img.shields.io/badge/status-Fatia_3_de_8_·_conta_e_acesso-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
+[![Status](https://img.shields.io/badge/status-Fatias_1_a_5_e_6A_prontas-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-0A0A0A?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes-115_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
+[![Testes](https://img.shields.io/badge/testes-282_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
 
 <b><a href="#-a-história">A história</a></b> ·
 <a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
@@ -43,9 +43,34 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
-> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. São **115 testes** em PostgreSQL real, 0 falhas. Agendamento com pagamento, painel e telas chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
+> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. São **281 testes** em PostgreSQL real, 0 falhas. Privacidade (LGPD) está em andamento; telas e deploy chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
 
 <br clear="right"/>
+
+## 🧭 O que tem para quem visita o projeto
+
+- ▶️ **O que já funciona e dá para testar:** catálogo, horários livres, reserva (com e sem conta), pagamento simulado, expiração, conta e sessão, CEP com degradação (6A) e o painel completo. Como rodar e testar à mão, com a saída real de cada passo: **[guia de testes](docs/guia-testes.md)**.
+- 🛤 **Fluxo de ponta a ponta:** visitante, cliente e painel, com rotas, classes e diagramas: **[docs/fluxo-ponta-a-ponta.md](docs/fluxo-ponta-a-ponta.md)**.
+- 🧩 **Padrões usados**, cada um com a classe real:
+
+| Padrão | Onde está | Por quê |
+|---|---|---|
+| Monólito modular | Spring Modulith, verificado por `ModulithTest` | um deploy, fronteiras testadas ([ADR 0001](docs/adr/0001-monolito-modular-com-spring-modulith.md)) |
+| Ports & adapters e Strategy | `GatewayDePagamento` → `GatewaySimulado` e `AsaasGateway` (escolhidos por `app.pagamento.modo`) | trocar o gateway sem tocar na regra |
+| Fallback | `ProvedorDeCep`: `ViaCepCliente` → `BrasilApiCliente` → degradação | o cadastro segue se os provedores caírem ([ADR 0008](docs/adr/0008-cep-com-cache-e-degradacao.md)) |
+| Cache-aside | Caffeine em `CepConfig` (`CaffeineCache` + `SimpleCacheManager`, sem `@Cacheable`) | menos chamadas a API externa, com prazo para achado e para inexistente |
+| Máquina de estados | `StatusReserva.podeIrPara` e `TransicoesDeCobranca` | transição fora do mapa não existe |
+| Eventos de domínio e outbox | `ReservaExpirada`, `ReservaCancelada`; tabela `event_publication` | o evento nasce na mesma transação e não se perde |
+| Facade de módulo | `CepApi`, `PainelDaAgenda`, `conta.Contas` | o outro módulo só enxerga a API pública |
+| Repository, Factory Method, Value Object | `ReservaRepository`; `Reserva.nova`; `Cep`, `Cpf`, `Horario` | regra e validação num lugar só |
+| Lock otimista e pessimista | `@Version` em `Reserva`, `Cobranca` e outras; `FOR UPDATE`/`FOR SHARE` em `ReservarHorario` e `CadastrosDoPainel` | duas telas ou reserva e folga ao mesmo tempo |
+| Idempotência com HMAC | `CriarCobranca` (`X-Idempotency-Key` + hash HMAC-SHA256 do corpo) | repetir o pedido não cobra duas vezes |
+
+- 🤖 **IA no projeto** (três coisas diferentes):
+  - **RAG da documentação: existe.** Está em `ferramentas/rag/` (Spring AI 2.0.2 + pgvector + embeddings locais, busca híbrida). Medido em 17/11/2026: só vetor acerta 10 de 17 perguntas; a híbrida, 15 de 17 ([detalhes](docs/ia/rag-vetorial.md)).
+  - **SDD com um teste por critério:** nada entra sem spec, e o CI cobra um teste para cada critério ([como funciona](#-como-o-projeto-é-feito-sdd--ia)).
+  - **Assistente de dúvidas para clientes: planejado** (Fatia 9). Vai nascer desligado por padrão, reaproveitando o RAG; a IA generativa só liga em produção. Não existe código disso ainda.
+- 🗺 **Status das fatias:** 1 a 5 e 6A prontas · 6B (privacidade/LGPD) em andamento · 6C (alcance por região), 7 (telas), 8 (deploy grátis) e 9 (assistente) planejadas. Lista completa no [roadmap](#-roadmap-em-fatias).
 
 ## 🏆 Trajetória e prêmios
 
@@ -392,7 +417,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 115 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 282 testes com PostgreSQL real via Testcontainers
 ```
 
 | O que | Endereço local | |
@@ -400,7 +425,8 @@ cd backend && ./mvnw verify      # 115 testes com PostgreSQL real via Testcontai
 | Health | `http://localhost:8080/actuator/health` | ✅ |
 | Serviços, política e horários livres | `/servicos` · `/politica-pagamento` · `/disponibilidade` | ✅ |
 | Conta e sessão | `/auth/cadastro` · `/auth/login` · `/auth/refresh` · `/auth/logout` · `/me` · `/me/senha` | ✅ |
-| Agendamento, pagamento e painel | — | ⏳ Fatias 4 e 5 |
+| Reserva, pagamento (simulado) e painel | `/agendamentos` · `/pagamentos/cobrancas` · `/admin/**` | ✅ |
+| CEP | `/cep/{cep}` | ✅ |
 | Front | `http://localhost:3000` | ⏳ Fatia 7 |
 
 O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
@@ -453,11 +479,14 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 1 · Esqueleto:** Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks)
 - [x] **Fatia 2 · Catálogo e disponibilidade:** serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes)
 - [x] **Fatia 3 · Conta e acesso:** cadastro, login, refresh rotativo com detecção de reuso, troca de senha, admin inicial com troca obrigatória, limite de tentativas e negar por padrão ([spec](docs/sdd/fatia-3-conta-e-acesso.md): 44 critérios, 44 testes)
-- [ ] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração (📝 [spec escrita](docs/sdd/fatia-4-agendamento-e-pagamento.md), 45 critérios)
-- [ ] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
-- [ ] **Fatia 6 · CEP e privacidade:** ViaCEP/BrasilAPI com degradação, LGPD
-- [ ] **Fatia 7 · Telas Next.js:** agenda, checkout com aceite obrigatório, painel, acessibilidade
-- [ ] **Fatia 8 · Deploy:** Vercel + Render + Aiven
+- [x] **Fatia 4 · Agendamento e checkout:** reserva com trava de 15 min, cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração (📝 [spec escrita](docs/sdd/fatia-4-agendamento-e-pagamento.md), 45 critérios)
+- [x] **Fatia 5 · Painel admin:** agenda, fechamento, catálogo, pagamentos e auditoria
+- [x] **Fatia 6A · CEP:** ViaCEP, BrasilAPI e degradação (feita)
+- [ ] **Fatia 6B · Privacidade (LGPD):** consentimento, exportar e excluir conta, retenção (🚧 em andamento)
+- [ ] **Fatia 6C · Alcance por região:** 🗓 planejada
+- [ ] **Fatia 7 · Telas Next.js (🗓 planejada):** agenda, checkout com aceite obrigatório, painel, acessibilidade
+- [ ] **Fatia 8 · Deploy grátis:** Vercel + Render + banco gratuito (🗓 planejada)
+- [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)
 
 ## 📚 Documentação
 
