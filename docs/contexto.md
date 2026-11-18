@@ -109,7 +109,7 @@ Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o *
 |---|---|---|---|
 | H1 | Dias e horário de funcionamento | **decidida (16/11)**: terça a sábado, 07h00 às 20h00; almoço 12h00 às 13h00 | `jornada` do barbeiro (painel) |
 | H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Cândido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
-| H3 | Serviços, duração e preço | **decidida (16/11)**: Corte Clássico/Social 30 min R$ 45,00 · Corte Degradê/Fade/Navalhado 30 min R$ 55,00 · Corte Moderno/Visagismo (tesoura) 60 min R$ 60,00 · Barba Completa/Desenhada 30 min R$ 30,00 · Acabamento (pezinho)/Sobrancelha 30 min R$ 20,00 · sem combos | cadastro de serviços (painel) |
+| H3 | Serviços, duração e preço | **decidida (16/11), duração revista em 18/11 (D94)**: todos os serviços duram **60 min** (2 slots) · Corte Clássico/Social R$ 45,00 · Corte Degradê/Fade/Navalhado R$ 55,00 · Corte Moderno/Visagismo (tesoura) R$ 60,00 · Barba Completa/Desenhada R$ 30,00 · Acabamento (pezinho)/Sobrancelha R$ 20,00 · sem combos | cadastro de serviços (painel) |
 | H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
 | H5 | Antecedência mínima para agendar | **decidida (16/11)**: 120 min | `configuracao_agenda.antecedencia_minima_min` |
 | H6 | Janela para cancelar ou remarcar | **decidida (16/11)**: não existe; o cliente não cancela nem remarca (R18) | — |
