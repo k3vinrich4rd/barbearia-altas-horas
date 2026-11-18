@@ -8,7 +8,7 @@ Nenhuma linha de código de produção sem **spec aprovada** em `docs/sdd/fatia-
 ## Onde está cada coisa (consulte antes de supor)
 | Preciso de... | Arquivo |
 |---|---|
-| regra de negócio `R1`–`R32`, hipóteses `H#` | `docs/contexto.md` (seções 3 e 4) |
+| regra de negócio `R1`–`R34`, hipóteses `H#` | `docs/contexto.md` (seções 3 e 4) |
 | decisão `D1`–`D44` (data, fonte, status) | `docs/planejamento/decisoes.md` |
 | rota, schema, código de erro | `docs/contrato/openapi.yaml` (máquina) e `docs/contrato/contrato-api.md` (humano) |
 | máquina de estados da reserva | `docs/dominio/modelo-de-dominio.md` seção 2 |
