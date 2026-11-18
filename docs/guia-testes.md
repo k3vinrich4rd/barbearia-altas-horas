@@ -16,7 +16,7 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 281 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 327 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
@@ -64,7 +64,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **281 testes, 0 falhas, 0 pulados** (17/11/2026, com a 6A: 250 antigos + 31 do CEP), `BUILD SUCCESS` em 2 min 11 s, cobertura de instruções **96%**. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real (Windows + Docker Desktop): **327 testes, 0 falhas, 0 pulados** (17/11/2026, com a 6B: 281 anteriores + 46 da privacidade), `BUILD SUCCESS` em 2 min 31 s. A cobertura de instruções da 6A era **96%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -497,12 +497,31 @@ Saída real (17/11/2026, 13h31):
 
 **O que prova:** a API nunca vê o número do cartão, só devolve a `urlCheckout` onde ele seria digitado. Quem não é dono da reserva recebe `404` (não `403`), e depois do pagamento a reserva aparece `CONFIRMADO` em "meus agendamentos".
 
-### C13 ⏳ Fatia 6: dados e exclusão da conta
+### C13 Fatia 6B: dados, consentimento e exclusão da conta (⏳ fluxo manual no perfil `dev`)
 
-| # | O que fazer | O que deve acontecer | O que prova | |
-|---|---|---|---|:-:|
-| C13 | `GET /me/dados` e depois `DELETE /me` | `200` com os dados; `204`; o login seguinte falha | direitos do titular | ⏳ 6 |
+Os critérios A23 a A61 já são testados pelo `./mvnw verify`. Este roteiro é o conferido à mão, com a API no perfil `dev`. Use dados fictícios e preencha `<ACESSO>` e `<REFRESH>` com o que o login devolver.
 
+```bash
+curl -s http://localhost:8080/politica-privacidade                       # 200: versao 1.0, textoConsentimento, politica
+curl -s -X POST http://localhost:8080/auth/cadastro -H "Content-Type: application/json" -d '{"nome":"Cliente Teste D","email":"cliente.d@exemplo.test","whatsapp":"(11) 90000-0004","senha":"Senha-de-teste-123","aceitaMarketing":true}'
+curl -s -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{"email":"cliente.d@exemplo.test","senha":"Senha-de-teste-123"}'
+curl -s http://localhost:8080/me/consentimentos -H "Authorization: Bearer <ACESSO>"
+curl -s -X PUT http://localhost:8080/me/consentimentos/marketing -H "Authorization: Bearer <ACESSO>" -H "Content-Type: application/json" -d '{"aceito":false,"versaoTexto":"1.0"}'
+curl -i http://localhost:8080/me/dados -H "Authorization: Bearer <ACESSO>"   # 200, Cache-Control: no-store
+curl -i -X DELETE http://localhost:8080/me -H "Authorization: Bearer <ACESSO>"   # 204
+curl -i -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d '{"email":"cliente.d@exemplo.test","senha":"Senha-de-teste-123"}'   # 401
+curl -i http://localhost:8080/me -H "Authorization: Bearer <ACESSO>"        # 401 (o token antigo deixou de valer)
+```
+
+Saída real: **a preencher no fluxo manual** (o Kevin roda no perfil `dev`; nenhum número foi inventado aqui).
+
+**O que deve acontecer:** a exportação traz a conta, o histórico dos consentimentos (do mais antigo para o mais novo) e só as reservas do próprio cliente, sem senha, token, IP nem CPF; depois do `204` o login e o token antigo dão `401`. Com uma reserva futura **paga**, o `DELETE /me` dá `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda. No log: `grep` de e-mail, WhatsApp, CEP e IP com 0 ocorrências.
+
+### Rotina do visitante depois dos 90 dias (retenção, ⏳)
+
+O job `RetencaoDeDados` roda todo dia às 3h (fuso da barbearia) e loga `Retenção de dados: limpeza=reserva_guest linhas=N`. Para conferir à mão sem esperar, no perfil `dev`: crie uma reserva de visitante, mude o `fim` da reserva no banco para mais de 90 dias atrás (`UPDATE reserva SET inicio = now() - interval '91 days', fim = now() - interval '91 days' + interval '30 minutes' WHERE id = '<ID>'`, ajustando `fim_ocupacao`) e suba a API com `APP_JOBS_RETENCAO_CRON="0 * * * * *"` para rodar no próximo minuto.
+
+Saída real: **a preencher no fluxo manual**. O que deve acontecer: `reserva_guest` fica com `nome = 'Visitante anonimizado'`, `whatsapp = '00000000000'` e `anonimizado_em` preenchido; o link do visitante (`GET /agendamentos/guest/{id}` com o token antigo) dá `404`; a reserva e a cobrança não mudam; o log traz só o nome da limpeza e a contagem.
 ### B3 ✅ CEP com os provedores ligados (Fatia 6A)
 
 Precisa de internet: o perfil `dev` fala com o ViaCEP de verdade. Sem chave e sem conta.

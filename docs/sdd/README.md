@@ -51,7 +51,7 @@ flowchart LR
 | 3 · Conta e acesso | [fatia-3-conta-e-acesso.md](fatia-3-conta-e-acesso.md) | ✅ implementada (115 testes no total) |
 | 4 · Agendamento e pagamento | [fatia-4-agendamento-e-pagamento.md](fatia-4-agendamento-e-pagamento.md) | ✅ aprovada (17/11) · 4A pronta (A1 a A21) · 4B em seguida |
 | 5 · Painel do barbeiro e do admin | [fatia-5-painel-do-barbeiro.md](fatia-5-painel-do-barbeiro.md) | ✅ concluída (17/11): 5A e 5B, 71/71 critérios |
-| 6 · CEP e privacidade (LGPD) | [fatia-6-cep-e-privacidade.md](fatia-6-cep-e-privacidade.md) | ✅ aprovada (17/11) · **6A CEP (A1 a A22): pronta (revisada, fluxo manual B3 e B4)** · 6B privacidade (A23 a A61) · 6C alcance por região (A62 a A75) |
+| 6 · CEP e privacidade (LGPD) | [fatia-6-cep-e-privacidade.md](fatia-6-cep-e-privacidade.md) | ✅ aprovada (17/11) · **6A CEP (A1 a A22): pronta (revisada, fluxo manual B3 e B4)** · **6B privacidade (A23 a A61): implementada, aguardando revisão** · 6C alcance por região (A62 a A75) |
 | 7 e 8 | escritas uma de cada vez, antes da fatia começar | ⏳ |
 
 ## A IA no processo
