@@ -2,10 +2,10 @@
 
 O caminho completo de quem usa a agenda: **visitante** (sem conta), **cliente** (com conta) e **painel** (`ADMIN` e `BARBEIRO`). Cada passo diz a rota, a classe que atende e o teste manual que o reproduz no [guia de testes](guia-testes.md). As rotas são as do [`openapi.yaml`](contrato/openapi.yaml).
 
-**Legenda:** ✅ pronto (na `develop`) · 🚧 em andamento (Fatia 6B, branch `feat/fatia-6b-privacidade`, ainda não mergeada; descrito pela [spec da Fatia 6](sdd/fatia-6-cep-e-privacidade.md)) · 🗓 planejado (6C, 7, 8, 9).
+**Legenda:** ✅ pronto (na `develop` ou na branch da 6B, ainda em revisão) · 🗓 planejado (6C, 7, 8, 9).
 
 > [!NOTE]
-> As rotas da 6B e da 6C já estão no contrato, mas **o código delas ainda não está na `develop`**. Hoje o módulo `privacidade` só tem `Consentimentos.registrarInicial`, usado pelo cadastro para gravar o consentimento de marketing. Tudo marcado 🚧 ou 🗓 abaixo vem da spec, não de código rodando.
+> As rotas da 6B (privacidade) já rodam na `develop`/nesta branch; só a **6C (alcance por região)** tem rotas no contrato **sem código**. Tudo marcado 🗓 da 6C abaixo vem da spec, não de código rodando.
 
 ## Sumário
 
@@ -120,9 +120,9 @@ sequenceDiagram
 
 O horário **já volta para a agenda antes do job rodar**: a disponibilidade ignora reservas vencidas. O job só arruma o status. Se o pagamento chegar depois, `EXPIRADO` pode voltar a `CONFIRMADO` com o horário livre; com o horário ocupado, a cobrança vira `PAGA_APOS_EXPIRACAO` e aparece em `GET /admin/pagamentos`.
 
-### 2.3 Anonimização depois de 90 dias 🚧
+### 2.3 Anonimização depois de 90 dias ✅
 
-Spec (E19 e critérios A49 a A58, testes `RetencaoGuestIT`): 90 dias depois do **fim** da reserva (inclusive), o job `RetencaoDeDados` (diário, 03:00, ShedLock, lotes de 500) troca nome, e-mail e WhatsApp por valores anônimos e invalida o token (`GET /agendamentos/guest/{id}` passa a dar `404`). A reserva e a cobrança não mudam. O prazo vem de `app.privacidade.retencao-guest-dias`. **Ainda não existe em código na `develop`.**
+Real (6B, critérios A49 a A58 e A61b, testes `RetencaoGuestIT`, `RetencaoJobIT` e `RetencaoNaSubidaIT`): o job `RetencaoDeDados` (módulo `privacidade`) roda **às 3h** (fuso da barbearia) e **uma vez na subida da API**, com ShedLock e respeitando `app.jobs.habilitados`. Ele só chama as portas `LimpezaPorRetencao`; a do visitante é a `RetencaoDeVisitantes` (módulo `agenda`). 90 dias depois do **fim** da reserva (inclusive), em lotes de 500 por transação, troca nome, e-mail e WhatsApp por valores anônimos (`Visitante anonimizado`, `00000000000`) e troca o `token_hash` por um SHA-256 aleatório: `GET /agendamentos/guest/{id}` com o link antigo passa a dar `404`. A reserva e a cobrança não mudam. O prazo vem de `app.privacidade.retencao-guest-dias`. A mesma rotina limpa o IP da auditoria (1 ano, `RetencaoDoIpDaAuditoria`) e os eventos de webhook já processados (1 ano, `RetencaoDeEventosDeWebhook`). Roteiro manual: [rotina dos 90 dias](guia-testes.md#rotina-do-visitante-depois-dos-90-dias--retenção).
 
 ## 3. Cliente
 
@@ -172,16 +172,41 @@ sequenceDiagram
 | Meus agendamentos | `GET /me/agendamentos` · `GET /agendamentos/{id}` | `ConsultaAgendamentos`; reserva de outra pessoa responde `404`, não `403` |
 | Cancelar | não existe | não há rota para o cliente cancelar ou remarcar (R18) |
 
-### 3.3 Consentimento, exportar e excluir conta 🚧 (6B)
+### 3.3 Consentimento, exportar e excluir conta ✅ (6B)
 
-Só spec (E10 a E17, critérios da 6B), nada disso roda na `develop` ainda:
+Código real (6B, critérios A23 a A61c, testes em `privacidade/`). O módulo `privacidade` só depende do `comum`: ele publica as portas `FonteDeDadosDoTitular` e `LimpezaPorRetencao` e o evento `ExclusaoSolicitada`; conta, agenda, pagamento e admin as implementam ou escutam.
 
-| Rota | O que faz |
-|---|---|
-| `GET /me/consentimentos` · `PUT /me/consentimentos/marketing` | ver o estado atual e revogar/aceitar; cada mudança é uma linha nova (histórico) |
-| `GET /me/dados` | exporta conta, consentimentos e agendamentos; limite de 5 por hora |
-| `DELETE /me` | só `CLIENTE`; **anonimiza** a conta (a linha fica, sem dado pessoal) numa transação; cancela reservas futuras não pagas; **bloqueia** com `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` se houver reserva futura paga |
-| `GET /politica-privacidade` | texto versionado |
+| Rota | Classes | O que faz |
+|---|---|---|
+| `GET /me/consentimentos` · `PUT /me/consentimentos/marketing` | `ConsentimentoController` → `Consentimentos` | estado atual (a linha mais recente) e aceitar/revogar; cada mudança é uma linha nova; mesmo estado e mesma versão não grava outra; `versaoTexto` precisa ser a vigente (`400` com `errors[].field`) |
+| `GET /me/dados` | `ExportacaoController` → `ExportarDados` → `FonteDeDadosDoTitular` (`DadosDaContaDoTitular` na conta, `DadosDeAgendamentosDoTitular` na agenda) | conta, histórico de consentimentos e só as reservas do titular; `Cache-Control: no-store`; 5 por hora por conta (`429` com `Retry-After`, conta as linhas `EXPORTACAO` de `solicitacao_titular`) |
+| `GET /politica-privacidade` | `PoliticaPrivacidadeController` → `TextosDaPolitica` | pública; versão, texto da caixa de marketing e política (arquivos em `resources/privacidade/`, rascunho técnico) |
+| `DELETE /me` | `ExclusaoController` → `ExcluirConta` | só `CLIENTE` (`SegurancaConfig`: BARBEIRO e ADMIN `403`); sem pedir a senha no beta |
+
+**Fluxo da exclusão** (uma transação só; `ExcluirConta` grava a solicitação `EXCLUSAO` e publica `ExclusaoSolicitada`; os listeners são **síncronos**, `@EventListener` + `@Order`, e qualquer falha desfaz tudo):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant X as ExcluirConta (privacidade)
+    participant P as pagamento (Order 5)
+    participant A as agenda (Order 10)
+    participant U as conta (Order 20)
+    C->>X: DELETE /me
+    X->>X: grava solicitacao_titular EXCLUSAO
+    X->>P: ExclusaoSolicitada
+    P-->>C: 409 se houver cobrança em DEVOLUCAO_PENDENTE ou PAGA_APOS_EXPIRACAO
+    X->>A: ExclusaoSolicitada
+    A-->>C: 409 se houver reserva futura CONFIRMADO (paga)
+    A->>A: cancela as futuras AGUARDANDO_PAGAMENTO e publica ReservaCancelada
+    X->>U: ExclusaoSolicitada
+    U->>U: anonimiza o usuário, sobe versao_credencial, apaga os refresh tokens
+    X->>X: revogação final do consentimento, conclui a solicitação
+    X-->>C: 204 (login e token antigo passam a dar 401)
+```
+
+Os `409` são `EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda. A cobrança das reservas canceladas vira `CANCELADA` pelo outbox, depois do commit. O token de acesso já emitido deixa de valer na hora (`ValidadorDeConta`, D98). Admin com a senha inicial recebe `403 TROCA_DE_SENHA_OBRIGATORIA` em `/me/dados` e `/me/consentimentos`.
 
 ## 4. Painel (ADMIN e BARBEIRO)
 
@@ -229,7 +254,7 @@ No [guia de testes](guia-testes.md): suba o banco e a API na [seção 0](guia-te
 | Cadastro, login, refresh rotativo | [C1 a C7](guia-testes.md#c1--criar-a-conta) |
 | Reservar com conta, meus agendamentos, cartão | [C8 a C12](guia-testes.md#c8--reservar-com-a-conta) |
 | CEP com e sem provedores | [B3](guia-testes.md#b3--cep-com-os-provedores-ligados-fatia-6a), [B4](guia-testes.md#b4--cep-com-os-provedores-desligados-fatia-6a) |
-| Dados e exclusão da conta (6B) | [C13](guia-testes.md#c13--fatia-6-dados-e-exclusão-da-conta) (⏳ ainda não roda) |
+| Dados, consentimento e exclusão da conta (6B) | [C13](guia-testes.md#c13--fatia-6b-dados-consentimento-e-exclusão-da-conta-fluxo-manual-no-perfil-dev) ✅ (saída real em 18/11/2026) · [rotina dos 90 dias](guia-testes.md#rotina-do-visitante-depois-dos-90-dias--retenção) ✅ |
 | Painel: agenda, fechar, cancelar, devolver, auditoria | [AD1 a AD9b](guia-testes.md#ad1--criar-o-primeiro-admin) |
 | Painel: cadastros, folga, configuração, pagamento tardio | [AD10 a AD14](guia-testes.md#ad10--serviços-criar-repetir-o-nome-editar-e-desativar) |
 | RAG da documentação | [9](guia-testes.md#9-rag-perguntar-à-documentação) |

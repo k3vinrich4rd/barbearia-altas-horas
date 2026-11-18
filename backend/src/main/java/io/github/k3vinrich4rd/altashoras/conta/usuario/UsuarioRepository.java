@@ -19,4 +19,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
     /** A conta existe, está ativa e tem o papel (a API pública {@code conta.Contas} usa). */
     @Query("SELECT count(u) > 0 FROM Usuario u JOIN u.papeis p WHERE u.id = :id AND u.ativo = true AND p = :papel")
     boolean ativoComPapel(UUID id, String papel);
+
+    /** A conta existe e foi desativada (exclusão ou desligamento): o token dela deixa de valer (E16). */
+    @Query("SELECT count(u) > 0 FROM Usuario u WHERE u.id = :id AND u.ativo = false")
+    boolean desativada(UUID id);
 }

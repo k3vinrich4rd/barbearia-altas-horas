@@ -107,6 +107,7 @@ class PendenciasPagamentoIT extends PainelBase {
         get("/admin/pagamentos?tamanho=50", c.admin()).andExpect(jsonPath("$.itens.length()").value(20));
         long comVinte = ContadorDeSql.total() - antes;
 
-        assertThat(comVinte).isEqualTo(comDuas).isEqualTo(3);
+        // 3 consultas da lista + 1 da conferência da conta do token (Fatia 6B, E16: a conta excluída não pode usar o token ainda válido).
+        assertThat(comVinte).isEqualTo(comDuas).isEqualTo(4);
     }
 }

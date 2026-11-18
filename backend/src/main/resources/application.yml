@@ -62,6 +62,15 @@ app:
     guest-janela: 1h
     cep-max: 30           # consultas de CEP por IP (H21, E7)
     cep-janela: 1m
+    exportacao-max: 5     # exportações de dados (GET /me/dados) por conta (H22, E14)
+    exportacao-janela: 1h
+  privacidade:
+    # Canal de contato do titular, escrito na política (E13). Vem do ambiente: nunca no repositório (D-4).
+    contato: ${APP_PRIVACIDADE_CONTATO:}
+    # Prazos de retenção (H13, pendentes de validação jurídica): o job RetencaoDeDados roda às 3h (E18).
+    retencao-guest-dias: 90     # contato do visitante, contado do fim da reserva (R29)
+    retencao-ip-dias: 365       # IP da auditoria do painel (D77)
+    retencao-webhook-dias: 365  # eventos de webhook já processados (ADR 0009)
   cep:
     # ViaCEP primeiro, BrasilAPI de fallback; sem chave e sem conta (D59, ADR 0008).
     viacep-url: https://viacep.com.br
