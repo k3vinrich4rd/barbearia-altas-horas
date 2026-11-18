@@ -147,7 +147,7 @@ Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDAN
 ```json
 { "cep": "01001000", "logradouro": "Praça da Sé", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP", "fonte": "VIACEP" }
 ```
-Aceita `01001-000` ou `01001000`; outro formato → `400 CEP_INVALIDO` sem chamada externa. Os dois provedores fora → `503 CEP_INDISPONIVEL` (o cadastro **não** usa esta rota para decidir: R31). `fonte` é `VIACEP`, `BRASILAPI` ou `CACHE` (encontrado fica 7 dias em memória; inexistente, 1 hora; falha de provedor nunca fica). Limite de 30 consultas por minuto por IP (H15): passou, `429` com `Retry-After`.
+Aceita `01001-000` ou `01001000`; outro formato → `400 CEP_INVALIDO` sem chamada externa. Os dois provedores fora → `503 CEP_INDISPONIVEL` (o cadastro **não** usa esta rota para decidir: R31). `fonte` é `VIACEP`, `BRASILAPI` ou `CACHE` (encontrado fica 7 dias em memória; inexistente, 1 hora; falha de provedor nunca fica). Limite de 30 consultas por minuto por IP (H21): passou, `429` com `Retry-After`.
 
 ### 4.4 Autenticação e conta
 

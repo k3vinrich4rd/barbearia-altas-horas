@@ -98,7 +98,7 @@ paths:
         resposta inválida), a BrasilAPI. Se o ViaCEP diz que o CEP não existe, a resposta é `404` sem consultar a
         BrasilAPI. Os dois fora: `503 CEP_INDISPONIVEL` (o cadastro não usa esta rota para decidir, R31).
         Encontrados ficam 7 dias em cache e inexistentes 1 hora (`fonte: CACHE`); falha de provedor nunca fica em cache.
-        Limite de 30 consultas por minuto por IP (H15): passou, `429` com `Retry-After`.
+        Limite de 30 consultas por minuto por IP (H21): passou, `429` com `Retry-After`.
       security: []
       parameters:
         - { name: cep, in: path, required: true, schema: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$' }, example: '01001000' }
