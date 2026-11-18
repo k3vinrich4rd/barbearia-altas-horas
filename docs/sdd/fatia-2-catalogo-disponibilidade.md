@@ -98,7 +98,7 @@ Nos testes de integração, `agora` é fixado por um `Clock` de teste em **terç
 | A26 | sem `barbeiroId` | consultar | todos os barbeiros ativos na lista, cada um com seus horários | `DisponibilidadeIT` |
 | A27 | qualquer consulta válida | resposta | `data`, `fuso: "America/Sao_Paulo"`, `servicoId`, `duracaoMin`; horários em ordem crescente, formato `2026-12-01T07:00:00-03:00`; `Cache-Control: no-store` | `DisponibilidadeIT` |
 | A29 | 1 barbeiro ativo, depois 3 | consultar sem `barbeiroId` | o número de consultas SQL do Hibernate é **o mesmo** nos dois casos (sem N+1) | `DisponibilidadeIT` |
-| A28 | perfil `dev` | `GET /servicos` e `GET /disponibilidade` do Corte Degradê numa terça | os 5 serviços reais e 24 horários | `SeedDevIT` (estendido) |
+| A28 | perfil `dev` | `GET /servicos` e `GET /disponibilidade` do Corte Degradê numa terça | os 5 serviços reais e **22** horários (todos os serviços duram 60 min, D94) | `SeedDevIT` (estendido) |
 
 ## 5. Entregas
 
