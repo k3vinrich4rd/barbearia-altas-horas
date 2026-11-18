@@ -66,13 +66,13 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 
 | # | Regra | Origem | Teste previsto (fatia) |
 |---|---|---|---|
-| R1 | Um barbeiro não pode ter duas reservas que se sobrepõem entre as que ocupam horário (`AGUARDANDO_PAGAMENTO`, `CONFIRMADO`). Garantido pelo banco (`EXCLUDE USING gist`), não só pelo código. | P, A | `ReservaConcorrenciaIT` (S01, S07) |
+| R1 | Um barbeiro não pode ter duas reservas que se sobrepõem entre as que ocupam horário (`AGUARDANDO_PAGAMENTO`, `CONFIRMADO`, inclusive a reserva manual). Garantido pelo banco (`EXCLUDE USING gist`), não só pelo código. | P, A | `ReservaConcorrenciaIT` (S01, S07) |
 | R2 | O intervalo de uma reserva é meio aberto `[inicio, fim_ocupacao)`: uma reserva que termina às 10h00 não conflita com outra que começa às 10h00. | A | `ReservaConstraintIT` (S01) |
 | R3 | `fim = inicio + duração do serviço`; `fim_ocupacao = fim + intervalo entre atendimentos` (**0 min**, H4 decidida). Serviço de 60 min ocupa 2 slots seguidos. | P, H4 | `CalculoHorarioTest` (S03) |
 | R4 | Só é possível reservar dentro da jornada (terça a sábado, 07h00 às 20h00, pausa de almoço 12h00 às 13h00 como intervalo editável da jornada), fora das folgas, começando em múltiplos de **30 min** (H1, H11). | P, H1, H11 | `DisponibilidadeTest` (S03) |
 | R5 | Só é possível reservar com antecedência mínima de **2 horas** (configurável, H5) e até **30 dias** à frente (configurável, H12). | H5, H12 | `AntecedenciaTest` (S07) |
-| R6 | **Todo** agendamento, de cliente logado ou de guest, nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` com 100% do valor pago (decisão de 16/11/2026; substitui "cliente logado reserva direto em `CONFIRMADO`"). | P | `AgendarClienteIT` (S07) |
-| R7 | A reserva `AGUARDANDO_PAGAMENTO` tem `expira_em = agora + 15 min` (configurável) e ocupa o horário enquanto não expira. Sem pagamento no prazo, vira `EXPIRADO` e o horário volta. | P | `AgendarGuestIT` (S11) |
+| R6 | **Todo** agendamento, de cliente logado ou de guest, nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` com 100% do valor pago (decisão de 16/11/2026; substitui "cliente logado reserva direto em `CONFIRMADO`"). Única exceção: a reserva manual da barbearia (R33). | P | `AgendarClienteIT` (S07) |
+| R7 | A reserva `AGUARDANDO_PAGAMENTO` tem `expira_em = agora + 3 min` (configurável de 3 a 60; era 15 até 18/11/2026, D121) e ocupa o horário enquanto não expira. Sem pagamento no prazo, vira `EXPIRADO` e o horário volta. | P | `AgendarGuestIT` (S11) |
 | R8 | A cobrança é de **100%** do preço do serviço **no momento da reserva**, em centavos, por **Pix** ou **cartão de crédito** (checkout hospedado do gateway; o número do cartão nunca passa pela API). Mudar o preço depois não muda a cobrança. | P | `CobrancaValorTest` (S12) |
 | R9 | O CPF é pedido **só** na criação da cobrança, porque o gateway exige. Não é pedido no cadastro nem guardado. | P | `CobrancaIT` (S12) |
 | R10 | A criação de cobrança exige `X-Idempotency-Key`. Mesma chave e mesmo corpo devolvem a mesma cobrança; mesma chave e corpo diferente dão `422`. | P | `CobrancaIdempotenciaIT` (S12) |
@@ -98,6 +98,8 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 | R30 | CPF, telefone e CEP nunca aparecem em log. | P | `SemDadoPessoalNoLogIT` (S16 e em toda fatia) |
 | R31 | A consulta de CEP nunca derruba o cadastro: com ViaCEP e BrasilAPI fora, o CEP é salvo e bairro e cidade ficam para completar. | P | `CepDegradacaoIT` (S15) |
 | R32 | Rotas de login social respondem `404` enquanto a flag estiver desligada. | P | `SocialDesligadoIT` (pós-beta) |
+| R33 | **Reserva manual (Fatia 6D, 18/11/2026):** a barbearia pode travar pelo painel um horário combinado por WhatsApp, fora do app. Nasce `CONFIRMADO` com origem `MANUAL`, sem cobrança, sem aceite e sem pagamento no sistema (o que for pago por fora não gera registro financeiro). ADMIN para qualquer barbeiro, BARBEIRO só para si; respeita jornada, almoço, folga e a constraint (R1), mas não a antecedência mínima (R5). Só guarda nome e observação opcionais do cliente, nunca o WhatsApp, e os apaga 90 dias depois do fim (R29). Não conta no alcance. É exceção declarada de R6 | P | `ReservaManualIT` (6D) |
+| R34 | **WhatsApp do barbeiro (Fatia 6D):** é contato comercial, cadastrado só pelo ADMIN, opcional e público em `GET /barbeiros`; o front monta `https://wa.me/<número>`. Não é dado de cliente | P | `WhatsappDoBarbeiroIT` (6D) |
 
 ## 4. Hipóteses em aberto
 
@@ -151,7 +153,7 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 | Persona | Objetivo | Dor | Jornada principal |
 |---|---|---|---|
 | Cliente com conta | marcar rápido sem pagar antes | não sabe o que está livre | cadastro → escolhe serviço, barbeiro e horário → `CONFIRMADO` → pode cancelar dentro da janela |
-| Guest | marcar sem criar conta | não quer cadastro | escolhe horário → informa contato → CPF e Pix do sinal → paga em até 15 min → `CONFIRMADO` |
+| Guest | marcar sem criar conta | não quer cadastro | escolhe horário → informa contato → CPF e Pix do sinal → paga em até 3 min → `CONFIRMADO` |
 | Barbeiro | ver o dia e fechar atendimentos | caderno e WhatsApp | login → agenda do dia → marca `CONCLUIDO` ou `NAO_COMPARECEU` |
 | Admin (dono) | operar a barbearia | ajustar preço e jornada sem desenvolvedor | login → serviços, barbeiros, jornada e folgas → sinais e devoluções → auditoria |
 | Gateway de pagamento (sistema) | avisar o pagamento | reenvia avisos | webhook autenticado → `200` |
@@ -175,7 +177,7 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 | Fluxo | Ameaça (STRIDE) | Mitigação | Teste que prova |
 |---|---|---|---|
 | Agendamento | **T**ampering: cliente manda `status` ou `sinalCentavos` no corpo | DTO por operação + `fail-on-unknown-properties=true` | campo extra → `400` e nada gravado |
-| Agendamento | **D**enial of service: guest bot segura todos os horários | limite por IP (H14), expiração de 15 min | `429` após o limite |
+| Agendamento | **D**enial of service: guest bot segura todos os horários | limite por IP (H14), expiração de 3 min | `429` após o limite |
 | Agendamento | **E**levation: cliente lê reserva de outro | busca filtrada por dono, `404` | `ReservaBolaIT` |
 | Pagamento | **S**poofing: webhook falso confirma reserva | autenticação do provedor + reconsulta na API do gateway | `401` com token errado; evento com cobrança inexistente não confirma |
 | Pagamento | **R**epudiation: "não paguei duas vezes" | `evento_webhook` guarda id, tipo e data; `cobranca` guarda o id do provedor | consulta de auditoria |

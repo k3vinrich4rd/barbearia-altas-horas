@@ -47,16 +47,16 @@ class ConfiguracaoAdminIT extends CadastrosBase {
                        horizonte_dias h, expiracao_pagamento_min e, version v
                 FROM configuracao_agenda
                 """)).containsEntry("a", 120).containsEntry("i", 0).containsEntry("g", 30).containsEntry("h", 30)
-                .containsEntry("e", 15).containsEntry("v", 0L);
+                .containsEntry("e", 3).containsEntry("v", 0L);
     }
 
     @Test
-    @DisplayName("A64: GET /admin/configuracao devolve a configuração inicial: antecedência 120, intervalo 0, granularidade 30, horizonte 30, expiração 15, fuso America/Sao_Paulo e version 0")
+    @DisplayName("A64: GET /admin/configuracao devolve a configuração inicial: antecedência 120, intervalo 0, granularidade 30, horizonte 30, expiração 3, fuso America/Sao_Paulo e version 0")
     void leituraInicial() throws Exception {
         get(ROTA, admin).andExpect(status().isOk()).andExpect(jsonPath("$.antecedenciaMinimaMin").value(120))
                 .andExpect(jsonPath("$.intervaloEntreAtendimentosMin").value(0))
                 .andExpect(jsonPath("$.granularidadeMin").value(30)).andExpect(jsonPath("$.horizonteDias").value(30))
-                .andExpect(jsonPath("$.expiracaoPagamentoMin").value(15))
+                .andExpect(jsonPath("$.expiracaoPagamentoMin").value(3))
                 .andExpect(jsonPath("$.fuso").value("America/Sao_Paulo")).andExpect(jsonPath("$.version").value(0));
     }
 
@@ -69,7 +69,7 @@ class ConfiguracaoAdminIT extends CadastrosBase {
         reservar(cliente, servico, barbeiro, meiaHoraDepoisDeUmaEMeia).andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("ANTECEDENCIA_INSUFICIENTE"));
 
-        put(ROTA, admin, corpo(60, 0, 30, 30, 15, 0)).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1))
+        put(ROTA, admin, corpo(60, 0, 30, 30, 3, 0)).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1))
                 .andExpect(jsonPath("$.antecedenciaMinimaMin").value(60)).andExpect(jsonPath("$.fuso").value("America/Sao_Paulo"));
 
         reservar(cliente, servico, barbeiro, meiaHoraDepoisDeUmaEMeia).andExpect(status().isCreated());
@@ -88,21 +88,21 @@ class ConfiguracaoAdminIT extends CadastrosBase {
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id"));
 
         assertThat(jdbc.queryForObject("SELECT expira_em FROM reserva WHERE id = ?", OffsetDateTime.class, antes)
-                .toInstant()).isEqualTo(RelogioFixoDeTeste.AGORA.plusSeconds(15 * 60));
+                .toInstant()).isEqualTo(RelogioFixoDeTeste.AGORA.plusSeconds(3 * 60));
         assertThat(jdbc.queryForObject("SELECT expira_em FROM reserva WHERE id = ?", OffsetDateTime.class, depois)
                 .toInstant()).isEqualTo(RelogioFixoDeTeste.AGORA.plusSeconds(30 * 60));
     }
 
     @Test
-    @DisplayName("A67: antecedência -1, intervalo 121, granularidade 25, horizonte 0 e 366, expiração 4 e 61 são 400 VALIDACAO_INVALIDA no campo certo; fuso no corpo é 400 CAMPO_DESCONHECIDO; nada é gravado")
+    @DisplayName("A67: antecedência -1, intervalo 121, granularidade 25, horizonte 0 e 366, expiração 2 e 61 são 400 VALIDACAO_INVALIDA no campo certo; fuso no corpo é 400 CAMPO_DESCONHECIDO; nada é gravado")
     void valoresInvalidos() throws Exception {
         String[][] casos = {
-                {corpo(-1, 0, 30, 30, 15, 0), "antecedenciaMinimaMin"},
-                {corpo(120, 121, 30, 30, 15, 0), "intervaloEntreAtendimentosMin"},
-                {corpo(120, 0, 25, 30, 15, 0), "granularidadeMin"},
-                {corpo(120, 0, 30, 0, 15, 0), "horizonteDias"},
-                {corpo(120, 0, 30, 366, 15, 0), "horizonteDias"},
-                {corpo(120, 0, 30, 30, 4, 0), "expiracaoPagamentoMin"},
+                {corpo(-1, 0, 30, 30, 3, 0), "antecedenciaMinimaMin"},
+                {corpo(120, 121, 30, 30, 3, 0), "intervaloEntreAtendimentosMin"},
+                {corpo(120, 0, 25, 30, 3, 0), "granularidadeMin"},
+                {corpo(120, 0, 30, 0, 3, 0), "horizonteDias"},
+                {corpo(120, 0, 30, 366, 3, 0), "horizonteDias"},
+                {corpo(120, 0, 30, 30, 2, 0), "expiracaoPagamentoMin"},
                 {corpo(120, 0, 30, 30, 61, 0), "expiracaoPagamentoMin"}};
         for (String[] caso : casos) {
             put(ROTA, admin, caso[0]).andExpect(status().isBadRequest())
@@ -111,7 +111,7 @@ class ConfiguracaoAdminIT extends CadastrosBase {
         }
         put(ROTA, admin, """
                 { "fuso": "UTC", "antecedenciaMinimaMin": 120, "intervaloEntreAtendimentosMin": 0, "granularidadeMin": 30,
-                  "horizonteDias": 30, "expiracaoPagamentoMin": 15, "version": 0 }
+                  "horizonteDias": 30, "expiracaoPagamentoMin": 3, "version": 0 }
                 """).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CAMPO_DESCONHECIDO"));
 
         aindaComOsValoresDaV1();
@@ -120,7 +120,7 @@ class ConfiguracaoAdminIT extends CadastrosBase {
     @Test
     @DisplayName("A68: PUT com version 0 quando a configuração já está na version 1 é 409 CONFLITO_DE_VERSAO e a configuração fica intacta")
     void versaoVelha() throws Exception {
-        put(ROTA, admin, corpo(60, 0, 30, 30, 15, 0)).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+        put(ROTA, admin, corpo(60, 0, 30, 30, 3, 0)).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
 
         put(ROTA, admin, corpo(240, 10, 15, 60, 20, 0)).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLITO_DE_VERSAO"));
@@ -130,6 +130,6 @@ class ConfiguracaoAdminIT extends CadastrosBase {
                        horizonte_dias h, expiracao_pagamento_min e, version v
                 FROM configuracao_agenda
                 """)).containsEntry("a", 60).containsEntry("i", 0).containsEntry("g", 30).containsEntry("h", 30)
-                .containsEntry("e", 15).containsEntry("v", 1L);
+                .containsEntry("e", 3).containsEntry("v", 1L);
     }
 }

@@ -24,7 +24,7 @@ class TextosDaPolitica {
             + "(ainda não configurado nesta instalação)";
 
     /** A data em que o texto da versão vigente foi escrito (muda junto com a versão). */
-    static final String ATUALIZADA_EM = "2026-11-17T00:00:00-03:00";
+    static final String ATUALIZADA_EM = "2026-11-18T00:00:00-03:00";
 
     private final String consentimento;
     private final String politica;

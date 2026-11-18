@@ -99,7 +99,7 @@ class AcessoAdminIT extends PainelBase {
                 """;
         String configuracao = """
                 { "antecedenciaMinimaMin": 120, "intervaloEntreAtendimentosMin": 0, "granularidadeMin": 30,
-                  "horizonteDias": 30, "expiracaoPagamentoMin": 15, "version": 0 }
+                  "horizonteDias": 30, "expiracaoPagamentoMin": 3, "version": 0 }
                 """;
         String[][] rotas = {
                 {"GET", "/admin/servicos", ""},
