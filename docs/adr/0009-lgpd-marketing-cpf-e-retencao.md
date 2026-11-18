@@ -13,6 +13,7 @@ O sistema trata nome, e-mail, WhatsApp, CEP (opcional) e, só no pagamento do gu
 - Finalidade `MARKETING_CEP` separada da operação. Caixa **opcional e desmarcada** no cadastro; o texto tem versão (`versao_texto`).
 - Cada aceite ou revogação é uma **linha nova** em `consentimento` (prova com data e versão). Revogação a qualquer momento em `PUT /me/consentimentos/marketing`.
 - O alcance por região (Fatia 6C) mostra **só agregados por bairro e cidade** e **esconde grupos com menos de 5 atendimentos** (k ≥ 5). **Atualização (D-8, E33):** o agregado com k ≥ 5 usa **legítimo interesse** (estatística da própria barbearia) e conta todos os atendimentos, não só quem consentiu; a política 1.0 já explica. **Mandar promoção** a alguém continua exigindo o consentimento `MARKETING_CEP`.
+- **Alcance implementado (Fatia 6C, 18/11/2026, D105 a D113):** `GET /admin/alcance` (ADMIN vê tudo; BARBEIRO só os próprios atendimentos) e a vitrine pública `GET /alcance` (só nomes, 12 meses, cache de 1 hora). Bairro com menos de 5 atendimentos vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades" (`ConsultaAlcance`, A67 e A68). A reserva guarda uma **cópia** de bairro, cidade e uf (`reserva.regiao_*`); o CEP do visitante fica em `reserva_guest.cep` e vira `NULL` na anonimização dos 90 dias (A74), mas a região da reserva fica porque, sem nome nem contato, não identifica ninguém. Continua sendo estatística da barbearia (legítimo interesse, D-8), **não** um parecer jurídico (H13).
 - Opções consideradas: (a) usar o CEP do cadastro para marketing sem perguntar (descartada: finalidade diferente sem base legal); (b) consentimento separado (**escolhida**).
 
 ### 2. CPF não persistido
@@ -42,4 +43,4 @@ O sistema trata nome, e-mail, WhatsApp, CEP (opcional) e, só no pagamento do gu
 
 ## Gatilhos para revisitar
 - Gateway que não guarde o CPF → avaliar criptografia (AES-GCM com chave em variável de ambiente) por um novo ADR.
-- Ligar o painel de alcance ou o lembrete por WhatsApp (nova finalidade).
+- O painel de alcance já existe (6C, estatística agregada). Usar a região para **mandar** promoção, ou ligar o lembrete por WhatsApp, é nova finalidade e exige consentimento.

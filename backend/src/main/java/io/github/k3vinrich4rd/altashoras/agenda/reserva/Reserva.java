@@ -11,6 +11,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
 import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
@@ -77,6 +79,17 @@ public class Reserva {
     @Column(name = "finalizado_em")
     private @Nullable Instant finalizadoEm;
 
+    /** Cópia da região de quem foi atendido, tirada quando a reserva nasce (Fatia 6C, E30). Nula quando não se conhece. */
+    @Column(name = "regiao_bairro")
+    private @Nullable String regiaoBairro;
+
+    @Column(name = "regiao_cidade")
+    private @Nullable String regiaoCidade;
+
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "regiao_uf", length = 2)
+    private @Nullable String regiaoUf;
+
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
@@ -109,6 +122,13 @@ public class Reserva {
     /** Toda reserva nasce aguardando o pagamento de 100%, com prazo (R6, R7). Sem cliente = visitante. */
     static Reserva nova(Horario horario, @Nullable UUID clienteId, long precoCentavos, Instant expiraEm, Instant agora) {
         return new Reserva(horario, clienteId, precoCentavos, expiraEm, agora);
+    }
+
+    /** Copia a região na criação (E30). Nunca é alterada depois: mudar o endereço da conta não muda a estatística. */
+    void definirRegiao(RegiaoDaReserva regiao) {
+        this.regiaoBairro = regiao.bairro();
+        this.regiaoCidade = regiao.cidade();
+        this.regiaoUf = regiao.uf();
     }
 
     /** Muda o status só se a máquina de estados permitir; qualquer outra mudança é 422 TRANSICAO_INVALIDA. */
