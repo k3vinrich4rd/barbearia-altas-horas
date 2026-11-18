@@ -46,10 +46,10 @@ class ModulithTest {
     }
 
     @Test
-    @DisplayName("A40: o admin só depende de agenda, pagamento e conta (pelas APIs públicas); ninguém depende do admin; a agenda não conhece o pagamento")
+    @DisplayName("A40: o admin só depende de agenda, pagamento, conta e privacidade (pelas APIs públicas); ninguém depende do admin; a agenda não conhece o pagamento")
     void adminSoPelasApisPublicas() {
         modulos.verify();
-        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "comum").contains("agenda", "pagamento");
+        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "privacidade", "comum").contains("agenda", "pagamento");
         for (String modulo : List.of("comum", "plataforma", "conta", "cep", "agenda", "pagamento", "privacidade")) {
             assertThat(dependenciasDe(modulo)).as("dependências de " + modulo).doesNotContain("admin");
         }
@@ -57,11 +57,11 @@ class ModulithTest {
     }
 
     @Test
-    @DisplayName("A71: o admin depende de agenda, pagamento e conta (e de mais nenhum módulo de negócio); os cadastros chegam à agenda só por PainelDaAgenda e à conta só por Contas")
+    @DisplayName("A71: o admin depende de agenda, pagamento e conta (e, desde a 6B, da porta de retenção da privacidade; de mais nenhum módulo de negócio); os cadastros chegam à agenda só por PainelDaAgenda e à conta só por Contas")
     void cadastrosDoAdminSoPelasApisPublicas() {
         modulos.verify();
         assertThat(dependenciasDe("admin")).contains("agenda", "pagamento", "conta")
-                .isSubsetOf("agenda", "pagamento", "conta", "comum");
+                .isSubsetOf("agenda", "pagamento", "conta", "privacidade", "comum");
         // Nos módulos agenda e conta só o pacote raiz é API pública (ADR 0002): o Modulith recusa qualquer outra classe.
         var tiposDaAgendaUsadosPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
                 .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("agenda"))
@@ -87,6 +87,25 @@ class ModulithTest {
                 .map(d -> d.getTargetType().getFullName()).distinct().toList();
         assertThat(tiposDoCepUsadosPelaConta).isNotEmpty().allSatisfy(tipo -> assertThat(tipo)
                 .startsWith("io.github.k3vinrich4rd.altashoras.cep.").doesNotContain(".consulta."));
+    }
+
+    @Test
+    @DisplayName("A60: a privacidade só depende do comum; conta, agenda, admin e pagamento dependem dela (portas e evento), e ela não conhece nenhum deles")
+    void privacidadeNaoDependeDeNinguem() {
+        modulos.verify();
+        assertThat(dependenciasDe("privacidade")).isSubsetOf("comum")
+                .doesNotContain("conta", "agenda", "pagamento", "admin", "cep", "plataforma");
+        for (String modulo : List.of("conta", "agenda", "admin", "pagamento")) {
+            assertThat(dependenciasDe(modulo)).as("dependências de " + modulo).contains("privacidade");
+        }
+        // As portas e o evento são o que cruza a fronteira: nenhuma outra classe da privacidade é usada por fora.
+        for (String modulo : List.of("conta", "agenda", "admin", "pagamento")) {
+            var tipos = modulos.getModuleByName(modulo).orElseThrow().getDirectDependencies(modulos).stream()
+                    .filter(d -> d.getTargetModule().getIdentifier().toString().equals("privacidade"))
+                    .map(d -> d.getTargetType().getFullName()).distinct().toList();
+            assertThat(tipos).as("tipos da privacidade usados por " + modulo).isNotEmpty().allSatisfy(tipo -> assertThat(tipo)
+                    .startsWith("io.github.k3vinrich4rd.altashoras.privacidade.").doesNotContain(".titular."));
+        }
     }
 
     private List<String> dependenciasDe(String modulo) {
