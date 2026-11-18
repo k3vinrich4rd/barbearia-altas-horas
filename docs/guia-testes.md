@@ -540,7 +540,7 @@ No log inteiro da API (duas subidas): `grep -c` por e-mails, nome, WhatsApp (com
 
 O job `RetencaoDeDados` roda todo dia às 3h (fuso da barbearia) e loga `Retenção de dados: limpeza=reserva_guest linhas=N`. Para conferir à mão sem esperar, no perfil `dev`: crie uma reserva de visitante, mude o `fim` da reserva no banco para mais de 90 dias atrás (`UPDATE reserva SET inicio = now() - interval '91 days', fim = now() - interval '91 days' + interval '30 minutes' WHERE id = '<ID>'`, ajustando `fim_ocupacao`) e suba a API com `APP_JOBS_RETENCAO_CRON="0 * * * * *"` para rodar no próximo minuto.
 
-Saída real (18/11/2026, perfil `dev`): reserva de visitante criada, envelhecida por SQL e API reiniciada; a retenção rodou na subida. Atenção ao SQL: uma reserva `AGUARDANDO_PAGAMENTO` exige `expira_em` preenchido (`reserva_expiracao_ck`), então use também `status = 'EXPIRADO'` e `expira_em` no passado, no mesmo `UPDATE`.
+Saída real (18/11/2026, perfil `dev`): reserva de visitante criada, envelhecida por SQL e API reiniciada; a retenção rodou na subida.
 
 ```text
 log:    Retenção de dados: limpeza=reserva_guest linhas=1   (auditoria_ip e evento_webhook: linhas=0)

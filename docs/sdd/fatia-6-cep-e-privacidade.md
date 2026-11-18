@@ -244,6 +244,7 @@ Relógio da 6C: o mesmo das Fatias 4 e 5 (terça, 17/11/2026 08:00 -03:00). Per�
 - **Anonimização por `UPDATE` não limpa backup** do Aiven: o dado antigo pode viver nos backups do provedor até expirarem. Registrar na política.
 - **Hash do token do guest:** ao anonimizar, o `token_hash` vira um valor aleatório; um bug aqui deixaria o link do visitante vivo. O A52 prova.
 - **Ordem dos listeners síncronos:** a exclusão depende de `agenda` verificar o bloqueio **antes** de `conta` anonimizar; se um falhar a transação inteira desfaz (A47), mas a ordem precisa ser explícita (`@Order`).
+- **Limites conhecidos da 6B (D104):** um webhook atrasado que crie `DEVOLUCAO_PENDENTE` entre a checagem do pagamento (`@Order` 5) e o `FOR UPDATE` da agenda escapa do bloqueio da exclusão; a janela é mínima e foi aceita no beta (para revisitar: repetir a checagem depois do lock). E o `ValidadorDeConta` custa uma consulta por chave primária por requisição autenticada; aceito, com cache de alguns segundos como saída se a carga crescer.
 - **Dado pessoal em exceção:** mensagens de erro do Jackson, do JDBC e do `RestClient` podem trazer o valor recebido. O `TratadorGlobalDeErros` já devolve só o `code`; o A59 pega a regressão.
 
 ## 7. Dúvidas para o Kevin (com a proposta de cada uma)

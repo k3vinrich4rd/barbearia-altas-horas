@@ -104,7 +104,10 @@ class RetencaoGuestIT extends PrivacidadeBase {
         mvc.perform(MockMvcRequestBuilders.get("/agendamentos/guest/" + reserva).header("X-Guest-Token", token))
                 .andExpect(status().isOk());
 
+        String hashAntes = (String) guest(reserva).get("token_hash");
         retencao.executar();
+        String hashDepois = (String) guest(reserva).get("token_hash");
+        assertThat(hashDepois).isNotEqualTo(hashAntes).isEqualTo(hashDepois.toLowerCase()).matches("^[0-9a-f]{64}$");
 
         mvc.perform(MockMvcRequestBuilders.get("/agendamentos/guest/" + reserva).header("X-Guest-Token", token))
                 .andExpect(status().isNotFound());
