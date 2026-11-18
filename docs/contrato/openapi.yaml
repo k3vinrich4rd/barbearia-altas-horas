@@ -201,10 +201,18 @@ paths:
       tags: [privacidade]
       operationId: excluirConta
       summary: Excluir minha conta (LGPD)
+      description: |
+        Só `CLIENTE` (BARBEIRO e ADMIN: `403 ACESSO_NEGADO`). Não pede a senha no beta (D-3). Numa única transação:
+        a conta é anonimizada (nome, e-mail, WhatsApp, senha e endereço saem, e o e-mail fica livre para um novo
+        cadastro), as sessões e os refresh tokens deixam de valer e as reservas futuras ainda não pagas são canceladas.
+        Com uma reserva futura **paga** (`CONFIRMADO`) a exclusão é recusada com `409 EXCLUSAO_BLOQUEADA_POR_RESERVA`
+        e nada muda: o titular combina o cancelamento com a barbearia e exclui depois. Depois do `204`, o login e o
+        token antigo dão `401`.
       responses:
         '204': { description: Conta anonimizada }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
+        '409': { $ref: '#/components/responses/Erro409' }
   /me/senha:
     put:
       tags: [conta]
@@ -227,21 +235,31 @@ paths:
       tags: [privacidade]
       operationId: exportarDados
       summary: Exportar meus dados (LGPD)
+      description: |
+        Conta, histórico completo de consentimentos e as reservas em que a conta é o cliente. Nunca sai hash de senha,
+        refresh token, token de visitante, IP nem dado de outra pessoa. Resposta com `Cache-Control: no-store`.
+        Limite de 5 exportações por hora por conta (H22): passou, `429` com `Retry-After`.
       responses:
         '200':
           description: Exportação em JSON
+          headers:
+            Cache-Control: { schema: { type: string }, example: no-store }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ExportacaoDados' }
         '401': { $ref: '#/components/responses/Erro401' }
+        '429': { $ref: '#/components/responses/Erro429' }
   /me/consentimentos:
     get:
       tags: [privacidade]
       operationId: meusConsentimentos
       summary: Meus consentimentos
+      description: |
+        O estado atual por finalidade (a linha mais recente de cada uma). Conta sem nenhum consentimento registrado
+        (o admin inicial) recebe lista vazia. O histórico completo sai só em `GET /me/dados`.
       responses:
         '200':
-          description: Consentimentos atuais
+          description: Estado atual de cada finalidade
           content:
             application/json:
               schema:
@@ -253,6 +271,11 @@ paths:
       tags: [privacidade]
       operationId: registrarConsentimentoMarketing
       summary: Aceita ou revoga o consentimento de marketing
+      description: |
+        `versaoTexto` precisa ser a vigente (a de `GET /politica-privacidade`); outra versão é `400 VALIDACAO_INVALIDA`
+        com `errors[].field = versaoTexto` e nada é gravado. Pedir o estado que já vale, na mesma versão, devolve a
+        linha existente sem gravar outra. Cada mudança de estado é uma linha nova (R28); revogar não apaga CEP,
+        bairro nem cidade da conta.
       requestBody:
         required: true
         content:
@@ -278,6 +301,21 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PoliticaPagamento' }
+  /politica-privacidade:
+    get:
+      tags: [privacidade]
+      operationId: politicaPrivacidade
+      summary: Política de privacidade e texto da caixa de marketing, com a versão vigente
+      description: |
+        Rota pública. A `versao` devolvida é a mesma que `PUT /me/consentimentos/marketing` exige. Texto novo = versão
+        nova, e a anterior continua guardada (a prova do consentimento precisa do texto que a pessoa viu).
+      security: []
+      responses:
+        '200':
+          description: Política vigente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PoliticaPrivacidade' }
   /agendamentos:
     post:
       tags: [agenda]
@@ -1402,15 +1440,49 @@ components:
         versaoTexto: { type: string, maxLength: 20 }
     ExportacaoDados:
       type: object
+      required: [geradoEm, conta, consentimentos, agendamentos]
       properties:
         geradoEm: { type: string, format: date-time }
-        conta: { type: object }
+        conta:
+          type: object
+          required: [nome, email, whatsapp, endereco]
+          properties:
+            nome: { type: string }
+            email: { type: string, format: email }
+            whatsapp: { type: [string, 'null'] }
+            endereco:
+              type: [object, 'null']
+              properties:
+                cep: { type: string }
+                bairro: { type: [string, 'null'] }
+                cidade: { type: [string, 'null'] }
+                uf: { type: [string, 'null'] }
         consentimentos:
           type: array
+          description: histórico inteiro, do mais antigo para o mais novo
           items: { $ref: '#/components/schemas/Consentimento' }
         agendamentos:
           type: array
-          items: { type: object }
+          description: só as reservas em que a conta é o cliente
+          items:
+            type: object
+            required: [id, inicio, fim, status, servico, precoCentavos, motivoCancelamento]
+            properties:
+              id: { type: string, format: uuid }
+              inicio: { type: string, format: date-time }
+              fim: { type: string, format: date-time }
+              status: { type: string }
+              servico: { type: string }
+              precoCentavos: { type: integer, format: int64 }
+              motivoCancelamento: { type: [string, 'null'] }
+    PoliticaPrivacidade:
+      type: object
+      required: [versao, textoConsentimento, politica, atualizadaEm]
+      properties:
+        versao: { type: string, example: '1.0' }
+        textoConsentimento: { type: string, description: 'o texto da caixa de marketing do cadastro' }
+        politica: { type: string, description: 'texto corrido em Markdown (rascunho técnico, não é parecer jurídico)' }
+        atualizadaEm: { type: string, format: date-time }
     PaginaAuditoria:
       type: object
       required: [itens, pagina, tamanho, total]
