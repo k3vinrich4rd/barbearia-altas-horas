@@ -61,7 +61,7 @@ Você pode, a qualquer momento:
 - **excluir a sua conta**: em "Meus dados", opção de excluir. A conta é anonimizada (nome, e-mail, WhatsApp, senha e endereço saem), as sessões abertas deixam de valer e os agendamentos futuros que ainda não foram pagos são cancelados. O e-mail fica livre para um novo cadastro. O histórico de agendamentos passados continua, sem os seus dados pessoais;
 - **corrigir ou pedir informações**: pelo canal da seção 1.
 
-**Exclusão com agendamento pago:** se você tem um agendamento futuro já pago, a exclusão da conta é recusada até o atendimento acontecer ou a barbearia cancelar. Isso existe porque, sem a conta e o WhatsApp, a barbearia não teria como devolver o valor. Combine o cancelamento com a barbearia pelo canal da seção 1 e peça a exclusão de novo.
+**Exclusão com agendamento pago:** se você tem um agendamento futuro já pago, ou um valor esperando devolução, a exclusão da conta é recusada até o atendimento acontecer, a barbearia cancelar ou a devolução ser registrada. Isso existe porque, sem a conta e o WhatsApp, a barbearia não teria como devolver o valor. Combine o cancelamento com a barbearia pelo canal da seção 1 e peça a exclusão de novo.
 
 **Visitantes (sem conta):** não há tela para apagar o contato antes do prazo da seção 6. Peça pelo canal da seção 1; a barbearia anonimiza por fora do sistema.
 

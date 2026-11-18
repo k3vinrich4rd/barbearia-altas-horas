@@ -107,4 +107,32 @@ class ExclusaoReservasIT extends PrivacidadeBase {
         assertThat(clientes.getFirst().get("whatsapp")).isNull();
         assertThat(corpo).doesNotContain("Cliente Teste").doesNotContain("11900000001");
     }
+
+    @Test
+    @DisplayName("A61a: reserva com cobrança em DEVOLUCAO_PENDENTE ou com pagamento tardio sem devolução (PAGA_APOS_EXPIRACAO) bloqueia a exclusão com 409 EXCLUSAO_BLOQUEADA_POR_RESERVA e nada muda; depois de devolvida (DEVOLVIDA), a exclusão dá 204")
+    void devolucaoPendenteBloqueia() throws Exception {
+        UUID servico = DadosDeTeste.servico(jdbc, "Corte Clássico", 30, 4500, true);
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        for (String situacao : List.of("DEVOLUCAO_PENDENTE", "PAGA_APOS_EXPIRACAO")) {
+            Cliente cliente = novoCliente(false);
+            UUID reserva = reserva(barbeiro, servico, DadosDeTeste.em(LocalDate.of(2026, 11, 30), 10, 0), "CANCELADO", null,
+                    cliente.id(), null);
+            UUID cobranca = cobranca(reserva, situacao, DadosDeTeste.em(LocalDate.of(2026, 11, 29), 18, 0));
+
+            delete("/me", cliente.acesso()).andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("EXCLUSAO_BLOQUEADA_POR_RESERVA"));
+
+            assertThat(jdbc.queryForMap("SELECT nome, ativo FROM usuario WHERE id = ?", cliente.id()))
+                    .containsEntry("nome", "Cliente Teste").containsEntry("ativo", true);
+            assertThat(contar("SELECT count(*) FROM solicitacao_titular WHERE usuario_id = ?", cliente.id())).isZero();
+            assertThat(statusDaCobrancaDaReserva(reserva)).isEqualTo(situacao);
+            get("/me", cliente.acesso()).andExpect(status().isOk());
+
+            // O Eduardo devolve e registra: o motivo do bloqueio acabou.
+            jdbc.update("UPDATE cobranca SET status = 'DEVOLVIDA' WHERE id = ?", cobranca);
+            delete("/me", cliente.acesso()).andExpect(status().isNoContent());
+            // A reserva passada e a cobrança devolvida ficam (registro financeiro).
+            assertThat(statusDaCobrancaDaReserva(reserva)).isEqualTo("DEVOLVIDA");
+        }
+    }
 }

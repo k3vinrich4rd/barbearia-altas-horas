@@ -38,6 +38,16 @@ public class RetencaoDeDados {
         executarEm(clock.instant());
     }
 
+    /**
+     * Uma rodada na subida, como o ExpiracaoJob: o Render free hiberna e pode estar dormindo às 3h. Respeita o mesmo
+     * {@code app.jobs.habilitados} e a mesma trava do ShedLock. O intervalo é de 10 anos: na prática, roda uma vez só.
+     */
+    @Scheduled(initialDelayString = "${app.jobs.retencao.atraso-inicial:0}", fixedDelayString = "${app.jobs.retencao.intervalo-da-subida:PT87600H}")
+    @SchedulerLock(name = "retencao-de-dados", lockAtMostFor = "PT30M")
+    public void naSubida() {
+        executarEm(clock.instant());
+    }
+
     /** O mesmo trabalho, sem agendador nem trava: devolve quantas linhas cada limpeza mudou (os testes usam). */
     public Map<String, Integer> executarEm(Instant agora) {
         Map<String, Integer> resultado = new LinkedHashMap<>();

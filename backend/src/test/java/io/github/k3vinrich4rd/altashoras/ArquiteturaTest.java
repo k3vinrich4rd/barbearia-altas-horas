@@ -116,7 +116,7 @@ class ArquiteturaTest {
     }
 
     @Test
-    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada, com @Order, e a agenda roda antes da conta")
+    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada (com o pagamento), todos com @Order, e a agenda roda antes da conta")
     void privacidadePublicaPortasEQuemTemDadoImplementa() {
         noClasses().that().resideInAPackage("..privacidade..")
                 .should().dependOnClassesThat().resideInAnyPackage("..conta..", "..agenda..", "..pagamento..", "..admin..",
@@ -133,11 +133,12 @@ class ArquiteturaTest {
                 .filter(m -> m.isAnnotatedWith(EventListener.class)
                         && m.getRawParameterTypes().stream().anyMatch(t -> t.isEquivalentTo(ExclusaoSolicitada.class)))
                 .toList();
-        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(2)
+        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(3)
                 .allSatisfy(m -> org.assertj.core.api.Assertions.assertThat(m.isAnnotatedWith(Order.class))
                         .as("@Order explícito em " + m.getOwner().getSimpleName()).isTrue());
         org.assertj.core.api.Assertions.assertThat(ouvintes.stream().map(m -> m.getOwner().getPackageName()).toList())
                 .anyMatch(pacote -> pacote.contains(".conta.")).anyMatch(pacote -> pacote.contains(".agenda."));
+        org.assertj.core.api.Assertions.assertThat(ExclusaoSolicitada.ORDEM_DO_PAGAMENTO).isLessThan(ExclusaoSolicitada.ORDEM_DA_AGENDA);
         org.assertj.core.api.Assertions.assertThat(ExclusaoSolicitada.ORDEM_DA_AGENDA)
                 .as("a agenda confere o bloqueio ANTES de a conta anonimizar").isLessThan(ExclusaoSolicitada.ORDEM_DA_CONTA);
     }

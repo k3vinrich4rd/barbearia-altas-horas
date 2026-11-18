@@ -203,6 +203,16 @@ public class Reservas {
         return porId;
     }
 
+    /**
+     * Os ids de todas as reservas em que a conta é o cliente (a exclusão da conta, Fatia 6B): o pagamento pergunta aqui e
+     * olha só as próprias cobranças, sem ler a tabela da reserva. Só ids: nenhum dado pessoal.
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> idsDasReservasDoCliente(UUID clienteId) {
+        return jdbc.sql("SELECT id FROM reserva WHERE cliente_id = :cliente").param("cliente", clienteId)
+                .query(UUID.class).list();
+    }
+
     /** O pagamento pergunta, depois de marcar a cobrança paga, se a barbearia cancelou a reserva no meio (D77). */
     @Transactional(readOnly = true)
     public boolean estaCancelada(UUID reservaId) {
