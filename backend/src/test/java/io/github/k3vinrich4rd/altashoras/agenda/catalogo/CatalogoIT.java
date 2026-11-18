@@ -70,8 +70,8 @@ class CatalogoIT {
         List<Object> ids = barbeiros.stream().map(x -> x.get("id")).toList();
 
         assertThat(ids).contains(ativo.toString()).doesNotContain(inativo.toString());
-        assertThat(barbeiros.get(ids.indexOf(ativo.toString()))).containsOnlyKeys("id", "nomeExibicao")
-                .containsEntry("nomeExibicao", "Barbeiro " + ativo);
+        assertThat(barbeiros.get(ids.indexOf(ativo.toString()))).containsOnlyKeys("id", "nomeExibicao", "whatsapp")
+                .containsEntry("nomeExibicao", "Barbeiro " + ativo).containsEntry("whatsapp", null);
     }
 
     @Test

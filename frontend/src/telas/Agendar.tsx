@@ -15,7 +15,7 @@ import {
 import { useConsulta } from "@/api/hooks";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
-import { type BarbeiroComWhatsapp, ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
+import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { mensagemDoErro } from "@/api/mensagens";
@@ -52,7 +52,7 @@ export function Agendar() {
     roteador.push(`/agendar/dados?${p.toString()}`);
   }
 
-  const barbeiroEscolhido = (barbeiros.dados as BarbeiroComWhatsapp[] | undefined)?.find((b) => b.id === barbeiroId);
+  const barbeiroEscolhido = barbeiros.dados?.find((b) => b.id === barbeiroId);
 
   return (
     <>
@@ -191,12 +191,7 @@ export function Agendar() {
           na próxima etapa, um contador mostra o prazo para pagar e o horário fica reservado só para você. Sem pagamento
           no prazo, o horário volta para a agenda.
         </p>
-        <ContatoWhatsapp
-          barbeiro={
-            barbeiroEscolhido ??
-            (barbeiros.dados as BarbeiroComWhatsapp[] | undefined)?.find((b) => Boolean(b.whatsapp))
-          }
-        />
+        <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
       </aside>
     </>
   );

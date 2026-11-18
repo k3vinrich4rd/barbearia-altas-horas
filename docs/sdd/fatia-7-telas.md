@@ -7,7 +7,7 @@
 | **Entrega em duas PRs** | **7A** · base e fluxos do visitante e do cliente: projeto, BFF, cliente da API, home, reserva, pagamento, consulta, conta, privacidade (`feat/fatia-7a-front-base`) · **7B** · painel ADMIN/BARBEIRO: agenda, fechar e cancelar, pendências, cadastros, auditoria e alcance (`feat/fatia-7b-front-painel`). A 7B só começa com a 7A na `main` (D-5) |
 | **Regras** | [R6](../contexto.md#3-regras-de-negócio) e R18 (aceite obrigatório, nenhum botão de cancelar ou remarcar para o cliente), R7 (15 min), R8 e R9 (CPF só no pagamento), R10 (idempotência), R23 (alheio → 404), R26 (429 com `Retry-After`), R27 (refresh rotativo), R28 (marketing opcional, desmarcado), R30 (nada pessoal em log), R31 (CEP nunca derruba o cadastro); RNF5 (cold start), RNF8 (contraste AA e teclado) |
 | **ADRs** | [0006](../adr/0006-sessao-jwt-refresh-cookie-bff.md) (BFF, cookies `HttpOnly`, CSRF), [0005](../adr/0005-erros-rfc-9457.md) (erros por `code`), [0004](../adr/0004-tempo-e-dinheiro.md) (centavos e fuso), [0007](../adr/0007-gateway-de-pagamento-sandbox.md) (cartão só no checkout hospedado), [0008](../adr/0008-cep-com-cache-e-degradacao.md) (CEP degrada), [0009](../adr/0009-lgpd-marketing-cpf-e-retencao.md) (LGPD) |
-| **Contrato** | [`openapi.yaml` 1.5.0](../contrato/openapi.yaml). O front **não inventa rota**: toda chamada existe no contrato e o tipo vem dele (E3). Nenhuma mudança de contrato nesta fatia (ver D-6) |
+| **Contrato** | [`openapi.yaml` 1.6.0](../contrato/openapi.yaml). O front **não inventa rota**: toda chamada existe no contrato e o tipo vem dele (E3). Nenhuma mudança de contrato nesta fatia (ver D-6) |
 | **Design** | o [design system](#fonte-do-design) é a **única** fonte visual (E1). As telas principais (home, escolha de serviço e horário, checkout) **ainda não têm desenho**: a spec separa o que é **base sem dependência visual** (critérios `A#`, implementáveis agora) do **acabamento visual** (critérios `V#`, marcados **aguarda design**) |
 | **Custo** | **zero**: nenhuma conta, chave ou serviço externo. Sem Google Fonts em tempo de execução, sem analytics, sem CDN. O deploy (Vercel) é a **Fatia 8** |
 | **Não cobre** | deploy e domínio (Fatia 8) · app mobile e login social (pós-beta) · cancelar ou remarcar pelo cliente (não existe, R18) · "completar o endereço" depois do cadastro (não há `PUT /me`, D-6) · avisos por e-mail ou WhatsApp · assistente de IA (Fatia 9) · decisão visual de qualquer tipo (E1) · PWA e modo offline |
@@ -241,7 +241,7 @@ Estes critérios **não têm teste automático** e **não entram no `conferir-sp
 | V9 | Painel · alcance | se há barras, mapa ou só tabela, e como mostrar "menos de 5" | tabela com `caption` | desenhada · **7B** (painel) |
 | V10 | Responsivo | pontos de quebra, menu no celular | uma coluna que já funciona no celular (A54 roda também em 375 × 812) | desenhada → **implementada (7A)** · verificação: `acessibilidade` roda o axe em 1280 × 800 e em 375 × 812 em todas as telas da 7A |
 | V11 | Tema claro | revisão visual do tema `claro` em cada tela | tokens dos dois temas (A56) | desenhada → **implementada (7A)** · verificação: `acessibilidade` nos dois temas, `tokens-visual` (A56) e o botão "Tema claro" do painel de acessibilidade |
-| V12 | Ícones e logo | escolha final dos ícones de interface e uso do selo (D-2) | texto, ★ e ✂ onde couber | desenhada → **implementada (7A)** · verificação: `componentes-visuais` (V12: ícones `aria-hidden` sempre com palavra ao lado), logo de `docs/assets/` com o texto alternativo do README; sem biblioteca de ícones (D122) |
+| V12 | Ícones e logo | escolha final dos ícones de interface e uso do selo (D-2) | texto, ★ e ✂ onde couber | desenhada → **implementada (7A)** · verificação: `componentes-visuais` (V12: ícones `aria-hidden` sempre com palavra ao lado), logo de `docs/assets/` com o texto alternativo do README; sem biblioteca de ícones (D131) |
 
 ## 5. Entregas
 
@@ -281,7 +281,7 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 - **ViaCEP e BrasilAPI fora do nosso controle:** o E2E não pode depender deles (E24); a degradação é provada com MSW (A33).
 - **Cold start do Render (RNF5):** o aviso de "servidor acordando" aparece no meio do fluxo, inclusive durante o pagamento. A nova tentativa precisa ser **segura**: só repete `GET` e `POST` com `X-Idempotency-Key` (pagamento); a reserva (`POST /agendamentos`) **não** repete sozinha depois de timeout (pode ter sido criada): a tela consulta `GET /me/agendamentos` (cliente) ou mostra "confira antes de tentar de novo" (visitante).
 - **Fonte e imagens:** `@fontsource` e a cópia de `docs/assets/` no build evitam pedido ao Google, mas aumentam o pacote. Fotos grandes pedem `next/image` com tamanhos; o logo tem **mínimo de 48 px** e área livre de 1/4 do diâmetro (design system).
-- **Dependência do front com o contrato:** a spec trava no 1.5.0. Mudança de rota no back sem regenerar o `schema.d.ts` quebra o CI do front (A11): é o objetivo, mas a PR de back precisa avisar.
+- **Dependência do front com o contrato:** a spec trava no 1.6.0. Mudança de rota no back sem regenerar o `schema.d.ts` quebra o CI do front (A11): é o objetivo, mas a PR de back precisa avisar.
 - **Almoço no painel do barbeiro:** o `BARBEIRO` não tem rota para ler a própria jornada (as rotas de `/admin/barbeiros` são de `ADMIN`), então a agenda dele não pode listrar o almoço pela jornada (D-9).
 - **Contrato incompleto:** `EXCLUSAO_BLOQUEADA_POR_RESERVA` (usado em `DELETE /me`) **não está no enum `CodigoErro`** do `openapi.yaml` 1.5.0. O A13 trata como código desconhecido se faltar; a PR da 7A deve acrescentá-lo ao enum (correção de contrato de uma linha, avisar o Kevin) e o A11 passa a cobrar.
 - **Vercel Hobby é uso não comercial (RISC-03/H17):** nada nesta fatia o muda, mas o `V3` (checkout) continua sendo só sandbox.
@@ -307,7 +307,7 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 - [ ] **7A:** A1 a A43, A54 a A58 e A60 com teste verde (`npm run test` e `npx playwright test`) e `scripts/conferir-spec.sh 7 --exigir --ate 43` sem falta nos A1 a A43 (os A54 a A60 conferidos pelo mesmo script quando o limite for o total)
 - [ ] **7B:** A44 a A53 e A59 com teste verde e `scripts/conferir-spec.sh 7 --exigir` com **60 de 60**
 - [ ] `frontend-ci.yml` verde na PR (lint, `tsc`, Vitest, build, Playwright, conferência dos tipos e da spec) e o `backend-ci.yml` das Fatias 1 a 6 continua verde
-- [ ] `src/api/schema.d.ts` regenerado do `openapi.yaml` 1.5.0 e **nenhuma rota fora do contrato** chamada (A6 e A11)
+- [ ] `src/api/schema.d.ts` regenerado do `openapi.yaml` 1.6.0 e **nenhuma rota fora do contrato** chamada (A6 e A11)
 - [ ] **zero** valor visual literal nos CSS (A56) e nenhuma decisão de cor, fonte ou componente fora do design system; todos os `V1` a `V12` ainda marcados **aguarda design** e listados na descrição da PR
 - [ ] axe sem `serious` ou `critical` nos dois temas (A54) e fluxo do visitante por teclado (A55); relatório anexado
 - [ ] nenhuma conta, chave ou serviço pago criado (custo zero) e **nenhum** pedido de rede externa do navegador (conferido no E2E: só `localhost`)
@@ -320,7 +320,7 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 
 ## 9. Resultado da 7A e desvios da spec
 
-A 7A (A1 a A43, A54 a A58 e A60) está **pronta, aguardando revisão**. Números de execução real estão no PR e em [`docs/guia-testes.md`](../guia-testes.md#7-as-telas-frontend). Desvios, todos explicados em [`decisoes.md`](../planejamento/decisoes.md) (D121 a D132):
+A 7A (A1 a A43, A54 a A58 e A60) está **pronta, aguardando revisão**. Números de execução real estão no PR e em [`docs/guia-testes.md`](../guia-testes.md#7-as-telas-frontend). Desvios, todos explicados em [`decisoes.md`](../planejamento/decisoes.md) (D130 a D141):
 
 | Desvio | Por quê |
 |---|---|
@@ -332,7 +332,7 @@ A 7A (A1 a A43, A54 a A58 e A60) está **pronta, aguardando revisão**. Números
 | sem `lucide-react`; Playfair pelo `next/font/google` | D-2 e D-1 (design system v2): ícones SVG do desenho, fonte servida pelo nosso domínio |
 | `conferir-spec.sh --exceto 44-53,59` além de `--ate` | A54 a A58 e A60 são da 7A e A44 a A53 da 7B: `--ate 43` deixaria os cinco da 7A de fora |
 | A60: o CEP aparece em `GET /api/cep/{cep}` | o contrato manda o CEP no caminho da rota; é a única URL que o leva (não entra em log, console, storage nem cabeçalho) |
-| `contrato 1.5.0` ainda sem `whatsapp` do barbeiro | `ContatoWhatsapp` aceita o campo opcional (6D, contrato 1.6.0); sem número o bloco some |
+| contrato 1.6.0 (6D) | `schema.d.ts` regenerado; `ContatoWhatsapp` usa `BarbeiroPublico.whatsapp` de `GET /barbeiros` e some quando é nulo (home, agendar e confirmação) |
 
 ---
 

@@ -86,7 +86,7 @@ class ExclusaoContaIT extends PrivacidadeBase {
         var historico = consentimentosNoBanco(cliente.id());
         assertThat(historico).hasSize(4);
         assertThat(historico.get(2)).containsEntry("aceito", true);
-        assertThat(historico.get(3)).containsEntry("aceito", false).containsEntry("versao_texto", "1.0");
+        assertThat(historico.get(3)).containsEntry("aceito", false).containsEntry("versao_texto", "1.1");
         assertThat(instante(historico.get(3).get("registrado_em"))).isEqualTo(relogio.instant());
         var pedidos = jdbc.queryForList("SELECT tipo, concluida_em FROM solicitacao_titular WHERE usuario_id = ?", cliente.id());
         assertThat(pedidos).hasSize(1);

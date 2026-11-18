@@ -11,6 +11,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.ConfiguracaoAgenda;
 import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.ConfiguracaoAgendaRepository;
 import io.github.k3vinrich4rd.altashoras.agenda.reserva.Reserva;
+import io.github.k3vinrich4rd.altashoras.agenda.reserva.ReservarHorario;
 import io.github.k3vinrich4rd.altashoras.agenda.reserva.StatusReserva;
 import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
@@ -53,8 +55,8 @@ public class PainelDaAgenda {
      */
     public record Item(UUID id, String status, String origem, UUID servicoId, String servicoNome, int duracaoMin,
             UUID barbeiroId, String barbeiroNome, Instant inicio, Instant fim, long precoCentavos,
-            @Nullable Instant expiraEm, @Nullable String motivoCancelamento, long version, String clienteNome,
-            @Nullable String clienteWhatsapp) {
+            @Nullable Instant expiraEm, @Nullable String motivoCancelamento, long version, @Nullable String clienteNome,
+            @Nullable String clienteWhatsapp, @Nullable String observacao) {
 
         @Override
         public String toString() {
@@ -64,6 +66,19 @@ public class PainelDaAgenda {
 
     /** O resultado do fechamento: o status de antes (a auditoria guarda de/para) e a reserva já atualizada. */
     public record Mudanca(String de, Item item) {
+    }
+
+    /**
+     * O horário combinado por WhatsApp que a barbearia trava no painel (Fatia 6D). Nome e observação são opcionais, já
+     * aparados e com tamanho conferido pela rota; são dado pessoal, então o toString não os imprime (R30).
+     */
+    public record NovaReservaManual(UUID servicoId, UUID barbeiroId, OffsetDateTime inicio, @Nullable String nomeCliente,
+            @Nullable String observacao) {
+
+        @Override
+        public String toString() {
+            return "NovaReservaManual[dados pessoais omitidos]";
+        }
     }
 
     // ---- cadastros do painel (5B) ----------------------------------------------------------------------------------
@@ -87,11 +102,12 @@ public class PainelDaAgenda {
     public record Intervalo(int diaSemana, LocalTime horaInicio, LocalTime horaFim) {
     }
 
-    public record AlteracaoDeBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, boolean ativo, long version) {
+    public record AlteracaoDeBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp,
+            boolean ativo, long version) {
     }
 
-    public record BarbeiroCadastrado(UUID id, String nomeExibicao, @Nullable UUID usuarioId, boolean ativo,
-            long version, List<Intervalo> jornada) {
+    public record BarbeiroCadastrado(UUID id, String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp,
+            boolean ativo, long version, List<Intervalo> jornada) {
     }
 
     /** O motivo da folga pode ser pessoal (consulta médica): o toString não o imprime (R30). */
@@ -117,7 +133,8 @@ public class PainelDaAgenda {
             SELECT r.id, r.status, r.origem, r.servico_id, s.nome AS servico_nome, s.duracao_min,
                    r.barbeiro_id, b.nome_exibicao AS barbeiro_nome, r.inicio, r.fim, r.preco_centavos, r.expira_em,
                    r.motivo_cancelamento, r.version,
-                   COALESCE(g.nome, u.nome) AS cliente_nome, COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp
+                   COALESCE(g.nome, u.nome, r.nome_cliente) AS cliente_nome,
+                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao
             FROM reserva r
             JOIN servico s ON s.id = r.servico_id
             JOIN barbeiro b ON b.id = r.barbeiro_id
@@ -136,7 +153,8 @@ public class PainelDaAgenda {
                 rs.getObject("inicio", OffsetDateTime.class).toInstant(),
                 rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getLong("preco_centavos"),
                 esperando && expiraEm != null ? expiraEm.toInstant() : null, rs.getString("motivo_cancelamento"),
-                rs.getLong("version"), rs.getString("cliente_nome"), rs.getString("cliente_whatsapp"));
+                rs.getLong("version"), rs.getString("cliente_nome"), rs.getString("cliente_whatsapp"),
+                rs.getString("observacao"));
     };
 
     private final JdbcClient jdbc;
@@ -145,10 +163,12 @@ public class PainelDaAgenda {
     private final ApplicationEventPublisher eventos;
     private final Clock clock;
     private final CadastrosDoPainel cadastros;
+    private final ReservarHorario reservas;
 
     PainelDaAgenda(JdbcClient jdbc, EntityManager em, ConfiguracaoAgendaRepository configuracoes,
-            ApplicationEventPublisher eventos, Clock clock, CadastrosDoPainel cadastros) {
+            ApplicationEventPublisher eventos, Clock clock, CadastrosDoPainel cadastros, ReservarHorario reservas) {
         this.cadastros = cadastros;
+        this.reservas = reservas;
         this.jdbc = jdbc;
         this.em = em;
         this.configuracoes = configuracoes;
@@ -179,6 +199,20 @@ public class PainelDaAgenda {
             consulta = consulta.param("barbeiro", alvo);
         }
         return consulta.query(LINHA).list();
+    }
+
+    /**
+     * Trava um horário combinado por fora do app (Fatia 6D, R33). ADMIN escolhe qualquer barbeiro; BARBEIRO só o próprio,
+     * com a mesma regra do painel: barbeiro alheio, inexistente ou conta sem vínculo é 404. A reserva nasce
+     * {@code CONFIRMADO}, sem cobrança, e respeita a grade, o almoço, a folga e a constraint do banco (409
+     * {@code HORARIO_INDISPONIVEL}). {@code aoGravar} (a auditoria) roda dentro da transação da reserva. Esta rota NÃO é
+     * {@code @Transactional}: o caso de uso da reserva abre a própria transação, para o deadlock poder ser refeito (E4).
+     */
+    public Item criarReservaManual(Escopo escopo, NovaReservaManual pedido, Consumer<UUID> aoGravar) {
+        barbeiroDoPedido(escopo, pedido.barbeiroId());
+        UUID id = reservas.comoBarbearia(new ReservarHorario.Manual(pedido.servicoId(), pedido.barbeiroId(),
+                pedido.inicio(), pedido.nomeCliente(), pedido.observacao(), escopo.usuarioId()), aoGravar);
+        return jdbc.sql(SELECIONAR + " WHERE r.id = :id").param("id", id).query(LINHA).single();
     }
 
     /**
@@ -273,8 +307,8 @@ public class PainelDaAgenda {
         return cadastros.barbeiros();
     }
 
-    public BarbeiroCadastrado criarBarbeiro(String nomeExibicao, @Nullable UUID usuarioId) {
-        return cadastros.criarBarbeiro(nomeExibicao, usuarioId);
+    public BarbeiroCadastrado criarBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp) {
+        return cadastros.criarBarbeiro(nomeExibicao, usuarioId, whatsapp);
     }
 
     public Alterado<BarbeiroCadastrado> alterarBarbeiro(UUID id, AlteracaoDeBarbeiro alteracao) {

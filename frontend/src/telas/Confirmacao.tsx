@@ -11,7 +11,7 @@ import { CopiarTexto } from "@/componentes/CopiarTexto";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { useSessao } from "@/componentes/Sessao";
 import { LinkBotao } from "@/componentes/Botao";
-import { ContatoWhatsapp, type BarbeiroComWhatsapp } from "@/componentes/ContatoWhatsapp";
+import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
 
 export function Confirmacao({ reservaId }: { reservaId: string }) {
@@ -24,6 +24,7 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
     [sessao.autenticado, reservaId],
     !sessao.carregando,
   );
+  const barbeiros = useConsulta(() => chamar(api().GET("/barbeiros")), []);
   const politica = useConsulta(() => chamar(api().GET("/politica-pagamento")), []);
   const [codigo, setCodigo] = useState<string | undefined>();
 
@@ -81,7 +82,7 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
                 <li>Não há cancelamento nem remarcação pelo site, como você aceitou antes de pagar.</li>
                 <li>Vai se atrasar? Avise a barbearia.</li>
               </ul>
-              <ContatoWhatsapp barbeiro={r.barbeiro as BarbeiroComWhatsapp | undefined} />
+              <ContatoWhatsapp barbeiro={barbeiros.dados?.find((b) => b.id === r.barbeiro?.id)} />
             </section>
             {sessao.autenticado ? (
               <p>
