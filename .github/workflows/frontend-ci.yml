@@ -1,0 +1,124 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-e-testes:
+    name: Lint, tipos, testes, build e E2E (Node 22 + API real + PostgreSQL 18)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Admin e limites SÓ de teste do CI (nunca valores reais). Limites elevados por variável de ambiente (E24),
+      # sem tocar no código de produção: o E2E reserva e cadastra mais vezes por hora do que o perfil dev permite.
+      ADMIN_EMAIL: admin-ci@exemplo.test
+      ADMIN_SENHA: SenhaInicialDoCi-2026
+      APP_LIMITES_GUEST_MAX: "10000"
+      APP_LIMITES_CADASTRO_MAX: "10000"
+      APP_LIMITES_LOGIN_MAX: "10000"
+      APP_LIMITES_LOGIN_IP_MAX: "10000"
+      APP_LIMITES_CEP_MAX: "10000"
+      APP_LIMITES_EXPORTACAO_MAX: "10000"
+      NEXT_PUBLIC_PAGAMENTO_SIMULADO: "true"
+      NEXT_PUBLIC_HORIZONTE_DIAS: "30"
+      API_URL: http://localhost:8080
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v7
+
+      - name: Configurar Node 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências (npm ci)
+        working-directory: frontend
+        run: npm ci
+
+      # O cliente tipado e as rotas permitidas vêm do contrato; o tokens.css vem do design system. Nada disso pode ficar velho.
+      - name: Conferir tipos, rotas e tokens gerados (sem diferença)
+        working-directory: frontend
+        run: |
+          npm run gerar:tipos
+          npm run gerar:rotas
+          node scripts/gerar-tokens.mjs --conferir
+          git diff --exit-code -- src/api/schema.d.ts src/api/rotas-permitidas.ts
+          npm run verificar:tokens
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Testes unitários com cobertura (Vitest)
+        working-directory: frontend
+        run: npm run test:cobertura
+
+      - name: Build do Next
+        working-directory: frontend
+        run: npm run build
+
+      # E2E contra a API REAL, no perfil dev, com o PostgreSQL do compose (D-8).
+      - name: Subir o PostgreSQL
+        run: docker compose up -d --wait postgres
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Subir a API (perfil dev) em segundo plano
+        working-directory: backend
+        run: |
+          nohup sh mvnw -B -ntp -q -DskipTests spring-boot:run -Dspring-boot.run.profiles=dev > ../api.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://localhost:8080/actuator/health > /dev/null 2>&1; then echo "API no ar"; exit 0; fi
+            sleep 2
+          done
+          echo "A API não subiu a tempo"; tail -50 ../api.log; exit 1
+
+      - name: Instalar o Chromium do Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (Playwright + axe)
+        working-directory: frontend
+        run: npx playwright test
+
+      # Eval do SDD: todo critério da 7A (A1 a A43, A54 a A58 e A60) tem teste com o número dele.
+      # A 7B (A44 a A53 e A59) ainda não existe; na 7B este passo passa a exigir os 60 de 60.
+      - name: Conferir spec × testes (7A)
+        run: |
+          sh scripts/testar-conferir-spec.sh
+          sh scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59
+
+      - name: Publicar relatórios (Playwright e cobertura)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-relatorios
+          path: |
+            frontend/playwright-report
+            frontend/coverage
+            frontend/test-results
+            api.log
+          retention-days: 7
+          if-no-files-found: ignore
