@@ -1004,17 +1004,40 @@ Como conferir o banco: `SELECT origem, status, cliente_id, expira_em, nome_clien
 
 ## 7. As telas (frontend)
 
-> ⏳ **Fatia 7.** O frontend é gerado com IA a partir do contrato e revisado pelo Kevin ([como](como-foi-construido.md)).
+> ✅ **Fatia 7A** (base, visitante e cliente) pronta, aguardando revisão. O painel (ADMIN e BARBEIRO) é a **7B**. O front é gerado com IA a partir do contrato e do design system do Kevin, e revisado por ele ([como](como-foi-construido.md)).
 
-| # | Tela | O que fazer | O que deve acontecer | |
-|---|---|---|---|:-:|
-| T1 | Início | abrir `http://localhost:3000` | preto, branco e prata, logo e botão "Agendar" | ⏳ 7 |
-| T2 | Agendar | escolher serviço, dia e horário | checkout com contagem de 3 min | ⏳ 7 |
-| T3 | Checkout | tentar pagar sem marcar o aceite | botão desabilitado | ⏳ 7 |
-| T4 | Checkout | marcar o aceite e escolher Pix / Cartão | QR Code / checkout do gateway | ⏳ 7 |
-| T5 | Meus horários | abrir depois de pagar | "Confirmado", **sem** botões de cancelar ou remarcar | ⏳ 7 |
-| T6 | Painel | entrar como admin / como cliente | agenda do dia / acesso negado | ⏳ 7 |
-| T7 | Celular | modo mobile do navegador | legível e navegável por teclado | ⏳ 7 |
+### 7.1 O que roda sozinho (com saída real)
+
+```bash
+cd frontend
+npm ci
+npm run lint && npx tsc --noEmit
+npm test                                   # Vitest + Testing Library + MSW, um teste por critério (A1, A2...)
+NEXT_PUBLIC_PAGAMENTO_SIMULADO=true npm run build
+npx playwright test                        # E2E na API REAL (perfil dev + PostgreSQL) e axe nos dois temas
+sh ../scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59
+```
+
+Saída real de cada comando, de 18/11/2026: **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm test`: **37 arquivos, 54 testes verdes** (cobertura de linhas 84,37%) · `npm run build` ok · `npx playwright test`: **7 de 7 verdes em 1,3 min** (A54, A55 ×2, A57, A58 ×2 e A60) · `conferir-spec.sh 7 --exigir --exceto 44-53,59`: **49 de 49** · fatias 1 a 6 e 6D: 10, 29, 44, 45, 71, 75 e 28 de 100% · `./mvnw verify`: 384 testes, 0 falhas**
+
+O E2E precisa do Docker aberto, do PostgreSQL (`docker compose up -d postgres`) e da API no ar (`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` com os limites do E24 elevados por variável de ambiente). Para o E2E não bater nos limites de reserva (3 por hora) e de cadastro (5 por hora), suba a API com `APP_LIMITES_GUEST_MAX`, `APP_LIMITES_CADASTRO_MAX`, `APP_LIMITES_LOGIN_MAX` e `APP_LIMITES_LOGIN_IP_MAX` altos. `docker compose down -v` zera o banco.
+
+### 7.2 O que se confere à mão (fluxo manual)
+
+Abra `http://localhost:3000` (API em `http://localhost:8080`, perfil `dev`).
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| T1 | Início | abrir `/` | preto e branco, logo, "Seu horário com o Eduardo, garantido.", serviços da API e botão "Agendar horário"; o bloco "De onde vêm nossos clientes" só aparece se a API tiver regiões | Saída real: a preencher no fluxo manual |
+| T2 | Agendar | escolher serviço, dia e horário | só horários livres, no fuso da barbearia, agrupados por barbeiro | Saída real: a preencher no fluxo manual |
+| T3 | Checkout | abrir o pagamento e não marcar o aceite | "Pagar" desabilitado; o contador mostra o tempo do `expiraEm` da API | Saída real: a preencher no fluxo manual |
+| T4 | Checkout | aceitar, informar o CPF de teste e escolher Pix, depois cartão | QR e copia e cola; para cartão, só o botão do checkout do gateway, nenhum campo de cartão | Saída real: a preencher no fluxo manual |
+| T5 | Meus agendamentos | abrir depois de pagar | "Confirmado", **sem** botões de cancelar ou remarcar | Saída real: a preencher no fluxo manual |
+| T6 | Painel | entrar como `CLIENTE` e abrir `/painel` | acesso negado (o painel de verdade é da 7B) | Saída real: a preencher no fluxo manual |
+| T7 | Celular | modo mobile do navegador (375 × 812) | legível e navegável só pelo teclado | Saída real: a preencher no fluxo manual |
+| T8 | Servidor acordando | pare a API, abra `/` e religue | "O servidor está acordando", nova tentativa a cada 3 s, a página se completa quando a API volta | Saída real: a preencher no fluxo manual |
+| T9 | Senha inicial | entrar com o admin criado por `ADMIN_EMAIL` e `ADMIN_SENHA` | a troca de senha é obrigatória antes de qualquer tela (a tela do painel entra na 7B) | Saída real: a preencher no fluxo manual |
+| T10 | Código da reserva | reservar sem conta, pagar e copiar o código e o link da confirmação; abrir `/reserva` com eles | a reserva aparece "Confirmada"; o endereço perde o `#id=…&codigo=…` depois de lido | Saída real: a preencher no fluxo manual |
 
 ## 8. Jornada completa
 
