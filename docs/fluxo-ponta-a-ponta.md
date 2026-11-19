@@ -48,6 +48,18 @@ O desenho do diagrama está no [README](../README.md#ciclo-de-vida-do-agendament
 
 Todos os serviços duram **60 min**, numa grade de **30 min** (`granularidade_min = 30` na configuração; ver [D94](planejamento/decisoes.md)).
 
+### 2.0 A camada do front (Fatia 7A) ✅
+
+O navegador **só fala com o Next** (`/api/**`, o BFF). O BFF confere a rota contra o contrato, põe o token no cabeçalho e guarda a sessão em cookies `HttpOnly` ([ADR 0006](adr/0006-sessao-jwt-refresh-cookie-bff.md)); nenhum token passa pelo JavaScript da página.
+
+| Passo | Tela | O que o front faz | Chamada do BFF à API |
+|---|---|---|---|
+| escolher | `/agendar` | serviço, dia (limites de hoje até o horizonte) e horário, no **fuso da barbearia**, agrupados por barbeiro | `GET /servicos` · `GET /barbeiros` · `GET /disponibilidade` |
+| reservar | `/agendar/dados` | "Continuar sem conta", nome, e-mail, WhatsApp e CEP opcional (sem a chave `cep` se vazio); `409 HORARIO_INDISPONIVEL` volta à escolha sem o horário; `409 CONFLITO_CONCORRENTE` repete uma vez | `POST /agendamentos/guest` (o BFF guarda o código no cookie `ah_visitante`) |
+| pagar | `/agendar/pagamento/{id}` | política inteira, aceite desmarcado, CPF validado no navegador e limpo depois de enviar, Pix (copia e cola e QR gerado no navegador) ou link do cartão, contador a partir do `expiraEm`; `X-Idempotency-Key` reaproveitada nas repetições | `GET /politica-pagamento` · `POST /pagamentos/cobrancas` · `GET /agendamentos/guest/{id}` a cada 3 s · `POST /pagamentos/simulacao/{id}/confirmar` (só simulado) |
+| confirmar | `/agendar/confirmacao/{id}` | resumo, aviso sem cancelamento, **código da reserva** com Copiar e link `…/reserva#id=…&codigo=…` (o `#` não vai ao servidor) | `GET /agendamentos/guest/{id}` · `GET /api/visitante` (rota só do BFF) |
+| consultar | `/reserva` | lê o fragmento, **apaga o `#`** do endereço e consulta; código errado e reserva inexistente mostram o mesmo texto | `GET /agendamentos/guest/{id}` com `X-Guest-Token` |
+
 ### 2.1 Reservar e pagar ✅
 
 ```mermaid
@@ -127,6 +139,17 @@ O horário **já volta para a agenda antes do job rodar**: a disponibilidade ign
 Real (6B, critérios A49 a A58 e A61b, testes `RetencaoGuestIT`, `RetencaoJobIT` e `RetencaoNaSubidaIT`): o job `RetencaoDeDados` (módulo `privacidade`) roda **às 3h** (fuso da barbearia) e **uma vez na subida da API**, com ShedLock e respeitando `app.jobs.habilitados`. Ele só chama as portas `LimpezaPorRetencao`; a do visitante é a `RetencaoDeVisitantes` (módulo `agenda`). 90 dias depois do **fim** da reserva (inclusive), em lotes de 500 por transação, troca nome, e-mail e WhatsApp por valores anônimos (`Visitante anonimizado`, `00000000000`) e troca o `token_hash` por um SHA-256 aleatório: `GET /agendamentos/guest/{id}` com o link antigo passa a dar `404`. A reserva e a cobrança não mudam. O prazo vem de `app.privacidade.retencao-guest-dias`. A mesma rotina limpa o IP da auditoria (1 ano, `RetencaoDoIpDaAuditoria`) e os eventos de webhook já processados (1 ano, `RetencaoDeEventosDeWebhook`). Roteiro manual: [rotina dos 90 dias](guia-testes.md#rotina-do-visitante-depois-dos-90-dias--retenção).
 
 ## 3. Cliente
+
+### 3.0 A camada do front (Fatia 7A) ✅
+
+| Passo | Tela | O que o front faz | Chamada do BFF à API |
+|---|---|---|---|
+| cadastrar | `/cadastro` | CEP consultado ao sair do campo (`achou`, `404`, `503`, `429` ou demora de 3 s: o botão **nunca** bloqueia, R31); marketing desmarcado, com o texto e a versão vindos da API | `GET /cep/{cep}` · `GET /politica-privacidade` · `POST /api/auth/cadastro` (BFF: cadastra e já entra) |
+| entrar e sair | `/entrar` | uma mensagem só para credencial errada; `CLIENTE` → `voltar` ou Meus agendamentos, `BARBEIRO` e `ADMIN` → `/painel`, senha inicial → troca | `POST /api/auth/login` · `POST /api/auth/logout` |
+| renovar | (invisível) | `401` → **uma** renovação do refresh, repetição da chamada uma vez; `REFRESH_*` apaga os cookies e volta ao login | `POST /auth/refresh` (só o BFF) |
+| reservar e pagar | `/agendar/dados` → pagamento | sem pedir nome, e-mail nem WhatsApp; o resto é igual ao visitante | `POST /agendamentos` · `GET /agendamentos/{id}` |
+| acompanhar | `/meus-agendamentos` | Próximos e Anteriores, status em texto e forma, "Pagar" na pendente, **sem** cancelar nem remarcar (R18) | `GET /me/agendamentos` |
+| privacidade | `/minha-conta` | consentimento com a versão vigente da política (repete uma vez se mudou), baixar os dados como `.json`, excluir a conta digitando `EXCLUIR` (`409` explica) | `GET /me/consentimentos` · `PUT /me/consentimentos/marketing` · `GET /me/dados` · `DELETE /me` |
 
 ### 3.1 Cadastro com CEP ✅ (6A)
 

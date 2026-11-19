@@ -1,32 +1,86 @@
 #!/usr/bin/env sh
 # "Eval" determinístico do SDD: confere se cada critério de aceite (A1, A2...) da spec de uma fatia tem um
-# teste com o número no @DisplayName, numa das classes que a própria spec cita na coluna "Teste".
+# teste com o número no nome, num dos arquivos que a própria spec cita na coluna "Teste".
 # É a checagem que impede a IA (ou o humano) de dizer "pronto" com critério sem teste.
 #
-# Uso: scripts/conferir-spec.sh 1            (relata)
-#      scripts/conferir-spec.sh 1 --exigir   (sai com erro se faltar algum; usado no CI para fatias implementadas)
+# Onde procura (Fatia 7 em diante, spec do front):
+#   backend/src/test/**/<Nome>.java                       (@DisplayName("A7: ..."))
+#   frontend/**/<nome>.test.ts, .test.tsx, .spec.ts        (test("A7: ..."), aspas simples, duplas ou crase)
+#   (ignora node_modules, .next e playwright-report)
+#
+# Uso: scripts/conferir-spec.sh 1                        (relata)
+#      scripts/conferir-spec.sh 1 --exigir               (sai com erro se faltar algum; usado no CI)
+#      scripts/conferir-spec.sh 7 --exigir --ate 43      (só os critérios A1 a A43)
+#      scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59   (pula faixas e números; a 7A não cobre o painel)
+# Só linhas "| A<n> |" contam; os critérios V# (aguarda design) ficam de fora de propósito.
 set -eu
 
-[ $# -ge 1 ] || { echo "uso: $0 <numero-da-fatia> [--exigir]" >&2; exit 2; }
+uso() { echo "uso: $0 <numero-da-fatia> [--exigir] [--ate N] [--exceto 44-53,59]" >&2; exit 2; }
+[ $# -ge 1 ] || uso
+fatia="$1"
+shift
+exigir=0
+ate=""
+exceto=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --exigir) exigir=1 ;;
+    --ate) [ $# -ge 2 ] || uso; ate="$2"; shift ;;
+    --exceto) [ $# -ge 2 ] || uso; exceto="$2"; shift ;;
+    *) uso ;;
+  esac
+  shift
+done
+case "$ate" in ''|*[!0-9]*) [ -z "$ate" ] || uso ;; esac
+
 raiz="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$raiz"
-spec="$(ls docs/sdd/fatia-"$1"-*.md 2>/dev/null | head -1)"
-[ -n "$spec" ] || { echo "spec da fatia $1 não encontrada em docs/sdd/" >&2; exit 2; }
+spec="$(ls docs/sdd/fatia-"$fatia"-*.md 2>/dev/null | head -1)"
+[ -n "$spec" ] || { echo "spec da fatia $fatia não encontrada em docs/sdd/" >&2; exit 2; }
+
+# Devolve 0 se o número está na lista "44-53,59".
+excluido() {
+  n="$1"
+  [ -n "$exceto" ] || return 1
+  for faixa in $(printf '%s' "$exceto" | tr ',' ' '); do
+    case "$faixa" in
+      *-*) de="${faixa%-*}"; ateq="${faixa#*-}"; [ "$n" -ge "$de" ] && [ "$n" -le "$ateq" ] && return 0 ;;
+      *) [ "$n" -eq "$faixa" ] && return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# Procura o arquivo de teste de um nome da coluna "Teste" (Java no back, .test.ts/.test.tsx/.spec.ts no front).
+achar_arquivo() {
+  nome="$1"
+  find backend/src/test -name "$nome.java" 2>/dev/null | head -1
+  [ -d frontend ] && find frontend \
+    \( -name node_modules -o -name .next -o -name playwright-report -o -name test-results \) -prune -o \
+    -type f \( -name "$nome.test.ts" -o -name "$nome.test.tsx" -o -name "$nome.spec.ts" \) -print 2>/dev/null | head -1
+  return 0
+}
 
 total=0
 faltando=0
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
 echo "Spec: $spec"
-# Linhas de critério: | A7 | dado | quando | então | `ClasseDeTeste` |
-grep -E '^\| A[0-9]+ \|' "$spec" > /tmp/criterios.$$ || true
+# Linhas de critério: | A7 | dado | quando | então | `nome-do-teste` |
+grep -E '^\| A[0-9]+ \|' "$spec" > "$tmp" || true
 while IFS= read -r linha; do
   id="$(printf '%s' "$linha" | cut -d'|' -f2 | tr -d ' ')"
-  classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_]+`' | tr -d '`' || true)"
+  numero="${id#A}"
+  if [ -n "$ate" ] && [ "$numero" -gt "$ate" ]; then continue; fi
+  if excluido "$numero"; then continue; fi
+  classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_.-]+`' | tr -d '`' || true)"
   total=$((total + 1))
   achou=""
   for classe in $classes; do
-    arquivo="$(find backend/src/test -name "$classe.java" 2>/dev/null | head -1)"
-    [ -n "$arquivo" ] || continue
-    if grep -qE "\"$id[: ]" "$arquivo"; then achou="$classe"; break; fi
+    for arquivo in $(achar_arquivo "$classe"); do
+      if grep -qE "[\"'\`]$id[: ]" "$arquivo"; then achou="$classe"; break; fi
+    done
+    [ -z "$achou" ] || break
   done
   if [ -n "$achou" ]; then
     echo "  ✅ $id  $achou"
@@ -34,8 +88,8 @@ while IFS= read -r linha; do
     echo "  ❌ $id  sem teste com \"$id:\" em: $(echo $classes | tr '\n' ' ')"
     faltando=$((faltando + 1))
   fi
-done < /tmp/criterios.$$
-rm -f /tmp/criterios.$$
+done < "$tmp"
 
 echo "Critérios: $total · com teste: $((total - faltando)) · sem teste: $faltando"
-if [ "${2:-}" = "--exigir" ] && [ "$faltando" -gt 0 ]; then exit 1; fi
+if [ "$exigir" -eq 1 ] && [ "$faltando" -gt 0 ]; then exit 1; fi
+exit 0
