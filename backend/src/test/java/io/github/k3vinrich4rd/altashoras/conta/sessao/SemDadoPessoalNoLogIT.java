@@ -150,7 +150,7 @@ class SemDadoPessoalNoLogIT {
                 SELECT id, 'ACAO_ANTIGA', 'agendamento', '203.0.113.9', timestamptz '2025-01-01 10:00-03'
                 FROM usuario WHERE email = ?
                 """, email);
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
         mvc.perform(MockMvcRequestBuilders.delete("/me").header("Authorization", acesso).with(ContaDeTeste.ip(ip)))
                 .andExpect(status().isNoContent());
 
