@@ -554,6 +554,28 @@ export interface paths {
         patch: operations["mudarStatusAgendamento"];
         trace?: never;
     };
+    "/admin/minha-jornada": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A jornada semanal do barbeiro ligado à conta de quem chama (1.7.0)
+         * @description ADMIN ou BARBEIRO. O barbeiro vem do `sub` do token (não há id na URL: ninguém lê a jornada de outro). É o que
+         *     a agenda do BARBEIRO usa para listrar o almoço, já que ele não lê `GET /admin/barbeiros` (só ADMIN). Conta sem
+         *     barbeiro ligado (inclusive um ADMIN sem vínculo): 404. Só leitura; quem edita a jornada é o ADMIN. Nunca em cache.
+         */
+        get: operations["minhaJornada"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/servicos": {
         parameters: {
             query?: never;
@@ -2319,6 +2341,29 @@ export interface operations {
             404: components["responses"]["Erro404"];
             409: components["responses"]["Erro409"];
             422: components["responses"]["Erro422"];
+        };
+    };
+    minhaJornada: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Intervalos de trabalho da semana (vazia se o barbeiro não tem expediente) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntervaloJornada"][];
+                };
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
         };
     };
     listarServicosAdmin: {

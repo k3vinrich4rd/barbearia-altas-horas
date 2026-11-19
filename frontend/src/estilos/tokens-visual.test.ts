@@ -34,11 +34,28 @@ describe("tokens visuais", () => {
       mkdirSync(join(pasta, "x"));
       writeFileSync(
         join(pasta, "x", "ruim.module.css"),
-        ".a { color: #fff; font-family: Arial; box-shadow: 0 0 1px red; padding: 12px; border-radius: 4px; background: rgb(0,0,0); }",
+        ".a { color: #fff; font-family: Arial; box-shadow: 0 0 1px red; padding: 12px; border-radius: 4px; background: rgb(0,0,0); }\n" +
+          ".b { color: white; border: 2px solid black; padding: 1rem; margin: 0.5em; background-color: var(--fundo); }\n" +
+          ".d { fill: red; }\n" +
+          ".c {\n  --medida-ok: 40rem;\n  max-width: var(--medida-ok);\n  color: var(--texto);\n  border: var(--traco-1) solid var(--borda);\n}\n",
       );
+      writeFileSync(join(pasta, "x", "Tela.tsx"), 'export const T = () => <p style={{ color: "red" }}>x</p>;\n');
       const problemas: string[] = verificar(pasta);
-      for (const trecho of ["cor literal (#)", "cor literal (rgb/hsl)", "font-family", "box-shadow", "medida em px"])
+      for (const trecho of [
+        "cor literal (#)",
+        "cor literal (rgb/hsl)",
+        "font-family",
+        "box-shadow",
+        "medida em px",
+        "cor nomeada (white)",
+        "cor nomeada (black)",
+        "cor nomeada (red)",
+        "medida em rem/em solta",
+        "style= no TSX",
+      ])
         expect(problemas.join("\n")).toContain(trecho);
+      // o que é token ou variável --medida-* passa: o bloco .c (linhas 4 a 9 do CSS) não tem problema nenhum
+      expect(problemas.filter((p) => /ruim\.module\.css:[4-9]/.test(p))).toEqual([]);
     } finally {
       rmSync(pasta, { recursive: true, force: true });
     }
