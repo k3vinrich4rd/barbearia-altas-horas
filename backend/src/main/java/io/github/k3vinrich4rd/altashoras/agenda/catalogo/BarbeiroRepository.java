@@ -40,6 +40,10 @@ public interface BarbeiroRepository extends JpaRepository<Barbeiro, UUID> {
             """)
     List<Barbeiro> listarTodosComJornadas();
 
+    /** O barbeiro ligado a uma conta de login (no máximo um, E18). */
+    @Query("SELECT b FROM Barbeiro b WHERE b.usuarioId = :usuarioId")
+    java.util.Optional<Barbeiro> findByUsuarioId(UUID usuarioId);
+
     @Query("SELECT count(b) > 0 FROM Barbeiro b WHERE b.usuarioId = :usuarioId")
     boolean existeComUsuario(UUID usuarioId);
 

@@ -5,8 +5,11 @@
 #
 # Onde procura (Fatia 7 em diante, spec do front):
 #   backend/src/test/**/<Nome>.java                       (@DisplayName("A7: ..."))
-#   frontend/**/<nome>.test.ts, .test.tsx, .spec.ts        (test("A7: ..."), aspas simples, duplas ou crase)
+#   frontend/**/<nome>.test.ts, .test.tsx, .spec.ts        (test("A7: ...") ou it("A7: ..."), aspas simples, duplas ou crase)
 #   (ignora node_modules, .next e playwright-report)
+# O número só vale DENTRO de @DisplayName("A7..., test("A7... ou it("A7... (e @ParameterizedTest(name = "A7..., que é
+# o nome do teste parametrizado do Java), e nunca em comentário (// ou /* */): um
+# comentário com o número não prova nada. O título pode estar na linha de baixo (Prettier quebra a chamada).
 #
 # Uso: scripts/conferir-spec.sh 1                        (relata)
 #      scripts/conferir-spec.sh 1 --exigir               (sai com erro se faltar algum; usado no CI)
@@ -61,6 +64,15 @@ achar_arquivo() {
   return 0
 }
 
+# Devolve 0 se o arquivo declara o critério $2 num @DisplayName, test( ou it(, ignorando comentários.
+tem_criterio() {
+  arq="$1"
+  id="$2"
+  sed -E -e 's#^[[:space:]]*//.*$##' -e 's#^[[:space:]]*/?\*.*$##' -e 's#/\*[^*]*\*/##g' -e 's#[[:space:]]//[[:space:]].*$##' "$arq" \
+    | tr '\n' ' ' \
+    | grep -qE "(@DisplayName\(|@ParameterizedTest\([[:space:]]*name[[:space:]]*=[[:space:]]*|(^|[^A-Za-z0-9_.])(test|it)\()[[:space:]]*[\"'\`]$id[: ]"
+}
+
 total=0
 faltando=0
 tmp="$(mktemp)"
@@ -78,7 +90,7 @@ while IFS= read -r linha; do
   achou=""
   for classe in $classes; do
     for arquivo in $(achar_arquivo "$classe"); do
-      if grep -qE "[\"'\`]$id[: ]" "$arquivo"; then achou="$classe"; break; fi
+      if tem_criterio "$arquivo" "$id"; then achou="$classe"; break; fi
     done
     [ -z "$achou" ] || break
   done

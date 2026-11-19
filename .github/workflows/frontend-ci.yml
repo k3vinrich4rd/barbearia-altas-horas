@@ -103,12 +103,11 @@ jobs:
         working-directory: frontend
         run: npx playwright test
 
-      # Eval do SDD: todo critério da 7A (A1 a A43, A54 a A58 e A60) tem teste com o número dele.
-      # A 7B (A44 a A53 e A59) ainda não existe; na 7B este passo passa a exigir os 60 de 60.
-      - name: Conferir spec × testes (7A)
+      # Eval do SDD: os 62 critérios da fatia 7 (7A e 7B) têm teste com o número dele (só dentro de @DisplayName, test( ou it().
+      - name: Conferir spec × testes (fatia 7 inteira)
         run: |
           sh scripts/testar-conferir-spec.sh
-          sh scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59
+          sh scripts/conferir-spec.sh 7 --exigir
 
       - name: Publicar relatórios (Playwright e cobertura)
         if: always()
