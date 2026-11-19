@@ -4,7 +4,7 @@
 
 <img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Cândido, com horário garantido."/>
 
-[![Status](https://img.shields.io/badge/status-Fatias_1_a_6_8_preparada_e_7A_pronta-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
+[![Status](https://img.shields.io/badge/status-Fatias_1_a_6_8_preparada_7A_e_7B_prontas-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-0A0A0A?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
@@ -435,7 +435,7 @@ npm ci
 npm run dev                 # http://localhost:3000 (copia as imagens de docs/assets e usa API_URL=http://localhost:8080)
 npm run lint && npm run typecheck && npm test                      # testes unitários, um por critério (A1, A2...)
 NEXT_PUBLIC_PAGAMENTO_SIMULADO=true npm run build && npx playwright test   # E2E contra a API real e axe (precisa do Postgres e da API no ar)
-bash ../scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59           # cada critério da 7A tem teste com o número dele
+bash ../scripts/conferir-spec.sh 7 --exigir                              # os 62 critérios da fatia 7 (7A e 7B) têm teste com o número dele
 ```
 
 O visual vem **só** dos tokens do [design system](frontend/design/README.md) (`frontend/design/tokens.json` gera o `tokens.css`). As variáveis estão em [`frontend/.env.example`](frontend/.env.example). Variáveis `NEXT_PUBLIC_*` entram no **build**.
@@ -447,7 +447,7 @@ O visual vem **só** dos tokens do [design system](frontend/design/README.md) (`
 | Conta e sessão | `/auth/cadastro` · `/auth/login` · `/auth/refresh` · `/auth/logout` · `/me` · `/me/senha` | ✅ |
 | Reserva, pagamento (simulado) e painel | `/agendamentos` · `/pagamentos/cobrancas` · `/admin/**` | ✅ |
 | CEP | `/cep/{cep}` | ✅ |
-| Front (home, reserva, pagamento, conta e privacidade) | `http://localhost:3000` | ✅ Fatia 7A |
+| Front (home, reserva, pagamento, conta, privacidade e painel) | `http://localhost:3000` | ✅ Fatia 7A e 7B |
 
 O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
 
@@ -523,7 +523,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 6B · Privacidade (LGPD):** consentimento, exportar e excluir conta, retenção
 - [x] **Fatia 6C · Alcance por região:** CEP opcional do visitante, região na reserva, painel `GET /admin/alcance` e vitrine pública `GET /alcance`, com agrupamento mínimo de 5 (k-anonimato)
 - [x] **Fatia 6D · WhatsApp e reserva manual:** prazo de pagamento de 3 min, WhatsApp comercial do barbeiro em `GET /barbeiros` (o front monta `wa.me`) e `POST /admin/agendamentos` para travar no painel o horário combinado por WhatsApp, sem cobrança ([spec](docs/sdd/fatia-6d-whatsapp-e-reserva-manual.md), 28 critérios)
-- [ ] **Fatia 7 · Telas Next.js:** **7A pronta, aguardando revisão** (home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade); 7B (painel) planejada
+- [ ] **Fatia 7 · Telas Next.js:** **7A e 7B prontas, aguardando revisão** (home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade e o painel do barbeiro: agenda, reserva manual, pendências, cadastros, auditoria e alcance; contrato 1.7.0)
 - [ ] **Fatia 8 · Deploy grátis (preparada, [spec](docs/sdd/fatia-8-deploy.md)):** imagem Docker, Blueprint do Render, banco Aiven PostgreSQL free e backup semanal criptografado, tudo testado localmente; falta a ativação (só com o OK do Kevin) e o front no Vercel, depois da 7
 - [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)
 
