@@ -9,7 +9,7 @@ services:
     name: altas-horas-api
     runtime: docker
     plan: free                      # 512 MB de RAM, dorme após ~15 min sem tráfego (cold start de ~20 s)
-    region: frankfurt               # confira no Aiven a região do banco e escolha a mais próxima (guia, passo 2)
+    region: oregon                  # o banco Aiven free ficou na DigitalOcean sfo (São Francisco); Oregon é a região do Render mais próxima
     branch: main                    # só a main é implantada; a develop nunca vai para o ar sozinha
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
