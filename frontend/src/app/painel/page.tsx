@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PainelAgenda } from "@/telas/painel/PainelAgenda";
 
-export const metadata: Metadata = { title: "Painel" };
+export const metadata: Metadata = { title: "Agenda do painel" };
 
-// As telas do painel (agenda, pendências, cadastros, auditoria e alcance) entram na 7B.
-export default function Painel() {
+export default function Pagina() {
   return (
-    <>
-      <h1>Painel</h1>
-      <p>As telas do painel chegam na próxima etapa.</p>
-    </>
+    <Suspense fallback={<p role="status">Carregando…</p>}>
+      <PainelAgenda />
+    </Suspense>
   );
 }

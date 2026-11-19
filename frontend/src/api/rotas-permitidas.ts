@@ -9,6 +9,7 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "GET /admin/barbeiros",
   "GET /admin/barbeiros/{id}/folgas",
   "GET /admin/configuracao",
+  "GET /admin/minha-jornada",
   "GET /admin/pagamentos",
   "GET /admin/pagamentos/eventos",
   "GET /admin/servicos",

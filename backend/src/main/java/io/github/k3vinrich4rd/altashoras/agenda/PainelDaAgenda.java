@@ -102,6 +102,10 @@ public class PainelDaAgenda {
     public record Intervalo(int diaSemana, LocalTime horaInicio, LocalTime horaFim) {
     }
 
+    /** O barbeiro da conta e a jornada dele (D142): o id serve à reserva manual do BARBEIRO, os intervalos ao almoço. */
+    public record JornadaDoBarbeiro(UUID barbeiroId, String nomeExibicao, List<Intervalo> intervalos) {
+    }
+
     public record AlteracaoDeBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp,
             boolean ativo, long version) {
     }
@@ -318,6 +322,11 @@ public class PainelDaAgenda {
     /** Substitui a semana inteira numa transação. Sobreposição no mesmo dia: 422; encostar não é sobrepor (E19). */
     public List<Intervalo> substituirJornada(UUID barbeiroId, List<Intervalo> intervalos) {
         return cadastros.substituirJornada(barbeiroId, intervalos);
+    }
+
+    /** A jornada do barbeiro da conta (D142). Sem vínculo: 404. Só leitura; quem edita a jornada é o ADMIN. */
+    public JornadaDoBarbeiro minhaJornada(UUID usuarioId) {
+        return cadastros.minhaJornada(usuarioId);
     }
 
     /** As folgas de hoje em diante (dia civil no fuso da barbearia), por início. */
