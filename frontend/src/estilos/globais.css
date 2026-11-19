@@ -17,9 +17,10 @@
   --medida-leitura: 40rem;
   --medida-coluna-minima: 16rem;
   --medida-lista-alta: 32rem;
-  --medida-icone-p: var(--medida-icone-p);
-  --medida-icone-m: var(--medida-icone-m);
-  --medida-icone-g: var(--medida-icone-g);
+  --medida-icone-p: 1.1em;
+  --medida-icone-m: 1.6em;
+  --medida-icone-g: 2.2em;
+  --medida-menu-painel: 12rem;
 }
 
 body {
@@ -1052,5 +1053,189 @@ caption {
   *::after {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------
+ * Painel (7B, V7 a V9): menu lateral, agenda do dia, tabelas e formulários. Só tokens (A56).
+ * Estados da agenda por FORMA e por TEXTO, nunca só cor: confirmado sólido, concluído com visto, aguardando tracejado,
+ * não compareceu em contorno forte, cancelado riscado, expirado pontilhado, almoço listrado.
+ * ------------------------------------------------------------------------------------------------------------------ */
+.painel {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.painel-menu ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.painel-menu a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-12);
+  padding: 0 var(--space-4);
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.painel-menu a[aria-current="page"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.painel-conteudo {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.painel-conteudo > h1,
+.painel-conteudo > h2,
+.painel-conteudo > p {
+  margin: 0;
+}
+
+.agenda-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: end;
+}
+
+.botao[aria-pressed="true"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+}
+
+.agenda-lista {
+  gap: var(--space-2);
+}
+
+.agenda-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin: 0 0 var(--space-2);
+}
+
+.agenda-item p {
+  margin: 0 0 var(--space-1);
+}
+
+.agenda-item[data-estado="confirmado"] {
+  border: var(--traco-2) solid var(--status-confirmado);
+}
+
+.agenda-item[data-estado="aguardando"] {
+  border: var(--traco-2) dashed var(--status-aguardando);
+}
+
+.agenda-item[data-estado="concluido"] {
+  border: var(--traco-1) solid var(--status-concluido);
+  background: var(--fundo);
+}
+
+.agenda-item[data-estado="nao-compareceu"] {
+  border: var(--traco-3) solid var(--status-nao-compareceu);
+}
+
+.agenda-item[data-estado="cancelado"] {
+  border: var(--traco-1) solid var(--borda-forte);
+  color: var(--status-cancelado);
+}
+
+.agenda-item[data-estado="cancelado"] .agenda-titulo {
+  text-decoration: line-through;
+}
+
+.agenda-item[data-estado="expirado"] {
+  border: var(--traco-2) dotted var(--borda-forte);
+  color: var(--status-expirado);
+}
+
+.agenda-almoco {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--almoco-fundo) 0 var(--space-2),
+    var(--almoco-listra) var(--space-2) var(--space-3)
+  );
+  color: var(--almoco-texto);
+  font-weight: var(--tipo-rotulo-peso);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.selo-origem {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-6);
+  padding: 0 var(--space-2);
+  border: var(--traco-1) solid currentcolor;
+  border-radius: var(--radius-sm);
+  font-size: var(--tipo-nota-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+}
+
+.tabela-rolavel {
+  overflow-x: auto;
+}
+
+.secao-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.secao-cabecalho h2 {
+  margin: 0;
+}
+
+.jornada {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.jornada-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.alcance-bairro th {
+  padding-inline-start: var(--space-8);
+  font-weight: normal;
+}
+
+textarea[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border: var(--traco-2) solid var(--erro);
+}
+
+@media (min-width: 60rem) {
+  .painel {
+    grid-template-columns: minmax(var(--medida-menu-painel), max-content) minmax(0, 1fr);
+  }
+
+  .painel-menu ul {
+    flex-direction: column;
   }
 }

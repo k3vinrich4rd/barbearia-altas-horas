@@ -988,6 +988,15 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        MinhaJornada: {
+            /**
+             * Format: uuid
+             * @description o barbeiro ligado à conta; a reserva manual do BARBEIRO usa este id
+             */
+            barbeiroId: string;
+            nomeExibicao: string;
+            intervalos: components["schemas"]["IntervaloJornada"][];
+        };
         IntervaloJornada: {
             /** @description ISO-8601: 1 = segunda */
             diaSemana: number;
@@ -2352,13 +2361,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Intervalos de trabalho da semana (vazia se o barbeiro não tem expediente) */
+            /** @description O barbeiro da conta e os intervalos de trabalho da semana (`intervalos` vazio se não há expediente) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IntervaloJornada"][];
+                    "application/json": components["schemas"]["MinhaJornada"];
                 };
             };
             401: components["responses"]["Erro401"];

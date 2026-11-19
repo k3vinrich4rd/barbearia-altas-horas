@@ -43,7 +43,8 @@ function coresNomeadasEm(linha) {
   const achadas = [];
   for (const m of linha.matchAll(PROPRIEDADE_DE_COR)) {
     const valor = m[m.length - 1].replace(/var\([^)]*\)/g, " ");
-    for (const palavra of valor.toLowerCase().match(/[a-z]+/g) ?? []) if (CORES_NOMEADAS.has(palavra)) achadas.push(palavra);
+    for (const palavra of valor.toLowerCase().match(/[a-z]+/g) ?? [])
+      if (CORES_NOMEADAS.has(palavra)) achadas.push(palavra);
   }
   return achadas;
 }
@@ -68,6 +69,17 @@ export function verificar(dir = join(raiz, "src")) {
           problemas.push(`${relative(raiz, arquivo)}:${i + 1} style= no TSX (o visual é do CSS com tokens)`);
       });
   }
+  // toda variável --medida-* usada precisa estar definida (e nunca em função de si mesma): var() inválido some em silêncio
+  const todos = listarCss(dir).map((f) => [f, readFileSync(f, "utf8")]);
+  const definidas = new Set();
+  for (const [, texto] of todos)
+    for (const m of texto.matchAll(/(--medida-[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+      definidas.add(m[1]);
+      if (m[2].includes(`var(${m[1]})`)) problemas.push(`${m[1]} definida em função de si mesma`);
+    }
+  for (const [arquivo, texto] of todos)
+    for (const m of texto.matchAll(/var\((--medida-[a-z0-9-]+)\)/g))
+      if (!definidas.has(m[1])) problemas.push(`${relative(raiz, arquivo)}: ${m[1]} usada e nunca definida`);
   for (const arquivo of listarCss(dir)) {
     const texto = readFileSync(arquivo, "utf8").replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
     texto.split("\n").forEach((linha, i) => {
