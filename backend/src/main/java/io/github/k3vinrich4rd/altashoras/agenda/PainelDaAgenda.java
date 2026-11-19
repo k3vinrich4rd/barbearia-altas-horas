@@ -102,6 +102,10 @@ public class PainelDaAgenda {
     public record Intervalo(int diaSemana, LocalTime horaInicio, LocalTime horaFim) {
     }
 
+    /** O barbeiro da conta e a jornada dele (D142): o id serve à reserva manual do BARBEIRO, os intervalos ao almoço. */
+    public record JornadaDoBarbeiro(UUID barbeiroId, String nomeExibicao, List<Intervalo> intervalos) {
+    }
+
     public record AlteracaoDeBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp,
             boolean ativo, long version) {
     }
@@ -321,7 +325,7 @@ public class PainelDaAgenda {
     }
 
     /** A jornada do barbeiro da conta (D142). Sem vínculo: 404. Só leitura; quem edita a jornada é o ADMIN. */
-    public List<Intervalo> minhaJornada(UUID usuarioId) {
+    public JornadaDoBarbeiro minhaJornada(UUID usuarioId) {
         return cadastros.minhaJornada(usuarioId);
     }
 

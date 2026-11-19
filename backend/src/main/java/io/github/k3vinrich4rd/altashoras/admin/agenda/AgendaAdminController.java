@@ -65,15 +65,14 @@ class AgendaAdminController {
     }
 
     /**
-     * A jornada do barbeiro da própria conta (D142, contrato 1.7.0): ADMIN ou BARBEIRO. O BARBEIRO não lê
+     * O barbeiro da própria conta e a jornada dele (D142, contrato 1.7.0): ADMIN ou BARBEIRO. O BARBEIRO não lê
      * {@code /admin/barbeiros}; sem esta rota a agenda dele não saberia onde fica o almoço. Nada de URL com id: o
      * barbeiro vem do {@code sub} do token, então ninguém lê a jornada de outro.
      */
     @GetMapping("/admin/minha-jornada")
-    ResponseEntity<List<IntervaloDaJornada>> minhaJornada(@AuthenticationPrincipal Jwt token) {
-        List<IntervaloDaJornada> jornada = agenda.minhaJornada(UUID.fromString(token.getSubject())).stream()
-                .map(IntervaloDaJornada::de).toList();
-        return ResponseEntity.ok().cacheControl(SEM_CACHE).body(jornada);
+    ResponseEntity<MinhaJornada> minhaJornada(@AuthenticationPrincipal Jwt token) {
+        return ResponseEntity.ok().cacheControl(SEM_CACHE)
+                .body(MinhaJornada.de(agenda.minhaJornada(UUID.fromString(token.getSubject()))));
     }
 
     @PatchMapping("/admin/agendamentos/{id}/status")

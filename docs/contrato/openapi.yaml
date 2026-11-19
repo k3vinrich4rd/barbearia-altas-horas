@@ -612,12 +612,10 @@ paths:
         barbeiro ligado (inclusive um ADMIN sem vínculo): 404. Só leitura; quem edita a jornada é o ADMIN. Nunca em cache.
       responses:
         '200':
-          description: Intervalos de trabalho da semana (vazia se o barbeiro não tem expediente)
+          description: O barbeiro da conta e os intervalos de trabalho da semana (`intervalos` vazio se não há expediente)
           content:
             application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/IntervaloJornada' }
+              schema: { $ref: '#/components/schemas/MinhaJornada' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
@@ -1191,6 +1189,15 @@ components:
           properties:
             ativo: { type: boolean }
             version: { type: integer, format: int64 }
+    MinhaJornada:
+      type: object
+      required: [barbeiroId, nomeExibicao, intervalos]
+      properties:
+        barbeiroId: { type: string, format: uuid, description: 'o barbeiro ligado à conta; a reserva manual do BARBEIRO usa este id' }
+        nomeExibicao: { type: string }
+        intervalos:
+          type: array
+          items: { $ref: '#/components/schemas/IntervaloJornada' }
     IntervaloJornada:
       type: object
       additionalProperties: false
