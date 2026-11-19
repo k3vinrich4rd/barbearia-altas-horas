@@ -1,0 +1,11 @@
+node_modules
+.next
+public
+coverage
+playwright-report
+test-results
+package-lock.json
+src/api/schema.d.ts
+src/api/rotas-permitidas.ts
+src/estilos/tokens.css
+design

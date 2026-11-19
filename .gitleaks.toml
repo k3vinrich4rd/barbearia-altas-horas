@@ -9,3 +9,10 @@ regexes = [
   '''"accessToken": "eyJhbGciOiJIUzI1NiJ9\.\.\."''',
   '''X-Idempotency-Key: 5d0b3f8e-7c1a-4b7e-9f63-2a0d6c1e9b10''',
 ]
+
+[[allowlists]]
+description = "Token fictício de visitante num teste do front (commits c2fb1f4 e 952ccab), já trocado por valor montado em tempo de execução. Liberação aprovada pelo Kevin em 18/11/2026; vale só para esses dois commits, nunca para o arquivo."
+commits = [
+  "c2fb1f47e509ea7ec61fbcef543378022309ec74",
+  "952ccab57053e30760af12ce1839aabf2d9bd084",
+]

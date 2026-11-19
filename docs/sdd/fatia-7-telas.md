@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Status** | ✅ aprovada em 18/11/2026 pela autonomia dada pelo Kevin (D-1 a D-11 seguem as propostas; D-6: o cadastro guarda só o CEP e avisa que o endereço completa depois). Os critérios V1 a V12 aguardam o desenho das telas no design system |
+| **Status** | ✅ aprovada em 18/11/2026 pela autonomia dada pelo Kevin (D-1 a D-11 seguem as propostas; D-6: o cadastro guarda só o CEP e avisa que o endereço completa depois). Em 18/11 o Kevin entregou o desenho de **todas** as telas (design system v2): os V# da 7A passaram a **desenhada → implementada** (tabela abaixo) e os do painel seguem para a 7B. **7A pronta, aguardando revisão** (A1 a A43, A54 a A58 e A60 com teste; ver os desvios na seção 9) |
 | **Fatias do plano** | F00 a F05 do roadmap ("Fatia 7 · Telas Next.js"): projeto e BFF, catálogo e disponibilidade, reserva e checkout, conta e privacidade, painel, acessibilidade. Fecha as pendências que as Fatias 3 a 6 deixaram para a tela: troca da senha inicial (`deveTrocarSenha`), "complete o endereço" (R31), tela C13 (exportar e excluir), vitrine e painel do alcance (D-9 da Fatia 6) |
 | **Entrega em duas PRs** | **7A** · base e fluxos do visitante e do cliente: projeto, BFF, cliente da API, home, reserva, pagamento, consulta, conta, privacidade (`feat/fatia-7a-front-base`) · **7B** · painel ADMIN/BARBEIRO: agenda, fechar e cancelar, pendências, cadastros, auditoria e alcance (`feat/fatia-7b-front-painel`). A 7B só começa com a 7A na `main` (D-5) |
 | **Regras** | [R6](../contexto.md#3-regras-de-negócio) e R18 (aceite obrigatório, nenhum botão de cancelar ou remarcar para o cliente), R7 (15 min), R8 e R9 (CPF só no pagamento), R10 (idempotência), R23 (alheio → 404), R26 (429 com `Retry-After`), R27 (refresh rotativo), R28 (marketing opcional, desmarcado), R30 (nada pessoal em log), R31 (CEP nunca derruba o cadastro); RNF5 (cold start), RNF8 (contraste AA e teclado) |
 | **ADRs** | [0006](../adr/0006-sessao-jwt-refresh-cookie-bff.md) (BFF, cookies `HttpOnly`, CSRF), [0005](../adr/0005-erros-rfc-9457.md) (erros por `code`), [0004](../adr/0004-tempo-e-dinheiro.md) (centavos e fuso), [0007](../adr/0007-gateway-de-pagamento-sandbox.md) (cartão só no checkout hospedado), [0008](../adr/0008-cep-com-cache-e-degradacao.md) (CEP degrada), [0009](../adr/0009-lgpd-marketing-cpf-e-retencao.md) (LGPD) |
-| **Contrato** | [`openapi.yaml` 1.5.0](../contrato/openapi.yaml). O front **não inventa rota**: toda chamada existe no contrato e o tipo vem dele (E3). Nenhuma mudança de contrato nesta fatia (ver D-6) |
+| **Contrato** | [`openapi.yaml` 1.6.0](../contrato/openapi.yaml). O front **não inventa rota**: toda chamada existe no contrato e o tipo vem dele (E3). Nenhuma mudança de contrato nesta fatia (ver D-6) |
 | **Design** | o [design system](#fonte-do-design) é a **única** fonte visual (E1). As telas principais (home, escolha de serviço e horário, checkout) **ainda não têm desenho**: a spec separa o que é **base sem dependência visual** (critérios `A#`, implementáveis agora) do **acabamento visual** (critérios `V#`, marcados **aguarda design**) |
 | **Custo** | **zero**: nenhuma conta, chave ou serviço externo. Sem Google Fonts em tempo de execução, sem analytics, sem CDN. O deploy (Vercel) é a **Fatia 8** |
 | **Não cobre** | deploy e domínio (Fatia 8) · app mobile e login social (pós-beta) · cancelar ou remarcar pelo cliente (não existe, R18) · "completar o endereço" depois do cadastro (não há `PUT /me`, D-6) · avisos por e-mail ou WhatsApp · assistente de IA (Fatia 9) · decisão visual de qualquer tipo (E1) · PWA e modo offline |
@@ -224,24 +224,24 @@ Relógio dos testes unitários: `vi.setSystemTime("2026-11-18T08:00:00-03:00")` 
 | A59 | API real, perfil `dev` com `ADMIN_EMAIL` e `ADMIN_SENHA` de teste | E2E do **painel**: entrar como admin → trocar a senha inicial → agenda do dia mostra uma reserva criada pelo teste → cancelar com motivo → pendência de devolução aparece → registrar devolução → auditoria lista as ações → alcance abre com o período padrão | a troca de senha é obrigatória antes de qualquer tela; a reserva cancelada sai da agenda e a cobrança vai para `DEVOLUCAO_PENDENTE` e depois `DEVOLVIDA`; a auditoria mostra as duas ações sem IP; o alcance abre sem erro; o `CLIENTE` do teste anterior **não** entra em `/painel` | `e2e-painel` |
 | A60 | os três E2E e os unitários de BFF | capturar `console`, os logs do servidor do Next e as requisições | **nenhum** e-mail, WhatsApp, CPF, CEP, `accessToken`, `refreshToken` ou código de visitante em log, console, URL, `localStorage`, `sessionStorage` ou cabeçalho legível; os cookies `ah_*` não são legíveis por `document.cookie` (R30, ADR 0006) | `sem-dado-pessoal` |
 
-### Acabamento visual · aguarda design
+### Acabamento visual · desenhado em 18/11 (7A implementada, painel na 7B)
 
 Estes critérios **não têm teste automático** e **não entram no `conferir-spec.sh`** (por isso usam `V#`, não `A#`). Cada um fica **aguardando o desenho do Kevin** no design system. Quando o desenho existir, o critério vira `A#` (nova versão desta spec, com OK dele) e ganha teste visual (`toHaveScreenshot` do Playwright, linha de base criada **depois** do desenho aprovado) ou revisão manual registrada no PR. **Até lá, a base de cada tela segue o E2 (semântica e tokens, nada decorativo).**
 
 | # | Tela ou peça | O que o design precisa definir | Base entregue na 7A/7B (sem visual) | Estado |
 |---|---|---|---|---|
-| V1 | Home | composição da história, dos serviços, do selo ★ 19 ✂ 97 ★, das fotos, do bloco "De onde vêm nossos clientes" e do divisor xadrez | `h1`, seções, lista de serviços e lista de regiões em uma coluna | **aguarda design** |
-| V2 | Escolha de serviço e de horário (a grade da agenda) | a grade com os padrões **livre**, **confirmado**, **aguardando** e **almoço** por forma (README do design system), cabeçalho dos dias e legenda | lista de botões agrupada por barbeiro; o componente já expõe `data-estado` e texto | **aguarda design** |
-| V3 | Checkout | layout do resumo, política, CPF, métodos, QR do Pix, contagem regressiva e a tela de confirmação | formulário em uma coluna, QR e contagem como texto/imagem simples | **aguarda design** |
-| V4 | Estados de erro, sucesso, aviso e carregamento | cor e forma (o design system diz que **ainda não definiu**, D-3): erro, sucesso, "servidor acordando", campo inválido, esqueleto de carregamento | componente neutro `Aviso` (`role="alert"` ou `role="status"`, prefixo em texto, borda `borda-forte`) | **aguarda design** |
-| V5 | Cadastro, entrar, trocar senha | campos, ajuda, força da senha (se desejada), organização do CEP | formulários semânticos em uma coluna | **aguarda design** |
-| V6 | Meus agendamentos e Minha conta | cartão do agendamento, status por forma, diálogo de exclusão | lista e `dialog` simples | **aguarda design** |
-| V7 | Painel · agenda | grade do dia e da semana, almoço listrado, blocos por estado | lista ordenada com `data-estado` | **aguarda design** |
-| V8 | Painel · tabelas e formulários (pendências, cadastros, auditoria) | densidade, tabelas, edição em linha, jornada semanal | tabelas semânticas e formulários simples | **aguarda design** |
-| V9 | Painel · alcance | se há barras, mapa ou só tabela, e como mostrar "menos de 5" | tabela com `caption` | **aguarda design** |
-| V10 | Responsivo | pontos de quebra, menu no celular | uma coluna que já funciona no celular (A54 roda também em 375 × 812) | **aguarda design** |
-| V11 | Tema claro | revisão visual do tema `claro` em cada tela | tokens dos dois temas (A56) | **aguarda design** |
-| V12 | Ícones e logo | escolha final dos ícones de interface e uso do selo (D-2) | texto, ★ e ✂ onde couber | **aguarda design** |
+| V1 | Home | composição da história, dos serviços, do selo ★ 19 ✂ 97 ★, das fotos, do bloco "De onde vêm nossos clientes" e do divisor xadrez | `h1`, seções, lista de serviços e lista de regiões em uma coluna | desenhada → **implementada (7A)** · verificação: `home` (A16, A17), `componentes-visuais` (V1: WhatsApp só com número da API e painel de acessibilidade), `acessibilidade` (A54) · história, prêmios, linha do tempo, galeria e dúvidas do canvas; fotos de pessoa inteiras (`object-fit: contain`) |
+| V2 | Escolha de serviço e de horário (a grade da agenda) | a grade com os padrões **livre**, **confirmado**, **aguardando** e **almoço** por forma (README do design system), cabeçalho dos dias e legenda | lista de botões agrupada por barbeiro; o componente já expõe `data-estado` e texto | desenhada → **implementada (7A)** · verificação: `agendar-servico` e `agendar-horarios` (A18 a A20), `acessibilidade` · serviço em cartões, dia em seletor nativo (A19), horários agrupados por barbeiro com contagem de livres e resumo; **vale a spec** onde o canvas usa botões de dia |
+| V3 | Checkout | layout do resumo, política, CPF, métodos, QR do Pix, contagem regressiva e a tela de confirmação | formulário em uma coluna, QR e contagem como texto/imagem simples | desenhada → **implementada (7A)** · verificação: `componentes-visuais` (V3: contador a partir do `expiraEm`, último minuto listrado com texto, anúncios a cada minuto, aos 30 s e no fim), `pagamento-prazo` (A29), `pagamento-pix-cartao` (A28) · resumo com contador, política, CPF, métodos, QR e confirmação com código |
+| V4 | Estados de erro, sucesso, aviso e carregamento | cor e forma (o design system diz que **ainda não definiu**, D-3): erro, sucesso, "servidor acordando", campo inválido, esqueleto de carregamento | componente neutro `Aviso` (`role="alert"` ou `role="status"`, prefixo em texto, borda `borda-forte`) | desenhada → **implementada (7A)** · verificação: `componentes-visuais` (V4: erro `role=alert` com "Erro:", aviso tracejado e sucesso invertido, ícone `aria-hidden`), `mensagens-de-erro` (A13) · componente `Aviso` e erro de campo do README |
+| V5 | Cadastro, entrar, trocar senha | campos, ajuda, força da senha (se desejada), organização do CEP | formulários semânticos em uma coluna | desenhada → **implementada (7A)** · verificação: `cadastro-conta`, `login-logout`, `trocar-senha` (A35, A36, A43), `acessibilidade` · alternador Entrar × Criar conta; **vale a spec**: só CEP no cadastro (D-6) e sem repetir a senha |
+| V6 | Meus agendamentos e Minha conta | cartão do agendamento, status por forma, diálogo de exclusão | lista e `dialog` simples | desenhada → **implementada (7A)** · verificação: `componentes-visuais` (V6: seis status, seis formas, palavra escrita), `meus-agendamentos` (A38), `minha-conta-excluir` (A41) · Próximos e Anteriores, cartões, diálogo de exclusão com botão de risco |
+| V7 | Painel · agenda | grade do dia e da semana, almoço listrado, blocos por estado | lista ordenada com `data-estado` | desenhada · **7B** (painel) |
+| V8 | Painel · tabelas e formulários (pendências, cadastros, auditoria) | densidade, tabelas, edição em linha, jornada semanal | tabelas semânticas e formulários simples | desenhada · **7B** (painel) |
+| V9 | Painel · alcance | se há barras, mapa ou só tabela, e como mostrar "menos de 5" | tabela com `caption` | desenhada · **7B** (painel) |
+| V10 | Responsivo | pontos de quebra, menu no celular | uma coluna que já funciona no celular (A54 roda também em 375 × 812) | desenhada → **implementada (7A)** · verificação: `acessibilidade` roda o axe em 1280 × 800 e em 375 × 812 em todas as telas da 7A |
+| V11 | Tema claro | revisão visual do tema `claro` em cada tela | tokens dos dois temas (A56) | desenhada → **implementada (7A)** · verificação: `acessibilidade` nos dois temas, `tokens-visual` (A56) e o botão "Tema claro" do painel de acessibilidade |
+| V12 | Ícones e logo | escolha final dos ícones de interface e uso do selo (D-2) | texto, ★ e ✂ onde couber | desenhada → **implementada (7A)** · verificação: `componentes-visuais` (V12: ícones `aria-hidden` sempre com palavra ao lado), logo de `docs/assets/` com o texto alternativo do README; sem biblioteca de ícones (D131) |
 
 ## 5. Entregas
 
@@ -281,7 +281,7 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 - **ViaCEP e BrasilAPI fora do nosso controle:** o E2E não pode depender deles (E24); a degradação é provada com MSW (A33).
 - **Cold start do Render (RNF5):** o aviso de "servidor acordando" aparece no meio do fluxo, inclusive durante o pagamento. A nova tentativa precisa ser **segura**: só repete `GET` e `POST` com `X-Idempotency-Key` (pagamento); a reserva (`POST /agendamentos`) **não** repete sozinha depois de timeout (pode ter sido criada): a tela consulta `GET /me/agendamentos` (cliente) ou mostra "confira antes de tentar de novo" (visitante).
 - **Fonte e imagens:** `@fontsource` e a cópia de `docs/assets/` no build evitam pedido ao Google, mas aumentam o pacote. Fotos grandes pedem `next/image` com tamanhos; o logo tem **mínimo de 48 px** e área livre de 1/4 do diâmetro (design system).
-- **Dependência do front com o contrato:** a spec trava no 1.5.0. Mudança de rota no back sem regenerar o `schema.d.ts` quebra o CI do front (A11): é o objetivo, mas a PR de back precisa avisar.
+- **Dependência do front com o contrato:** a spec trava no 1.6.0. Mudança de rota no back sem regenerar o `schema.d.ts` quebra o CI do front (A11): é o objetivo, mas a PR de back precisa avisar.
 - **Almoço no painel do barbeiro:** o `BARBEIRO` não tem rota para ler a própria jornada (as rotas de `/admin/barbeiros` são de `ADMIN`), então a agenda dele não pode listrar o almoço pela jornada (D-9).
 - **Contrato incompleto:** `EXCLUSAO_BLOQUEADA_POR_RESERVA` (usado em `DELETE /me`) **não está no enum `CodigoErro`** do `openapi.yaml` 1.5.0. O A13 trata como código desconhecido se faltar; a PR da 7A deve acrescentá-lo ao enum (correção de contrato de uma linha, avisar o Kevin) e o A11 passa a cobrar.
 - **Vercel Hobby é uso não comercial (RISC-03/H17):** nada nesta fatia o muda, mas o `V3` (checkout) continua sendo só sandbox.
@@ -290,7 +290,7 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 
 | # | Dúvida | Proposta |
 |---|---|---|
-| D-1 | **Playfair Display** (proposta do design system, peso 700 em `titulo-hero` e `titulo-secao`) **ou Georgia** | **Playfair 700, empacotada pelo `@fontsource/playfair-display`** (vem no `node_modules`, é servida pelo nosso domínio: **nenhum pedido ao Google em tempo de execução** e nenhuma conta). Georgia fica como reserva na pilha (`--font-display`), então trocar é mudar **uma** variável. Se preferir zero dependência, Georgia sozinha já funciona e não pesa nada. Só a família `display` muda; os tamanhos ficam como no design system |
+| D-1 | ✅ **decidida em 18/11 (design system v2): Playfair Display 700 pelo `next/font/google` com `display: swap`**, Georgia de reserva (não o `@fontsource`). Pergunta original: **Playfair Display** (proposta do design system, peso 700 em `titulo-hero` e `titulo-secao`) **ou Georgia** | **Playfair 700, empacotada pelo `@fontsource/playfair-display`** (vem no `node_modules`, é servida pelo nosso domínio: **nenhum pedido ao Google em tempo de execução** e nenhuma conta). Georgia fica como reserva na pilha (`--font-display`), então trocar é mudar **uma** variável. Se preferir zero dependência, Georgia sozinha já funciona e não pesa nada. Só a família `display` muda; os tamanhos ficam como no design system |
 | D-2 | **Biblioteca de ícones** de interface (o design system pede "traço fino, cantos retos, `traco-2`, na cor do texto") | **`lucide-react`**, importando só os ícones usados (calendário, relógio, voltar, copiar, fechar), com `strokeWidth` do `traco-2`, `strokeLinecap="square"` e `strokeLinejoin="miter"` (cantos retos) e `currentColor`. Onde o design não pedir, **sem ícone**: só ★ e ✂ e texto. Alternativas: Phosphor (mais opções, mais pesado) ou SVG próprio. Escolha final entra com o desenho (V12) |
 | D-3 | **Estados de erro e sucesso** que o design system ainda não define | **sem cor nova**, só forma e texto (a regra "estado não depende de cor" da agenda): erro = bloco com `borda-forte` e `traco-3` sólido à esquerda, prefixo "Erro:" e `role="alert"`; sucesso = bloco em `superficie` com prefixo "Pronto:" e `role="status"`; aviso e "servidor acordando" = contorno **tracejado** como o "aguardando"; campo inválido = `borda-forte` + `traco-2` + mensagem ligada por `aria-describedby`. Tudo no componente neutro `Aviso` (V4), que o Kevin redesenha depois sem mexer nas telas |
 | D-4 | **Textos de cada `code` de erro** | o catálogo do **Anexo A** é o rascunho de todos os valores do enum `CodigoErro` (mais `API_INDISPONIVEL`), no tom do design system (direto, de bairro, sem jargão, sem dado pessoal), em `src/api/mensagens.ts`. O Kevin revisa; o A13 garante que nenhum código novo da API fique sem texto |
@@ -307,7 +307,7 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 - [ ] **7A:** A1 a A43, A54 a A58 e A60 com teste verde (`npm run test` e `npx playwright test`) e `scripts/conferir-spec.sh 7 --exigir --ate 43` sem falta nos A1 a A43 (os A54 a A60 conferidos pelo mesmo script quando o limite for o total)
 - [ ] **7B:** A44 a A53 e A59 com teste verde e `scripts/conferir-spec.sh 7 --exigir` com **60 de 60**
 - [ ] `frontend-ci.yml` verde na PR (lint, `tsc`, Vitest, build, Playwright, conferência dos tipos e da spec) e o `backend-ci.yml` das Fatias 1 a 6 continua verde
-- [ ] `src/api/schema.d.ts` regenerado do `openapi.yaml` 1.5.0 e **nenhuma rota fora do contrato** chamada (A6 e A11)
+- [ ] `src/api/schema.d.ts` regenerado do `openapi.yaml` 1.6.0 e **nenhuma rota fora do contrato** chamada (A6 e A11)
 - [ ] **zero** valor visual literal nos CSS (A56) e nenhuma decisão de cor, fonte ou componente fora do design system; todos os `V1` a `V12` ainda marcados **aguarda design** e listados na descrição da PR
 - [ ] axe sem `serious` ou `critical` nos dois temas (A54) e fluxo do visitante por teclado (A55); relatório anexado
 - [ ] nenhuma conta, chave ou serviço pago criado (custo zero) e **nenhum** pedido de rede externa do navegador (conferido no E2E: só `localhost`)
@@ -315,6 +315,24 @@ Como 7A e 7B são duas PRs, o script ganha um limite opcional: `conferir-spec.sh
 - [ ] versões exatas fixadas, com fonte e data, e o resultado do `npm audit` (sem `high` ou `critical`) anotado na PR
 - [ ] decisões D115 em diante registradas em `decisoes.md`; README com o front marcado como pronto; ADR 0006 atualizado com os números finais (cookies, `Max-Age`, renovação única)
 - [ ] [checklist da PR](checklist-pr.md) completo
+
+---
+
+## 9. Resultado da 7A e desvios da spec
+
+A 7A (A1 a A43, A54 a A58 e A60) está **pronta, aguardando revisão**. Números de execução real estão no PR e em [`docs/guia-testes.md`](../guia-testes.md#7-as-telas-frontend). Desvios, todos explicados em [`decisoes.md`](../planejamento/decisoes.md) (D130 a D141):
+
+| Desvio | Por quê |
+|---|---|
+| `ah_refresh` com `Path=/api` (a spec dizia `/api/auth`) | o proxy renova em qualquer `/api/**`; com `/api/auth` o navegador não enviaria o refresh e a sessão cairia em 15 min (A1 e A3 ajustados) |
+| cookie de presença `ah_sessao` (`Path=/`, sem token) e `ah_troca` | os cookies de token não chegam nas **páginas**; o `proxy.ts` do Next precisa de um sinal para redirecionar a `/entrar` e à troca de senha (E9, A37, A43) |
+| rota própria `GET /api/visitante?reservaId=` | a confirmação precisa mostrar o código uma vez sem o JavaScript guardá-lo entre os passos (E7) |
+| `img-src 'self' data:` na CSP | o QR do Pix é gerado no navegador (D68) |
+| `/painel` provisório e `ExigePapel` | A36 e A37 precisam de destino para `ADMIN` e `BARBEIRO`; as telas do painel são da 7B |
+| sem `lucide-react`; Playfair pelo `next/font/google` | D-2 e D-1 (design system v2): ícones SVG do desenho, fonte servida pelo nosso domínio |
+| `conferir-spec.sh --exceto 44-53,59` além de `--ate` | A54 a A58 e A60 são da 7A e A44 a A53 da 7B: `--ate 43` deixaria os cinco da 7A de fora |
+| A60: o CEP aparece em `GET /api/cep/{cep}` | o contrato manda o CEP no caminho da rota; é a única URL que o leva (não entra em log, console, storage nem cabeçalho) |
+| contrato 1.6.0 (6D) | `schema.d.ts` regenerado; `ContatoWhatsapp` usa `BarbeiroPublico.whatsapp` de `GET /barbeiros` e some quando é nulo (home, agendar e confirmação) |
 
 ---
 
@@ -337,13 +355,13 @@ Fica em `src/api/mensagens.ts` (**um único arquivo**; a tela busca por `code`).
 | `WEBHOOK_NAO_AUTENTICADO` (401) | "Não foi possível concluir. Tente de novo mais tarde." | nunca deveria chegar ao navegador |
 | `ACESSO_NEGADO` (403) | "Você não tem acesso a esta área." | página de acesso negado |
 | `RECURSO_NAO_ENCONTRADO` (404) | "Não encontramos o que você procura." | em reserva de visitante: "Não encontramos esta reserva." |
-| `TROCA_DE_SENHA_OBRIGATORIA` (403) | "Antes de continuar, troque a senha inicial." | leva a `/conta/trocar-senha` |
-| `CEP_NAO_ENCONTRADO` (404) | "Não encontramos este CEP. Confira os números." | aviso no campo; **não bloqueia** |
+| `TROCA_DE_SENHA_OBRIGATORIA` (403) | "Crie uma senha nova para continuar." ✅ confirmado | leva a `/conta/trocar-senha` |
+| `CEP_NAO_ENCONTRADO` (404) | "Não encontramos este CEP. Confira os números." (o README aceitou "Preencha o endereço à mão"; sem campos de endereço, D-6, vale este) | aviso no campo; **não bloqueia** |
 | `FUNCIONALIDADE_DESLIGADA` (404) | "Este recurso ainda não está disponível." | esconde o botão |
 | `METODO_NAO_PERMITIDO` (405) | "Algo mudou por aqui. Recarregue a página." | bug do front |
 | `MIDIA_NAO_SUPORTADA` (415) | "Algo mudou por aqui. Recarregue a página." | bug do front |
 | `EMAIL_JA_CADASTRADO` (409) | "Já existe uma conta com este e-mail. Entre ou use outro." | no campo e-mail |
-| `HORARIO_INDISPONIVEL` (409) | "Esse horário acabou de ser reservado. Escolha outro." | esconde o horário e recarrega (E13) |
+| `HORARIO_INDISPONIVEL` (409) | "Esse horário acabou de ser reservado por outra pessoa. Escolha outro." ✅ confirmado | esconde o horário e recarrega (E13) |
 | `CONFLITO_DE_VERSAO` (409) | "Alguém alterou isto antes de você. Mostramos a versão atual." | recarrega o registro |
 | `CONFLITO_CONCORRENTE` (409) | "Muitas reservas ao mesmo tempo. Tente de novo." | repete uma vez; depois mostra a mensagem |
 | `NOME_JA_EXISTE` (409) | "Já existe um item com este nome." | no campo nome |
@@ -353,16 +371,16 @@ Fica em `src/api/mensagens.ts` (**um único arquivo**; a tela busca por `code`).
 | `ACEITE_POLITICA_OBRIGATORIO` (422) | "Para pagar, aceite a política de pagamento." | marca o foco na caixa |
 | `TRANSICAO_INVALIDA` (422) | "Essa mudança não é possível agora. Em atendimentos, só depois do horário de início." | no painel |
 | `MOTIVO_OBRIGATORIO` (422) | "Informe o motivo do cancelamento." | no campo motivo |
-| `RESERVA_EXPIRADA` (422) | "O tempo para pagar acabou. Escolha um horário de novo." | leva à escolha de horário |
+| `RESERVA_EXPIRADA` (422) | "O tempo para pagar acabou. Escolha um horário de novo." (na tela de pagamento, o estado do desenho: "O tempo acabou e o horário voltou para a agenda. Nada foi cobrado.") | leva à escolha de horário |
 | `COBRANCA_EM_ANDAMENTO` (409) | "Já existe um pagamento em andamento para esta reserva." | leva ao acompanhamento |
 | `SERVICO_INATIVO` (422) | "Este serviço não está disponível agora. Escolha outro." | volta aos serviços |
 | `IDEMPOTENCIA_CONFLITO` (422) | "Não foi possível repetir este pagamento. Comece de novo." | nova chave e nova tentativa do usuário |
 | `JORNADA_SOBREPOSTA` (422) | "Há horários que se sobrepõem no mesmo dia. Ajuste a jornada." | junto do dia |
 | `FOLGA_COM_RESERVAS` (422) | "Há agendamentos neste período. Cancele-os antes ou escolha outro período." | no formulário da folga |
 | `USUARIO_JA_VINCULADO` (409) | "Esta conta já está ligada a outro barbeiro." | no campo |
-| `LIMITE_EXCEDIDO` (429) | "Muitas tentativas. Tente de novo em {n} segundos." | desabilita o botão até o fim |
-| `GATEWAY_INDISPONIVEL` (503) | "O pagamento está fora do ar agora. Tente de novo em instantes; seu horário continua guardado até o prazo." | botão "tentar de novo" |
-| `CEP_INDISPONIVEL` (503) | "Não conseguimos buscar o endereço agora. O cadastro continua e o CEP é salvo." | **não bloqueia** (E14) |
-| `EXCLUSAO_BLOQUEADA_POR_RESERVA` (409) | "Você tem um agendamento pago. Combine o cancelamento com a barbearia e depois exclua a conta." | no diálogo de exclusão |
+| `LIMITE_EXCEDIDO` (429) | "Muitas tentativas. Tente de novo em {n} segundos." (acima de um minuto: "daqui a X min.") ✅ confirmado | desabilita o botão até o fim |
+| `GATEWAY_INDISPONIVEL` (503) | "Não conseguimos gerar o pagamento agora. Seu horário continua reservado até o fim do prazo; tente de novo." ✅ confirmado | botão "tentar de novo" |
+| `CEP_INDISPONIVEL` (503) | "Não conseguimos buscar o endereço agora. O cadastro continua e o CEP é salvo." (o README aceitou "Preencha à mão"; sem campos de endereço no contrato, D-6, vale este) | **não bloqueia** (E14) |
+| `EXCLUSAO_BLOQUEADA_POR_RESERVA` (409) | "Você tem um agendamento em aberto. Para excluir a conta, fale com a barbearia." ✅ confirmado | no diálogo de exclusão |
 | `ERRO_INTERNO` (500) | "Algo deu errado do nosso lado. Tente de novo." | mostra o `traceId` |
 | `API_INDISPONIVEL` (só do front) | "O servidor está acordando. Aguarde alguns segundos." | nova tentativa a cada 3 s por 70 s (E8) |
