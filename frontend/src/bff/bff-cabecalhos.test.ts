@@ -21,7 +21,7 @@ describe("cabeçalhos de segurança", () => {
       expect(csp).toContain("form-action 'self'");
       expect(r.headers.get("x-content-type-options")).toBe("nosniff");
       expect(r.headers.get("referrer-policy")).toBe("no-referrer");
-      expect(r.headers.get("permissions-policy")).toBe("");
+      expect(r.headers.get("permissions-policy")).toBe("camera=(), microphone=(), geolocation=(), payment=()");
     }
     expect(pedir("/api/servicos").headers.get("cache-control")).toBe("no-store");
     expect(pedir("/minha-conta", "ah_sessao=1").headers.get("cache-control")).toBe("no-store");

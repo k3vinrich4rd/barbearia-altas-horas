@@ -1,7 +1,7 @@
 /*
  * Acabamento visual da Fatia 7A, a partir do desenho do Kevin (design system v2 e telas do canvas).
  * Só tokens: nenhuma cor, fonte, espaço, raio ou traço literal (o verificador de tokens, A56, reprova).
- * Larguras de leitura usam ch/rem; o resto vem de var(--space-*), var(--radius-*) e var(--traco-*).
+ * Larguras de leitura vêm de var(--medida-*); o resto vem de var(--space-*), var(--radius-*) e var(--traco-*).
  */
 *,
 *::before,
@@ -12,6 +12,14 @@
 /* A Playfair Display vem do next/font (variável --fonte-playfair); Georgia é a reserva do design system. */
 :root {
   --font-display: var(--fonte-playfair), Georgia, "Times New Roman", serif;
+  /* Medidas de layout em unidade relativa ao texto (rem e em): só aqui, com nome; o resto usa var(--medida-*). */
+  --medida-pagina: 72rem;
+  --medida-leitura: 40rem;
+  --medida-coluna-minima: 16rem;
+  --medida-lista-alta: 32rem;
+  --medida-icone-p: var(--medida-icone-p);
+  --medida-icone-m: var(--medida-icone-m);
+  --medida-icone-g: var(--medida-icone-g);
 }
 
 body {
@@ -24,7 +32,7 @@ body {
 }
 
 main {
-  max-width: 72rem;
+  max-width: var(--medida-pagina);
   margin-inline: auto;
   padding: var(--space-8) var(--space-4) var(--space-16);
 }
@@ -171,18 +179,18 @@ hr {
 }
 
 .icone-pequeno {
-  width: 1.1em;
-  height: 1.1em;
+  width: var(--medida-icone-p);
+  height: var(--medida-icone-p);
 }
 
 .icone-medio {
-  width: 1.6em;
-  height: 1.6em;
+  width: var(--medida-icone-m);
+  height: var(--medida-icone-m);
 }
 
 .icone-grande {
-  width: 2.2em;
-  height: 2.2em;
+  width: var(--medida-icone-g);
+  height: var(--medida-icone-g);
 }
 
 /* Painel de acessibilidade, sempre visível no topo */
@@ -233,7 +241,7 @@ hr {
 }
 
 .cabecalho-interno {
-  max-width: 72rem;
+  max-width: var(--medida-pagina);
   margin-inline: auto;
   padding: var(--space-3) var(--space-4);
   display: flex;
@@ -272,7 +280,7 @@ hr {
 }
 
 .rodape {
-  max-width: 72rem;
+  max-width: var(--medida-pagina);
   margin-inline: auto;
   padding: var(--space-8) var(--space-4);
   border-top: var(--traco-1) solid var(--borda);
@@ -354,7 +362,7 @@ hr {
 form {
   display: grid;
   gap: var(--space-4);
-  max-width: 40rem;
+  max-width: var(--medida-leitura);
 }
 
 fieldset {
@@ -532,7 +540,7 @@ input[aria-invalid="true"] {
 }
 
 .opcoes {
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
 }
 
 .opcao {
@@ -703,7 +711,7 @@ input[aria-invalid="true"] {
   border-radius: var(--radius-md);
   background: var(--superficie);
   margin: var(--space-6) 0;
-  max-width: 40rem;
+  max-width: var(--medida-leitura);
 }
 
 .resumo h2 {
@@ -772,7 +780,7 @@ dd {
 
 .foto-inteira img {
   object-fit: contain;
-  max-height: 32rem;
+  max-height: var(--medida-lista-alta);
 }
 
 .foto-inteira figcaption {
@@ -793,7 +801,7 @@ dd {
   padding: 0;
   display: grid;
   gap: var(--space-6);
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
 }
 
 .cartao-detalhe {
@@ -958,7 +966,7 @@ ul {
 .copiar {
   display: grid;
   gap: var(--space-2);
-  max-width: 40rem;
+  max-width: var(--medida-leitura);
 }
 
 .qr {
