@@ -189,6 +189,19 @@ class CadastrosDoPainel {
         return ordenados;
     }
 
+    /**
+     * A jornada do barbeiro ligado a esta conta (D142): é o que a agenda do BARBEIRO precisa para listrar o almoço. Conta
+     * sem vínculo é 404, como no resto do painel (R23).
+     */
+    @Transactional(readOnly = true)
+    List<Intervalo> minhaJornada(UUID usuarioId) {
+        UUID barbeiroId = jdbc.sql("SELECT id FROM barbeiro WHERE usuario_id = :usuario").param("usuario", usuarioId)
+                .query(UUID.class).optional()
+                .orElseThrow(() -> new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO,
+                        "Esta conta não está ligada a um barbeiro."));
+        return jornadaDe(barbeiroId);
+    }
+
     private List<Intervalo> jornadaDe(UUID barbeiroId) {
         return jdbc.sql("""
                 SELECT dia_semana, hora_inicio, hora_fim FROM jornada

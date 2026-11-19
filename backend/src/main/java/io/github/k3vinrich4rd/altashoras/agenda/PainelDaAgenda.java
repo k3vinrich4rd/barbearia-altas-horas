@@ -320,6 +320,11 @@ public class PainelDaAgenda {
         return cadastros.substituirJornada(barbeiroId, intervalos);
     }
 
+    /** A jornada do barbeiro da conta (D142). Sem vínculo: 404. Só leitura; quem edita a jornada é o ADMIN. */
+    public List<Intervalo> minhaJornada(UUID usuarioId) {
+        return cadastros.minhaJornada(usuarioId);
+    }
+
     /** As folgas de hoje em diante (dia civil no fuso da barbearia), por início. */
     public List<FolgaCadastrada> folgas(UUID barbeiroId) {
         return cadastros.folgas(barbeiroId);
