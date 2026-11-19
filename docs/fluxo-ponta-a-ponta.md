@@ -151,6 +151,21 @@ Real (6B, critérios A49 a A58 e A61b, testes `RetencaoGuestIT`, `RetencaoJobIT`
 | acompanhar | `/meus-agendamentos` | Próximos e Anteriores, status em texto e forma, "Pagar" na pendente, **sem** cancelar nem remarcar (R18) | `GET /me/agendamentos` |
 | privacidade | `/minha-conta` | consentimento com a versão vigente da política (repete uma vez se mudou), baixar os dados como `.json`, excluir a conta digitando `EXCLUIR` (`409` explica) | `GET /me/consentimentos` · `PUT /me/consentimentos/marketing` · `GET /me/dados` · `DELETE /me` |
 
+### 3.0b O painel do barbeiro (Fatia 7B) ✅
+
+`ADMIN` e `BARBEIRO` entram em `/painel` (a senha inicial do admin é trocada antes de qualquer tela). O menu mostra cada item só para quem tem o papel; a autorização de verdade continua na API (`403`/`404`).
+
+| Passo | Tela | O que o front faz | Chamada do BFF à API |
+|---|---|---|---|
+| agenda do dia ou da semana | `/painel` | lista por horário com status em texto e forma, etiqueta "MANUAL · WHATSAPP" ou "PAGO", almoço listrado (a lacuna da jornada), filtro de barbeiro só para o ADMIN | `GET /admin/agenda?data&visao&barbeiroId` · `GET /admin/barbeiros` (ADMIN) · `GET /admin/minha-jornada` (BARBEIRO, 1.7.0) |
+| fechar o atendimento | `/painel` | "Concluído" e "Não compareceu" (avisa que o valor fica retido) mandam `status` e `version`; `409` recarrega a agenda | `PATCH /admin/agendamentos/{id}/status` |
+| cancelar (só ADMIN) | `/painel` | diálogo com motivo obrigatório de até 300; a cobrança paga vai para devolução pendente | `PATCH /admin/agendamentos/{id}/status` |
+| reserva manual | `/painel/reserva-manual` | serviço, barbeiro (o BARBEIRO só o próprio), dia e hora, nome e observação opcionais; vai para a agenda do dia | `POST /admin/agendamentos` |
+| pendências | `/painel/pendencias` | devoluções a fazer e avisos do gateway em revisão, com confirmação | `GET /admin/pagamentos` · `POST /admin/pagamentos/{id}/devolucao` · `GET /admin/pagamentos/eventos` · `POST /admin/pagamentos/eventos/{id}/revisao` |
+| cadastros (só ADMIN) | `/painel/cadastros` | serviços (preço em centavos), barbeiros com WhatsApp comercial, jornada semanal e folgas, regras da agenda (prazo de pagamento de 3 a 60 min) | `/admin/servicos` · `/admin/barbeiros` (e `/jornada`, `/folgas`) · `/admin/configuracao` |
+| auditoria (só ADMIN) | `/painel/auditoria` | tabela paginada, sem IP, nome, motivo nem WhatsApp | `GET /admin/auditoria` |
+| alcance | `/painel/alcance` | período e barbeiro (este só para o ADMIN); "menos de 5" sem percentual | `GET /admin/alcance` |
+
 ### 3.1 Cadastro com CEP ✅ (6A)
 
 ```mermaid

@@ -26,12 +26,12 @@ class MinhaJornadaIT extends PainelBase {
                 m.barbeiroB());
 
         get(ROTA, m.contaA()).andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.length()").value(10)).andExpect(jsonPath("$[0].diaSemana").value(2))
-                .andExpect(jsonPath("$[0].horaInicio").value("07:00")).andExpect(jsonPath("$[0].horaFim").value("12:00"))
-                .andExpect(jsonPath("$[1].horaInicio").value("13:00")).andExpect(jsonPath("$[1].horaFim").value("20:00"))
-                .andExpect(jsonPath("$[?(@.diaSemana == 1)]").isEmpty());
-        get(ROTA, m.contaB()).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].diaSemana").value(1)).andExpect(jsonPath("$[0].horaInicio").value("10:00"));
+                .andExpect(jsonPath("$.barbeiroId").value(m.barbeiroA().toString())).andExpect(jsonPath("$.intervalos.length()").value(10)).andExpect(jsonPath("$.intervalos[0].diaSemana").value(2))
+                .andExpect(jsonPath("$.intervalos[0].horaInicio").value("07:00")).andExpect(jsonPath("$.intervalos[0].horaFim").value("12:00"))
+                .andExpect(jsonPath("$.intervalos[1].horaInicio").value("13:00")).andExpect(jsonPath("$.intervalos[1].horaFim").value("20:00"))
+                .andExpect(jsonPath("$.intervalos[?(@.diaSemana == 1)]").isEmpty());
+        get(ROTA, m.contaB()).andExpect(status().isOk()).andExpect(jsonPath("$.intervalos.length()").value(1))
+                .andExpect(jsonPath("$.intervalos[0].diaSemana").value(1)).andExpect(jsonPath("$.intervalos[0].horaInicio").value("10:00"));
 
         get(ROTA, conta("BARBEIRO")).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
         get(ROTA, m.admin()).andExpect(status().isNotFound());
