@@ -108,3 +108,55 @@ export async function statusDaReservaGuest(request: APIRequestContext, id: strin
   const r = await request.get(`${API_URL}/agendamentos/guest/${id}`, { headers: { "X-Guest-Token": token } });
   return (await r.json()).status as string;
 }
+
+/** Admin de teste: o da API do E2E (ADMIN_EMAIL e ADMIN_SENHA do CI) e a senha que o teste define na troca obrigatória. */
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin-ci@exemplo.test";
+export const ADMIN_SENHA_INICIAL = process.env.ADMIN_SENHA ?? "SenhaInicialDoCi-2026";
+export const ADMIN_SENHA_NOVA = "SenhaNovaDoAdminE2E-2026";
+
+async function entrarPelaTela(page: Page, email: string, senha: string) {
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Senha").fill(senha);
+  await page.getByRole("button", { name: "Entrar" }).click();
+}
+
+/**
+ * Entra como admin. Num banco novo a senha inicial é a do ADMIN_SENHA e a troca é obrigatória antes de qualquer tela
+ * (A59); nas rodadas seguintes a senha já é a nova. Devolve se a troca aconteceu nesta rodada.
+ */
+export async function entrarComoAdmin(page: Page): Promise<{ trocouASenha: boolean }> {
+  await entrarPelaTela(page, ADMIN_EMAIL, ADMIN_SENHA_INICIAL);
+  const trocar = page.waitForURL(/\/conta\/trocar-senha/, { timeout: 10_000 }).then(
+    () => true,
+    () => false,
+  );
+  if (await trocar) {
+    await expect(page.getByRole("heading", { name: "Trocar senha" })).toBeVisible();
+    await page.getByLabel("Senha atual").fill(ADMIN_SENHA_INICIAL);
+    await page.getByLabel("Nova senha").fill(ADMIN_SENHA_NOVA);
+    await page.getByRole("button", { name: "Trocar senha" }).click();
+    await expect(page).toHaveURL(/\/entrar/);
+    await entrarPelaTela(page, ADMIN_EMAIL, ADMIN_SENHA_NOVA);
+    await expect(page).toHaveURL(/\/painel/);
+    return { trocouASenha: true };
+  }
+  // a senha inicial não vale mais: já foi trocada numa rodada anterior
+  await entrarPelaTela(page, ADMIN_EMAIL, ADMIN_SENHA_NOVA);
+  await expect(page).toHaveURL(/\/painel/);
+  return { trocouASenha: false };
+}
+
+/** Reserva do visitante pela tela e paga com Pix simulado; devolve o nome usado para achá-la na agenda do painel. */
+export async function reservaPagaDeVisitante(page: Page, h: Horario) {
+  const nome = `Painel E2E ${Date.now()}`;
+  await escolherHorario(page, h);
+  await page.getByRole("button", { name: "Continuar sem conta" }).click();
+  await page.getByLabel("Nome").fill(nome);
+  await page.getByLabel("E-mail").fill(emailUnico("visitante-painel"));
+  await page.getByLabel("WhatsApp").fill("11977776655");
+  await page.getByRole("button", { name: "Reservar" }).click();
+  await expect(page).toHaveURL(/\/agendar\/pagamento\//);
+  await pagarComPixESimular(page);
+  return nome;
+}

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { cadastrarCliente, horarioLivre, reservaDeVisitanteNaApi } from "./apoio";
+import { cadastrarCliente, entrarComoAdmin, horarioLivre, reservaDeVisitanteNaApi } from "./apoio";
 
 // A54: axe com WCAG 2.1 A e AA nas telas da 7A, nos dois temas e também em 375 x 812.
 // Zero violações serious e critical. As demais (moderate e minor) entram no relatório; exceção aceita só com motivo, aqui.
@@ -111,4 +111,36 @@ test("A54: zero violações serious ou critical nas telas da 7A, nos dois temas 
   await expect(page).toHaveURL(/\/agendar\/pagamento\//);
   await expect(page.getByRole("timer")).toBeVisible();
   for (const tema of ["escuro", "claro"] as const) await conferir(page, "pagamento", tema);
+});
+
+test("A54: zero violações serious ou critical nas telas do painel, nos dois temas e no celular", async ({ page }) => {
+  await entrarComoAdmin(page);
+  const paginas: [string, string][] = [
+    ["agenda", "/painel"],
+    ["reserva manual", "/painel/reserva-manual"],
+    ["pendencias", "/painel/pendencias"],
+    ["cadastros", "/painel/cadastros"],
+    ["auditoria", "/painel/auditoria"],
+    ["alcance", "/painel/alcance"],
+  ];
+  for (const tamanho of [
+    { width: 1280, height: 800 },
+    { width: 375, height: 812 },
+  ]) {
+    await page.setViewportSize(tamanho);
+    for (const [nome, caminho] of paginas) {
+      await page.goto(caminho);
+      await page.waitForLoadState("networkidle");
+      for (const tema of ["escuro", "claro"] as const) await conferir(page, `painel ${nome} ${tamanho.width}`, tema);
+    }
+  }
+  // cadastros com o editor de jornada e as folgas abertos
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/painel/cadastros");
+  await page
+    .getByRole("button", { name: /^Jornada e folgas de/ })
+    .first()
+    .click();
+  await expect(page.getByRole("button", { name: "Salvar jornada" })).toBeVisible();
+  for (const tema of ["escuro", "claro"] as const) await conferir(page, "painel cadastros com jornada", tema);
 });

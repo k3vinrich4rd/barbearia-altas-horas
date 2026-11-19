@@ -25,7 +25,7 @@ export function cabecalhosDeSeguranca(nonce: string, desenvolvimento = false): C
     fixos: {
       "x-content-type-options": "nosniff",
       "referrer-policy": "no-referrer",
-      "permissions-policy": "",
+      "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
     },
   };
 }

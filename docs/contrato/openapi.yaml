@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.6.0
+  version: 1.7.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -601,6 +601,24 @@ paths:
         '404': { $ref: '#/components/responses/Erro404' }
         '409': { $ref: '#/components/responses/Erro409' }
         '422': { $ref: '#/components/responses/Erro422' }
+  /admin/minha-jornada:
+    get:
+      tags: [admin]
+      operationId: minhaJornada
+      summary: A jornada semanal do barbeiro ligado à conta de quem chama (1.7.0)
+      description: |
+        ADMIN ou BARBEIRO. O barbeiro vem do `sub` do token (não há id na URL: ninguém lê a jornada de outro). É o que
+        a agenda do BARBEIRO usa para listrar o almoço, já que ele não lê `GET /admin/barbeiros` (só ADMIN). Conta sem
+        barbeiro ligado (inclusive um ADMIN sem vínculo): 404. Só leitura; quem edita a jornada é o ADMIN. Nunca em cache.
+      responses:
+        '200':
+          description: O barbeiro da conta e os intervalos de trabalho da semana (`intervalos` vazio se não há expediente)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MinhaJornada' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
   /admin/servicos:
     get:
       tags: [admin]
@@ -1171,6 +1189,15 @@ components:
           properties:
             ativo: { type: boolean }
             version: { type: integer, format: int64 }
+    MinhaJornada:
+      type: object
+      required: [barbeiroId, nomeExibicao, intervalos]
+      properties:
+        barbeiroId: { type: string, format: uuid, description: 'o barbeiro ligado à conta; a reserva manual do BARBEIRO usa este id' }
+        nomeExibicao: { type: string }
+        intervalos:
+          type: array
+          items: { $ref: '#/components/schemas/IntervaloJornada' }
     IntervaloJornada:
       type: object
       additionalProperties: false

@@ -1004,7 +1004,7 @@ Como conferir o banco: `SELECT origem, status, cliente_id, expira_em, nome_clien
 
 ## 7. As telas (frontend)
 
-> ✅ **Fatia 7A** (base, visitante e cliente) pronta, aguardando revisão. O painel (ADMIN e BARBEIRO) é a **7B**. O front é gerado com IA a partir do contrato e do design system do Kevin, e revisado por ele ([como](como-foi-construido.md)).
+> ✅ **Fatia 7A** (base, visitante e cliente) e **7B** (painel ADMIN e BARBEIRO) prontas, aguardando revisão. O front é gerado com IA a partir do contrato e do design system do Kevin, e revisado por ele ([como](como-foi-construido.md)).
 
 ### 7.1 O que roda sozinho (com saída real)
 
@@ -1015,8 +1015,10 @@ npm run lint && npx tsc --noEmit
 npm test                                   # Vitest + Testing Library + MSW, um teste por critério (A1, A2...)
 NEXT_PUBLIC_PAGAMENTO_SIMULADO=true npm run build
 npx playwright test                        # E2E na API REAL (perfil dev + PostgreSQL) e axe nos dois temas
-sh ../scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59
+sh ../scripts/conferir-spec.sh 7 --exigir     # 62 de 62 (7A e 7B)
 ```
+
+Saída real da 7B, de 18/11/2026 (Node 22.16, sem `legacy-peer-deps`): **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm run test:cobertura`: 48 arquivos, 72 testes verdes · `npm run build` ok · `npx playwright test`: 10 de 10 verdes (visitante, cliente, painel com a troca da senha inicial, reserva manual, axe da 7A e do painel nos dois temas e em 375 × 812, teclado e A60) contra a API real e um PostgreSQL 18 só do E2E · `./mvnw verify`: 385 testes, 0 falhas, BUILD SUCCESS · `conferir-spec.sh` das fatias 1 a 6, 6d e `7 --exigir`: 10, 29, 44, 45, 71, 75, 28 e 62 critérios, todos com teste · `testar-conferir-spec.sh` e `verificar:tokens` ok · `redocly lint` do contrato 1.7.0: 0 erros (16 avisos).**
 
 Saída real de cada comando, de 18/11/2026: **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm test`: **37 arquivos, 54 testes verdes** (cobertura de linhas 84,37%) · `npm run build` ok · `npx playwright test`: **7 de 7 verdes em 1,3 min** (A54, A55 ×2, A57, A58 ×2 e A60) · `conferir-spec.sh 7 --exigir --exceto 44-53,59`: **49 de 49** · fatias 1 a 6 e 6D: 10, 29, 44, 45, 71, 75 e 28 de 100% · `./mvnw verify`: 384 testes, 0 falhas**
 
@@ -1038,6 +1040,22 @@ Abra `http://localhost:3000` (API em `http://localhost:8080`, perfil `dev`).
 | T8 | Servidor acordando | pare a API, abra `/` e religue | "O servidor está acordando", nova tentativa a cada 3 s, a página se completa quando a API volta | Saída real: a preencher no fluxo manual |
 | T9 | Senha inicial | entrar com o admin criado por `ADMIN_EMAIL` e `ADMIN_SENHA` | a troca de senha é obrigatória antes de qualquer tela (a tela do painel entra na 7B) | Saída real: a preencher no fluxo manual |
 | T10 | Código da reserva | reservar sem conta, pagar e copiar o código e o link da confirmação; abrir `/reserva` com eles | a reserva aparece "Confirmada"; o endereço perde o `#id=…&codigo=…` depois de lido | Saída real: a preencher no fluxo manual |
+
+### 7.3 O painel (7B)
+
+Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `ADMIN_SENHA` (a API no perfil `dev`). Para o BARBEIRO, ligue uma conta com papel BARBEIRO a um barbeiro em Cadastros (campo "Conta de login").
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| P1 | Senha inicial | entrar como admin pela primeira vez | a troca de senha é obrigatória antes de qualquer tela; depois do novo login abre `/painel` | Saída real: a preencher no fluxo manual |
+| P2 | Menu | entrar como BARBEIRO e depois como ADMIN | o BARBEIRO vê Agenda, Reserva manual e Alcance; o ADMIN vê também Pendências, Cadastros e Auditoria; a URL escondida mostra "Acesso negado" | Saída real: a preencher no fluxo manual |
+| P3 | Agenda | abrir `/painel` no dia de uma reserva paga | item confirmado com "PAGO" e "Pagamento: Paga"; dia e semana; filtro de barbeiro só para o ADMIN; o almoço aparece listrado com um barbeiro escolhido (ou na agenda do BARBEIRO) | Saída real: a preencher no fluxo manual |
+| P4 | Fechar | marcar "Concluído" depois do horário e "Não compareceu" (com a confirmação) | o item muda de forma e de texto; antes do início a tela diz "só dá para fechar o atendimento depois do horário de início" | Saída real: a preencher no fluxo manual |
+| P5 | Cancelar | como ADMIN, "Cancelar pela barbearia" com motivo | o item vira "Cancelado" com o motivo; a devolução aparece em Pendências | Saída real: a preencher no fluxo manual |
+| P6 | Pendências | "Registrar devolução" e "Marcar como revisado" | a linha sai da fila; repetir mostra "já registrada" | Saída real: a preencher no fluxo manual |
+| P7 | Reserva manual | travar um horário combinado por WhatsApp (com e sem nome) | a agenda do dia mostra "MANUAL · WHATSAPP", sem pagamento; o horário some de `/agendar` | Saída real: a preencher no fluxo manual |
+| P8 | Cadastros | editar serviço (preço `55,90`), barbeiro (WhatsApp com máscara), jornada, folga e regras | preço vira centavos; nome repetido aparece no campo; jornada sobreposta marca o dia; fuso só leitura; prazo de 3 a 60 min | Saída real: a preencher no fluxo manual |
+| P9 | Auditoria e alcance | abrir as duas telas | auditoria sem IP; alcance com "menos de 5" e sem percentual nas linhas pequenas | Saída real: a preencher no fluxo manual |
 
 ## 8. Jornada completa
 
