@@ -37,7 +37,7 @@ class RetencaoWebhookIT extends PrivacidadeBase {
         UUID recenteProcessado = evento(Duration.ofDays(10), true);
         UUID antigoPendente = evento(Duration.ofDays(400), false);
 
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         assertThat(existe(antigoProcessado)).isFalse();
         assertThat(existe(recenteProcessado)).isTrue();

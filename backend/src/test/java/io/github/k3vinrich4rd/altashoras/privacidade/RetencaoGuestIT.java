@@ -61,7 +61,7 @@ class RetencaoGuestIT extends PrivacidadeBase {
     void noDiaExatoDos90Dias() {
         UUID reserva = visitante(DadosDeTeste.em(DIA_DOS_90_DIAS, 9, 0), "Visitante Fictício"); // fim 09:30
 
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         Map<String, Object> linha = guest(reserva);
         assertThat(linha).containsEntry("nome", "Visitante anonimizado")
@@ -75,7 +75,7 @@ class RetencaoGuestIT extends PrivacidadeBase {
     void umMinutoAntesDosNoventaDias() {
         UUID reserva = visitante(DadosDeTeste.em(DIA_DOS_90_DIAS, 9, 1), "Visitante Fictício"); // fim 09:31
 
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         Map<String, Object> linha = guest(reserva);
         assertThat(linha).containsEntry("nome", "Visitante Fictício").containsEntry("whatsapp", "11988880002");
@@ -91,7 +91,7 @@ class RetencaoGuestIT extends PrivacidadeBase {
         relogio.avancar(Duration.ofHours(2));
 
         assertThat(guestsAnonimizadosPeloJob()).isZero();
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         assertThat(guest(reserva).get("anonimizado_em")).isEqualTo(primeiro);
     }
@@ -105,7 +105,7 @@ class RetencaoGuestIT extends PrivacidadeBase {
                 .andExpect(status().isOk());
 
         String hashAntes = (String) guest(reserva).get("token_hash");
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
         String hashDepois = (String) guest(reserva).get("token_hash");
         assertThat(hashDepois).isNotEqualTo(hashAntes).isEqualTo(hashDepois.toLowerCase()).matches("^[0-9a-f]{64}$");
 
@@ -122,7 +122,7 @@ class RetencaoGuestIT extends PrivacidadeBase {
         String cobrancaAntes = jdbc.queryForObject("SELECT row_to_json(c)::text FROM cobranca c WHERE reserva_id = ?",
                 String.class, reserva);
 
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         assertThat(jdbc.queryForObject("SELECT row_to_json(r)::text FROM reserva r WHERE id = ?", String.class, reserva))
                 .isEqualTo(reservaAntes);
@@ -168,7 +168,7 @@ class RetencaoGuestPrazoConfiguradoIT extends PrivacidadeBase {
         UUID velha = visitante(servico, barbeiro, iniciaHa31Dias, "Visitante Antigo");
         UUID recente = visitante(servico, barbeiro, iniciaHa29Dias, "Visitante Recente");
 
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         assertThat(guest(velha)).containsEntry("nome", "Visitante anonimizado");
         assertThat(guest(recente)).containsEntry("nome", "Visitante Recente");

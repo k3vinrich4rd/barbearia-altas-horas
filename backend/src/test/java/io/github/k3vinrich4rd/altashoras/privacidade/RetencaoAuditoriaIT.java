@@ -39,7 +39,7 @@ class RetencaoAuditoriaIT extends PrivacidadeBase {
         UUID recente = auditoria(admin.id(), "ACAO_RECENTE", DadosDeTeste.em(LocalDate.of(2026, 11, 30), 9, 30));
         Map<UUID, String> antes = Map.of(exata, resto(exata), umMinutoDepois, resto(umMinutoDepois), recente, resto(recente));
 
-        retencao.executar();
+        retencao.executarEm(relogio.instant());
 
         assertThat(ip(exata)).isNull();
         assertThat(ip(umMinutoDepois)).isEqualTo(IP);

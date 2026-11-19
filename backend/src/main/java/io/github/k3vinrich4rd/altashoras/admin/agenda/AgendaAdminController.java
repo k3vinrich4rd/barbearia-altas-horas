@@ -36,12 +36,14 @@ class AgendaAdminController {
     private final ConsultarAgendaDoPainel consultar;
     private final MudarStatusDoAgendamento mudar;
     private final CriarReservaManual criarManual;
+    private final PainelDaAgenda agenda;
 
     AgendaAdminController(ConsultarAgendaDoPainel consultar, MudarStatusDoAgendamento mudar,
-            CriarReservaManual criarManual) {
+            CriarReservaManual criarManual, PainelDaAgenda agenda) {
         this.consultar = consultar;
         this.mudar = mudar;
         this.criarManual = criarManual;
+        this.agenda = agenda;
     }
 
     /** Trava um horário combinado por WhatsApp (Fatia 6D): ADMIN para qualquer barbeiro, BARBEIRO só para si. */
@@ -60,6 +62,18 @@ class AgendaAdminController {
             @RequestParam(required = false) UUID barbeiroId) {
         return ResponseEntity.ok().cacheControl(SEM_CACHE)
                 .body(consultar.consultar(Ator.de(token, request), data, visao, barbeiroId));
+    }
+
+    /**
+     * A jornada do barbeiro da própria conta (D142, contrato 1.7.0): ADMIN ou BARBEIRO. O BARBEIRO não lê
+     * {@code /admin/barbeiros}; sem esta rota a agenda dele não saberia onde fica o almoço. Nada de URL com id: o
+     * barbeiro vem do {@code sub} do token, então ninguém lê a jornada de outro.
+     */
+    @GetMapping("/admin/minha-jornada")
+    ResponseEntity<List<IntervaloDaJornada>> minhaJornada(@AuthenticationPrincipal Jwt token) {
+        List<IntervaloDaJornada> jornada = agenda.minhaJornada(UUID.fromString(token.getSubject())).stream()
+                .map(IntervaloDaJornada::de).toList();
+        return ResponseEntity.ok().cacheControl(SEM_CACHE).body(jornada);
     }
 
     @PatchMapping("/admin/agendamentos/{id}/status")
