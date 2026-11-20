@@ -203,6 +203,12 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D150 | **O BFF não devolve `tokenGuest` no corpo.** Decisão da revisão de arquitetura: no `201` do `POST /agendamentos/guest`, o BFF continua gravando o cookie `HttpOnly` `ah_visitante` e passa a **retirar o `tokenGuest` do corpo** antes de responder ao navegador, com `Cache-Control: no-store` e `Content-Length` ajustado. O contrato da API não muda: o campo continua no `201` da API; só o BFF o omite. Pagar, confirmar e consultar seguem pelo cookie e pelo fluxo normal (`GET /api/visitante` na confirmação, D134). Teste `D150:` em `bff-visitante.test.ts`; o E2E A57 confere o corpo, o cookie e o fluxo completo. |
 
 
+### Vários barbeiros (20/11/2026)
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D151 | **Vários barbeiros sem papel novo.** O `ADMIN` é o dono (rótulo "Dono/Admin" na tela) e o `BARBEIRO` fica como está; o dono que atende tem `ADMIN` + `BARBEIRO` + vínculo, vê a própria agenda e as dos outros. O isolamento por `barbeiroId` sai do token (`sub` → `barbeiro.usuario_id` com barbeiro ativo), nunca da URL ou do corpo para o BARBEIRO, e vira uma política única `AcessoAgenda` no módulo `agenda`, chamada pelos serviços (alheio = `404`, ADR 0005), com regra de arquitetura e IT por rota do painel. O barbeiro entra por **convite de uso único** (hash SHA-256, vale **48 h**, mostrado uma vez na tela do dono e entregue em pessoa ou por WhatsApp, H26; abrir o link não consome, só o `POST`) e define a própria senha; o convite nunca define nem troca a senha de conta que já tem senha (H32); senha nunca por chat, e-mail ou log. Desligar desativa a conta e revoga o convite. Contrato previsto 1.8.0, só acréscimos, com o código de erro novo `422 CONVITE_INVALIDO`; uma migração `convite_conta` depois da do catálogo. Fatias 10A (política) e 10B (convite e desligamento); a 10C (carteira) foi descartada (H24 = não) | aceito | pedido do Kevin (20/11/2026); leitura da `develop` em `178b2a0` | [ADR 0013](../adr/0013-varios-barbeiros-dono-e-convite.md) Aceito pelo Kevin em 20/11 (H24 a H32 decididas; H32: mesmo e-mail de cliente vira uma conta com `CLIENTE` + `BARBEIRO`; H33 pelo parecer jurídico). |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |
