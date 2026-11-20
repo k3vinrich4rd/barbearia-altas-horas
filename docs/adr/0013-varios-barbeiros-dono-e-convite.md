@@ -1,6 +1,6 @@
 # 0013. Vários barbeiros: Dono/Admin, isolamento por `barbeiroId` e convite de uso único
 
-- Status: **proposta** (aguarda o ok do Kevin)
+- Status: **aceito** (Kevin, 20/11/2026, com ajustes nas H24, H26 e H32; H33 revisada pelo parecer jurídico)
 - Data: 2026-11-20
 - Decisores: revisão de arquitetura (dona), Kevin Richard (produto)
 - Ponto de partida: `develop` em `178b2a0` (contrato 1.7.1, migrações até `V7`)
@@ -101,11 +101,11 @@ O `403` das rotas só do dono não é oráculo: a existência da rota está no c
 
 | Rota ou schema | Mudança |
 |---|---|
-| `POST /admin/barbeiros/{id}/convite` (ADMIN) | corpo `{ email }`. Cria a conta do barbeiro (papel `BARBEIRO`, **inativa e sem senha**), liga `barbeiro.usuario_id` e devolve `201 { codigo, expiraEm }` com `no-store`. Barbeiro que já tem conta ativa: `409 USUARIO_JA_VINCULADO` (código que já existe). E-mail em uso: `409 EMAIL_JA_CADASTRADO` (H32). Emitir de novo revoga o convite pendente. |
+| `POST /admin/barbeiros/{id}/convite` (ADMIN) | corpo `{ email }`. Cria a conta do barbeiro (papel `BARBEIRO`, **inativa e sem senha**), liga `barbeiro.usuario_id` e devolve `201 { codigo, expiraEm }` com `no-store`. Barbeiro que já tem conta ativa: `409 USUARIO_JA_VINCULADO` (código que já existe). E-mail de uma conta de cliente que já existe: **não** cria conta nova; o convite fica ligado a essa conta e o papel `BARBEIRO` só entra no aceite (H32). A resposta tem o mesmo formato nos dois casos. E-mail de conta de equipe (ADMIN ou BARBEIRO já vinculado): `409 USUARIO_JA_VINCULADO`. Emitir de novo revoga o convite pendente. |
 | `DELETE /admin/barbeiros/{id}/convite` (ADMIN) | revoga o convite pendente: `204` (idempotente). |
-| `POST /auth/convite` (público, com limite por IP, H30) | corpo `{ codigo, senha }`. Define a senha com as regras da troca de senha (Fatia 3), ativa a conta e queima o convite: `204`. Código inexistente, expirado, usado ou revogado: **uma resposta só**, `422 CONVITE_INVALIDO` (código novo), sem dizer qual caso foi. |
+| `POST /auth/convite` (público, com limite por IP, H30) | dois casos. **Conta nova** (sem senha): corpo `{ codigo, senha }`, define a senha com as regras da troca de senha (Fatia 3), ativa a conta e queima o convite: `204`. **Conta de cliente que já existe** (H32): corpo `{ codigo }`, exige estar logado nessa mesma conta (`sub` = `convite.usuario_id`), soma o papel `BARBEIRO`, sobe `versao_credencial` (o próximo token já traz o papel) e queima o convite: `204`. O convite **nunca** define nem troca a senha de uma conta que já tem senha, o que fecha o sequestro de conta por quem tiver o link. Código inexistente, expirado, usado, revogado, ou de outra conta: **uma resposta só**, `422 CONVITE_INVALIDO` (código novo), sem dizer qual caso foi. |
 | `BarbeiroAdmin` | campo novo, só leitura: `acesso` = `SEM_CONTA` \| `CONVITE_PENDENTE` \| `ATIVO` \| `DESLIGADO`. O e-mail do barbeiro não volta na lista. |
-| `PUT /admin/barbeiros/{id}` com `ativo: false` | sem campo novo; a descrição passa a dizer que o desligamento desativa a conta, revoga o convite e as sessões. Reativar exige convite novo (H31). |
+| `PUT /admin/barbeiros/{id}` com `ativo: false` | sem campo novo; a descrição passa a dizer que o desligamento tira o acesso ao painel, revoga o convite e as sessões (detalhe no fluxo, item 7). Reativar exige convite novo (H31). |
 | `BarbeiroRequest.usuarioId` | continua, porque é como o dono liga o próprio cadastro de barbeiro à própria conta. |
 
 **Modelo:**
@@ -126,16 +126,26 @@ O `403` das rotas só do dono não é oráculo: a existência da rota está no c
 1. O dono cria o barbeiro em Cadastros (nome, WhatsApp comercial opcional, jornada); isso já existe.
 2. O dono toca em "Gerar convite" e informa o e-mail de login do barbeiro. A API cria a conta inativa e liga o barbeiro a ela.
 3. A tela do dono mostra **uma única vez** o link `/convite#<codigo>` e o QR dele, gerado no navegador como o QR do Pix (D135 já permite `img-src data:`), com o prazo (H25). Fechou a tela, o código não volta: a API guarda só o hash.
-4. O dono **entrega em pessoa**: o barbeiro lê o QR no celular (H26).
-5. Na página `/convite`, o código vem do **fragmento** (`#`), que não vai ao servidor nem a log (como o código do visitante, D134). O barbeiro escolhe a própria senha, e o BFF chama `POST /auth/convite`. Depois ele entra pelo login normal.
+4. O dono entrega em pessoa (QR) **ou manda o link pelo WhatsApp** (H26). O link é de uso único e vence em 48 h (H25); o código vai no fragmento, que a prévia de link do WhatsApp não manda ao servidor. A página `/convite` **não** consome o convite ao abrir: só o `POST` do formulário consome, então um robô de prévia não queima o link. Se o link for parar com a pessoa errada, o dono revoga (`DELETE`) e gera outro.
+5. Na página `/convite`, o código vem do **fragmento** (`#`), que não vai ao servidor nem a log (como o código do visitante, D134). O barbeiro escolhe a própria senha, e o BFF chama `POST /auth/convite`. Depois ele entra pelo login normal. Se o e-mail já for de uma conta de cliente, a página pede o login dessa conta (com a senha que a pessoa já tem) e só então aceita o convite (H32).
 6. **Senha nunca** vai por chat, e-mail ou log: quem define a senha é o barbeiro, no app. O código do convite também nunca entra em log, auditoria ou URL de consulta.
-7. **Desligar** (`ativo: false`) desativa a conta (sobe `versao_credencial`, derruba as sessões, o `ContaEmUso` barra o token na hora) e revoga o convite pendente. No mesmo passo, aplica a H33 revisada: anula `senha_hash` e `barbeiro.whatsapp`, apaga refresh tokens, convite e identidade social, e anonimiza nome e e-mail, deixando a "lápide". As reservas e a auditoria continuam apontando para a conta. A troca de `nome_exibicao` por pseudônimo 5 anos depois da última reserva entra no job de retenção (ShedLock, Clock).
+7. **Desligar** (`ativo: false`) sempre: `barbeiro.ativo = false`, tira o papel `BARBEIRO`, sobe `versao_credencial` (derruba as sessões), revoga o convite pendente e anula `barbeiro.whatsapp`. Se a conta **também é de cliente** (H32), ela continua ativa como cliente, com os próprios dados e reservas, e a H33 não se aplica à conta. Se a conta era **só de equipe**, desativa a conta (sobe `versao_credencial`, derruba as sessões, o `ContaEmUso` barra o token na hora) e revoga o convite pendente. No mesmo passo, aplica a H33 revisada: anula `senha_hash` e `barbeiro.whatsapp`, apaga refresh tokens, convite e identidade social, e anonimiza nome e e-mail, deixando a "lápide". As reservas e a auditoria continuam apontando para a conta. A troca de `nome_exibicao` por pseudônimo 5 anos depois da última reserva entra no job de retenção (ShedLock, Clock).
 
-**Plano B**, só se o Kevin recusar o convite: senha inicial gerada com `deve_trocar_senha = true`, mostrada uma única vez na tela do dono e entregue em pessoa. Reaproveita a E24 inteira (`403 TROCA_DE_SENHA_OBRIGATORIA`, `ah_troca`), mas o dono fica sabendo a senha até a troca.
+**Plano B** (não usado; o Kevin aprovou o convite): senha inicial gerada com `deve_trocar_senha = true`, mostrada uma única vez na tela do dono e entregue em pessoa. Reaproveita a E24 inteira (`403 TROCA_DE_SENHA_OBRIGATORIA`, `ah_troca`), mas o dono fica sabendo a senha até a troca.
+
+### 4.1 Mesmo e-mail de cliente e barbeiro (H32)
+
+Escolha: **uma conta com vários papéis**, não duas identidades.
+
+- **Por quê:** o padrão já existe (dono com `ADMIN` + `BARBEIRO`); o e-mail continua único em `usuario`; o login não fica ambíguo (duas senhas para o mesmo e-mail); um só lugar para sessões, revogação, exportação e exclusão (LGPD art. 18).
+- **BOLA:** nenhuma regra decide por papel sozinho. Rotas de cliente (`/agendamentos`, `/me/*`) filtram por `cliente_id = sub`; o painel filtra pela `AcessoAgenda` (`sub` → `barbeiro.usuario_id` com `barbeiro.ativo` **e** papel `BARBEIRO` no token). Ser barbeiro não dá acesso às reservas de cliente de outra pessoa, e ser cliente de outro barbeiro não dá acesso ao painel dele.
+- **Escopo do token:** os papéis vêm no token; somar ou tirar `BARBEIRO` sobe `versao_credencial`, então o token velho cai na hora (`ContaEmUso`), sem esperar os 15 min.
+- **Sequestro de conta:** o convite para conta que já existe só soma papel, exige login nessa conta e nunca mexe na senha.
+- **Excluir a conta** (`DELETE /me`) de quem também é barbeiro ativo: responde `409` pedindo que o dono desligue antes (mesma lógica da `EXCLUSAO_BLOQUEADA_POR_RESERVA`), para a agenda não ficar com vínculo órfão.
 
 ### 5. "Cadastra os próprios clientes"
 
-Não existe cadastro de cliente pelo painel. Nesta decisão, isso é a **reserva manual** que já existe: nome opcional (até 80) e observação, **sem** WhatsApp, e-mail ou CPF (R30, D125, LGPD art. 6º, III). Uma **carteira de clientes por barbeiro** fica como hipótese (H24) e só vira fatia se o Kevin confirmar, com base legal e retenção definidas antes.
+Não existe cadastro de cliente pelo painel. Nesta decisão, isso é a **reserva manual** que já existe: nome opcional (até 80) e observação, **sem** WhatsApp, e-mail ou CPF (R30, D125, LGPD art. 6º, III). **Não há carteira de clientes por barbeiro** (H24, decidido): cada barbeiro lança reservas manuais só na própria agenda, e o dono, na dele (e em qualquer agenda, como ADMIN).
 
 ### 6. Fatias sugeridas para o SDD
 
@@ -168,8 +178,12 @@ Cada fatia ganha a própria spec no formato do [modelo](../sdd/modelo-de-spec.md
 - **A10:** Na tela do dono, o link e o QR aparecem uma vez. Ao reabrir, só aparecem "convite pendente" e o prazo. O rótulo do papel `ADMIN` é "Dono/Admin".
 - **A11:** A página `/convite` lê o código só do fragmento. Nenhum pedido leva o código em URL, e o BFF não o devolve no corpo (como na D150).
 - **A12:** `BarbeiroAdmin.acesso` mostra `SEM_CONTA`, `CONVITE_PENDENTE`, `ATIVO` ou `DESLIGADO` conforme o caso.
+- **A13 (H32):** convite para o e-mail de uma conta de cliente não cria conta nova. `POST /auth/convite` sem login nessa conta, ou logado em outra, responde `422 CONVITE_INVALIDO`; logado nela, soma `BARBEIRO` e responde `204`. Um corpo com `senha` para conta que já tem senha é recusado, e a senha antiga continua valendo.
+- **A14 (H32):** a conta `CLIENTE` + `BARBEIRO` vê no painel só a própria agenda e, nas rotas de cliente, só as próprias reservas, inclusive as marcadas com outro barbeiro, sem enxergar a agenda desse outro barbeiro.
+- **A15 (H32):** desligar um barbeiro que também é cliente tira o papel `BARBEIRO` e derruba as sessões (o token antigo responde `401`), mas a conta continua entrando como cliente com nome, e-mail e reservas intactos. `DELETE /me` de barbeiro ativo responde `409`.
+- **A16 (H26):** abrir `GET /convite#<codigo>` (como faria a prévia do WhatsApp) não consome o convite; só o `POST` consome.
 
-**Fatia 10C · Carteira de clientes por barbeiro** (só se a H24 for confirmada). Spec própria, com base legal, retenção e escopo pela mesma `AcessoAgenda`.
+~~Fatia 10C · Carteira de clientes por barbeiro~~: descartada (H24 = não).
 
 ## Consequências
 
@@ -183,19 +197,19 @@ Cada fatia ganha a própria spec no formato do [modelo](../sdd/modelo-de-spec.md
 
 - Se a barbearia quiser mais de um administrador sem ser dono (gerente), avaliar um papel novo com um ADR que substitua este.
 - Se entrar envio de e-mail gratuito e confiável, avaliar mandar **só o link do convite**, nunca a senha.
-- Se a H24 for confirmada, a Fatia 10C vem com uma revisão de LGPD antes do código.
+- Se um dia houver carteira de clientes, ela vem com spec própria e revisão de LGPD antes do código.
 
 ## Hipóteses abertas (para o Kevin)
 
 | # | Pergunta | Valor provisório |
 |---|---|---|
-| H24 | Cada barbeiro tem uma carteira de clientes (nome e contato) além da reserva manual? | **não**: só a reserva manual com nome opcional, sem contato |
-| H25 | Validade do convite | 48 horas (`app.conta.convite.validade`) |
-| H26 | O dono pode mandar o link do convite pelo WhatsApp dele, além de mostrar o QR em pessoa? | **só em pessoa**; o link não é senha, mas é de uso único e dá acesso à conta |
-| H27 | O barbeiro edita a própria jornada e as próprias folgas? | **não**: só o dono, como hoje |
-| H28 | O barbeiro cancela uma reserva própria? | **não** (D124 mantida) |
-| H29 | O barbeiro vê preço e status do pagamento das próprias reservas? | **sim**, como hoje no painel |
-| H30 | Limite de tentativas de aceite de convite | 10 por hora por IP (`app.limites.convite-*`) |
-| H31 | Reativar um barbeiro desligado | como o desligamento anonimiza a conta (H33), "reativar" é cadastrar de novo: conta nova, por convite novo, ligada ao mesmo `barbeiro` se ainda dentro dos 5 anos |
-| H32 | E-mail do barbeiro igual ao de uma conta de cliente que já existe | `409 EMAIL_JA_CADASTRADO`: usar outro e-mail. A alternativa (somar o papel à conta existente) fica para depois |
+| H24 | Cada barbeiro tem uma carteira de clientes além da reserva manual? | **decidido: não.** Cada barbeiro lança reservas manuais só na própria agenda; o dono, na dele |
+| H25 | Validade do convite | **decidido:** 48 horas (`app.conta.convite.validade`) |
+| H26 | O link do convite pode ir pelo WhatsApp? | **decidido: sim**, com uso único, 48 h e revogação; o QR em pessoa continua valendo |
+| H27 | O barbeiro edita a própria jornada e as próprias folgas? | **decidido: não**, só o dono |
+| H28 | O barbeiro cancela uma reserva própria? | **decidido: não** (D124) |
+| H29 | O barbeiro vê preço e status do pagamento das próprias reservas? | **decidido: sim** |
+| H30 | Limite de tentativas de aceite de convite | **decidido:** 10 por hora por IP (`app.limites.convite-*`) |
+| H31 | Reativar um barbeiro desligado | **decidido:** exige convite novo. Conta só de equipe foi anonimizada (H33), então é conta nova; conta que também é de cliente recebe o papel de novo pelo aceite |
+| H32 | E-mail do barbeiro igual ao de uma conta de cliente | **decidido: pode.** Uma conta só, com os papéis `CLIENTE` e `BARBEIRO` (como o dono já tem `ADMIN` + `BARBEIRO`), não duas identidades. O papel entra só no aceite, logado na própria conta; o convite nunca define senha de conta que já tem senha. Escopo: rotas de cliente pelo `sub` como cliente; painel pela `AcessoAgenda` (papel `BARBEIRO` + vínculo ativo). Desligar tira só o papel |
 | H33 | Retenção da conta do barbeiro desligado | **revisada (20/11, parecer do Cautelar)**: **não** segue a H13. No dia do desligamento: `senha_hash` anulado; refresh tokens, convite pendente e identidade social apagados; `barbeiro.whatsapp` anulado; nome e e-mail de `usuario` anonimizados, ficando uma linha "lápide" (`id`, papel, `criado_em`, `anonimizado_em`) para `auditoria_admin.ator_id` não quebrar (LGPD arts. 12, 15 I e 16). `barbeiro.nome_exibicao` fica nas reservas por **5 anos depois da última reserva** dele e depois vira pseudônimo ("Ex-barbeiro #N") (LGPD art. 7º IX e VI; CDC art. 27). IP da auditoria: 1 ano; backups: até 30 dias (D128). **Para advogado:** teste de legítimo interesse (LGPD art. 10) e tipo de vínculo do barbeiro (CLT ou Lei 13.352/2016). Corrigir antes da 10B com barbeiro real |
