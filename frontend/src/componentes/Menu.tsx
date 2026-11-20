@@ -10,14 +10,14 @@ import { useEffect, useRef, useState } from "react";
 import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
-/** Âncoras da home, na ordem do PDF. Os ids já existem nas seções. */
+/** Âncoras da home, na ordem do PDF. "Onde estamos" aponta para o rodapé, que está em todas as páginas. */
 export const SECOES_DA_HOME: { href: string; texto: string }[] = [
   { href: "/#historia", texto: "A história" },
   { href: "/#servicos-titulo", texto: "Serviços" },
   { href: "/#como-funciona", texto: "Como funciona" },
   { href: "/#galeria", texto: "Galeria" },
   { href: "/#duvidas", texto: "Dúvidas" },
-  { href: "/#onde", texto: "Onde estamos" },
+  { href: "#onde-estamos", texto: "Onde estamos" },
 ];
 
 export function Menu() {
