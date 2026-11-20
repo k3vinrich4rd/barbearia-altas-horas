@@ -318,10 +318,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Cidades e bairros que a barbearia atende (só nomes, sem números)
+         * Cidades e bairros que a barbearia atende, com a quantidade de atendimentos
          * @description Rota pública (sem token), vitrine para quem vai agendar (E35). Cobre os atendimentos (`CONFIRMADO` e `CONCLUIDO`)
-         *     dos últimos 12 meses e lista só as cidades e os bairros com 5 ou mais atendimentos no recorte (k-anonimato, ADR 0009),
-         *     ordenados por volume, **sem contagens**. Nada de "Outras cidades" nem "Outros bairros" aqui. O resultado fica em cache
+         *     dos últimos 12 meses e lista **toda** cidade e todo bairro, com a quantidade de atendimentos, ordenados do maior para o menor
+         *     (sem limite mínimo: decisão do Kevin em 18/11, D149; só região e número, nunca nome nem contato). O resultado fica em cache
          *     no servidor por 1 hora (`atualizadoEm` diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou,
          *     `429` com `Retry-After`.
          */
@@ -839,8 +839,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Ações do painel (paginado, as mais recentes primeiro)
-         * @description Só ADMIN. O IP da requisição fica guardado no banco e não sai na API.
+         * Ações do painel (paginado, as mais recentes primeiro), com filtro opcional por ação
+         * @description Só ADMIN. O IP da requisição fica guardado no banco e não sai na API. Com `acao`, só aquela ação (o `total` e as
+         *     páginas valem para o filtro). `acao` fora da lista, `pagina` negativa ou `tamanho` fora de 1 a 50: 400.
          */
         get: operations["listarAuditoria"];
         put?: never;
@@ -863,9 +864,7 @@ export interface paths {
          * @description ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os próprios** atendimentos (o
          *     `barbeiroId` da query é trocado pelo dele, E36). Conta só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no
          *     período (E31); reserva sem região entra em `semRegiao`. Período em dias civis no fuso da barbearia, inclusive nas
-         *     duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. K-anonimato (E32): bairro
-         *     com menos de 5 atendimentos na cidade vira "Outros bairros"; cidade com menos de 5 vira "Outras cidades" (`uf`
-         *     nula). O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
+         *     duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. Sem limite mínimo (D149): toda cidade e todo bairro aparece com o número exato, do maior para o menor. O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
          */
         get: operations["alcanceAdmin"];
         put?: never;
@@ -911,6 +910,11 @@ export interface components {
         CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "ERRO_INTERNO";
         /** @enum {string} */
         StatusReserva: "AGUARDANDO_PAGAMENTO" | "CONFIRMADO" | "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO" | "EXPIRADO";
+        /**
+         * @description as ações que o painel grava na auditoria (lista fechada)
+         * @enum {string}
+         */
+        AcaoAuditada: "AGENDAMENTO_MANUAL_CRIADO" | "AGENDAMENTO_CONCLUIDO" | "AGENDAMENTO_NAO_COMPARECEU" | "AGENDAMENTO_CANCELADO" | "BARBEIRO_CRIADO" | "BARBEIRO_ALTERADO" | "JORNADA_SUBSTITUIDA" | "FOLGA_CRIADA" | "FOLGA_REMOVIDA" | "SERVICO_CRIADO" | "SERVICO_ALTERADO" | "CONFIGURACAO_ALTERADA" | "DEVOLUCAO_REGISTRADA" | "EVENTO_REVISADO";
         /** @enum {string} */
         StatusCobranca: "PENDENTE" | "PAGA" | "PAGA_APOS_EXPIRACAO" | "CANCELADA" | "FALHOU" | "DEVOLUCAO_PENDENTE" | "DEVOLVIDA";
         /** @enum {string} */
@@ -1459,35 +1463,31 @@ export interface components {
             total: number;
             /** @description atendimentos cuja região não se conhece */
             semRegiao: number;
-            /** @description por volume; "Outras cidades" (uf nula) por último */
+            /** @description toda cidade do período, da que mais atendeu para a que menos atendeu (sem limite mínimo, D149) */
             cidades: {
                 /** @example Osasco */
                 cidade: string;
                 /** @example SP */
-                uf: string | null;
-                /** @description nulo quando abaixoDoLimite */
-                atendimentos: number | null;
+                uf: string;
+                /** Format: int64 */
+                atendimentos: number;
                 /**
                  * Format: double
-                 * @description sobre o total do período, 1 casa decimal; nulo quando abaixoDoLimite
+                 * @description sobre o total do período, 1 casa decimal
                  * @example 66.7
                  */
-                percentual: number | null;
-                /** @description verdadeiro só em "Outras cidades" com menos de 5 atendimentos (D114) */
-                abaixoDoLimite: boolean;
-                /** @description por volume; "Outros bairros" por último; vazio em "Outras cidades" */
+                percentual: number;
+                /** @description todo bairro informado, do maior para o menor; o bairro que o provedor não informou fica só na soma da cidade */
                 bairros: {
                     /** @example Centro */
                     bairro: string;
-                    /** @description nulo quando abaixoDoLimite */
-                    atendimentos: number | null;
+                    /** Format: int64 */
+                    atendimentos: number;
                     /**
                      * Format: double
                      * @example 66.7
                      */
-                    percentual: number | null;
-                    /** @description verdadeiro só em "Outros bairros" com menos de 5 atendimentos (D114) */
-                    abaixoDoLimite: boolean;
+                    percentual: number;
                 }[];
             }[];
         };
@@ -1499,13 +1499,26 @@ export interface components {
             atualizadoEm: string;
             totalCidades: number;
             totalBairros: number;
-            /** @description por volume, sem os números */
+            /** @description por quantidade de atendimentos, do maior para o menor; só região e contagem, nunca nome nem contato de cliente (D149) */
             regioes: {
                 /** @example Osasco */
                 cidade: string;
                 /** @example SP */
                 uf: string;
-                bairros: string[];
+                /**
+                 * Format: int64
+                 * @example 42
+                 */
+                atendimentos: number;
+                bairros: {
+                    /** @example Centro */
+                    bairro: string;
+                    /**
+                     * Format: int64
+                     * @example 30
+                     */
+                    atendimentos: number;
+                }[];
             }[];
         };
         PaginaAuditoria: {
@@ -2812,6 +2825,7 @@ export interface operations {
     listarAuditoria: {
         parameters: {
             query?: {
+                acao?: components["schemas"]["AcaoAuditada"];
                 pagina?: components["parameters"]["Pagina"];
                 tamanho?: components["parameters"]["Tamanho"];
             };

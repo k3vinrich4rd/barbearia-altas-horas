@@ -1,9 +1,5 @@
 package io.github.k3vinrich4rd.altashoras.agenda.alcance;
 
-import static io.github.k3vinrich4rd.altashoras.agenda.AlcanceDaAgenda.K_MINIMO;
-import static io.github.k3vinrich4rd.altashoras.agenda.AlcanceDaAgenda.OUTRAS_CIDADES;
-import static io.github.k3vinrich4rd.altashoras.agenda.AlcanceDaAgenda.OUTROS_BAIRROS;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -25,9 +21,9 @@ import io.github.k3vinrich4rd.altashoras.agenda.AlcanceDaAgenda.Periodo;
 
 /**
  * A conta do alcance (Fatia 6C): uma consulta agrupa os atendimentos do período por cidade, uf e bairro, e o resto é
- * agregação em memória (poucas dezenas de grupos). Só CONFIRMADO e CONCLUIDO contam (E31), e a reserva manual da 6D fica de fora (D127: sem região, só inflaria "sem região"). K-anonimato (E32): o bairro com
- * menos de 5 atendimentos na cidade vira "Outros bairros"; a cidade com menos de 5 vira "Outras cidades", sem uf e sem
- * bairros. Reserva sem região só entra em {@code semRegiao}. O banco nunca devolve nome de pessoa: só região e contagem.
+ * agregação em memória (poucas dezenas de grupos). Só CONFIRMADO e CONCLUIDO contam (E31), e a reserva manual da 6D fica de fora (D127: sem região, só inflaria "sem região").
+ * Sem limite mínimo (D149, decisão do Kevin em 18/11/2026): toda cidade e todo bairro aparece com o número exato, do
+ * maior para o menor; a decisão substitui o k-anonimato da E32. Reserva sem região só entra em {@code semRegiao}. O banco nunca devolve nome de pessoa: só região e contagem.
  */
 @Service
 public class ConsultaAlcance {
@@ -76,37 +72,19 @@ public class ConsultaAlcance {
         }
 
         List<Cidade> cidades = new ArrayList<>();
-        long deOutrasCidades = 0;
         for (Map.Entry<CidadeUf, Map<String, Long>> entrada : porCidade.entrySet()) {
             long daCidade = entrada.getValue().values().stream().mapToLong(Long::longValue).sum();
-            if (daCidade < K_MINIMO) {
-                deOutrasCidades += daCidade;
-                continue;
-            }
             List<Bairro> bairros = new ArrayList<>();
-            long deOutrosBairros = 0;
             for (Map.Entry<String, Long> bairro : entrada.getValue().entrySet()) {
-                if (!bairro.getKey().isEmpty() && bairro.getValue() >= K_MINIMO) {
-                    bairros.add(new Bairro(bairro.getKey(), bairro.getValue(), percentual(bairro.getValue(), total), false));
-                } else {
-                    deOutrosBairros += bairro.getValue();
+                if (!bairro.getKey().isEmpty()) { // bairro que o provedor não informou fica só na soma da cidade
+                    bairros.add(new Bairro(bairro.getKey(), bairro.getValue(), percentual(bairro.getValue(), total)));
                 }
             }
-            bairros.sort(Comparator.comparingLong((Bairro b) -> b.atendimentos()).reversed().thenComparing(Bairro::bairro));
-            if (deOutrosBairros > 0) {
-                boolean abaixo = deOutrosBairros < K_MINIMO; // D114: grupo pequeno não mostra número
-                bairros.add(new Bairro(OUTROS_BAIRROS, abaixo ? null : deOutrosBairros,
-                        abaixo ? null : percentual(deOutrosBairros, total), abaixo));
-            }
-            cidades.add(new Cidade(entrada.getKey().cidade(), entrada.getKey().uf(), daCidade, percentual(daCidade, total), false,
+            bairros.sort(Comparator.comparingLong(Bairro::atendimentos).reversed().thenComparing(Bairro::bairro));
+            cidades.add(new Cidade(entrada.getKey().cidade(), entrada.getKey().uf(), daCidade, percentual(daCidade, total),
                     bairros));
         }
-        cidades.sort(Comparator.comparingLong((Cidade c) -> c.atendimentos()).reversed().thenComparing(Cidade::cidade));
-        if (deOutrasCidades > 0) {
-            boolean abaixoCidades = deOutrasCidades < K_MINIMO; // D114
-            cidades.add(new Cidade(OUTRAS_CIDADES, null, abaixoCidades ? null : deOutrasCidades,
-                    abaixoCidades ? null : percentual(deOutrasCidades, total), abaixoCidades, List.of()));
-        }
+        cidades.sort(Comparator.comparingLong(Cidade::atendimentos).reversed().thenComparing(Cidade::cidade));
         return new Painel(periodo, total, semRegiao, List.copyOf(cidades));
     }
 

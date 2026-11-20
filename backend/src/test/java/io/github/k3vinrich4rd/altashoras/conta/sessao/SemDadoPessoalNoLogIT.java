@@ -133,7 +133,7 @@ class SemDadoPessoalNoLogIT {
 
         mvc.perform(get("/cep/01001000").with(ContaDeTeste.ip(ip)));
         mvc.perform(put("/me/consentimentos/marketing").header("Authorization", acesso)
-                .contentType(MediaType.APPLICATION_JSON).content("{ \"aceito\": false, \"versaoTexto\": \"1.1\" }"));
+                .contentType(MediaType.APPLICATION_JSON).content("{ \"aceito\": false, \"versaoTexto\": \"1.2\" }"));
         mvc.perform(get("/me/dados").header("Authorization", acesso).with(ContaDeTeste.ip(ip))).andExpect(status().isOk());
 
         // Um visitante vencido e uma auditoria de mais de 1 ano, para o job ter o que limpar (e logar só a contagem).

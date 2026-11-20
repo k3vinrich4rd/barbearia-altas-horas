@@ -18,7 +18,7 @@ class AuditoriaController {
 
     @GetMapping("/admin/auditoria")
     ResponseEntity<AuditoriaAdmin.Pagina> listar(@RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "20") int tamanho) {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(auditoria.listar(pagina, tamanho));
+            @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) String acao) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(auditoria.listar(pagina, tamanho, acao));
     }
 }

@@ -17,6 +17,13 @@ afterEach(() => vi.useRealTimers());
 
 const RESERVA = agendamentoAdmin({ id: "a2", version: 3 });
 
+/** Clica no bloco da reserva na grade e devolve o item (data-estado) e o painel de detalhes ao lado, onde ficam as ações. */
+async function escolher(user: ReturnType<typeof renderizar>["user"], nome: RegExp = /Rafael Souza/) {
+  const item = (await screen.findByText(nome)).closest('[role="listitem"]') as HTMLElement;
+  await user.click(within(item).getByRole("button"));
+  return { item, detalhe: screen.getByRole("complementary") };
+}
+
 function agenda() {
   servidor.use(
     http.get(`${BFF}/admin/agenda`, () => HttpResponse.json([RESERVA])),
@@ -32,8 +39,9 @@ describe("cancelar pela barbearia", () => {
     agenda();
     // BARBEIRO não vê "Cancelar pela barbearia"
     const barbeiro = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    await screen.findByText(/Rafael Souza/);
+    await escolher(barbeiro.user);
     expect(screen.queryByRole("button", { name: /Cancelar pela barbearia/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Concluído" })).toBeInTheDocument(); // o painel abriu: só o cancelar some
     barbeiro.unmount();
 
     const corpos: Record<string, unknown>[] = [];
@@ -49,8 +57,8 @@ describe("cancelar pela barbearia", () => {
       }),
     );
     const { user } = renderizar(<PainelAgenda />, ADMIN);
-    const item = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
-    await user.click(within(item).getByRole("button", { name: "Cancelar pela barbearia" }));
+    const { item, detalhe } = await escolher(user);
+    await user.click(within(detalhe).getByRole("button", { name: "Cancelar pela barbearia" }));
 
     const dialogo = screen.getByRole("dialog");
     expect(dialogo).toHaveTextContent("o valor vai para devolução pendente");
@@ -70,7 +78,7 @@ describe("cancelar pela barbearia", () => {
       expect(corpos[0]).toEqual({ status: "CANCELADO", motivo: "Barbeiro com imprevisto", version: 3 }),
     );
     await vi.waitFor(() => expect(item).toHaveAttribute("data-estado", "cancelado"));
-    expect(item).toHaveTextContent("Motivo: Barbeiro com imprevisto");
+    expect(screen.getByRole("complementary")).toHaveTextContent("MotivoBarbeiro com imprevisto");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(await screen.findByText(/a devolução aparece em Pendências/)).toBeInTheDocument();
   });
@@ -79,8 +87,8 @@ describe("cancelar pela barbearia", () => {
     agenda();
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(422, "MOTIVO_OBRIGATORIO")));
     const { user, unmount } = renderizar(<PainelAgenda />, ADMIN);
-    const item = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
-    await user.click(within(item).getByRole("button", { name: "Cancelar pela barbearia" }));
+    const { item, detalhe } = await escolher(user);
+    await user.click(within(detalhe).getByRole("button", { name: "Cancelar pela barbearia" }));
     await user.type(within(screen.getByRole("dialog")).getByLabelText("Motivo do cancelamento"), "Imprevisto");
     await user.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
     const campo = await screen.findByLabelText("Motivo do cancelamento");
@@ -90,8 +98,8 @@ describe("cancelar pela barbearia", () => {
 
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(403, "ACESSO_NEGADO")));
     const outro = renderizar(<PainelAgenda />, ADMIN);
-    const item2 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
-    await outro.user.click(within(item2).getByRole("button", { name: "Cancelar pela barbearia" }));
+    const { detalhe: detalhe2 } = await escolher(outro.user);
+    await outro.user.click(within(detalhe2).getByRole("button", { name: "Cancelar pela barbearia" }));
     await outro.user.type(within(screen.getByRole("dialog")).getByLabelText("Motivo do cancelamento"), "Imprevisto");
     await outro.user.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
     expect(await screen.findByText("Só o administrador cancela agendamentos.")).toBeInTheDocument();

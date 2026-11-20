@@ -17,7 +17,7 @@ class PoliticaPrivacidadeIT extends PrivacidadeBase {
     void politicaPublica() throws Exception {
         String corpo = mvc.perform(MockMvcRequestBuilders.get("/politica-privacidade")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.versao").value(Consentimentos.VERSAO_DO_TEXTO))
-                .andExpect(jsonPath("$.versao").value("1.1"))
+                .andExpect(jsonPath("$.versao").value("1.2"))
                 .andExpect(jsonPath("$.textoConsentimento").isNotEmpty())
                 .andExpect(jsonPath("$.politica").isNotEmpty())
                 .andExpect(jsonPath("$.atualizadaEm").isNotEmpty())
@@ -26,9 +26,29 @@ class PoliticaPrivacidadeIT extends PrivacidadeBase {
         String politica = JsonPath.read(corpo, "$.politica");
         assertThat(politica).contains("contato@exemplo.test").contains("90 dias").doesNotContain("{{");
         assertThat(politica).containsIgnoringCase("rascunho técnico").contains("não é parecer jurídico");
-        // A estatística de alcance por região já está explicada (legítimo interesse, grupos pequenos escondidos).
-        assertThat(politica).contains("legítimo interesse").contains("menos de 5");
+        // A estatística de alcance (versão 1.2, D149): a página mostra cidades e bairros com a quantidade de atendimentos,
+        // sem nome nem contato, e o texto não promete mais esconder grupos pequenos.
+        assertThat(politica).contains("legítimo interesse").contains("quantidade de atendimentos")
+                .contains("sem nome nem contato").contains("1 cliente daquele bairro")
+                .doesNotContain("menos de 5").doesNotContain("Outros bairros");
         assertThat((String) JsonPath.read(corpo, "$.textoConsentimento")).doesNotContain("{{");
         assertThat((String) JsonPath.read(corpo, "$.atualizadaEm")).matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}-03:00");
+    }
+
+    @Test
+    @DisplayName("A20: a política vigente é a 1.2 (a mesma do consentimento): o texto sobre grupos com menos de 5 saiu e entrou que a página mostra cidades e bairros com a quantidade de atendimentos, sem nome nem contato, com o risco de 1 atendimento dito com clareza; os arquivos da 1.1 continuam guardados")
+    void politicaVersao12() throws Exception {
+        String corpo = mvc.perform(MockMvcRequestBuilders.get("/politica-privacidade")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.versao").value("1.2"))
+                .andReturn().getResponse().getContentAsString();
+
+        String politica = JsonPath.read(corpo, "$.politica");
+        assertThat(politica).startsWith("# Política de privacidade · versão 1.2")
+                .contains("cidades e os bairros").contains("quantidade de atendimentos").contains("sem nome nem contato")
+                .contains("1 cliente daquele bairro").contains("sem data")
+                .doesNotContain("menos de 5").doesNotContain("Outros bairros").doesNotContain("só **nomes**");
+        assertThat(new org.springframework.core.io.ClassPathResource("privacidade/politica-1.1.md").exists()).isTrue();
+        assertThat(new org.springframework.core.io.ClassPathResource("privacidade/consentimento-1.1.md").exists()).isTrue();
+        assertThat(new org.springframework.core.io.ClassPathResource("privacidade/consentimento-1.2.md").exists()).isTrue();
     }
 }

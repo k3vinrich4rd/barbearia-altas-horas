@@ -74,4 +74,52 @@ describe("auditoria", () => {
     await user.click(screen.getByRole("button", { name: "Próxima" }));
     await vi.waitFor(() => expect(consultas.at(-1)?.get("pagina")).toBe("1"));
   });
+
+  test("A8: o filtro Ação (Todas e as 14 ações) manda acao para a API, volta para a página 1, mostra só o que a API devolveu e avisa quando não há nenhuma daquele tipo", async () => {
+    const consultas: URLSearchParams[] = [];
+    servidor.use(
+      http.get(`${BFF}/admin/auditoria`, ({ request }) => {
+        const q = new URL(request.url).searchParams;
+        consultas.push(q);
+        const acao = q.get("acao");
+        const item = (id: string, a: string) => ({
+          id,
+          atorId: "u1",
+          acao: a,
+          recurso: "servico",
+          recursoId: null,
+          detalhe: { campos: "precoCentavos" },
+          ocorridoEm: "2026-11-19T13:05:00-03:00",
+        });
+        if (acao === "EVENTO_REVISADO") return HttpResponse.json({ pagina: 0, tamanho: 20, total: 0, itens: [] });
+        return HttpResponse.json({
+          pagina: Number(q.get("pagina")),
+          tamanho: 20,
+          total: 45,
+          itens: [item("1", acao ?? "SERVICO_CRIADO")],
+        });
+      }),
+    );
+    const { user } = renderizar(<PainelAuditoria />, ADMIN);
+    const filtro = await screen.findByLabelText("Ação");
+    expect(within(filtro).getAllByRole("option")).toHaveLength(15);
+    expect(within(filtro).getAllByRole("option")[0]).toHaveTextContent("Todas");
+    expect(consultas[0].has("acao")).toBe(false);
+
+    await user.click(await screen.findByRole("button", { name: "Próxima" }));
+    await vi.waitFor(() => expect(consultas.at(-1)?.get("pagina")).toBe("1"));
+
+    await user.selectOptions(filtro, "SERVICO_ALTERADO");
+    await vi.waitFor(() => expect(consultas.at(-1)?.get("acao")).toBe("SERVICO_ALTERADO"));
+    expect(consultas.at(-1)?.get("pagina")).toBe("0");
+    const tabela = await screen.findByRole("table", { name: /Últimas ações · página 1 de 3/ });
+    expect(within(tabela).getAllByRole("row")[1]).toHaveTextContent("Serviço alterado");
+
+    await user.selectOptions(filtro, "EVENTO_REVISADO");
+    expect(await screen.findByText("Nenhuma ação deste tipo registrada.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ação")).toHaveValue("EVENTO_REVISADO"); // o filtro continua na tela para voltar
+
+    await user.selectOptions(screen.getByLabelText("Ação"), "");
+    await vi.waitFor(() => expect(consultas.at(-1)?.has("acao")).toBe(false));
+  });
 });

@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class Consentimentos {
 
-    public static final String VERSAO_DO_TEXTO = "1.1";
+    public static final String VERSAO_DO_TEXTO = "1.2";
     public static final String MARKETING = "MARKETING_CEP";
 
     /** Uma linha do histórico de consentimento. */

@@ -1,15 +1,18 @@
 "use client";
-// Auditoria (A52, V8): quem mudou o quê e quando. Sem IP, sem nome, sem motivo e sem WhatsApp: a API não manda. Só ADMIN.
+// Auditoria (A52, A8, V8): quem mudou o quê e quando, com filtro por ação (vai para a API: a lista é paginada). Sem IP, sem nome, sem motivo e sem WhatsApp: a API não manda. Só ADMIN.
 import { useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { formatarDataEHora } from "@/api/formato";
+import type { components } from "@/api/schema";
 import { useConsulta } from "@/api/hooks";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
+import { Selecao } from "@/componentes/CamposDoPainel";
 import { Paginacao } from "@/componentes/Paginacao";
 
 const TAMANHO = 20;
+type AcaoAuditada = components["schemas"]["AcaoAuditada"];
 
-const ACOES: Record<string, string> = {
+const ACOES: Record<AcaoAuditada, string> = {
   AGENDAMENTO_MANUAL_CRIADO: "Reserva manual criada",
   AGENDAMENTO_CONCLUIDO: "Atendimento concluído",
   AGENDAMENTO_NAO_COMPARECEU: "Falta registrada",
@@ -41,18 +44,44 @@ function detalheEmTexto(detalhe: { [chave: string]: string } | null | undefined)
 
 export function PainelAuditoria() {
   const [pagina, setPagina] = useState(0);
+  const [acao, setAcao] = useState("");
   const consulta = useConsulta(
-    () => chamar(api().GET("/admin/auditoria", { params: { query: { pagina, tamanho: TAMANHO } } })),
-    [pagina],
+    () =>
+      chamar(
+        api().GET("/admin/auditoria", {
+          params: {
+            query: { pagina, tamanho: TAMANHO, ...(acao ? { acao: acao as AcaoAuditada } : {}) },
+          },
+        }),
+      ),
+    [pagina, acao],
   );
   return (
     <>
       <h1>Auditoria</h1>
       <p>Quem mudou o quê, e quando. Toda mudança feita no painel aparece aqui, sem dados pessoais.</p>
+      <div className="agenda-controles">
+        <Selecao
+          id="filtro-acao"
+          rotulo="Ação"
+          value={acao}
+          onChange={(e) => {
+            setAcao(e.target.value);
+            setPagina(0);
+          }}
+        >
+          <option value="">Todas</option>
+          {Object.entries(ACOES).map(([codigo, nome]) => (
+            <option key={codigo} value={codigo}>
+              {nome}
+            </option>
+          ))}
+        </Selecao>
+      </div>
       <EstadoDaConsulta consulta={consulta}>
         {(p) =>
           p.itens.length === 0 ? (
-            <p>Nenhuma ação registrada ainda.</p>
+            <p>{acao ? "Nenhuma ação deste tipo registrada." : "Nenhuma ação registrada ainda."}</p>
           ) : (
             <>
               <div className="tabela-rolavel" tabIndex={0} role="region" aria-label="Tabela da auditoria">
@@ -73,8 +102,8 @@ export function PainelAuditoria() {
                       <tr key={a.id ?? i}>
                         <td className="hora">{a.ocorridoEm ? formatarDataEHora(a.ocorridoEm) : "—"}</td>
                         <td>
-                          {a.acao ? (ACOES[a.acao] ?? a.acao) : "—"}
-                          {a.acao && ACOES[a.acao] && (
+                          {a.acao ? (ACOES[a.acao as AcaoAuditada] ?? a.acao) : "—"}
+                          {a.acao && ACOES[a.acao as AcaoAuditada] && (
                             <>
                               <br />
                               <code>{a.acao}</code>

@@ -21,10 +21,15 @@ const ALCANCE = {
       uf: "SP",
       atendimentos: 6,
       percentual: 66.7,
-      abaixoDoLimite: false,
-      bairros: [{ bairro: "Centro", atendimentos: 6, percentual: 66.7, abaixoDoLimite: false }],
+      bairros: [{ bairro: "Centro", atendimentos: 6, percentual: 66.7 }],
     },
-    { cidade: "Outras cidades", uf: null, atendimentos: null, percentual: null, abaixoDoLimite: true, bairros: [] },
+    {
+      cidade: "São Paulo",
+      uf: "SP",
+      atendimentos: 2,
+      percentual: 22.2,
+      bairros: [{ bairro: "Sé", atendimentos: 1, percentual: 11.1 }],
+    },
   ],
 };
 
@@ -38,7 +43,7 @@ function api(consultas: URLSearchParams[]) {
 }
 
 describe("alcance por região", () => {
-  test("A53: sem período a chamada não manda de nem ate; menos de 5 sem percentual; sem região informada; de > ate e mais de 366 dias são barrados antes da chamada; ADMIN filtra por barbeiro e BARBEIRO não vê o filtro; tabela acessível", async () => {
+  test("A53: sem período a chamada não manda de nem ate; todo grupo com o número exato e o percentual; sem região informada; de > ate e mais de 366 dias são barrados antes da chamada; ADMIN filtra por barbeiro e BARBEIRO não vê o filtro; tabela acessível", async () => {
     const consultas: URLSearchParams[] = [];
     api(consultas);
     servidor.use(http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
@@ -53,7 +58,12 @@ describe("alcance por região", () => {
       within(tabela)
         .getAllByRole("columnheader")
         .map((c) => c.textContent),
-    ).toEqual(["Cidade e bairro", "Atendimentos", "Parcela"]);
+    ).toEqual([
+      "Cidade e bairro",
+      "Atendimentos",
+      "Parcela",
+      "Barra da parcela (só desenho; o número está na coluna Parcela)",
+    ]);
     expect(within(tabela).getByRole("rowheader", { name: "Osasco, SP" })).toHaveAttribute("scope", "row");
 
     const linhas = within(tabela).getAllByRole("row").slice(1);
@@ -61,10 +71,13 @@ describe("alcance por região", () => {
     expect(linhas[0]).toHaveTextContent("6");
     expect(linhas[0]).toHaveTextContent("66,7%");
     expect(linhas[1]).toHaveTextContent("Centro");
-    // "Outras cidades": menos de 5 e nenhum percentual (nem 0, nem null, nem NaN)
-    expect(linhas[2]).toHaveTextContent("Outras cidades");
-    expect(linhas[2]).toHaveTextContent("menos de 5");
-    expect(linhas[2].textContent).not.toMatch(/%|NaN|null|\b0\b/);
+    // sem limite mínimo (D149): o bairro de 1 atendimento aparece com o número exato e o percentual
+    expect(linhas[2]).toHaveTextContent("São Paulo, SP");
+    expect(linhas[2]).toHaveTextContent("22,2%");
+    expect(linhas[3]).toHaveTextContent("Sé");
+    expect(linhas[3]).toHaveTextContent("1");
+    expect(linhas[3]).toHaveTextContent("11,1%");
+    expect(tabela.textContent).not.toMatch(/menos de 5|Outras cidades|Outros bairros|NaN|null/);
     expect(screen.getByText(/Sem região informada: 1/)).toBeInTheDocument();
 
     // período invertido e acima de 366 dias: barrados no formulário
@@ -98,6 +111,45 @@ describe("alcance por região", () => {
     await screen.findByRole("table");
     expect(screen.queryByLabelText("Barbeiro")).toBeNull();
     expect(outras[0].has("barbeiroId")).toBe(false);
+  });
+
+  test("A9: cada linha tem uma barra com o mesmo percentual da coluna Parcela, só tokens e sem número a mais; as barras ficam fora da árvore de acessibilidade e a tabela continua completa para o leitor de tela", async () => {
+    api([]);
+    renderizar(<PainelAlcance />, ADMIN);
+    const tabela = await screen.findByRole("table", { name: /9 atendimentos/ });
+    const linhas = within(tabela).getAllByRole("row").slice(1);
+    expect(linhas).toHaveLength(4);
+
+    const valores = linhas.map((l) => {
+      const barra = l.querySelector("progress") as HTMLProgressElement;
+      expect(barra, l.textContent ?? "").not.toBeNull();
+      expect(barra.max).toBe(100);
+      // o texto da barra é o da própria tabela: nenhum número que a coluna Parcela não tenha
+      expect(barra.closest("td")).toHaveAttribute("aria-hidden", "true");
+      expect(barra.textContent).toBe("");
+      expect(barra).not.toHaveAttribute("style");
+      expect(l).toHaveTextContent(`${String(barra.value).replace(".", ",")}%`);
+      return barra.value;
+    });
+    expect(valores).toEqual([66.7, 66.7, 22.2, 11.1]);
+    // fora da árvore de acessibilidade: nenhum "progressbar" e nenhum meter
+    expect(screen.queryAllByRole("progressbar")).toHaveLength(0);
+    expect(document.querySelectorAll("[style]")).toHaveLength(0);
+  });
+
+  test("A10: tabela acessível a leitor de tela: caption, cabeçalhos de coluna com escopo, cidade e bairro como cabeçalho de linha (o bairro leva a cidade em texto só para leitor), região rolável focável e sem barra no cabeçalho visível", async () => {
+    api([]);
+    renderizar(<PainelAlcance />, ADMIN);
+    const tabela = await screen.findByRole("table", { name: /9 atendimentos · de 20\/10\/2026 a 18\/11\/2026/ });
+    for (const c of within(tabela).getAllByRole("columnheader")) expect(c).toHaveAttribute("scope", "col");
+    const regiao = screen.getByRole("region", { name: "Tabela do alcance por região" });
+    expect(regiao).toHaveAttribute("tabindex", "0");
+    expect(within(tabela).getByRole("rowheader", { name: /São Paulo:s*Sé/ })).toHaveAttribute("scope", "row");
+    expect(within(tabela).getByRole("rowheader", { name: /Osasco:s*Centro/ })).toBeInTheDocument();
+    const cabecalhoDaBarra = within(tabela).getAllByRole("columnheader")[3];
+    expect(cabecalhoDaBarra.querySelector(".so-leitor")).not.toBeNull();
+    expect(cabecalhoDaBarra.textContent).toMatch(/Barra da parcela/);
+    expect(screen.getByText(/Sem região informada: 1/)).toBeInTheDocument();
   });
 
   test("A53: com total zero mostra que ainda não há atendimentos suficientes", async () => {

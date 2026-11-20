@@ -39,12 +39,16 @@ const CORES_NOMEADAS = new Set(
 const PROPRIEDADE_DE_COR =
   /(^|[;{\s])(color|background|background-color|border(-[a-z]+)*|outline(-[a-z]+)*|fill|stroke|text-decoration(-color)?|caret-color|accent-color|column-rule(-color)?)\s*:\s*([^;}]*)/gi;
 
-function coresNomeadasEm(linha) {
+/**
+ * Cores nomeadas no TEXTO INTEIRO do CSS (e não linha a linha): "color:\n  red;" tem a propriedade numa linha e o valor na
+ * outra. Cada achado volta com o deslocamento da propriedade, para a mensagem apontar a linha certa.
+ */
+function coresNomeadasEm(texto) {
   const achadas = [];
-  for (const m of linha.matchAll(PROPRIEDADE_DE_COR)) {
+  for (const m of texto.matchAll(PROPRIEDADE_DE_COR)) {
     const valor = m[m.length - 1].replace(/var\([^)]*\)/g, " ");
     for (const palavra of valor.toLowerCase().match(/[a-z]+/g) ?? [])
-      if (CORES_NOMEADAS.has(palavra)) achadas.push(palavra);
+      if (CORES_NOMEADAS.has(palavra)) achadas.push({ cor: palavra, indice: m.index + m[1].length });
   }
   return achadas;
 }
@@ -82,6 +86,10 @@ export function verificar(dir = join(raiz, "src")) {
       if (!definidas.has(m[1])) problemas.push(`${relative(raiz, arquivo)}: ${m[1]} usada e nunca definida`);
   for (const arquivo of listarCss(dir)) {
     const texto = readFileSync(arquivo, "utf8").replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
+    for (const { cor, indice } of coresNomeadasEm(texto)) {
+      const linhaDaCor = texto.slice(0, indice).split("\n").length;
+      problemas.push(`${relative(raiz, arquivo)}:${linhaDaCor} cor nomeada (${cor}); use um token de cor`);
+    }
     texto.split("\n").forEach((linha, i) => {
       const onde = `${relative(raiz, arquivo)}:${i + 1}`;
       if (/#[0-9a-fA-F]{3,8}\b/.test(linha)) problemas.push(`${onde} cor literal (#)`);
@@ -89,7 +97,6 @@ export function verificar(dir = join(raiz, "src")) {
       if (/font-family\s*:/.test(linha) && !/font-family\s*:\s*var\(--(font|tipo)-[a-z-]+\)\s*;?/.test(linha))
         problemas.push(`${onde} font-family fora de var(--font-*)`);
       if (/box-shadow\s*:/.test(linha)) problemas.push(`${onde} box-shadow (o design system não tem sombra)`);
-      for (const cor of coresNomeadasEm(linha)) problemas.push(`${onde} cor nomeada (${cor}); use um token de cor`);
       // rem e em só como valor de uma variável --medida-*; o @media não aceita var(), então fica de fora
       if (
         !/^\s*--medida-[a-z0-9-]+\s*:/.test(linha) &&

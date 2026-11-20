@@ -18,8 +18,8 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeLimite;
 import io.github.k3vinrich4rd.altashoras.plataforma.LimitadorDeTentativas;
 
 /**
- * {@code GET /alcance}, pública (E35, D-9): só os nomes das cidades e dos bairros que passam no k ≥ 5, sem números, dos
- * últimos 12 meses. O cálculo fica 1 hora em cache (uma única entrada) e o tempo do cache é o do {@link Ticker}, que o
+ * {@code GET /alcance}, pública (E35, D-9): o nome e a quantidade de atendimentos de cada cidade e de cada bairro (sem limite
+ * mínimo, D149), dos últimos 12 meses. O cálculo fica 1 hora em cache (uma única entrada) e o tempo do cache é o do {@link Ticker}, que o
  * teste troca por um falso: sem {@code Thread.sleep}. Quem passa do limite por IP (30 por minuto, o mesmo mecanismo do CEP)
  * recebe 429 com {@code Retry-After}, antes de olhar o cache. O resultado não tem dado pessoal: pode ser cacheado também
  * pelo navegador por pouco tempo.

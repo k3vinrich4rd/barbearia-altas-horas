@@ -1,5 +1,7 @@
 "use client";
-// Pendências de pagamento (A48, V8): devoluções a fazer e avisos do gateway em revisão. Só ADMIN.
+// Pendências de pagamento (A48, A7, V8): devoluções a fazer (ou as cobranças por status, filtro do canvas) e avisos do
+// gateway em revisão. O filtro vai para a API (`status`): filtrar só na tela daria resultado errado numa lista paginada.
+// Só ADMIN.
 import { useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { formatarCentavos, formatarDataEHora } from "@/api/formato";
@@ -12,6 +14,16 @@ import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { Paginacao } from "@/componentes/Paginacao";
 import { STATUS_DA_COBRANCA, type CobrancaAdmin } from "./tipos";
 
+type StatusFiltrado = "PENDENTE" | "PAGA" | "CANCELADA";
+
+/** Os filtros do canvas. "A devolver" não manda `status`: a API entrega as pendências, as mais antigas primeiro. */
+const FILTROS: { id: string; rotulo: string; titulo: string; status?: StatusFiltrado }[] = [
+  { id: "devolver", rotulo: "A devolver", titulo: "Cobranças a devolver" },
+  { id: "aguardando", rotulo: "Aguardando", titulo: "Cobranças aguardando pagamento", status: "PENDENTE" },
+  { id: "pagas", rotulo: "Pagas", titulo: "Cobranças pagas", status: "PAGA" },
+  { id: "expiradas", rotulo: "Expiradas ou canceladas", titulo: "Cobranças expiradas ou canceladas", status: "CANCELADA" },
+];
+
 const TAMANHO = 10;
 
 function motivoDaPendencia(c: CobrancaAdmin): string {
@@ -23,13 +35,20 @@ function motivoDaPendencia(c: CobrancaAdmin): string {
 
 export function PainelPendencias() {
   const [pagina, setPagina] = useState(0);
+  const [filtroId, setFiltroId] = useState("devolver");
+  const filtro = FILTROS.find((f) => f.id === filtroId) ?? FILTROS[0];
   const [paginaEventos, setPaginaEventos] = useState(0);
   const [devolvendo, setDevolvendo] = useState<CobrancaAdmin | null>(null);
   const [mensagem, setMensagem] = useState("");
   const envio = useEnvio();
   const cobrancas = useConsulta(
-    () => chamar(api().GET("/admin/pagamentos", { params: { query: { pagina, tamanho: TAMANHO } } })),
-    [pagina],
+    () =>
+      chamar(
+        api().GET("/admin/pagamentos", {
+          params: { query: { pagina, tamanho: TAMANHO, ...(filtro.status ? { status: filtro.status } : {}) } },
+        }),
+      ),
+    [pagina, filtro.status],
   );
   const eventos = useConsulta(
     () =>
@@ -63,6 +82,7 @@ export function PainelPendencias() {
     }
   }
 
+  const aDevolver = filtro.status === undefined;
   const jaRegistrada = envio.erro?.status === 422 && devolvendo !== null;
   return (
     <>
@@ -72,16 +92,31 @@ export function PainelPendencias() {
       {envio.erro && !devolvendo && <AvisoDeErro erro={envio.erro} focar={false} />}
 
       <section aria-labelledby="t-devolver">
-        <h2 id="t-devolver">Devoluções a fazer</h2>
+        <h2 id="t-devolver">{aDevolver ? "Devoluções a fazer" : "Cobranças"}</h2>
+        <div className="acoes" role="group" aria-label="Filtrar cobranças">
+          {FILTROS.map((f) => (
+            <Botao
+              key={f.id}
+              aria-pressed={f.id === filtro.id}
+              onClick={() => {
+                setFiltroId(f.id);
+                setPagina(0);
+                setMensagem("");
+              }}
+            >
+              {f.rotulo}
+            </Botao>
+          ))}
+        </div>
         <EstadoDaConsulta consulta={cobrancas}>
           {(p) =>
             p.itens.length === 0 ? (
-              <p>Nada pendente.</p>
+              <p>{aDevolver ? "Nada pendente." : "Nenhuma cobrança neste filtro."}</p>
             ) : (
               <>
-                <div className="tabela-rolavel" tabIndex={0} role="region" aria-label="Cobranças a devolver">
+                <div className="tabela-rolavel" tabIndex={0} role="region" aria-label={filtro.titulo}>
                   <table>
-                    <caption>Cobranças a devolver</caption>
+                    <caption>{filtro.titulo}</caption>
                     <thead>
                       <tr>
                         <th scope="col">Reserva</th>
@@ -89,8 +124,8 @@ export function PainelPendencias() {
                         <th scope="col">Serviço</th>
                         <th scope="col">Valor</th>
                         <th scope="col">Status</th>
-                        <th scope="col">Motivo</th>
-                        <th scope="col">Ação</th>
+                        {aDevolver && <th scope="col">Motivo</th>}
+                        {aDevolver && <th scope="col">Ação</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -109,19 +144,21 @@ export function PainelPendencias() {
                           <td>{c.reserva?.servico ?? "—"}</td>
                           <td className="preco">{formatarCentavos(c.valorCentavos)}</td>
                           <td>{STATUS_DA_COBRANCA[c.status] ?? c.status}</td>
-                          <td>{motivoDaPendencia(c)}</td>
-                          <td>
-                            <Botao
-                              aria-label={`Registrar devolução de ${formatarCentavos(c.valorCentavos)} para ${c.contato?.nome ?? "o cliente"}`}
-                              onClick={() => {
-                                envio.limparErro();
-                                setMensagem("");
-                                setDevolvendo(c);
-                              }}
-                            >
-                              Registrar devolução
-                            </Botao>
-                          </td>
+                          {aDevolver && <td>{motivoDaPendencia(c)}</td>}
+                          {aDevolver && (
+                            <td>
+                              <Botao
+                                aria-label={`Registrar devolução de ${formatarCentavos(c.valorCentavos)} para ${c.contato?.nome ?? "o cliente"}`}
+                                onClick={() => {
+                                  envio.limparErro();
+                                  setMensagem("");
+                                  setDevolvendo(c);
+                                }}
+                              >
+                                Registrar devolução
+                              </Botao>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

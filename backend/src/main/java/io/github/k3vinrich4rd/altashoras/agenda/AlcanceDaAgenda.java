@@ -24,21 +24,17 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 /**
  * API pública da agenda para o alcance por região (Fatia 6C, ADR 0002): de onde vêm os atendimentos, por cidade e bairro.
  * O painel (módulo admin) pergunta aqui e nunca lê a tabela da reserva. Só entram reservas CONFIRMADO e CONCLUIDO (E31) e
- * nenhum grupo com menos de {@value #K_MINIMO} atendimentos aparece com nome (k-anonimato, E32).
+ * toda cidade e todo bairro aparece, com a quantidade exata (D149: sem limite mínimo, risco aceito pelo Kevin).
  * O ADMIN vê todos os barbeiros ou filtra por um; o BARBEIRO vê sempre só os próprios atendimentos: o {@code barbeiroId}
  * que ele mandar é trocado pelo dele (E36).
  */
 @Service
 public class AlcanceDaAgenda {
 
-    /** Menor grupo que aparece com nome: abaixo disso entra em "Outros bairros" ou "Outras cidades" (E32). */
-    public static final int K_MINIMO = 5;
     /** Período máximo do painel, em dias (366 cobre um ano bissexto inteiro). */
     public static final int PERIODO_MAXIMO_DIAS = 366;
     /** Padrão do painel: hoje e os 29 dias anteriores. */
     public static final int PERIODO_PADRAO_DIAS = 30;
-    public static final String OUTRAS_CIDADES = "Outras cidades";
-    public static final String OUTROS_BAIRROS = "Outros bairros";
 
     private static final DateTimeFormatter FORMATO = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 
@@ -46,20 +42,23 @@ public class AlcanceDaAgenda {
     public record Periodo(LocalDate de, LocalDate ate) {
     }
 
-    /** Abaixo do limite ("Outros bairros" com menos de 5): {@code atendimentos} e {@code percentual} nulos e {@code abaixoDoLimite} verdadeiro (D114). */
-    public record Bairro(String bairro, @Nullable Long atendimentos, @Nullable Double percentual, boolean abaixoDoLimite) {
+    /** Um bairro do painel: o número exato e o percentual sobre o total do período. */
+    public record Bairro(String bairro, long atendimentos, double percentual) {
     }
 
-    /** "Outras cidades" tem {@code uf} nula e nenhum bairro. O percentual é sobre o total do período (inclui o sem região). */
-    public record Cidade(String cidade, @Nullable String uf, @Nullable Long atendimentos, @Nullable Double percentual,
-            boolean abaixoDoLimite, List<Bairro> bairros) {
+    /** O percentual é sobre o total do período (inclui o sem região). */
+    public record Cidade(String cidade, String uf, long atendimentos, double percentual, List<Bairro> bairros) {
     }
 
     public record Painel(Periodo periodo, long total, long semRegiao, List<Cidade> cidades) {
     }
 
-    /** A vitrine pública: só nomes. */
-    public record Regiao(String cidade, String uf, List<String> bairros) {
+    /** Um bairro da vitrine pública: o nome e a quantidade de atendimentos. */
+    public record BairroPublico(String bairro, long atendimentos) {
+    }
+
+    /** A vitrine pública: nome e quantidade de atendimentos por cidade e por bairro, do maior para o menor. */
+    public record Regiao(String cidade, String uf, long atendimentos, List<BairroPublico> bairros) {
     }
 
     public record Publico(String atualizadoEm, int totalCidades, int totalBairros, List<Regiao> regioes) {
@@ -98,7 +97,7 @@ public class AlcanceDaAgenda {
                 utc(fim.plusDays(1).atStartOfDay(fuso).toInstant()), alvo);
     }
 
-    /** A vitrine pública: os últimos 12 meses de todos os barbeiros, só nomes de quem passa no k ≥ 5. Sem cache aqui (E35). */
+    /** A vitrine pública: os últimos 12 meses de todos os barbeiros, nome e quantidade de cada cidade e bairro, sem limite mínimo (D149). Sem cache aqui (E35). */
     @Transactional(readOnly = true)
     public Publico publico() {
         ZoneId fuso = fuso();
@@ -108,9 +107,8 @@ public class AlcanceDaAgenda {
                 utc(hoje.minusMonths(12).atStartOfDay(fuso).toInstant()),
                 utc(hoje.plusDays(1).atStartOfDay(fuso).toInstant()), null);
         List<Regiao> regioes = painel.cidades().stream()
-                .filter(c -> c.uf() != null)
-                .map(c -> new Regiao(c.cidade(), c.uf(), c.bairros().stream().map(Bairro::bairro)
-                        .filter(nome -> !OUTROS_BAIRROS.equals(nome)).toList()))
+                .map(c -> new Regiao(c.cidade(), c.uf(), c.atendimentos(),
+                        c.bairros().stream().map(b -> new BairroPublico(b.bairro(), b.atendimentos())).toList()))
                 .toList();
         int bairros = regioes.stream().mapToInt(r -> r.bairros().size()).sum();
         return new Publico(FORMATO.format(agora.atZone(fuso)), regioes.size(), bairros, regioes);

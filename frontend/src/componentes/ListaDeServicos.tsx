@@ -52,7 +52,13 @@ export function ServicosDaHome() {
   );
 }
 
-/** "De onde vêm nossos clientes": só nomes, sem número. Qualquer falha ou lista vazia: o bloco não aparece. */
+const atendimentos = (n: number) => `${n} ${n === 1 ? "atendimento" : "atendimentos"}`;
+
+/**
+ * "De onde vêm nossos clientes" (A13, A14): cada cidade com a quantidade de atendimentos em destaque e os bairros com o
+ * número de cada um, do maior para o menor como a API manda (D149: sem limite mínimo). Só região e número, nunca nome nem
+ * contato. Qualquer falha ou lista vazia: o bloco não aparece.
+ */
 export function AlcanceDaHome() {
   const [alcance, setAlcance] = useState<AlcancePublico | undefined>();
   useEffect(() => {
@@ -72,11 +78,23 @@ export function AlcanceDaHome() {
       <h2 id="alcance-titulo">De onde vêm nossos clientes</h2>
       <ul className="lista-regioes">
         {alcance.regioes.map((r) => (
-          <li key={`${r.cidade}-${r.uf}`}>
-            <strong>
-              {r.cidade} - {r.uf}
-            </strong>
-            {r.bairros.length > 0 && <span className="destaque">{r.bairros.join(" · ")}</span>}
+          <li key={`${r.cidade}-${r.uf}`} className="regiao">
+            <p className="regiao-cidade">
+              <strong>{r.cidade}</strong>
+              <span aria-hidden="true"> · </span>
+              <span className="regiao-quantidade">{atendimentos(r.atendimentos)}</span>
+            </p>
+            {r.bairros.length > 0 && (
+              <ul className="regiao-bairros" aria-label={`Bairros de ${r.cidade}`}>
+                {r.bairros.map((b) => (
+                  <li key={b.bairro}>
+                    <span>{b.bairro}</span>
+                    <strong className="regiao-numero">{b.atendimentos}</strong>
+                    <span className="so-leitor"> {b.atendimentos === 1 ? "atendimento" : "atendimentos"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

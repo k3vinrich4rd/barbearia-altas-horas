@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** A71 a A73: a vitrine pública (GET /alcance): só nomes, k ≥ 5, 12 meses, cache de 1 hora e limite por IP (E35, D-9). */
+/** A71 a A73: a vitrine pública (GET /alcance): nome e quantidade, sem limite mínimo (D149), 12 meses, cache de 1 hora e limite por IP (E35, D-9). */
 class AlcancePublicoIT extends AlcanceBase {
 
     private ResultActions vitrine(String deOnde) throws Exception {
@@ -22,37 +22,44 @@ class AlcancePublicoIT extends AlcanceBase {
     }
 
     @Test
-    @DisplayName("A71: no cenário do A67, GET /alcance sem token devolve só Osasco com Centro, totalCidades 1, totalBairros 1 e nenhum número de atendimentos no JSON")
-    void soNomesSemContagens() throws Exception {
+    @DisplayName("A71: no cenário do A67, GET /alcance sem token devolve Osasco (6) com Centro (6) e São Paulo (2) com Sé (2), do maior para o menor, totalCidades 2, totalBairros 2, sem Outras cidades, sem percentual e sem semRegiao")
+    void nomeEQuantidadePorCidadeEBairro() throws Exception {
         cenarioDoA67();
 
         String corpo = vitrine("203.0.113.71").andExpect(status().isOk())
                 .andExpect(jsonPath("$.atualizadoEm").value("2026-11-17T08:00:00-03:00"))
-                .andExpect(jsonPath("$.totalCidades").value(1))
-                .andExpect(jsonPath("$.totalBairros").value(1))
-                .andExpect(jsonPath("$.regioes.length()").value(1))
+                .andExpect(jsonPath("$.totalCidades").value(2))
+                .andExpect(jsonPath("$.totalBairros").value(2))
+                .andExpect(jsonPath("$.regioes.length()").value(2))
                 .andExpect(jsonPath("$.regioes[0].cidade").value("Osasco"))
                 .andExpect(jsonPath("$.regioes[0].uf").value("SP"))
+                .andExpect(jsonPath("$.regioes[0].atendimentos").value(6))
                 .andExpect(jsonPath("$.regioes[0].bairros.length()").value(1))
-                .andExpect(jsonPath("$.regioes[0].bairros[0]").value("Centro"))
-                .andExpect(jsonPath("$.regioes[0].atendimentos").doesNotExist())
+                .andExpect(jsonPath("$.regioes[0].bairros[0].bairro").value("Centro"))
+                .andExpect(jsonPath("$.regioes[0].bairros[0].atendimentos").value(6))
+                .andExpect(jsonPath("$.regioes[1].cidade").value("São Paulo"))
+                .andExpect(jsonPath("$.regioes[1].atendimentos").value(2))
+                .andExpect(jsonPath("$.regioes[1].bairros[0].bairro").value("Sé"))
+                .andExpect(jsonPath("$.regioes[1].bairros[0].atendimentos").value(2))
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(corpo).doesNotContain("atendimentos").doesNotContain("percentual").doesNotContain("semRegiao")
-                .doesNotContain("Outras cidades").doesNotContain("Outros bairros").doesNotContain("São Paulo");
+        assertThat(corpo).doesNotContain("percentual").doesNotContain("semRegiao").doesNotContain("Outras cidades")
+                .doesNotContain("Outros bairros").doesNotContain("abaixoDoLimite").doesNotContain("Visitante");
     }
 
     @Test
-    @DisplayName("A72: atendimentos de 13 meses atrás num bairro com 5 ou mais não aparecem na vitrine (só os últimos 12 meses); os de 11 meses atrás aparecem")
+    @DisplayName("A72: atendimentos de 13 meses atrás num bairro não aparecem na vitrine (só os últimos 12 meses); os de 11 meses atrás aparecem com a quantidade, mesmo com poucos")
     void soOsUltimosDozeMeses() throws Exception {
         Catalogo c = catalogo();
         atendimentosEm(5, c.barbeiro(), c.servico(), LocalDate.of(2025, 10, 14), "Vila Antiga", "Barueri", "SP"); // 13 meses
-        atendimentosEm(5, c.barbeiro(), c.servico(), LocalDate.of(2025, 12, 16), "Jardim Novo", "Carapicuíba", "SP"); // 11 meses
+        atendimentosEm(2, c.barbeiro(), c.servico(), LocalDate.of(2025, 12, 16), "Jardim Novo", "Carapicuíba", "SP"); // 11 meses
 
         vitrine("203.0.113.72").andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCidades").value(1))
                 .andExpect(jsonPath("$.regioes[0].cidade").value("Carapicuíba"))
-                .andExpect(jsonPath("$.regioes[0].bairros[0]").value("Jardim Novo"))
+                .andExpect(jsonPath("$.regioes[0].atendimentos").value(2))
+                .andExpect(jsonPath("$.regioes[0].bairros[0].bairro").value("Jardim Novo"))
+                .andExpect(jsonPath("$.regioes[0].bairros[0].atendimentos").value(2))
                 .andExpect(jsonPath("$.regioes[?(@.cidade == 'Barueri')]").isEmpty());
     }
 
@@ -88,5 +95,28 @@ class AlcancePublicoIT extends AlcanceBase {
 
         relogio.avancar(Duration.ofMinutes(1));
         vitrine(ip).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("A19: a vitrine mostra todas as cidades e bairros com a quantidade, ordenados do maior para o menor, inclusive o bairro de 1 atendimento, e sem nada de pessoa (nenhum nome de cliente no JSON)")
+    void vitrineSemLimiteMinimoOrdenadaPorQuantidade() throws Exception {
+        Catalogo c = catalogo();
+        atendimentos(1, c.barbeiro(), c.servico(), "Vila Yara", "Osasco", "SP");
+        atendimentos(4, c.barbeiro(), c.servico(), "Centro", "Osasco", "SP");
+        atendimentos(1, c.barbeiro(), c.servico(), "Centro", "Barueri", "SP");
+
+        String corpo = vitrine("203.0.113.79").andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCidades").value(2))
+                .andExpect(jsonPath("$.totalBairros").value(3))
+                .andExpect(jsonPath("$.regioes[0].cidade").value("Osasco"))
+                .andExpect(jsonPath("$.regioes[0].atendimentos").value(5))
+                .andExpect(jsonPath("$.regioes[0].bairros[0].bairro").value("Centro"))
+                .andExpect(jsonPath("$.regioes[0].bairros[0].atendimentos").value(4))
+                .andExpect(jsonPath("$.regioes[0].bairros[1].bairro").value("Vila Yara"))
+                .andExpect(jsonPath("$.regioes[0].bairros[1].atendimentos").value(1))
+                .andExpect(jsonPath("$.regioes[1].cidade").value("Barueri"))
+                .andExpect(jsonPath("$.regioes[1].atendimentos").value(1))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(corpo).doesNotContain("Visitante").doesNotContain("@").doesNotContain("whatsapp");
     }
 }

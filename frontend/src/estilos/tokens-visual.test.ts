@@ -64,4 +64,25 @@ describe("tokens visuais", () => {
     expect(html.type).toBe("html");
     expect(html.props["data-theme"]).toBe("escuro");
   });
+
+  test("A12: o verificador olha o bloco inteiro de declarações: color numa linha e a cor nomeada na seguinte também é reprovada, com a linha certa", () => {
+    const pasta = mkdtempSync(join(tmpdir(), "css-bloco-"));
+    try {
+      mkdirSync(join(pasta, "x"));
+      writeFileSync(
+        join(pasta, "x", "quebrado.css"),
+        ".a {\n  color:\n    red;\n}\n" +
+          ".b {\n  border: var(--traco-1)\n    solid\n    white;\n}\n" +
+          ".c {\n  background:\n    var(--fundo);\n  color: var(--texto);\n}\n",
+      );
+      const problemas: string[] = verificar(pasta);
+      expect(problemas.some((p) => /quebrado\.css:2 cor nomeada \(red\)/.test(p))).toBe(true);
+      expect(problemas.some((p) => /quebrado\.css:6 cor nomeada \(white\)/.test(p))).toBe(true);
+      // o bloco .c usa só token, em duas linhas: não tem problema
+      expect(problemas.filter((p) => /quebrado\.css:(1[0-4])/.test(p))).toEqual([]);
+      expect(problemas).toHaveLength(2);
+    } finally {
+      rmSync(pasta, { recursive: true, force: true });
+    }
+  });
 });

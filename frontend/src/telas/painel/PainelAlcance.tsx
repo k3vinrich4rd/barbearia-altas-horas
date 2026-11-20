@@ -1,6 +1,7 @@
 "use client";
-// Alcance por região (A53, V9): só tabela, acessível, sem barras. Grupo com menos de 5 atendimentos mostra "menos de 5"
-// e nenhum percentual: a API manda os dois nulos e o front nunca calcula nem subtrai para descobrir o valor (E20, D114).
+// Alcance por região (A53, A9, A10): tabela acessível com uma barra por linha (canvas PainelAlcance). Sem limite mínimo
+// (D149): toda cidade e todo bairro aparece com o número exato e o percentual que a API manda; o front nunca calcula.
+// A barra é só um desenho do mesmo percentual da tabela (aria-hidden, só tokens): nenhum número a mais.
 import { useState, type FormEvent } from "react";
 import { api, chamar } from "@/api/cliente";
 import { useConsulta } from "@/api/hooks";
@@ -19,8 +20,12 @@ function diasEntre(de: string, ate: string): number {
   return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / 86_400_000) + 1;
 }
 
-const NAO_MOSTRA = "menos de 5";
 const percentual = (n: number) => `${n.toFixed(1).replace(".", ",")}%`;
+
+/** O desenho do percentual: o mesmo número da coluna Parcela, sem texto próprio (a tabela é a fonte). */
+function Barra({ valor }: { valor: number }) {
+  return <progress className="barra" max={100} value={valor} tabIndex={-1} />;
+}
 
 interface Filtro {
   de: string;
@@ -68,8 +73,7 @@ export function PainelAlcance() {
     <>
       <h1>Alcance por região</h1>
       <p>
-        De onde vêm os atendimentos, pelo CEP informado. Só somas: grupos com menos de 5 atendimentos não mostram
-        número.
+        De onde vêm os atendimentos, pelo CEP informado. Só somas por região: nenhum nome nem contato de cliente aparece.
       </p>
       <form onSubmit={aplicar} noValidate aria-label="Filtro do alcance">
         <Campo id="a-de" rotulo="De" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
@@ -115,14 +119,20 @@ export function PainelAlcance() {
                       <th scope="col">Cidade e bairro</th>
                       <th scope="col">Atendimentos</th>
                       <th scope="col">Parcela</th>
+                      <th scope="col">
+                        <span className="so-leitor">Barra da parcela (só desenho; o número está na coluna Parcela)</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {a.cidades.flatMap((c) => [
-                      <tr key={`c-${c.cidade}`}>
-                        <th scope="row">{c.uf ? `${c.cidade}, ${c.uf}` : c.cidade}</th>
-                        <td>{c.abaixoDoLimite ? NAO_MOSTRA : c.atendimentos}</td>
-                        <td>{c.abaixoDoLimite || c.percentual === null ? "—" : percentual(c.percentual)}</td>
+                      <tr key={`c-${c.cidade}-${c.uf}`} className="alcance-cidade">
+                        <th scope="row">{`${c.cidade}, ${c.uf}`}</th>
+                        <td>{c.atendimentos}</td>
+                        <td>{percentual(c.percentual)}</td>
+                        <td aria-hidden="true">
+                          <Barra valor={c.percentual} />
+                        </td>
                       </tr>,
                       ...c.bairros.map((b) => (
                         <tr key={`b-${c.cidade}-${b.bairro}`} className="alcance-bairro">
@@ -130,8 +140,11 @@ export function PainelAlcance() {
                             <span className="so-leitor">{c.cidade}: </span>
                             {b.bairro}
                           </th>
-                          <td>{b.abaixoDoLimite ? NAO_MOSTRA : b.atendimentos}</td>
-                          <td>{b.abaixoDoLimite || b.percentual === null ? "—" : percentual(b.percentual)}</td>
+                          <td>{b.atendimentos}</td>
+                          <td>{percentual(b.percentual)}</td>
+                          <td aria-hidden="true">
+                            <Barra valor={b.percentual} />
+                          </td>
                         </tr>
                       )),
                     ])}

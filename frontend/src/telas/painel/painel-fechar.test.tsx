@@ -17,6 +17,13 @@ afterEach(() => vi.useRealTimers());
 
 const RESERVA = agendamentoAdmin({ id: "a2", version: 3 });
 
+/** Clica no bloco da reserva na grade e devolve o item (data-estado) e o painel de detalhes ao lado, onde ficam as ações. */
+async function escolher(user: ReturnType<typeof renderizar>["user"], nome: RegExp = /Rafael Souza/) {
+  const item = (await screen.findByText(nome)).closest('[role="listitem"]') as HTMLElement;
+  await user.click(within(item).getByRole("button"));
+  return { item, detalhe: screen.getByRole("complementary") };
+}
+
 function agenda(leituras: { n: number }) {
   servidor.use(
     http.get(`${BFF}/admin/agenda`, () => {
@@ -42,24 +49,24 @@ describe("fechar atendimento", () => {
       }),
     );
     const { user, unmount } = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const { item, detalhe } = await escolher(user);
 
     // sucesso: PATCH com status e version = 3; durante o envio os botões ficam desabilitados
-    await user.click(within(item).getByRole("button", { name: "Concluído" }));
-    expect(within(item).getByRole("button", { name: "Não compareceu" })).toBeDisabled();
+    await user.click(within(detalhe).getByRole("button", { name: "Concluído" }));
+    expect(within(detalhe).getByRole("button", { name: "Não compareceu" })).toBeDisabled();
     expect(await screen.findByText("Atendimento concluído.")).toBeInTheDocument();
     expect(screen.getByText("Atendimento concluído.").closest("[role=status]")).not.toBeNull();
     expect(corpos[0]).toEqual({ status: "CONCLUIDO", version: 3 });
     await vi.waitFor(() => expect(item).toHaveAttribute("data-estado", "concluido"));
-    expect(within(item).queryByRole("button", { name: "Concluído" })).toBeNull();
+    expect(within(screen.getByRole("complementary")).queryByRole("button", { name: "Concluído" })).toBeNull();
     expect(leituras.n).toBe(1); // só o item mudou: a agenda não foi lida de novo
     unmount();
 
     // antes do início: 422 TRANSICAO_INVALIDA vira texto claro
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(422, "TRANSICAO_INVALIDA")));
     const segundo = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item2 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
-    await segundo.user.click(within(item2).getByRole("button", { name: "Concluído" }));
+    const { detalhe: detalhe2 } = await escolher(segundo.user);
+    await segundo.user.click(within(detalhe2).getByRole("button", { name: "Concluído" }));
     expect(await screen.findByText("Só dá para fechar o atendimento depois do horário de início.")).toBeInTheDocument();
     segundo.unmount();
 
@@ -68,8 +75,8 @@ describe("fechar atendimento", () => {
     agenda(leiturasConflito);
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(409, "CONFLITO_DE_VERSAO")));
     const terceiro = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item3 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
-    await terceiro.user.click(within(item3).getByRole("button", { name: "Concluído" }));
+    const { detalhe: detalhe3 } = await escolher(terceiro.user);
+    await terceiro.user.click(within(detalhe3).getByRole("button", { name: "Concluído" }));
     expect(await screen.findByText(/Alguém mexeu neste agendamento antes de você/)).toBeInTheDocument();
     await vi.waitFor(() => expect(leiturasConflito.n).toBe(2));
     terceiro.unmount();
@@ -84,8 +91,8 @@ describe("fechar atendimento", () => {
       }),
     );
     const quarto = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item4 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
-    await quarto.user.click(within(item4).getByRole("button", { name: "Não compareceu" }));
+    const { item: item4, detalhe: detalhe4 } = await escolher(quarto.user);
+    await quarto.user.click(within(detalhe4).getByRole("button", { name: "Não compareceu" }));
     const dialogo = screen.getByRole("dialog");
     expect(dialogo).toHaveTextContent("O valor pago fica retido");
     expect(faltas).toHaveLength(0);

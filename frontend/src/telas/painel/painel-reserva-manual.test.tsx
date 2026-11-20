@@ -50,7 +50,7 @@ describe("reserva manual", () => {
 
     const { user } = renderizar(<PainelReservaManual />, ADMIN);
     expect(await screen.findByRole("option", { name: "Rafa" })).toBeInTheDocument();
-    expect(screen.getByText(/Não digite telefone nem documento/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Não digite telefone nem documento/).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText(/whatsapp|e-mail|cpf/i)).toBeNull(); // a API não guarda contato do cliente
     await preencher(user, true);
     await user.type(screen.getByLabelText("Nome do cliente (opcional)"), "Seu Jorge");
@@ -114,5 +114,16 @@ describe("reserva manual", () => {
     resposta = () => erro(404, "RECURSO_NAO_ENCONTRADO");
     await user.click(screen.getByRole("button", { name: "Criar reserva" }));
     expect(await screen.findByText("Não encontramos o que você procura.")).toBeInTheDocument();
+  });
+
+  test("A11: o aviso de não digitar telefone nem documento fica na ajuda do campo Nome do cliente e também na da Observação, ligado ao campo pela descrição acessível", async () => {
+    servidor.use(http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])));
+    renderizar(<PainelReservaManual />, ADMIN);
+    const nome = await screen.findByLabelText("Nome do cliente (opcional)");
+    expect(nome).toHaveAccessibleDescription(/Não digite telefone nem documento/);
+    expect(screen.getByLabelText("Observação (opcional)")).toHaveAccessibleDescription(
+      /Não digite telefone nem documento/,
+    );
+    expect(screen.getAllByText(/Não digite telefone nem documento/)).toHaveLength(2);
   });
 });

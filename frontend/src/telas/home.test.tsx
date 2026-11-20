@@ -9,7 +9,7 @@ vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modu
 ligarServidor();
 
 describe("home", () => {
-  test("A16: um h1, a história, os serviços com nome, duração e preço da API, as regiões sem número e um link principal", async () => {
+  test("A16: um h1, a história, os serviços com nome, duração e preço da API, as regiões com a quantidade de atendimentos e um link principal", async () => {
     servidor.use(
       http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
       http.get(`${BFF}/alcance`, () =>
@@ -17,7 +17,7 @@ describe("home", () => {
           atualizadoEm: "2026-11-18T00:00:00Z",
           totalCidades: 1,
           totalBairros: 1,
-          regioes: [{ cidade: "Osasco", uf: "SP", bairros: ["Centro"] }],
+          regioes: [{ cidade: "Osasco", uf: "SP", atendimentos: 42, bairros: [{ bairro: "Centro", atendimentos: 30 }] }],
         }),
       ),
     );
@@ -35,9 +35,8 @@ describe("home", () => {
     expect(lista[1]).toHaveTextContent("R$ 55,00");
 
     const bloco = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;
-    expect(bloco).toHaveTextContent("Osasco - SP");
-    expect(bloco).toHaveTextContent("Centro");
-    expect(bloco.textContent).not.toMatch(/\d/);
+    expect(bloco).toHaveTextContent("Osasco · 42 atendimentos");
+    expect(bloco).toHaveTextContent("Centro30");
 
     const principais = screen.getAllByRole("link", { name: "Agendar horário" });
     expect(principais).toHaveLength(1);

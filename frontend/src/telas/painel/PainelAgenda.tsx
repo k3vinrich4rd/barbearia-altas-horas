@@ -1,9 +1,11 @@
 "use client";
-// Agenda do painel (A45 a A47, V7): lista ordenada por horário com o almoço intercalado, fechar o atendimento e cancelar.
-// Cada item sai com data-estado E com o status em texto; a forma de cada estado é do CSS (README, "Padrões da agenda").
+// Agenda do painel (A45 a A47, V7, A1 a A6 da 7C): o dia é uma GRADE DE HORAS de 30 em 30 minutos (canvas PainelAgenda),
+// com o almoço listrado e cada reserva no bloco certo; clicar num bloco abre os detalhes e as ações ao lado. A semana
+// continua em lista (o canvas não desenha a semana). Cada reserva sai com data-estado E com o status em texto; a forma
+// de cada estado é do CSS (README, "Padrões da agenda"). A ordem de leitura é por horário, a mesma da grade.
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { ErroApi } from "@/api/erro";
 import { diaNoFuso, formatarHora, somarDias } from "@/api/formato";
@@ -23,6 +25,8 @@ import { Dialogo } from "@/componentes/Dialogo";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
 import { useSessao } from "@/componentes/Sessao";
+import { STATUS_DA_RESERVA } from "@/telas/status";
+import { montarGrade } from "./grade";
 import {
   almocosDoDia,
   emMinutos,
@@ -70,6 +74,24 @@ function entradasDoDia(dia: string, itens: AgendamentoAdmin[], jornada: Interval
   return lista.sort((a, b) => a.minutos - b.minutos);
 }
 
+/** O selo do bloco, como no canvas: PAGO, MANUAL · WHATSAPP ou, nos outros estados, a etiqueta com forma e palavra. */
+function SeloDoBloco({ item }: { item: AgendamentoAdmin }) {
+  if (item.status !== "CONFIRMADO") return <EtiquetaDeStatus status={item.status} />;
+  if (item.origem === "MANUAL") return <span className="selo-origem">MANUAL · WHATSAPP</span>;
+  if (item.cobrancaStatus === "PAGA") return <span className="selo-origem">PAGO</span>;
+  return null;
+}
+
+function textoDoBloco(item: AgendamentoAdmin): string | null {
+  if (item.status === "AGUARDANDO_PAGAMENTO" && item.expiraEm)
+    return `Aguardando pagamento até ${formatarHora(item.expiraEm)}`;
+  if (item.status === "CONFIRMADO")
+    return item.origem === "MANUAL" && item.observacao
+      ? `Confirmado · Obs.: ${item.observacao}`
+      : STATUS_DA_RESERVA.CONFIRMADO;
+  return null;
+}
+
 export function PainelAgenda() {
   const sessao = useSessao();
   const busca = useSearchParams();
@@ -81,6 +103,7 @@ export function PainelAgenda() {
   const [barbeiroId, setBarbeiroId] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [substituidos, setSubstituidos] = useState<Record<string, AgendamentoAdmin>>({});
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<AgendamentoAdmin | null>(null);
   const [confirmandoFalta, setConfirmandoFalta] = useState<AgendamentoAdmin | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -115,6 +138,7 @@ export function PainelAgenda() {
 
   function andar(passo: number) {
     setData((d) => somarDias(d, passo * (visao === "SEMANA" ? 7 : 1)));
+    setSelecionadoId(null);
     setMensagem("");
   }
 
@@ -163,11 +187,56 @@ export function PainelAgenda() {
       ? formatarDiaPorExtenso(data)
       : `Semana de ${formatarDiaCurto(dias[0]).slice(0, 5)} a ${formatarDiaCurto(dias[6]).slice(0, 5)}`;
 
-  function itemDaAgenda(item: AgendamentoAdmin) {
-    const atual = substituidos[item.id] ?? item;
-    const pago = atual.origem !== "MANUAL" && atual.cobrancaStatus === "PAGA";
+  /** Concluído, Não compareceu e Cancelar pela barbearia: os mesmos botões na grade (painel ao lado) e na lista da semana. */
+  function acoesDe(atual: AgendamentoAdmin, descricaoId: string) {
     const podeFechar = atual.status === "CONFIRMADO";
     const podeCancelar = admin && (atual.status === "CONFIRMADO" || atual.status === "AGUARDANDO_PAGAMENTO");
+    if (!podeFechar && !podeCancelar) return null;
+    return (
+      <div className="acoes">
+        {podeFechar && (
+          <>
+            <Botao
+              variante="principal"
+              disabled={envio.enviando}
+              aria-describedby={descricaoId}
+              onClick={() => mudar(atual, "CONCLUIDO")}
+            >
+              Concluído
+            </Botao>
+            <Botao
+              disabled={envio.enviando}
+              aria-describedby={descricaoId}
+              onClick={() => {
+                envio.limparErro();
+                setConfirmandoFalta(atual);
+              }}
+            >
+              Não compareceu
+            </Botao>
+          </>
+        )}
+        {podeCancelar && (
+          <Botao
+            disabled={envio.enviando}
+            aria-describedby={descricaoId}
+            onClick={() => {
+              envio.limparErro();
+              setMotivo("");
+              setCancelando(atual);
+            }}
+          >
+            Cancelar pela barbearia
+          </Botao>
+        )}
+      </div>
+    );
+  }
+
+  /** A semana: a lista de sempre, com os detalhes e as ações dentro de cada reserva. */
+  function itemDaLista(item: AgendamentoAdmin) {
+    const atual = substituidos[item.id] ?? item;
+    const pago = atual.origem !== "MANUAL" && atual.cobrancaStatus === "PAGA";
     const nomeId = `${tituloId}-${atual.id}`;
     return (
       <li key={atual.id} className="item agenda-item" data-estado={ESTADO_DO_STATUS[atual.status]}>
@@ -189,46 +258,157 @@ export function PainelAgenda() {
         )}
         {atual.observacao && <p>Observação: {atual.observacao}</p>}
         {atual.motivoCancelamento && <p>Motivo: {atual.motivoCancelamento}</p>}
-        {(podeFechar || podeCancelar) && (
-          <div className="acoes">
-            {podeFechar && (
-              <>
-                <Botao
-                  variante="principal"
-                  disabled={envio.enviando}
-                  aria-describedby={nomeId}
-                  onClick={() => mudar(atual, "CONCLUIDO")}
-                >
-                  Concluído
-                </Botao>
-                <Botao
-                  disabled={envio.enviando}
-                  aria-describedby={nomeId}
-                  onClick={() => {
-                    envio.limparErro();
-                    setConfirmandoFalta(atual);
-                  }}
-                >
-                  Não compareceu
-                </Botao>
-              </>
-            )}
-            {podeCancelar && (
-              <Botao
-                disabled={envio.enviando}
-                aria-describedby={nomeId}
-                onClick={() => {
-                  envio.limparErro();
-                  setMotivo("");
-                  setCancelando(atual);
-                }}
-              >
-                Cancelar pela barbearia
-              </Botao>
-            )}
-          </div>
-        )}
+        {acoesDe(atual, nomeId)}
       </li>
+    );
+  }
+
+  /** O painel ao lado da grade: detalhes da reserva escolhida e as ações (canvas: aside com aria-live). */
+  function detalhe(itens: AgendamentoAdmin[]) {
+    const escolhido = itens.find((i) => i.id === selecionadoId);
+    const atual = escolhido ? (substituidos[escolhido.id] ?? escolhido) : null;
+    if (!atual)
+      return (
+        <aside className="agenda-detalhe" aria-labelledby={`${tituloId}-det`} aria-live="polite">
+          <h3 id={`${tituloId}-det`}>Detalhes</h3>
+          <p>Escolha um horário da grade para ver os detalhes e fechar o atendimento.</p>
+        </aside>
+      );
+    const manual = atual.origem === "MANUAL";
+    const nomeId = `${tituloId}-det`;
+    return (
+      <aside className="agenda-detalhe" aria-labelledby={nomeId} aria-live="polite" data-estado={ESTADO_DO_STATUS[atual.status]}>
+        <h3 id={nomeId}>
+          {formatarHora(atual.inicio)}–{formatarHora(atual.fim)}
+        </h3>
+        <p>
+          <EtiquetaDeStatus status={atual.status} />
+        </p>
+        <dl className="agenda-dados">
+          <div>
+            <dt>Cliente</dt>
+            <dd>
+              {atual.cliente.nome}
+              {atual.cliente.whatsapp && <> · WhatsApp: {mascararWhatsapp(atual.cliente.whatsapp)}</>}
+            </dd>
+          </div>
+          <div>
+            <dt>Serviço</dt>
+            <dd>{atual.servico?.nome}</dd>
+          </div>
+          <div>
+            <dt>Origem</dt>
+            <dd>{manual ? "Reserva manual (WhatsApp), sem cobrança" : "App"}</dd>
+          </div>
+          {!manual && atual.cobrancaStatus && (
+            <div>
+              <dt>Pagamento</dt>
+              <dd>{STATUS_DA_COBRANCA[atual.cobrancaStatus] ?? atual.cobrancaStatus}</dd>
+            </div>
+          )}
+          {atual.status === "AGUARDANDO_PAGAMENTO" && atual.expiraEm && (
+            <div>
+              <dt>Prazo</dt>
+              <dd>Aguardando pagamento até {formatarHora(atual.expiraEm)}.</dd>
+            </div>
+          )}
+          {atual.observacao && (
+            <div>
+              <dt>Observação</dt>
+              <dd>{atual.observacao}</dd>
+            </div>
+          )}
+          {atual.motivoCancelamento && (
+            <div>
+              <dt>Motivo</dt>
+              <dd>{atual.motivoCancelamento}</dd>
+            </div>
+          )}
+        </dl>
+        {acoesDe(atual, nomeId)}
+      </aside>
+    );
+  }
+
+  /** O dia em grade de horas: linhas de 30 min, almoço listrado, blocos de reserva e o painel de detalhes ao lado. */
+  function gradeDoDia(dia: string, itens: AgendamentoAdmin[]) {
+    const atuais = itens.map((i) => substituidos[i.id] ?? i);
+    const almocos = jornada ? almocosDoDia(jornada, diaIsoDaSemana(dia)) : [];
+    const grade = montarGrade(atuais, almocos);
+    const confirmados = atuais.filter((i) => i.status === "CONFIRMADO").length;
+    const aguardando = atuais.filter((i) => i.status === "AGUARDANDO_PAGAMENTO").length;
+    // a ordem de leitura é a de horário: reservas e almoço juntos, como na lista da 7B
+    const ordem = [
+      ...grade.blocos.map((b) => ({ minutos: emMinutos(b.inicio), bloco: b, almoco: null })),
+      ...grade.almocos.map((a) => ({ minutos: emMinutos(a.inicio), bloco: null, almoco: a })),
+    ].sort((x, y) => x.minutos - y.minutos || (x.bloco ? -1 : 1));
+    return (
+      <>
+        <p>
+          {confirmados} confirmados · {aguardando} aguardando pagamento · linhas de 30 em 30 minutos
+        </p>
+        <div className="agenda-grade-conteudo">
+          <div className="grade" role="list" aria-label="Agenda do dia" data-faixas={grade.faixas}>
+            {grade.linhas.map((l) => (
+              <Fragment key={l.linha}>
+                <span className="grade-hora" aria-hidden="true" data-linha={l.linha}>
+                  {l.rotulo}
+                </span>
+                <span className="grade-trilho" aria-hidden="true" data-linha={l.linha} data-cheia={l.cheia} />
+              </Fragment>
+            ))}
+            {ordem.map((e) => {
+              if (e.almoco)
+                return (
+                  <div
+                    key={`almoco-${e.almoco.inicio}`}
+                    role="listitem"
+                    className="grade-almoco"
+                    data-estado="almoco"
+                    data-linha={e.almoco.linha}
+                    data-span={e.almoco.linhas}
+                  >
+                    <span>
+                      Almoço · {horaCurta(e.almoco.inicio)} às {horaCurta(e.almoco.fim)}
+                    </span>
+                  </div>
+                );
+              const { item, linha, linhas, faixa } = e.bloco!;
+              const texto = textoDoBloco(item);
+              return (
+                <div
+                  key={item.id}
+                  role="listitem"
+                  className="grade-item"
+                  data-estado={ESTADO_DO_STATUS[item.status]}
+                  data-linha={linha}
+                  data-span={linhas}
+                  data-faixa={faixa}
+                >
+                  <button
+                    type="button"
+                    className="grade-bloco"
+                    aria-pressed={item.id === selecionadoId}
+                    onClick={() => setSelecionadoId(item.id)}
+                  >
+                    <span className="grade-faixa">
+                      <span className="hora">
+                        {formatarHora(item.inicio)}–{formatarHora(item.fim)}
+                      </span>
+                      <SeloDoBloco item={item} />
+                    </span>
+                    <span className="grade-titulo">
+                      <strong>{item.servico?.nome}</strong> · {item.cliente.nome}
+                    </span>
+                    {texto && <span className="grade-texto">{texto}</span>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          {detalhe(itens)}
+        </div>
+      </>
     );
   }
 
@@ -238,16 +418,34 @@ export function PainelAgenda() {
       <div className="agenda-controles">
         <div className="acoes" role="group" aria-label="Navegar no calendário">
           <Botao onClick={() => andar(-1)}>{visao === "DIA" ? "Dia anterior" : "Semana anterior"}</Botao>
-          <Botao onClick={() => setData(hoje)} disabled={visao === "DIA" ? data === hoje : dias.includes(hoje)}>
+          <Botao
+            onClick={() => {
+              setData(hoje);
+              setSelecionadoId(null);
+            }}
+            disabled={visao === "DIA" ? data === hoje : dias.includes(hoje)}
+          >
             Hoje
           </Botao>
           <Botao onClick={() => andar(1)}>{visao === "DIA" ? "Próximo dia" : "Próxima semana"}</Botao>
         </div>
         <div className="acoes" role="group" aria-label="Visão">
-          <Botao aria-pressed={visao === "DIA"} onClick={() => setVisao("DIA")}>
+          <Botao
+            aria-pressed={visao === "DIA"}
+            onClick={() => {
+              setVisao("DIA");
+              setSelecionadoId(null);
+            }}
+          >
             Dia
           </Botao>
-          <Botao aria-pressed={visao === "SEMANA"} onClick={() => setVisao("SEMANA")}>
+          <Botao
+            aria-pressed={visao === "SEMANA"}
+            onClick={() => {
+              setVisao("SEMANA");
+              setSelecionadoId(null);
+            }}
+          >
             Semana
           </Botao>
         </div>
@@ -256,7 +454,10 @@ export function PainelAgenda() {
             id="filtro-barbeiro"
             rotulo="Barbeiro"
             value={barbeiroId}
-            onChange={(e) => setBarbeiroId(e.target.value)}
+            onChange={(e) => {
+              setBarbeiroId(e.target.value);
+              setSelecionadoId(null);
+            }}
           >
             <option value="">Todos</option>
             {barbeiros.dados?.map((b) => (
@@ -285,11 +486,12 @@ export function PainelAgenda() {
           const comConteudo = dias.filter((d) => porDia(d).length > 0);
           if (comConteudo.length === 0)
             return <p>{visao === "DIA" ? "Sem agendamentos neste dia." : "Sem agendamentos nesta semana."}</p>;
+          if (visao === "DIA") return gradeDoDia(data, porDia(data));
           return (
             <>
-              {(visao === "DIA" ? dias : comConteudo).map((dia) => (
-                <section key={dia} aria-label={visao === "DIA" ? "Agendamentos do dia" : formatarDiaPorExtenso(dia)}>
-                  {visao === "SEMANA" && <h3>{formatarDiaPorExtenso(dia)}</h3>}
+              {comConteudo.map((dia) => (
+                <section key={dia} aria-label={formatarDiaPorExtenso(dia)}>
+                  <h3>{formatarDiaPorExtenso(dia)}</h3>
                   <ul className="lista agenda-lista">
                     {entradasDoDia(dia, porDia(dia), jornada).map((e) =>
                       e.tipo === "almoco" ? (
@@ -297,7 +499,7 @@ export function PainelAgenda() {
                           Almoço · {horaCurta(e.inicio)} às {horaCurta(e.fim)}
                         </li>
                       ) : (
-                        itemDaAgenda(e.item)
+                        itemDaLista(e.item)
                       ),
                     )}
                   </ul>

@@ -164,6 +164,7 @@ export function PainelReservaManual() {
               rotulo="Nome do cliente (opcional)"
               maxLength={80}
               autoComplete="off"
+              ajuda="Não digite telefone nem documento."
               value={nomeCliente}
               onChange={(e) => setNomeCliente(e.target.value)}
               erro={texto("nomeCliente")}

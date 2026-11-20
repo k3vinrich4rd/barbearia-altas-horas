@@ -21,6 +21,10 @@
   --medida-icone-m: 1.6em;
   --medida-icone-g: 2.2em;
   --medida-menu-painel: 12rem;
+  --medida-linha-agenda: 2.75rem;
+  --medida-coluna-hora: 4rem;
+  --medida-grade-minima: 28rem;
+  --medida-detalhe-minimo: 18rem;
 }
 
 body {
@@ -916,8 +920,45 @@ blockquote footer {
   gap: var(--space-3);
 }
 
-.lista-regioes li {
+.lista-regioes > li {
   display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  border-bottom: var(--traco-1) solid var(--borda);
+}
+
+.regiao-cidade {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--tipo-titulo-banner-tamanho);
+}
+
+.regiao-quantidade {
+  font-family: var(--font-sans);
+  font-size: var(--tipo-corpo-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+  text-transform: uppercase;
+}
+
+.regiao-bairros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--texto-suave);
+}
+
+.regiao-bairros li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.regiao-numero {
+  color: var(--texto);
 }
 
 address {
@@ -1220,6 +1261,39 @@ caption {
   align-items: end;
 }
 
+.alcance-cidade th {
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+/* barra do alcance: só tokens; o <progress> é aria-hidden (o número está na coluna Parcela) */
+.barra {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: var(--space-3);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-sm);
+  background: var(--fundo);
+  color: var(--acao-fundo);
+  overflow: hidden;
+}
+
+.barra::-webkit-progress-bar {
+  background: var(--fundo);
+}
+
+.barra::-webkit-progress-value {
+  background: var(--acao-fundo);
+}
+
+.barra::-moz-progress-bar {
+  background: var(--acao-fundo);
+}
+
+.alcance-bairro .barra {
+  height: var(--space-2);
+}
+
 .alcance-bairro th {
   padding-inline-start: var(--space-8);
   font-weight: normal;
@@ -1228,6 +1302,457 @@ caption {
 textarea[aria-invalid="true"],
 select[aria-invalid="true"] {
   border: var(--traco-2) solid var(--erro);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------
+ * Agenda do dia em grade de horas (7C, A1 a A6): linhas de 30 min, almoço listrado, reservas nos blocos certos. A posição de
+ * cada elemento vem de data-linha, data-span e data-faixa (uma regra por valor: o TSX não usa style=, A56).
+ * ------------------------------------------------------------------------------------------------------------------ */
+.agenda-grade-conteudo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.grade {
+  --faixas: 1;
+  flex: 999 1 var(--medida-grade-minima);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: var(--medida-coluna-hora) repeat(var(--faixas), minmax(0, 1fr));
+  grid-auto-rows: var(--medida-linha-agenda);
+  column-gap: var(--space-3);
+  row-gap: 0;
+}
+
+.grade-hora {
+  grid-column: 1;
+  padding-top: var(--space-1);
+  font-size: var(--tipo-nota-tamanho);
+  color: var(--texto-suave);
+}
+
+.grade-trilho {
+  grid-column: 2 / -1;
+  border-top: var(--traco-1) dashed var(--borda);
+}
+
+.grade-trilho[data-cheia="true"] {
+  border-top-style: solid;
+}
+
+.grade-item,
+.grade-almoco {
+  min-height: 0;
+  margin-block: var(--space-1);
+}
+
+.grade-item {
+  grid-column: 2;
+  display: flex;
+}
+
+.grade-almoco {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--almoco-fundo) 0 var(--space-2),
+    var(--almoco-listra) var(--space-2) var(--space-3)
+  );
+}
+
+.grade-almoco span {
+  padding: var(--space-1) var(--space-3);
+  background: var(--almoco-fundo);
+  color: var(--almoco-texto);
+  font-size: var(--tipo-nota-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+  text-transform: uppercase;
+}
+
+.grade-bloco {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.grade-bloco[aria-pressed="true"] {
+  outline: var(--traco-3) solid var(--texto);
+  outline-offset: var(--traco-2);
+}
+
+.grade-faixa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.grade-texto {
+  font-size: var(--tipo-nota-tamanho);
+}
+
+.grade-item[data-estado="confirmado"] .grade-bloco {
+  background: var(--status-confirmado);
+  border: var(--traco-2) solid var(--status-confirmado);
+  color: var(--status-confirmado-texto);
+}
+
+.grade-item[data-estado="aguardando"] .grade-bloco {
+  background: var(--fundo);
+  border: var(--traco-2) dashed var(--status-aguardando);
+  color: var(--texto);
+}
+
+.grade-item[data-estado="concluido"] .grade-bloco {
+  background: var(--status-concluido);
+  border: var(--traco-1) solid var(--status-concluido);
+  color: var(--status-concluido-texto);
+}
+
+.grade-item[data-estado="nao-compareceu"] .grade-bloco {
+  background: var(--fundo);
+  border: var(--traco-2) solid var(--status-nao-compareceu);
+  color: var(--texto);
+}
+
+.grade-item[data-estado="cancelado"] .grade-bloco {
+  background: var(--superficie);
+  border: var(--traco-1) solid var(--borda-forte);
+  color: var(--status-cancelado);
+}
+
+.grade-item[data-estado="cancelado"] .grade-titulo {
+  text-decoration: line-through;
+}
+
+.grade-item[data-estado="expirado"] .grade-bloco {
+  background: var(--fundo);
+  border: var(--traco-2) dotted var(--borda-forte);
+  color: var(--status-expirado);
+}
+
+.agenda-detalhe {
+  flex: 1 1 var(--medida-detalhe-minimo);
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--superficie);
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-md);
+}
+
+.agenda-detalhe h3,
+.agenda-detalhe p {
+  margin: 0;
+}
+
+.agenda-dados {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.agenda-dados dt {
+  font-size: var(--tipo-nota-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.agenda-dados dd {
+  margin: 0;
+}
+
+/* faixas lado a lado (reservas que se sobrepõem) */
+.grade[data-faixas="2"] {
+  --faixas: 2;
+}
+
+.grade[data-faixas="3"] {
+  --faixas: 3;
+}
+
+.grade[data-faixas="4"] {
+  --faixas: 4;
+}
+
+.grade[data-faixas="5"] {
+  --faixas: 5;
+}
+
+.grade[data-faixas="6"] {
+  --faixas: 6;
+}
+
+.grade-item[data-faixa="1"] {
+  grid-column: 2;
+}
+
+.grade-item[data-faixa="2"] {
+  grid-column: 3;
+}
+
+.grade-item[data-faixa="3"] {
+  grid-column: 4;
+}
+
+.grade-item[data-faixa="4"] {
+  grid-column: 5;
+}
+
+.grade-item[data-faixa="5"] {
+  grid-column: 6;
+}
+
+.grade-item[data-faixa="6"] {
+  grid-column: 7;
+}
+
+/* linha inicial e quantas linhas ocupa (48 linhas = o dia inteiro; blocos de até 8 linhas = 4 horas) */
+.grade [data-linha="1"] {
+  grid-row-start: 1;
+}
+
+.grade [data-linha="2"] {
+  grid-row-start: 2;
+}
+
+.grade [data-linha="3"] {
+  grid-row-start: 3;
+}
+
+.grade [data-linha="4"] {
+  grid-row-start: 4;
+}
+
+.grade [data-linha="5"] {
+  grid-row-start: 5;
+}
+
+.grade [data-linha="6"] {
+  grid-row-start: 6;
+}
+
+.grade [data-linha="7"] {
+  grid-row-start: 7;
+}
+
+.grade [data-linha="8"] {
+  grid-row-start: 8;
+}
+
+.grade [data-linha="9"] {
+  grid-row-start: 9;
+}
+
+.grade [data-linha="10"] {
+  grid-row-start: 10;
+}
+
+.grade [data-linha="11"] {
+  grid-row-start: 11;
+}
+
+.grade [data-linha="12"] {
+  grid-row-start: 12;
+}
+
+.grade [data-linha="13"] {
+  grid-row-start: 13;
+}
+
+.grade [data-linha="14"] {
+  grid-row-start: 14;
+}
+
+.grade [data-linha="15"] {
+  grid-row-start: 15;
+}
+
+.grade [data-linha="16"] {
+  grid-row-start: 16;
+}
+
+.grade [data-linha="17"] {
+  grid-row-start: 17;
+}
+
+.grade [data-linha="18"] {
+  grid-row-start: 18;
+}
+
+.grade [data-linha="19"] {
+  grid-row-start: 19;
+}
+
+.grade [data-linha="20"] {
+  grid-row-start: 20;
+}
+
+.grade [data-linha="21"] {
+  grid-row-start: 21;
+}
+
+.grade [data-linha="22"] {
+  grid-row-start: 22;
+}
+
+.grade [data-linha="23"] {
+  grid-row-start: 23;
+}
+
+.grade [data-linha="24"] {
+  grid-row-start: 24;
+}
+
+.grade [data-linha="25"] {
+  grid-row-start: 25;
+}
+
+.grade [data-linha="26"] {
+  grid-row-start: 26;
+}
+
+.grade [data-linha="27"] {
+  grid-row-start: 27;
+}
+
+.grade [data-linha="28"] {
+  grid-row-start: 28;
+}
+
+.grade [data-linha="29"] {
+  grid-row-start: 29;
+}
+
+.grade [data-linha="30"] {
+  grid-row-start: 30;
+}
+
+.grade [data-linha="31"] {
+  grid-row-start: 31;
+}
+
+.grade [data-linha="32"] {
+  grid-row-start: 32;
+}
+
+.grade [data-linha="33"] {
+  grid-row-start: 33;
+}
+
+.grade [data-linha="34"] {
+  grid-row-start: 34;
+}
+
+.grade [data-linha="35"] {
+  grid-row-start: 35;
+}
+
+.grade [data-linha="36"] {
+  grid-row-start: 36;
+}
+
+.grade [data-linha="37"] {
+  grid-row-start: 37;
+}
+
+.grade [data-linha="38"] {
+  grid-row-start: 38;
+}
+
+.grade [data-linha="39"] {
+  grid-row-start: 39;
+}
+
+.grade [data-linha="40"] {
+  grid-row-start: 40;
+}
+
+.grade [data-linha="41"] {
+  grid-row-start: 41;
+}
+
+.grade [data-linha="42"] {
+  grid-row-start: 42;
+}
+
+.grade [data-linha="43"] {
+  grid-row-start: 43;
+}
+
+.grade [data-linha="44"] {
+  grid-row-start: 44;
+}
+
+.grade [data-linha="45"] {
+  grid-row-start: 45;
+}
+
+.grade [data-linha="46"] {
+  grid-row-start: 46;
+}
+
+.grade [data-linha="47"] {
+  grid-row-start: 47;
+}
+
+.grade [data-linha="48"] {
+  grid-row-start: 48;
+}
+
+.grade [data-span="1"] {
+  grid-row-end: span 1;
+}
+
+.grade [data-span="2"] {
+  grid-row-end: span 2;
+}
+
+.grade [data-span="3"] {
+  grid-row-end: span 3;
+}
+
+.grade [data-span="4"] {
+  grid-row-end: span 4;
+}
+
+.grade [data-span="5"] {
+  grid-row-end: span 5;
+}
+
+.grade [data-span="6"] {
+  grid-row-end: span 6;
+}
+
+.grade [data-span="7"] {
+  grid-row-end: span 7;
+}
+
+.grade [data-span="8"] {
+  grid-row-end: span 8;
 }
 
 @media (min-width: 60rem) {

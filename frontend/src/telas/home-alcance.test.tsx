@@ -1,4 +1,4 @@
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import Home from "@/app/page";
 import { CINCO_SERVICOS } from "@/testes/dados";
@@ -31,5 +31,60 @@ describe("home sem alcance", () => {
       expect(screen.getAllByText(/Jardim Bonança, em Osasco/).length).toBeGreaterThan(0);
       cleanup();
     }
+  });
+});
+
+describe("home com alcance (7C)", () => {
+  test("A13: cada cidade com a quantidade em destaque e os bairros com o número, do maior para o menor como a API manda, até o de 1 atendimento, sem percentual e sem nada de pessoa", async () => {
+    servidor.use(
+      http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+      http.get(`${BFF}/alcance`, () =>
+        HttpResponse.json({
+          atualizadoEm: "2026-11-18T00:00:00Z",
+          totalCidades: 2,
+          totalBairros: 3,
+          regioes: [
+            {
+              cidade: "Osasco",
+              uf: "SP",
+              atendimentos: 42,
+              bairros: [
+                { bairro: "Jardim Bonança", atendimentos: 31 },
+                { bairro: "Km 18", atendimentos: 10 },
+                { bairro: "Vila Yolanda", atendimentos: 1 },
+              ],
+            },
+            { cidade: "Carapicuíba", uf: "SP", atendimentos: 1, bairros: [] },
+          ],
+        }),
+      ),
+    );
+    renderizar(<Home />);
+    const bloco = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;
+
+    const cidades = bloco.querySelectorAll(".regiao-quantidade");
+    expect([...cidades].map((c) => c.textContent)).toEqual(["42 atendimentos", "1 atendimento"]);
+    expect(bloco).toHaveTextContent("Osasco · 42 atendimentos");
+    expect(bloco).toHaveTextContent("Carapicuíba · 1 atendimento");
+    const bairros = within(within(bloco).getByRole("list", { name: "Bairros de Osasco" })).getAllByRole("listitem");
+    expect(bairros.map((b) => b.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+      "Jardim Bonança31 atendimentos",
+      "Km 1810 atendimentos",
+      "Vila Yolanda1 atendimento",
+    ]);
+    expect(within(bloco).queryByRole("list", { name: "Bairros de Carapicuíba" })).toBeNull();
+    expect(bloco.textContent).not.toMatch(/%|menos de 5|Outros bairros|@/);
+  });
+
+  test("A14: sem regiões (lista vazia) o bloco inteiro some, sem título e sem aviso", async () => {
+    servidor.use(
+      http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
+      http.get(`${BFF}/alcance`, respostas.vazio),
+    );
+    renderizar(<Home />);
+    expect(await screen.findByText("Corte Clássico / Social")).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole("heading", { name: "De onde vêm nossos clientes" })).toBeNull();
+    expect(screen.queryByText(/Clientes da região/)).toBeNull();
   });
 });

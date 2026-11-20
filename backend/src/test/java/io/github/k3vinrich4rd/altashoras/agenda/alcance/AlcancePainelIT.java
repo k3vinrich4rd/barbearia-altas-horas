@@ -9,15 +9,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** A67 a A70: o painel de alcance (GET /admin/alcance), com k ≥ 5, filtro por barbeiro e escopo do BARBEIRO (E31, E32, E36). */
+/** A67 a A70: o painel de alcance (GET /admin/alcance), sem limite mínimo (D149), filtro por barbeiro e escopo do BARBEIRO (E31, D149, E36). */
 class AlcancePainelIT extends AlcanceBase {
 
     @Test
-    @DisplayName("A67: 6 atendimentos em Centro/Osasco, 2 em Sé/São Paulo, 1 EXPIRADO e 1 CONFIRMADO sem região: total 9 (o EXPIRADO fica fora), semRegiao 1, Osasco com Centro 6, os 2 de São Paulo em Outras cidades , percentuais com 1 casa decimal e, no grupo abaixo de 5 (Outras cidades), atendimentos e percentual nulos com abaixoDoLimite true")
-    void adminVeTudoComKAnonimato() throws Exception {
+    @DisplayName("A67: 6 atendimentos em Centro/Osasco, 2 em Sé/São Paulo, 1 EXPIRADO e 1 CONFIRMADO sem região: total 9 (o EXPIRADO fica fora), semRegiao 1, Osasco com Centro 6 e São Paulo com Sé 2, tudo com o número exato, do maior para o menor, percentuais com 1 casa decimal e nenhum Outras cidades nem abaixoDoLimite")
+    void adminVeTudoSemLimiteMinimo() throws Exception {
         cenarioDoA67();
 
-        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+        String corpo = get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.periodo.de").value("2026-10-19"))
                 .andExpect(jsonPath("$.periodo.ate").value("2026-11-17"))
@@ -32,51 +32,40 @@ class AlcancePainelIT extends AlcanceBase {
                 .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Centro"))
                 .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(6))
                 .andExpect(jsonPath("$.cidades[0].bairros[0].percentual").value(66.7))
-                .andExpect(jsonPath("$.cidades[1].cidade").value("Outras cidades"))
-                .andExpect(jsonPath("$.cidades[1].uf").doesNotExist())
-                .andExpect(jsonPath("$.cidades[1].abaixoDoLimite").value(true))
-                .andExpect(jsonPath("$.cidades[1].atendimentos").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.cidades[1].percentual").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.cidades[0].abaixoDoLimite").value(false))
-                .andExpect(jsonPath("$.cidades[1].bairros.length()").value(0));
+                .andExpect(jsonPath("$.cidades[1].cidade").value("São Paulo"))
+                .andExpect(jsonPath("$.cidades[1].uf").value("SP"))
+                .andExpect(jsonPath("$.cidades[1].atendimentos").value(2))
+                .andExpect(jsonPath("$.cidades[1].percentual").value(22.2))
+                .andExpect(jsonPath("$.cidades[1].bairros.length()").value(1))
+                .andExpect(jsonPath("$.cidades[1].bairros[0].bairro").value("Sé"))
+                .andExpect(jsonPath("$.cidades[1].bairros[0].atendimentos").value(2))
+                .andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(corpo).doesNotContain("Outras cidades").doesNotContain("Outros bairros")
+                .doesNotContain("abaixoDoLimite");
     }
 
     @Test
-    @DisplayName("A68: 5 atendimentos em Osasco, 4 no Centro e 1 em Presidente Altino: Osasco aparece (5) e dentro dela só Outros bairros com 5")
-    void bairrosPequenosViramOutrosBairros() throws Exception {
+    @DisplayName("A68: os bairros de uma cidade aparecem todos, até o de 1 atendimento, do maior para o menor (empate por nome): 5 no Centro, 1 em Presidente Altino e 1 em Vila Yara, com o número exato e o percentual de cada um")
+    void todoBairroApareceDoMaiorParaOMenor() throws Exception {
         Catalogo c = catalogo();
-        atendimentos(4, c.barbeiro(), c.servico(), "Centro", "Osasco", "SP");
-        atendimentos(1, c.barbeiro(), c.servico(), "Presidente Altino", "Osasco", "SP");
-
-        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(5))
-                .andExpect(jsonPath("$.cidades.length()").value(1))
-                .andExpect(jsonPath("$.cidades[0].cidade").value("Osasco"))
-                .andExpect(jsonPath("$.cidades[0].atendimentos").value(5))
-                .andExpect(jsonPath("$.cidades[0].percentual").value(100.0))
-                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(1))
-                .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Outros bairros"))
-                .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5))
-                .andExpect(jsonPath("$.cidades[0].bairros[0].abaixoDoLimite").value(false));
-    }
-
-    @Test
-    @DisplayName("A68: com 7 atendimentos em Osasco (5 no Centro e 2 em bairros pequenos), o Outros bairros tem só 2 e vem sem número: atendimentos e percentual nulos, abaixoDoLimite true")
-    void outrosBairrosAbaixoDoLimiteSemNumero() throws Exception {
-        Catalogo c = catalogo();
+        atendimentos(1, c.barbeiro(), c.servico(), "Vila Yara", "Osasco", "SP");
         atendimentos(5, c.barbeiro(), c.servico(), "Centro", "Osasco", "SP");
         atendimentos(1, c.barbeiro(), c.servico(), "Presidente Altino", "Osasco", "SP");
-        atendimentos(1, c.barbeiro(), c.servico(), "Vila Yara", "Osasco", "SP");
 
         get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(7))
+                .andExpect(jsonPath("$.cidades.length()").value(1))
                 .andExpect(jsonPath("$.cidades[0].atendimentos").value(7))
-                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(2))
+                .andExpect(jsonPath("$.cidades[0].percentual").value(100.0))
+                .andExpect(jsonPath("$.cidades[0].bairros.length()").value(3))
                 .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Centro"))
                 .andExpect(jsonPath("$.cidades[0].bairros[0].atendimentos").value(5))
-                .andExpect(jsonPath("$.cidades[0].bairros[1].bairro").value("Outros bairros"))
-                .andExpect(jsonPath("$.cidades[0].bairros[1].abaixoDoLimite").value(true))
-                .andExpect(jsonPath("$.cidades[0].bairros[1].atendimentos").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.cidades[0].bairros[1].percentual").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(jsonPath("$.cidades[0].bairros[0].percentual").value(71.4))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].bairro").value("Presidente Altino"))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].atendimentos").value(1))
+                .andExpect(jsonPath("$.cidades[0].bairros[1].percentual").value(14.3))
+                .andExpect(jsonPath("$.cidades[0].bairros[2].bairro").value("Vila Yara"))
+                .andExpect(jsonPath("$.cidades[0].bairros[2].atendimentos").value(1));
     }
 
     @Test
@@ -124,5 +113,27 @@ class AlcancePainelIT extends AlcanceBase {
                 .andExpect(status().isUnauthorized());
         get("/admin/alcance", emissor.emitir(cliente("Cliente Teste", "11988880001"), java.util.List.of("CLIENTE"), 0, false)
                 .valor()).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("A18: três cidades com 1, 3 e 2 atendimentos aparecem todas, da que mais atendeu para a que menos atendeu (3, 2, 1), cada uma com o seu bairro e o número exato, inclusive a de 1 atendimento")
+    void cidadesDoMaiorParaOMenor() throws Exception {
+        Catalogo c = catalogo();
+        atendimentos(1, c.barbeiro(), c.servico(), "Centro", "Barueri", "SP");
+        atendimentos(3, c.barbeiro(), c.servico(), "Km 18", "Osasco", "SP");
+        atendimentos(2, c.barbeiro(), c.servico(), "Vila Dirce", "Carapicuíba", "SP");
+
+        get("/admin/alcance", conta("ADMIN")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(6))
+                .andExpect(jsonPath("$.cidades.length()").value(3))
+                .andExpect(jsonPath("$.cidades[0].cidade").value("Osasco"))
+                .andExpect(jsonPath("$.cidades[0].atendimentos").value(3))
+                .andExpect(jsonPath("$.cidades[0].bairros[0].bairro").value("Km 18"))
+                .andExpect(jsonPath("$.cidades[1].cidade").value("Carapicuíba"))
+                .andExpect(jsonPath("$.cidades[1].atendimentos").value(2))
+                .andExpect(jsonPath("$.cidades[2].cidade").value("Barueri"))
+                .andExpect(jsonPath("$.cidades[2].atendimentos").value(1))
+                .andExpect(jsonPath("$.cidades[2].percentual").value(16.7))
+                .andExpect(jsonPath("$.cidades[2].bairros[0].atendimentos").value(1));
     }
 }

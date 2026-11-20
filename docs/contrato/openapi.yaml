@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.7.0
+  version: 1.8.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
@@ -329,11 +329,11 @@ paths:
     get:
       tags: [alcance]
       operationId: alcancePublico
-      summary: Cidades e bairros que a barbearia atende (só nomes, sem números)
+      summary: Cidades e bairros que a barbearia atende, com a quantidade de atendimentos
       description: |
         Rota pública (sem token), vitrine para quem vai agendar (E35). Cobre os atendimentos (`CONFIRMADO` e `CONCLUIDO`)
-        dos últimos 12 meses e lista só as cidades e os bairros com 5 ou mais atendimentos no recorte (k-anonimato, ADR 0009),
-        ordenados por volume, **sem contagens**. Nada de "Outras cidades" nem "Outros bairros" aqui. O resultado fica em cache
+        dos últimos 12 meses e lista **toda** cidade e todo bairro, com a quantidade de atendimentos, ordenados do maior para o menor
+        (sem limite mínimo: decisão do Kevin em 18/11, D149; só região e número, nunca nome nem contato). O resultado fica em cache
         no servidor por 1 hora (`atualizadoEm` diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou,
         `429` com `Retry-After`.
       security: []
@@ -952,9 +952,12 @@ paths:
     get:
       tags: [admin]
       operationId: listarAuditoria
-      summary: Ações do painel (paginado, as mais recentes primeiro)
-      description: Só ADMIN. O IP da requisição fica guardado no banco e não sai na API.
+      summary: Ações do painel (paginado, as mais recentes primeiro), com filtro opcional por ação
+      description: |
+        Só ADMIN. O IP da requisição fica guardado no banco e não sai na API. Com `acao`, só aquela ação (o `total` e as
+        páginas valem para o filtro). `acao` fora da lista, `pagina` negativa ou `tamanho` fora de 1 a 50: 400.
       parameters:
+        - { name: acao, in: query, required: false, schema: { $ref: '#/components/schemas/AcaoAuditada' } }
         - $ref: '#/components/parameters/Pagina'
         - $ref: '#/components/parameters/Tamanho'
       responses:
@@ -975,9 +978,7 @@ paths:
         ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os próprios** atendimentos (o
         `barbeiroId` da query é trocado pelo dele, E36). Conta só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no
         período (E31); reserva sem região entra em `semRegiao`. Período em dias civis no fuso da barbearia, inclusive nas
-        duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. K-anonimato (E32): bairro
-        com menos de 5 atendimentos na cidade vira "Outros bairros"; cidade com menos de 5 vira "Outras cidades" (`uf`
-        nula). O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
+        duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. Sem limite mínimo (D149): toda cidade e todo bairro aparece com o número exato, do maior para o menor. O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
       parameters:
         - { name: de, in: query, required: false, schema: { type: string, format: date }, description: 'primeiro dia do período (padrão: 29 dias antes de `ate`)' }
         - { name: ate, in: query, required: false, schema: { type: string, format: date }, description: 'último dia do período (padrão: hoje)' }
@@ -1106,6 +1107,10 @@ components:
     StatusReserva:
       type: string
       enum: [AGUARDANDO_PAGAMENTO, CONFIRMADO, CONCLUIDO, NAO_COMPARECEU, CANCELADO, EXPIRADO]
+    AcaoAuditada:
+      type: string
+      description: 'as ações que o painel grava na auditoria (lista fechada)'
+      enum: [AGENDAMENTO_MANUAL_CRIADO, AGENDAMENTO_CONCLUIDO, AGENDAMENTO_NAO_COMPARECEU, AGENDAMENTO_CANCELADO, BARBEIRO_CRIADO, BARBEIRO_ALTERADO, JORNADA_SUBSTITUIDA, FOLGA_CRIADA, FOLGA_REMOVIDA, SERVICO_CRIADO, SERVICO_ALTERADO, CONFIGURACAO_ALTERADA, DEVOLUCAO_REGISTRADA, EVENTO_REVISADO]
     StatusCobranca:
       type: string
       enum: [PENDENTE, PAGA, PAGA_APOS_EXPIRACAO, CANCELADA, FALHOU, DEVOLUCAO_PENDENTE, DEVOLVIDA]
@@ -1640,27 +1645,25 @@ components:
         semRegiao: { type: integer, description: 'atendimentos cuja região não se conhece' }
         cidades:
           type: array
-          description: 'por volume; "Outras cidades" (uf nula) por último'
+          description: 'toda cidade do período, da que mais atendeu para a que menos atendeu (sem limite mínimo, D149)'
           items:
             type: object
-            required: [cidade, uf, atendimentos, percentual, abaixoDoLimite, bairros]
+            required: [cidade, uf, atendimentos, percentual, bairros]
             properties:
               cidade: { type: string, example: Osasco }
-              uf: { type: [string, 'null'], example: SP }
-              atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
-              percentual: { type: [number, 'null'], format: double, description: 'sobre o total do período, 1 casa decimal; nulo quando abaixoDoLimite', example: 66.7 }
-              abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outras cidades" com menos de 5 atendimentos (D114)' }
+              uf: { type: string, example: SP }
+              atendimentos: { type: integer, format: int64 }
+              percentual: { type: number, format: double, description: 'sobre o total do período, 1 casa decimal', example: 66.7 }
               bairros:
                 type: array
-                description: 'por volume; "Outros bairros" por último; vazio em "Outras cidades"'
+                description: 'todo bairro informado, do maior para o menor; o bairro que o provedor não informou fica só na soma da cidade'
                 items:
                   type: object
-                  required: [bairro, atendimentos, percentual, abaixoDoLimite]
+                  required: [bairro, atendimentos, percentual]
                   properties:
                     bairro: { type: string, example: Centro }
-                    atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
-                    percentual: { type: [number, 'null'], format: double, example: 66.7 }
-                    abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outros bairros" com menos de 5 atendimentos (D114)' }
+                    atendimentos: { type: integer, format: int64 }
+                    percentual: { type: number, format: double, example: 66.7 }
     AlcancePublico:
       type: object
       required: [atualizadoEm, totalCidades, totalBairros, regioes]
@@ -1670,16 +1673,22 @@ components:
         totalBairros: { type: integer }
         regioes:
           type: array
-          description: 'por volume, sem os números'
+          description: 'por quantidade de atendimentos, do maior para o menor; só região e contagem, nunca nome nem contato de cliente (D149)'
           items:
             type: object
-            required: [cidade, uf, bairros]
+            required: [cidade, uf, atendimentos, bairros]
             properties:
               cidade: { type: string, example: Osasco }
               uf: { type: string, example: SP }
+              atendimentos: { type: integer, format: int64, example: 42 }
               bairros:
                 type: array
-                items: { type: string, example: Centro }
+                items:
+                  type: object
+                  required: [bairro, atendimentos]
+                  properties:
+                    bairro: { type: string, example: Centro }
+                    atendimentos: { type: integer, format: int64, example: 30 }
     PaginaAuditoria:
       type: object
       required: [itens, pagina, tamanho, total]

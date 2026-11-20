@@ -194,4 +194,72 @@ class AuditoriaIT extends PainelBase {
         get("/admin/auditoria", conta("BARBEIRO")).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACESSO_NEGADO"));
     }
+
+    private void linhaDeAuditoria(UUID ator, String acao, int minuto) {
+        jdbc.update("""
+                INSERT INTO auditoria_admin (ator_id, acao, recurso, recurso_id, detalhe, ip, ocorrido_em)
+                VALUES (?, ?, 'agendamento', gen_random_uuid(), '{"de":"CONFIRMADO","para":"CONCLUIDO"}'::jsonb,
+                        '10.0.0.1', ?)
+                """, ator, acao, as(0, 0).plusMinutes(minuto));
+    }
+
+    @Test
+    @DisplayName("A15: GET /admin/auditoria?acao=SERVICO_ALTERADO lista só essa ação, as mais recentes primeiro, com total e páginas do filtro (25 de 40 linhas: página 0 com 20 e página 1 com 5); sem acao, volta tudo")
+    void filtroPorAcao() throws Exception {
+        Conta admin = conta("ADMIN", "BARBEIRO");
+        for (int i = 0; i < 25; i++) {
+            linhaDeAuditoria(admin.id(), "SERVICO_ALTERADO", i);
+        }
+        for (int i = 0; i < 15; i++) {
+            linhaDeAuditoria(admin.id(), "FOLGA_CRIADA", 100 + i);
+        }
+
+        get("/admin/auditoria?acao=SERVICO_ALTERADO", admin).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(25))
+                .andExpect(jsonPath("$.itens.length()").value(20))
+                .andExpect(jsonPath("$.itens[0].ocorridoEm").value("2026-12-01T00:24:00-03:00"))
+                .andExpect(jsonPath("$.itens[?(@.acao != 'SERVICO_ALTERADO')]").isEmpty());
+        get("/admin/auditoria?acao=SERVICO_ALTERADO&pagina=1", admin).andExpect(jsonPath("$.itens.length()").value(5))
+                .andExpect(jsonPath("$.total").value(25));
+        get("/admin/auditoria?acao=EVENTO_REVISADO", admin).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0)).andExpect(jsonPath("$.itens.length()").value(0));
+        get("/admin/auditoria", admin).andExpect(jsonPath("$.total").value(40));
+        get("/admin/auditoria?acao=", admin).andExpect(jsonPath("$.total").value(40));
+    }
+
+    @Test
+    @DisplayName("A16: acao fora da lista (desconhecida, minúscula, com espaço ou injeção) dá 400 VALIDACAO_INVALIDA no campo acao e nada é gravado; as 14 ações da lista são aceitas")
+    void acaoInvalida() throws Exception {
+        Conta admin = conta("ADMIN", "BARBEIRO");
+
+        for (String ruim : List.of("NAO_EXISTE", "servico_alterado", "SERVICO_ALTERADO%20", "'%20OR%201=1--", "TESTE_1")) {
+            get("/admin/auditoria?acao=" + ruim, admin).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
+                    .andExpect(jsonPath("$.errors[0].field").value("acao"));
+        }
+        for (String acao : AuditoriaAdmin.ACOES) {
+            get("/admin/auditoria?acao=" + acao, admin).andExpect(status().isOk());
+        }
+        assertThat(AuditoriaAdmin.ACOES).hasSize(14);
+        assertThat(linhasDeAuditoria()).isZero();
+    }
+
+    @Test
+    @DisplayName("A17: o filtro devolve só campos técnicos (sem IP nem dado pessoal), BARBEIRO continua com 403 e sem token 401, e toda ação que o painel de fato grava está na lista do filtro")
+    void filtroSemDadoPessoalEComAcessoRestrito() throws Exception {
+        Acoes a = fazerAsCincoAcoes("Cliente João pediu");
+
+        String corpo = get("/admin/auditoria?acao=AGENDAMENTO_CANCELADO", a.admin()).andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.itens[0].acao").value("AGENDAMENTO_CANCELADO"))
+                .andExpect(jsonPath("$.itens[0].ip").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(corpo).doesNotContain(IP).doesNotContain("João").doesNotContain("pediu");
+        get("/admin/auditoria?acao=AGENDAMENTO_CANCELADO", conta("BARBEIRO")).andExpect(status().isForbidden());
+        mvc.perform(MockMvcRequestBuilders.get("/admin/auditoria?acao=AGENDAMENTO_CANCELADO"))
+                .andExpect(status().isUnauthorized());
+
+        List<String> gravadas = jdbc.queryForList("SELECT DISTINCT acao FROM auditoria_admin", String.class);
+        assertThat(AuditoriaAdmin.ACOES).containsAll(gravadas);
+    }
 }

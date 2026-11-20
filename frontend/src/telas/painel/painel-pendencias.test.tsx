@@ -115,4 +115,58 @@ describe("pendências de pagamento", () => {
     renderizar(<PainelPendencias />, ADMIN);
     await vi.waitFor(() => expect(screen.getAllByText("Nada pendente.")).toHaveLength(2));
   });
+
+  test("A7: o filtro de status vai para a API (A devolver sem status, Aguardando PENDENTE, Pagas PAGA, Expiradas ou canceladas CANCELADA), volta para a página 1, mostra a tabela daquele status e só A devolver tem o botão de devolução", async () => {
+    const consultas: URLSearchParams[] = [];
+    const paga = cobrancaAdmin({ id: "c9", status: "PAGA", contato: { nome: "Rafael Souza", whatsapp: "11988880001" } });
+    servidor.use(
+      http.get(`${BFF}/admin/pagamentos`, ({ request }) => {
+        const q = new URL(request.url).searchParams;
+        consultas.push(q);
+        const status = q.get("status");
+        if (status === "PAGA") return HttpResponse.json(pagina([paga], 25));
+        if (status === "PENDENTE") return HttpResponse.json(pagina([]));
+        return HttpResponse.json(pagina([cobrancaAdmin()], 25));
+      }),
+      http.get(`${BFF}/admin/pagamentos/eventos`, () => HttpResponse.json(pagina([]))),
+    );
+    const { user } = renderizar(<PainelPendencias />, ADMIN);
+
+    const grupo = await screen.findByRole("group", { name: "Filtrar cobranças" });
+    expect(within(grupo).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "A devolver",
+      "Aguardando",
+      "Pagas",
+      "Expiradas ou canceladas",
+    ]);
+    expect(within(grupo).getByRole("button", { name: "A devolver" })).toHaveAttribute("aria-pressed", "true");
+    await screen.findByRole("table", { name: "Cobranças a devolver" });
+    expect(consultas[0].has("status")).toBe(false);
+
+    // vai para a página 2 e troca o filtro: volta para a 0
+    await user.click(screen.getByRole("button", { name: "Próxima" }));
+    await vi.waitFor(() => expect(consultas.at(-1)?.get("pagina")).toBe("1"));
+    await user.click(within(grupo).getByRole("button", { name: "Pagas" }));
+    const tabela = await screen.findByRole("table", { name: "Cobranças pagas" });
+    expect(consultas.at(-1)?.get("status")).toBe("PAGA");
+    expect(consultas.at(-1)?.get("pagina")).toBe("0");
+    expect(within(grupo).getByRole("button", { name: "Pagas" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(grupo).getByRole("button", { name: "A devolver" })).toHaveAttribute("aria-pressed", "false");
+    expect(tabela).toHaveTextContent("Rafael Souza");
+    expect(tabela).toHaveTextContent("Paga");
+    expect(within(tabela).queryByRole("button")).toBeNull();
+    expect(within(tabela).queryByRole("columnheader", { name: "Ação" })).toBeNull();
+
+    await user.click(within(grupo).getByRole("button", { name: "Aguardando" }));
+    expect(await screen.findByText("Nenhuma cobrança neste filtro.")).toBeInTheDocument();
+    expect(consultas.at(-1)?.get("status")).toBe("PENDENTE");
+
+    await user.click(within(grupo).getByRole("button", { name: "Expiradas ou canceladas" }));
+    await vi.waitFor(() => expect(consultas.at(-1)?.get("status")).toBe("CANCELADA"));
+
+    await user.click(within(grupo).getByRole("button", { name: "A devolver" }));
+    const devolver = await screen.findByRole("table", { name: "Cobranças a devolver" });
+    expect(consultas.at(-1)?.has("status")).toBe(false);
+    expect(within(devolver).getAllByRole("button", { name: /Registrar devolução/ }).length).toBeGreaterThan(0);
+  });
 });
