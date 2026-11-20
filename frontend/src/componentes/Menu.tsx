@@ -1,20 +1,56 @@
 "use client";
+// Cabeçalho do site (PDF, pág. 1): marca, menu com as âncoras da home, links da conta e o botão "Agendar horário".
+// No celular o menu fica recolhido atrás do botão "Menu" (padrão Disclosure da APG), para a ação principal
+// aparecer na primeira tela. No desktop tudo fica visível. Esc fecha e devolve o foco ao botão; trocar de rota fecha.
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
+
+/** Âncoras da home, na ordem do PDF. Os ids já existem nas seções. */
+export const SECOES_DA_HOME: { href: string; texto: string }[] = [
+  { href: "/#historia", texto: "A história" },
+  { href: "/#servicos-titulo", texto: "Serviços" },
+  { href: "/#como-funciona", texto: "Como funciona" },
+  { href: "/#galeria", texto: "Galeria" },
+  { href: "/#duvidas", texto: "Dúvidas" },
+  { href: "/#onde", texto: "Onde estamos" },
+];
 
 export function Menu() {
   const sessao = useSessao();
   const router = useRouter();
+  const caminho = usePathname();
   const equipe = sessao.papeis?.some((p) => p === "ADMIN" || p === "BARBEIRO");
+  const [aberto, setAberto] = useState(false);
+  const botaoMenu = useRef<HTMLButtonElement>(null);
+
+  // Trocou de rota: o menu fecha (o FocoNoTitulo leva o foco ao h1 da página nova).
+  useEffect(() => {
+    setAberto(false);
+  }, [caminho]);
+
+  useEffect(() => {
+    if (!aberto) return;
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setAberto(false);
+      botaoMenu.current?.focus();
+    }
+    document.addEventListener("keydown", aoTeclar);
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [aberto]);
 
   async function aoSair() {
     await sessao.encerrar();
     router.push("/");
     router.refresh();
   }
+
+  const atual = (href: string) => (caminho === href ? ("page" as const) : undefined);
+  const fechar = () => setAberto(false);
 
   return (
     <header className="cabecalho">
@@ -23,46 +59,78 @@ export function Menu() {
           <Image src={IMAGENS.logo.src} alt="" width={48} height={48} />
           <span>Barbearia Altas Horas</span>
         </Link>
-        <nav aria-label="Principal" className="menu">
-          <ul>
-            <li>
-              <Link href="/servicos">Serviços</Link>
-            </li>
-            <li>
-              <Link href="/reserva">Consultar reserva</Link>
-            </li>
-            {sessao.autenticado ? (
-              <>
-                {equipe && (
+        <button
+          ref={botaoMenu}
+          type="button"
+          className="botao botao-secundario botao-menu"
+          aria-expanded={aberto}
+          aria-controls="menu-do-site"
+          onClick={() => setAberto(!aberto)}
+        >
+          {aberto ? "Fechar menu" : "Menu"}
+        </button>
+        <div id="menu-do-site" className="menu-do-site" data-aberto={aberto}>
+          <nav aria-label="Principal" className="menu">
+            <ul>
+              {SECOES_DA_HOME.map((s) => (
+                <li key={s.href}>
+                  <Link href={s.href} onClick={fechar}>
+                    {s.texto}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <nav aria-label="Conta" className="menu menu-conta">
+            <ul>
+              <li>
+                <Link href="/reserva" aria-current={atual("/reserva")}>
+                  Consultar reserva
+                </Link>
+              </li>
+              {sessao.autenticado ? (
+                <>
+                  {equipe && (
+                    <li>
+                      <Link href="/painel" aria-current={atual("/painel")}>
+                        Painel
+                      </Link>
+                    </li>
+                  )}
                   <li>
-                    <Link href="/painel">Painel</Link>
+                    <Link href="/meus-agendamentos" aria-current={atual("/meus-agendamentos")}>
+                      Meus agendamentos
+                    </Link>
                   </li>
-                )}
-                <li>
-                  <Link href="/meus-agendamentos">Meus agendamentos</Link>
-                </li>
-                <li>
-                  <Link href="/minha-conta">Meus dados</Link>
-                </li>
-                <li>
-                  <button type="button" className="botao botao-secundario" onClick={aoSair}>
-                    Sair
-                  </button>
-                </li>
-              </>
-            ) : (
-              <>
-                <li>
-                  <Link href="/entrar">Entrar</Link>
-                </li>
-                <li>
-                  <Link href="/cadastro">Criar conta</Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </nav>
-        <Link href="/agendar" className="botao botao-principal">
+                  <li>
+                    <Link href="/minha-conta" aria-current={atual("/minha-conta")}>
+                      Meus dados
+                    </Link>
+                  </li>
+                  <li>
+                    <button type="button" className="botao botao-secundario" onClick={aoSair}>
+                      Sair
+                    </button>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link href="/entrar" aria-current={atual("/entrar")}>
+                      Entrar
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/cadastro" aria-current={atual("/cadastro")}>
+                      Criar conta
+                    </Link>
+                  </li>
+                </>
+              )}
+            </ul>
+          </nav>
+        </div>
+        <Link href="/agendar" className="botao botao-principal botao-agendar-topo" aria-current={atual("/agendar")}>
           Agendar horário
         </Link>
       </div>
