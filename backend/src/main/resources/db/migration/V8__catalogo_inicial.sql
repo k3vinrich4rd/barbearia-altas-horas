@@ -21,7 +21,7 @@
 -- Barbeiro: só entra se ainda não existe um com o mesmo nome (com ou sem acento).
 -- O modelo só tem o nome de exibição; o nome completo (Carlos Eduardo Candido) não tem campo.
 INSERT INTO barbeiro (id, nome_exibicao, whatsapp)
-SELECT 'b0000000-0000-4000-8000-000000000001', 'Eduardo Candido', '11906941689'
+SELECT 'b0000000-0000-4000-8000-000000000001', 'Eduardo Candido', '11996941689'
 WHERE NOT EXISTS (
     SELECT 1 FROM barbeiro
     WHERE id = 'b0000000-0000-4000-8000-000000000001'

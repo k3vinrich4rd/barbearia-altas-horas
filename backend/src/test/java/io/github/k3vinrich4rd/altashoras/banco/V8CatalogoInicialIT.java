@@ -85,7 +85,7 @@ class V8CatalogoInicialIT {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(EDUARDO.toString()))
                 .andExpect(jsonPath("$[0].nomeExibicao").value("Eduardo Candido"))
-                .andExpect(jsonPath("$[0].whatsapp").value("11906941689"));
+                .andExpect(jsonPath("$[0].whatsapp").value("11996941689"));
     }
 
     @Test

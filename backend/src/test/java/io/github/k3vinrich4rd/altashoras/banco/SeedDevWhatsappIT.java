@@ -40,9 +40,9 @@ class SeedDevWhatsappIT {
                 StandardCharsets.UTF_8);
         assertThat(seed).doesNotContain("whatsapp");
         assertThat(jdbc.queryForObject("SELECT whatsapp FROM barbeiro WHERE nome_exibicao = 'Eduardo Candido'",
-                String.class)).isEqualTo("11906941689");
+                String.class)).isEqualTo("11996941689");
         mvc.perform(get("/barbeiros")).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nomeExibicao").value("Eduardo Candido"))
-                .andExpect(jsonPath("$[0].whatsapp").value("11906941689"));
+                .andExpect(jsonPath("$[0].whatsapp").value("11996941689"));
     }
 }

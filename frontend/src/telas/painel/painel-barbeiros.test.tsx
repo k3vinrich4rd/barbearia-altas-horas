@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-const EDUARDO = barbeiroAdmin({ whatsapp: "11906941689", usuarioId: "u-eduardo", nomeExibicao: "Eduardo Candido" });
+const EDUARDO = barbeiroAdmin({ whatsapp: "11996941689", usuarioId: "u-eduardo", nomeExibicao: "Eduardo Candido" });
 
 function lista(...barbeiros: unknown[]) {
   servidor.use(http.get(`${BFF}/admin/barbeiros`, () => HttpResponse.json(barbeiros)));
@@ -34,7 +34,7 @@ describe("barbeiros, jornada e folgas", () => {
     const tabela = await screen.findByRole("table", { name: "Barbeiros" });
     const linhas = within(tabela).getAllByRole("row").slice(1);
     expect(linhas[0]).toHaveTextContent("Eduardo Candido");
-    expect(linhas[0]).toHaveTextContent("(11) 90694-1689");
+    expect(linhas[0]).toHaveTextContent("(11) 99694-1689");
     expect(linhas[0]).toHaveTextContent("Vinculada");
     expect(linhas[0]).toHaveTextContent("Ativo");
     expect(linhas[0]).toHaveTextContent("almoço 12h às 13h");
