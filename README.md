@@ -4,16 +4,21 @@
 
 <img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Cândido, com horário garantido."/>
 
-[![Status](https://img.shields.io/badge/status-Fatias_1_a_6_8_preparada_7A_e_7B_prontas-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
+[![Site no ar](https://img.shields.io/website?url=https%3A%2F%2Fbarbearia-altas-horas.vercel.app&label=site&up_message=no%20ar%20%C2%B7%20beta&down_message=fora%20do%20ar&style=flat-square&labelColor=FFFFFF&color=0A0A0A)](https://barbearia-altas-horas.vercel.app)
+[![Status](https://img.shields.io/badge/status-beta_no_ar_·_Fatias_1_a_8-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-0A0A0A?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes-384_✔-0A0A0A?style=flat-square)](docs/guia-testes.md)
+[![Testes](https://img.shields.io/badge/testes_backend-387_✔-0A0A0A?style=flat-square)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/runs/44760774211)
+[![Contrato](https://img.shields.io/badge/OpenAPI-3.1-0A0A0A?style=flat-square&logo=openapiinitiative&logoColor=white)](docs/contrato/openapi.yaml)
+
+<h3><a href="https://barbearia-altas-horas.vercel.app">🌐 Abrir o site (beta)</a> · <a href="https://altas-horas-api.onrender.com/actuator/health">🩺 API</a> · <a href="docs/contrato/openapi.yaml">📑 Contrato</a> · <a href="docs/guia-testes.md">🧪 Testar à mão</a> · <a href="#-rodar-e-testar">🚀 Rodar agora</a></h3>
 
 <b><a href="#-a-história">A história</a></b> ·
+<a href="#-o-site-no-ar-beta">O site no ar</a> ·
 <a href="#-trajetória-e-prêmios">Trajetória e prêmios</a> ·
 <a href="#-a-barbearia">A barbearia</a> ·
 <a href="#-o-que-a-agenda-resolve">O que a agenda resolve</a> ·
@@ -44,9 +49,61 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
-> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática, e o alcance por região (de onde vêm os atendimentos, com agrupamento mínimo de 5). São **349 testes** em PostgreSQL real, 0 falhas; telas e deploy chegam nas próximas fatias ([roadmap](#-roadmap-em-fatias)).
+> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática, e o alcance por região (de onde vêm os atendimentos, com agrupamento mínimo de 5). São **387 testes** no backend em PostgreSQL real, 0 falhas ([CI da `develop`](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/runs/44760774211), merge da PR #68, 20/11/2026). As telas (Fatias 7A e 7B) e o deploy (Fatia 8) já estão no ar em beta: [site](https://barbearia-altas-horas.vercel.app) e [API](https://altas-horas-api.onrender.com/actuator/health). No beta o pagamento é simulado. A Fatia 7C (painel no canvas) está em andamento.
 
 <br clear="right"/>
+
+## 🎬 O site no ar (beta)
+
+Prints reais de [barbearia-altas-horas.vercel.app](https://barbearia-altas-horas.vercel.app), tirados com Playwright em 20/11/2026. O tema segue o do seu GitHub: escuro por padrão, claro com a marca invertida.
+
+<div align="center">
+<a href="https://barbearia-altas-horas.vercel.app">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/midia/prints/site-home-claro.png"/>
+  <img src="docs/midia/prints/site-home-escuro.png" width="90%" alt="Home do site da Barbearia Altas Horas: logo, chamada para agendar horário e a parede xadrez preta e branca"/>
+</picture>
+</a>
+</div>
+
+| A história desde 1997 | Como funciona | No celular | Dúvidas |
+|:-:|:-:|:-:|:-:|
+| <img src="docs/midia/prints/site-secao-historia.png" width="260" alt="Seção da história da barbearia com a linha do tempo de 1995 a hoje"/> | <img src="docs/midia/prints/site-secao-como-funciona.png" width="220" alt="Seção Como funciona: escolher, pagar e chegar"/> | <img src="docs/midia/prints/site-home-celular.png" width="120" alt="Home do site em tela de celular"/> | <img src="docs/midia/prints/site-secao-duvidas.png" width="220" alt="Seção de dúvidas com perguntas que abrem e fecham"/> |
+
+### Três jeitos de marcar
+
+```mermaid
+flowchart LR
+    C([Cliente]) --> A[Com conta<br/>login e Meus agendamentos]
+    C --> G[Sem cadastro<br/>nome, e-mail e WhatsApp]
+    C --> W[Pelo WhatsApp<br/>conversa com o barbeiro]
+    A --> P[Pagamento 100% antecipado<br/>Pix ou cartão · simulado no beta<br/>3 min para pagar]
+    G --> P
+    W --> M[Reserva manual no painel<br/>o barbeiro trava o horário]
+    P --> OK([Horário confirmado])
+    M --> OK
+    classDef preto fill:#0A0A0A,stroke:#C0C0C0,color:#FFFFFF
+    classDef branco fill:#FFFFFF,stroke:#0A0A0A,color:#0A0A0A
+    class C,OK preto
+    class A,G,W,P,M branco
+```
+
+<details>
+<summary><b>🖼 O fluxo de reserva sem cadastro, tela a tela</b> (perfil <code>dev</code> local, dados fictícios)</summary>
+
+<br/>
+
+O catálogo do beta publicado ainda está vazio, então estes prints são do mesmo front rodando na máquina, contra a API no perfil `dev` (serviços e barbeiros de exemplo, cliente e CPF de teste, pagamento simulado).
+
+| 1. Escolher o horário | 2. Seus dados | 3. Pagar em 3 min |
+|:-:|:-:|:-:|
+| <img src="docs/midia/prints/fluxo-agendar-horarios.png" width="260" alt="Tela de agendar com o serviço escolhido, o dia e os horários livres"/> | <img src="docs/midia/prints/fluxo-agendar-dados.png" width="260" alt="Tela de dados do visitante: nome, e-mail e WhatsApp"/> | <img src="docs/midia/prints/fluxo-pagamento-contador.png" width="260" alt="Tela de pagamento com o contador de 3 minutos e o resumo do horário"/> |
+
+| 4. Pix (simulado) | 5. Horário confirmado |
+|:-:|:-:|
+| <img src="docs/midia/prints/fluxo-pagamento-pix.png" width="260" alt="Tela do Pix copia e cola com QR Code e o botão Simular pagamento"/> | <img src="docs/midia/prints/fluxo-confirmacao.png" width="260" alt="Tela de horário confirmado com o resumo e o código da reserva"/> |
+
+</details>
 
 ## 🧭 O que tem para quem visita o projeto
 
@@ -72,8 +129,8 @@ No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, c
 - 🤖 **IA no projeto** (três coisas diferentes):
   - **RAG da documentação: existe.** Está em `ferramentas/rag/` (Spring AI 2.0.2 + pgvector + embeddings locais, busca híbrida). Medido em 17/11/2026: só vetor acerta 10 de 17 perguntas; a híbrida, 15 de 17 ([detalhes](docs/ia/rag-vetorial.md)).
   - **SDD com um teste por critério:** nada entra sem spec, e o CI cobra um teste para cada critério ([como funciona](#-como-o-projeto-é-feito-sdd--ia)).
-  - **Assistente de dúvidas para clientes: planejado** (Fatia 9). Vai nascer desligado por padrão, reaproveitando o RAG; a IA generativa só liga em produção. Não existe código disso ainda.
-- 🗺 **Status das fatias:** 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 8 (deploy grátis da API) **preparada**, aguardando a ativação pelo Kevin · 7 (telas) e 9 (assistente) planejadas. Lista completa no [roadmap](#-roadmap-em-fatias).
+  - **Assistente de dúvidas para clientes: planejado** (Fatia 9). Vai nascer desligado por padrão, reaproveitando o RAG; a IA generativa só liga no ambiente publicado, por configuração. Não existe código disso ainda.
+- 🗺 **Status das fatias:** 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 7A e 7B (telas e painel) e 8 (deploy grátis) **no ar em beta**, com pagamento simulado ([site](https://barbearia-altas-horas.vercel.app)) · 7C (painel no canvas) em andamento · 9 (assistente) planejada. Lista completa no [roadmap](#-roadmap-em-fatias).
 
 ## 🏆 Trajetória e prêmios
 
@@ -421,7 +478,13 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 384 testes com PostgreSQL real via Testcontainers
+cd backend && ./mvnw verify      # 387 testes com PostgreSQL real via Testcontainers (CI da develop, 20/11/2026)
+```
+
+O contrato da API ([`docs/contrato/openapi.yaml`](docs/contrato/openapi.yaml)) descreve cada rota, com os erros em pt-BR no formato RFC 9457. Para validar:
+
+```bash
+npx @redocly/cli lint docs/contrato/openapi.yaml   # valida o contrato OpenAPI 3.1
 ```
 
 
@@ -455,6 +518,9 @@ O passo a passo para **testar à mão, sem depender de ninguém** (o que já rod
 
 Plano da Fase 1 (D38), **sem custo e sem cartão**: API no **Render** (web service free, Docker), banco no **Aiven PostgreSQL free** (D66, plano B Neon), front no **Vercel** depois da Fatia 7 e um **backup semanal** (`pg_dump` + gpg AES-256) guardado como artefato do GitHub Actions por 30 dias.
 
+<details>
+<summary><b>📦 As peças do deploy</b> (Dockerfile, Blueprint, backup e passo a passo)</summary>
+
 | Peça | Arquivo |
 |---|---|
 | Imagem da API (JDK 25 no build, JRE 25 e usuário não-root no runtime) | [`backend/Dockerfile`](backend/Dockerfile) |
@@ -462,12 +528,14 @@ Plano da Fase 1 (D38), **sem custo e sem cartão**: API no **Render** (web servi
 | Backup semanal criptografado | [`.github/workflows/backup-banco.yml`](.github/workflows/backup-banco.yml) |
 | Passo a passo de ativação, limites do plano free e rollback | [`docs/planejamento/ativar-deploy.md`](docs/planejamento/ativar-deploy.md) |
 
+</details>
+
 ```bash
 sh scripts/testar-imagem.sh    # docker build + PostgreSQL 18 + API no perfil prod (variáveis falsas): health UP, Flyway, CORS, IP real
 sh scripts/testar-backup.sh    # pg_dump, criptografia e restauração num banco novo
 ```
 
-Nada disso está no ar ainda: a ativação (criar as contas e colar os valores) é feita pelo Kevin, com o OK dele. Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
+Está no ar em beta desde 18/11/2026: a API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)) e o front na Vercel ([site](https://barbearia-altas-horas.vercel.app)), ainda com pagamento simulado. No plano grátis, a API dorme sem uso e a primeira chamada pode passar de um minuto (em 20/11/2026 levou cerca de 90 segundos). Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
 
 ## 📐 Como o projeto é feito: SDD + IA
 
@@ -523,8 +591,9 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatia 6B · Privacidade (LGPD):** consentimento, exportar e excluir conta, retenção
 - [x] **Fatia 6C · Alcance por região:** CEP opcional do visitante, região na reserva, painel `GET /admin/alcance` e vitrine pública `GET /alcance`, com agrupamento mínimo de 5 (k-anonimato)
 - [x] **Fatia 6D · WhatsApp e reserva manual:** prazo de pagamento de 3 min, WhatsApp comercial do barbeiro em `GET /barbeiros` (o front monta `wa.me`) e `POST /admin/agendamentos` para travar no painel o horário combinado por WhatsApp, sem cobrança ([spec](docs/sdd/fatia-6d-whatsapp-e-reserva-manual.md), 28 critérios)
-- [ ] **Fatia 7 · Telas Next.js:** **7A e 7B prontas, aguardando revisão** (home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade e o painel do barbeiro: agenda, reserva manual, pendências, cadastros, auditoria e alcance; contrato 1.7.0)
-- [ ] **Fatia 8 · Deploy grátis (preparada, [spec](docs/sdd/fatia-8-deploy.md)):** imagem Docker, Blueprint do Render, banco Aiven PostgreSQL free e backup semanal criptografado, tudo testado localmente; falta a ativação (só com o OK do Kevin) e o front no Vercel, depois da 7
+- [x] **Fatias 7A e 7B · Telas Next.js no ar (beta):** [barbearia-altas-horas.vercel.app](https://barbearia-altas-horas.vercel.app) (home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade e o painel do barbeiro: agenda, reserva manual, pendências, cadastros, auditoria e alcance; contrato 1.7.0)
+- [ ] **Fatia 7C · Painel no canvas:** 🔄 em andamento (branch `wip/fatia-7c-painel-canvas`)
+- [x] **Fatia 8 · Deploy no ar (beta, [spec](docs/sdd/fatia-8-deploy.md)):** API no Render ([health UP](https://altas-horas-api.onrender.com/actuator/health)), banco Aiven PostgreSQL free, front na Vercel e backup semanal criptografado; o pagamento ainda é simulado
 - [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)
 
 ## 📚 Documentação
