@@ -9,7 +9,7 @@ Você escreve a **spec** da fatia N. Nada de código de produção nesta skill: 
 
 ## 1. Juntar o contexto (não supor)
 1. Leia `CLAUDE.md`, `docs/sdd/README.md`, `docs/sdd/modelo-de-spec.md` e a spec da fatia anterior (estilo e nível de detalhe).
-2. Descubra o escopo: README (seção "Roadmap em fatias") e, se existir na máquina, `.equipe/planejamento/plano-de-fatias.md` (S## e F## que a fatia junta).
+2. Descubra o escopo: README (seção "Roadmap em fatias") e, se existir na máquina, o plano de fatias interno (S## e F## que a fatia junta).
 3. Para cada regra citada, rode `scripts/buscar-contexto.sh R<n>` e leia a linha completa no dossiê; faça o mesmo para decisões (`D<n>`) e códigos de erro.
 4. Leia as rotas no `docs/contrato/openapi.yaml` e no `contrato-api.md`; leia a migração atual em `backend/src/main/resources/db/migration/`.
 5. Datas usadas nos critérios: confira o dia da semana com código (`python -c "import datetime; ..."`), nunca de cabeça.
@@ -25,7 +25,7 @@ Você escreve a **spec** da fatia N. Nada de código de produção nesta skill: 
 ## 3. Conferir
 - Recontar à mão os números dos critérios (ex.: quantos slots cabem).
 - Links relativos existem.
-- Nada de dado pessoal real, segredo ou conteúdo da `.equipe/`.
+- Nada de dado pessoal real, segredo ou conteúdo da área interna da equipe.
 - Atualizar a tabela "Specs" em `docs/sdd/README.md`.
 
 ## 4. Parar

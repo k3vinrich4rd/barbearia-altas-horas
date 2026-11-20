@@ -1,8 +1,8 @@
 # 0002. Comunicação entre módulos: API pública síncrona + eventos com registro de publicação
 
-- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Status: **aceito** (revisão de arquitetura, 13/11/2026)
 - Data: 2026-11-13 (proposta e aceite)
-- Decisores: Alicerce (dono), Quarteto Dev (texto)
+- Decisores: revisão de arquitetura (dona), Kevin Richard (texto)
 
 ## Contexto
 Os módulos precisam conversar sem criar ciclo (ADR 0001). Exemplo: o pagamento precisa do valor do sinal (agenda), e a agenda precisa saber que o pagamento foi confirmado (pagamento).

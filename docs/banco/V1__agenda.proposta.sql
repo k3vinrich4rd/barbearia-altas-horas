@@ -1,6 +1,6 @@
 -- =============================================================================
 -- PROPOSTA de migração Flyway V1 · Barbearia Altas Horas · 13/11/2026
--- Status: proposta, aguardando revisão do Alicerce (arquitetura).
+-- Status: proposta, aguardando a revisão de arquitetura.
 -- Destino na fatia S01: backend/src/main/resources/db/migration/V1__agenda.sql
 --
 -- Por que um V1 com o schema inteiro do beta: nada está em produção e o desenho

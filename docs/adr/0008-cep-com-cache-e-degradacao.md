@@ -2,7 +2,7 @@
 
 - Status: **aceita** (17/11/2026, implementada na Fatia 6A; números finais abaixo)
 - Data: 2026-11-13
-- Decisores: Quarteto Dev
+- Decisores: Kevin Richard
 
 ## Contexto
 O cadastro aceita CEP opcional para preencher bairro e cidade. APIs públicas de CEP não têm SLA publicado e podem cair; o cadastro não pode falhar por isso (R31). O Render free tem 512 MB e uma instância só.

@@ -2,7 +2,7 @@
 
 - Status: **proposta**
 - Data: 2026-11-13
-- Decisores: Quarteto Dev; pesquisa: Gemini; conferência: coordenador na fonte oficial
+- Decisores: Kevin Richard; pesquisa: Gemini; conferência na fonte oficial
 
 ## Contexto
 O prompt aprovado pede Java 25 LTS e "Spring Boot 4.x na última versão estável, com a versão exata fixada no `pom.xml` e fonte citada".

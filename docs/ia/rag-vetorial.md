@@ -5,7 +5,7 @@
 | 🎯 **Para que serve** | perguntar à documentação do projeto **em linguagem natural** ("o cliente pode cancelar depois de pagar?") e receber os trechos certos, com arquivo e linha |
 | 🧰 **Feito com** | Java 25 · Spring Boot 4.1.2 · **Spring AI 2.0.2** · PostgreSQL 18 + **pgvector** · embeddings locais (ONNX), sem chave de API e sem custo |
 | 📦 **Onde** | [`ferramentas/rag/`](../../ferramentas/rag) : ferramenta de desenvolvimento, **separada da API** da barbearia (não vai para produção) |
-| 🔒 **Privacidade** | o texto nunca sai da máquina; só a documentação pública é indexada (a área interna `.equipe/` fica de fora) |
+| 🔒 **Privacidade** | o texto nunca sai da máquina; só a documentação pública é indexada (a área interna da equipe, fora do repositório, fica de fora) |
 
 ## O que é RAG, em uma figura
 

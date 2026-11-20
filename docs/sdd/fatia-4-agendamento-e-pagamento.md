@@ -162,7 +162,7 @@ Relógio fixo: terça, 17/11/2026, 08:00 (-03:00). Dia de teste: terça, 01/12/2
 ## 6. Riscos e cuidados
 
 - **Formato real do Asaas:** os campos da seção E15 seguem a documentação lida em 13/11/2026; no beta o adaptador é provado só com `MockRestServiceServer`; a conferência contra o sandbox de verdade fica para a saída do beta (D59).
-- **Sem conta externa no beta (D59):** o gateway real não é usado até a produção; o adaptador do Asaas é validado contra o sandbox só na saída do beta (roteiro privado `.equipe/saida-do-beta.md`).
+- **Sem conta externa no beta (D59):** o gateway real não é usado até a produção; o adaptador do Asaas é validado contra o sandbox só na saída do beta (roteiro privado da saída do beta).
 - **Outbox:** o schema de `event_publication` muda entre versões do Modulith; a V3 copia o da 2.1.2 e o `ContextoSobeIT` com `ddl-auto: validate` quebra se não bater.
 - **Webhook em `localhost`:** no beta não há webhook externo (a confirmação simulada usa o mesmo caminho); o túnel só será necessário na validação contra o sandbox, na saída do beta.
 - **Deadlock entre job e reserva:** coberto por E4 e pelo `SKIP LOCKED` do job.
