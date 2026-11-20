@@ -43,9 +43,9 @@ npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml         # contrato
 ## Git
 - Branch a partir da `develop` (ou empilhada na PR anterior quando ela ainda não entrou); commits semânticos em português; PR para a `develop` com "O que foi feito · Como testar · Checklist" e o resultado **real** dos testes.
 - **Nunca** mergear na `main`: release `develop → main` só pelo Kevin.
-- `.equipe/` é interna e ignorada pelo Git: nada dela vai para commit, PR ou print.
+- A área interna da equipe fica fora do repositório e é ignorada pelo Git: nada dela vai para commit, PR ou print.
 
 ## Skills e agente do projeto
 `/especificar-fatia N` · `/implementar-fatia N` · `/verificar-contrato` (`.claude/skills/`) · agente `revisor-de-fatia` (`.claude/agents/`), para rodar antes de abrir a PR.
 
-Ao fim de cada fatia, atualize `docs/guia-testes.md` (passos ⏳ viram ✅ com a resposta real), `docs/como-foi-construido.md` (linha do tempo) e, se existir na máquina, `.equipe/testes/BACKEND_E2E.md`.
+Ao fim de cada fatia, atualize `docs/guia-testes.md` (passos ⏳ viram ✅ com a resposta real), `docs/como-foi-construido.md` (linha do tempo) e, se existir na máquina, o roteiro interno de testes de ponta a ponta.
