@@ -5,12 +5,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,12 +34,15 @@ class SeedDevWhatsappIT {
     MockMvc mvc;
 
     @Test
-    @DisplayName("A12: o seed dev não traz WhatsApp do Eduardo: a coluna fica nula e GET /barbeiros devolve whatsapp nulo para ele")
+    @DisplayName("A12: o seed dev não grava WhatsApp; o número do Eduardo é o comercial público que a V8 grava (D152), e GET /barbeiros o devolve")
     void seedSemWhatsapp() throws Exception {
-        assertThat(jdbc.queryForObject("SELECT whatsapp FROM barbeiro WHERE nome_exibicao = 'Carlos Eduardo Cândido'",
-                String.class)).isNull();
+        String seed = new String(new ClassPathResource("db/dev/R__seed_dev.sql").getInputStream().readAllBytes(),
+                StandardCharsets.UTF_8);
+        assertThat(seed).doesNotContain("whatsapp");
+        assertThat(jdbc.queryForObject("SELECT whatsapp FROM barbeiro WHERE nome_exibicao = 'Eduardo Candido'",
+                String.class)).isEqualTo("11906941689");
         mvc.perform(get("/barbeiros")).andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nomeExibicao").value("Carlos Eduardo Cândido"))
-                .andExpect(jsonPath("$[0].whatsapp").doesNotExist());
+                .andExpect(jsonPath("$[0].nomeExibicao").value("Eduardo Candido"))
+                .andExpect(jsonPath("$[0].whatsapp").value("11906941689"));
     }
 }
