@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | 🎯 **Para que serve** | as rotas `/admin/**`, quem pode o quê, como nasce o primeiro admin e como o painel é protegido e auditado |
-| 👥 **Área responsável** | backend (módulo `admin`) · front (telas do painel) · arquitetura: Alicerce |
+| 👥 **Área responsável** | backend (módulo `admin`) · front (telas do painel) · arquitetura: revisão independente |
 | ⏰ **Quando usar** | antes de criar rota ou tela do painel; ao configurar o deploy |
 | 🧰 **Como** | matriz de papéis + rotas do [contrato](../contrato/contrato-api.md#2-endpoints) + regras R20 a R26 do [dossiê](../contexto.md#3-regras-de-negócio) |
 | 🚫 **Não cobre** | painel de alcance geográfico (pós-beta) · a tela em si (fatia do front) |
