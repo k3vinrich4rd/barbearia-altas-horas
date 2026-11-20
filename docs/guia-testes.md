@@ -342,6 +342,32 @@ Saída real (17/11/2026, 13h31):
 
 **O que prova:** a confirmação passa pelo **mesmo** fluxo do webhook (evento gravado, gateway reconsultado, reserva confirmada). Prova também a porta de entrada real: `POST /pagamentos/webhook` sem o cabeçalho `asaas-access-token` responde `401 WEBHOOK_NAO_AUTENTICADO`. No modo real (`asaas`) a rota de simulação deixa de existir. No front, o `urlCheckout` do cartão abre `/pagamento-simulado/{cobrancaId}` (D149, A63): a tela só confirma a simulação e não pede número de cartão.
 
+### V9b ✅ Cartão simulado: a tela `/pagamento-simulado/{cobrancaId}` (A63, D149)
+
+Com a API (perfil `dev`), o PostgreSQL do compose e o front (`npm run dev`) no ar, pelo BFF do front (`localhost:3000/api`, com `Origin: http://localhost:3000`):
+
+1. `POST /api/agendamentos/guest` cria a reserva do visitante (o BFF grava o cookie `ah_visitante`).
+2. `POST /api/pagamentos/cobrancas` com `"metodo": "CARTAO_CREDITO"`, aceite e CPF de teste devolve `cartao.urlCheckout`.
+3. Abra o `urlCheckout` (`/pagamento-simulado/{cobrancaId}`) e toque em **Ver a tela de confirmação (simula o pagamento aprovado)**.
+4. A tela chama `POST /api/pagamentos/simulacao/{cobrancaId}/confirmar` e vai para `/agendar/confirmacao/{reservaId}`.
+
+Fora do navegador o cookie `Secure` não volta por `http`, então o roteiro manda o mesmo token no cabeçalho `X-Guest-Token`, que o BFF também aceita. No navegador quem leva o token é o cookie, como no E2E.
+
+```
+Saida real (20/11/2026, 10h58, perfil dev, PostgreSQL do compose na 5433, front em next dev na 3000):
+1. POST /api/agendamentos/guest                         -> 201  reserva a7d7e195... status AGUARDANDO_PAGAMENTO inicio 2026-11-21T13:00:00-03:00; Set-Cookie ah_visitante HttpOnly Secure: True
+2. POST /api/pagamentos/cobrancas (CARTAO_CREDITO)      -> 201  cobranca 54da1e84... status PENDENTE valorCentavos 2000 urlCheckout http://localhost:3000/pagamento-simulado/{cobrancaId}
+3. GET  /pagamento-simulado/{cobrancaId} (front)        -> 200  h1 "Pagamento com cartão"; campo de cartão no HTML: False
+4. POST /api/pagamentos/simulacao/{id}/confirmar SEM cookie -> 401  code NAO_AUTENTICADO
+5. POST /api/pagamentos/simulacao/{id}/confirmar (dono) -> 200  status PAGA reservaId a7d7e195...
+6. GET  /agendar/confirmacao/{reservaId} (front)        -> 200
+7. GET  /api/agendamentos/guest/{id} (token)            -> 200  status CONFIRMADO
+8. repetir a confirmação (idempotente)                  -> 200  status PAGA
+9. POST .../simulacao/{id inexistente}/confirmar        -> 404  code RECURSO_NAO_ENCONTRADO
+```
+
+**O que prova:** o `urlCheckout` do `GatewaySimulado` abre uma tela que existe (`200`), sem nenhum campo de cartão. Só o dono da reserva confirma: sem o cookie, a resposta é `401 NAO_AUTENTICADO`, e a tela mostra o erro sem redirecionar. Com o cookie, a cobrança vira `PAGA` e a reserva `CONFIRMADO`. Repetir é inofensivo, e uma cobrança que não existe dá `404`. Testes automáticos: `frontend/src/telas/pagamento-simulado.test.tsx` (3 casos A63: 200, 404 e 401 sem cookie) e `frontend/e2e/e2e-cartao-simulado.spec.ts` (Playwright contra a API real).
+
 ### V10 ✅ Não pagar em 3 minutos
 
 Faça outra reserva e **não** pague: em 3 minutos ela vira `EXPIRADO` e o horário volta no V3. A expiração já foi provada na Fatia 4A (job a cada minuto) e a saída real do prazo de 3 minutos está no [D1](#d1--fatia-6d-whatsapp-reserva-manual-e-prazo-de-3-min).

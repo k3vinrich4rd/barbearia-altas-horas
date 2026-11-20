@@ -102,6 +102,7 @@ sequenceDiagram
 | Token | (devolvido na resposta do `POST`) | `TokenGuest`: 32 bytes aleatórios, prefixo `g1_`, só o hash SHA-256 é guardado, conferido com `MessageDigest.isEqual` |
 | Cobrança | `POST /pagamentos/cobrancas` | `CobrancaController` → `CriarCobranca` → `GatewayDePagamento` (aqui `GatewaySimulado`) |
 | Confirmar (simulado) | `POST /pagamentos/simulacao/{cobrancaId}/confirmar` | `SimulacaoController` (só existe com `app.pagamento.modo=simulado`, o padrão) |
+| Checkout do cartão (simulado) ✅ (A63, D149) | `/pagamento-simulado/{cobrancaId}` (tela do front) | o `GatewaySimulado` devolve `urlCheckout` = `app.pagamento.url-checkout-simulado` + `/{cobrancaId}`; `PagamentoSimulado.tsx` não pede cartão e confirma pelo mesmo `POST` da simulação |
 | Confirmar (real) | `POST /pagamentos/webhook` | `WebhookController` → `ReceberWebhook` → `ProcessarPagamento` → `Reservas.confirmarPagamento` |
 | Consultar | `GET /agendamentos/guest/{id}` | `AgendamentosController` → `ConsultaAgendamentos` |
 
@@ -112,6 +113,15 @@ Pontos que costumam surpreender:
 - **O webhook não usa HMAC.** `WebhookController` autentica pelo cabeçalho `asaas-access-token` (token compartilhado, comparado em tempo constante com `MessageDigest.isEqual`) e, por segurança, reconsulta a cobrança no gateway em vez de confiar no corpo.
 - **Conciliação:** se o webhook atrasou, a leitura da reserva (`ConciliacaoDePagamento`, via `ConciliadorDePagamento` da agenda) reconsulta o gateway, no máximo uma vez a cada 10 s por cobrança, e aplica o mesmo fluxo do webhook.
 - **Webhook que falhou no meio:** `ReprocessamentoWebhookJob` retoma os eventos pendentes há mais de 10 min.
+- **Cartão no beta:** o link "Ir para o pagamento com cartão" abre `/pagamento-simulado/{cobrancaId}`, uma tela do próprio site sem campo de cartão. Sem o cookie do visitante a confirmação dá `401` e a tela não sai do lugar. Trecho da saída real ([V9b](guia-testes.md#v9b--cartão-simulado-a-tela-pagamento-simuladocobrancaid-a63-d149)):
+
+```
+2. POST /api/pagamentos/cobrancas (CARTAO_CREDITO)      -> 201  ... urlCheckout http://localhost:3000/pagamento-simulado/{cobrancaId}
+3. GET  /pagamento-simulado/{cobrancaId} (front)        -> 200  h1 "Pagamento com cartão"; campo de cartão no HTML: False
+4. POST /api/pagamentos/simulacao/{id}/confirmar SEM cookie -> 401  code NAO_AUTENTICADO
+5. POST /api/pagamentos/simulacao/{id}/confirmar (dono) -> 200  status PAGA
+7. GET  /api/agendamentos/guest/{id} (token)            -> 200  status CONFIRMADO
+```
 
 ### 2.2 Não pagou em 3 minutos ✅
 
