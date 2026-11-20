@@ -24,7 +24,7 @@ Nenhuma rota muda. `GET /servicos`, `GET /barbeiros` e `GET /disponibilidade` pa
 | Tabela | O que entra | Idempotência |
 |---|---|---|
 | `servico` | os 5 serviços da tabela abaixo, 60 min cada, valor em centavos | ids fixos (os do seed dev) + `ON CONFLICT DO NOTHING` (id e nome único sem diferenciar maiúsculas) |
-| `barbeiro` | `Eduardo Candido` (só o nome de exibição; o modelo não tem campo de nome completo) e o WhatsApp comercial público `11906941689`, o (11) 90694-1689 do rodapé e do cadastro do barbeiro no PDF de telas | `WHERE NOT EXISTS` pelo id fixo e pelo nome, com ou sem acento e em qualquer caixa |
+| `barbeiro` | `Eduardo Candido` (só o nome de exibição; o modelo não tem campo de nome completo) e o WhatsApp comercial público `11996941689`, confirmado pelo dono em 20/11; o PDF de telas trazia (11) 90694-1689 por engano | `WHERE NOT EXISTS` pelo id fixo e pelo nome, com ou sem acento e em qualquer caixa |
 | `jornada` | terça (2) a sábado (6): 07:00–12:00 e 13:00–20:00 (almoço das 12h às 13h) | só para o barbeiro da V8 e só se ele ainda não tem jornada |
 | `barbeiro.usuario_id` | liga o barbeiro à conta admin que já existia | só se há exatamente um admin, ele não é de nenhum barbeiro e o da V8 é o único sem conta (a regra do `VinculoDoBarbeiro`) |
 
@@ -43,7 +43,7 @@ Nenhuma rota muda. `GET /servicos`, `GET /barbeiros` e `GET /disponibilidade` pa
 | 1 | Onde mora o catálogo inicial? | migração versionada `V8`, em todos os perfis | o seed `R__seed_dev.sql` só entra no perfil `dev`; produção precisava do mesmo dado, sem deploy de código nem cadastro manual |
 | 2 | Ids? | os mesmos do seed dev | no perfil `dev` a V8 roda antes do seed repetível e o `ON CONFLICT` dele não duplica nada |
 | 3 | E o que o admin já mudou? | nada é sobrescrito | `DO NOTHING` e `NOT EXISTS`: preço, nome, jornada e desativação feitos no painel valem |
-| 4 | WhatsApp do barbeiro? | o comercial público, (11) 90694-1689, gravado só com dígitos | é o contato da barbearia no rodapé e no cadastro do barbeiro do PDF de telas, confirmado pelo dono; o site monta o `wa.me` com o número vindo da API (D122). O admin troca ou apaga pelo painel |
+| 4 | WhatsApp do barbeiro? | o comercial público, (11) 99694-1689, gravado só com dígitos | é o contato comercial confirmado pelo dono em 20/11 (o PDF de telas trazia um dígito errado); o site monta o `wa.me` com o número vindo da API (D122). O admin troca ou apaga pelo painel |
 | 5 | Testes que montam o próprio catálogo | continuam apagando antes (`CadastrosBase`, `DadosDeTeste`) | o teste da V8 roda num contexto (e banco) só dele; o `AdminInicialIT` passa a usar o barbeiro da V8 como "o único barbeiro" |
 
 ## 4. Critérios de aceite
@@ -51,7 +51,7 @@ Nenhuma rota muda. `GET /servicos`, `GET /barbeiros` e `GET /disponibilidade` pa
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | A1 | banco migrado | `GET /servicos` | 5 serviços, todos com 60 min, com os valores da tabela | `V8CatalogoInicialIT` |
-| A2 | banco migrado | `GET /barbeiros` | só o Eduardo Candido, com `whatsapp = 11906941689` | `V8CatalogoInicialIT` |
+| A2 | banco migrado | `GET /barbeiros` | só o Eduardo Candido, com `whatsapp = 11996941689` | `V8CatalogoInicialIT` |
 | A3 | banco migrado | `GET /disponibilidade` numa terça livre e na segunda seguinte | 22 horários na terça; nenhum na segunda; jornada de terça a sábado | `V8CatalogoInicialIT` |
 | A4 | banco migrado | rodar a V8 mais duas vezes | 5 serviços, 1 barbeiro, 10 intervalos de jornada | `V8CatalogoInicialIT` |
 | A5 | admin mudou preço, nome, jornada e desativou um serviço | rodar a V8 de novo | nada sobrescrito nem recriado | `V8CatalogoInicialIT` |
