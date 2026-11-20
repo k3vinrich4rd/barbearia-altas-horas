@@ -20,10 +20,20 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await page.getByLabel("Nome").fill("Visitante de Teste");
   await page.getByLabel("E-mail").fill(emailUnico("visitante"));
   await page.getByLabel("WhatsApp").fill("11900000003");
+  const esperaBff = page.waitForResponse(
+    (r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/api/agendamentos/guest",
+  );
   await page.getByRole("button", { name: "Reservar" }).click();
+  const respBff = await esperaBff;
+  expect(respBff.status()).toBe(201);
+  const corpoBff = await respBff.json();
+  expect(corpoBff).not.toHaveProperty("tokenGuest");
   await expect(page).toHaveURL(/\/agendar\/pagamento\//);
   const reservaId = page.url().split("/").pop()!.split("?")[0];
+  expect(reservaId).toBe(corpoBff.id);
   expect(page.url()).not.toContain("codigo");
+  const cookies = await page.context().cookies();
+  expect(cookies.some((c) => c.name === "ah_visitante" && c.httpOnly && c.value.length > 0)).toBe(true);
 
   // aceite da política, CPF de teste, Pix, simular
   await expect(page.getByRole("timer")).toBeVisible();
