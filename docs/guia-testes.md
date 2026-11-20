@@ -16,7 +16,7 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 384 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 387 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
@@ -66,7 +66,9 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real (Windows + Docker Desktop): **384 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6D: 356 anteriores (349 mais 7 da Fatia 8), todos mantidos, + 28 novos; os que dependiam do prazo de 15 minutos mudaram só de valor, ver D129), `BUILD SUCCESS` em cerca de 2 min. A cobertura de instruções medida pelo JaCoCo foi de **96,6%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
+✅ Resultado real mais recente (Linux + Docker, 20/11/2026): **387 testes, 0 falhas, 0 pulados** (322 em classes `*IT` e 65 de unidade; os 385 anteriores, todos mantidos, + 2 do `ContratoExemplosDeErroTest`, que confere se cada exemplo de erro do `openapi.yaml` usa um `code` do `CodigoErro` com o mesmo status e título, e se o enum do contrato é igual ao do Java), `BUILD SUCCESS`.
+
+Resultado anterior (Windows + Docker Desktop): **384 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6D: 356 anteriores (349 mais 7 da Fatia 8), todos mantidos, + 28 novos; os que dependiam do prazo de 15 minutos mudaram só de valor, ver D129), `BUILD SUCCESS` em cerca de 2 min. A cobertura de instruções medida pelo JaCoCo foi de **96,6%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
 | Classe | Testes | O que prova |
 |---|:-:|---|
@@ -1047,6 +1049,8 @@ sh ../scripts/conferir-spec.sh 7 --exigir     # 62 de 62 (7A e 7B)
 Saída real da 7B, de 18/11/2026 (Node 22.16, sem `legacy-peer-deps`): **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm run test:cobertura`: 48 arquivos, 72 testes verdes · `npm run build` ok · `npx playwright test`: 10 de 10 verdes (visitante, cliente, painel com a troca da senha inicial, reserva manual, axe da 7A e do painel nos dois temas e em 375 × 812, teclado e A60) contra a API real e um PostgreSQL 18 só do E2E · `./mvnw verify`: 385 testes, 0 falhas, BUILD SUCCESS · `conferir-spec.sh` das fatias 1 a 6, 6d e `7 --exigir`: 10, 29, 44, 45, 71, 75, 28 e 62 critérios, todos com teste · `testar-conferir-spec.sh` e `verificar:tokens` ok · `redocly lint` do contrato 1.7.0: 0 erros (16 avisos).**
 
 Saída real de cada comando, de 18/11/2026: **`npm ci` 0 vulnerabilidades · `lint` e `tsc --noEmit` sem erros · `npm test`: **37 arquivos, 54 testes verdes** (cobertura de linhas 84,37%) · `npm run build` ok · `npx playwright test`: **7 de 7 verdes em 1,3 min** (A54, A55 ×2, A57, A58 ×2 e A60) · `conferir-spec.sh 7 --exigir --exceto 44-53,59`: **49 de 49** · fatias 1 a 6 e 6D: 10, 29, 44, 45, 71, 75 e 28 de 100% · `./mvnw verify`: 384 testes, 0 falhas**
+
+Saída real de 20/11/2026 (Linux, Node 22, API real no perfil `dev` + PostgreSQL 18), depois do PR #63: **`npm test`: 50 arquivos, 80 testes verdes** (entram os 5 de `home-historia.test.tsx`: linha do tempo, "Ouvir a história" com e sem `speechSynthesis`, galeria e o `<details>` das dúvidas) · **`npx playwright test`: 12 de 12 verdes em 2,1 min** (entra `e2e/home-historia.spec.ts`: linha do tempo pelo teclado, dúvidas com Enter, galeria, "Tema claro" e "Sem animação") · **`./mvnw verify`: 387 testes, 0 falhas**.
 
 O E2E precisa do Docker aberto, do PostgreSQL (`docker compose up -d postgres`) e da API no ar (`./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` com os limites do E24 elevados por variável de ambiente). Para o E2E não bater nos limites de reserva (3 por hora) e de cadastro (5 por hora), suba a API com `APP_LIMITES_GUEST_MAX`, `APP_LIMITES_CADASTRO_MAX`, `APP_LIMITES_LOGIN_MAX` e `APP_LIMITES_LOGIN_IP_MAX` altos. `docker compose down -v` zera o banco.
 
