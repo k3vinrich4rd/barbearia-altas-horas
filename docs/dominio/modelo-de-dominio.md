@@ -3,16 +3,16 @@
 | | |
 |---|---|
 | 🎯 **Para que serve** | as entidades, quem é dono de quê (módulo) e as transições de status da reserva, com quem dispara cada uma |
-| 👥 **Área responsável** | backend · arquitetura: Alicerce |
+| 👥 **Área responsável** | backend · arquitetura: revisão independente |
 | ⏰ **Quando usar** | antes de escrever entidade, migração ou regra de status |
 | 🧰 **Como** | diagramas Mermaid + tabela de transições (citada pela regra R20) |
 | 🚫 **Não cobre** | colunas e índices ([ERD e DDL](../banco/erd.md)) · rotas ([contrato](../contrato/contrato-api.md)) |
 
-> Status: **proposta (13/11/2026)**, aguardando revisão do Alicerce (arquitetura). Valores marcados **HIPÓTESE** estão na [seção 4 do dossiê](../contexto.md#4-hipóteses-em-aberto).
+> Status: **proposta (13/11/2026)**, aguardando a revisão de arquitetura. Valores marcados **HIPÓTESE** estão na [seção 4 do dossiê](../contexto.md#4-hipóteses-em-aberto).
 
 ## 1. Entidades por módulo
 
-Os módulos seguem a [arquitetura do Alicerce](../arquitetura/README.md). Entre módulos, uma entidade **nunca** referencia a outra por objeto (`@ManyToOne`); só pelo id (`UUID`) (regra ArchUnit 10). As setas tracejadas abaixo são referências por id.
+Os módulos seguem a [proposta de arquitetura](../arquitetura/README.md). Entre módulos, uma entidade **nunca** referencia a outra por objeto (`@ManyToOne`); só pelo id (`UUID`) (regra ArchUnit 10). As setas tracejadas abaixo são referências por id.
 
 ```mermaid
 classDiagram
@@ -195,7 +195,7 @@ classDiagram
     AuditoriaAdmin ..> Usuario : atorId
 ```
 
-**Value objects em `comum`** (Alicerce, seção 3): `Dinheiro` (centavos em `long`, nunca `double`), `Cpf`, `Telefone`, `Cep` e `Email`, que validam, sanitizam (só dígitos) e **mascaram no `toString()`**, para um log descuidado não vazar dado pessoal.
+**Value objects em `comum`** (proposta de arquitetura, seção 3): `Dinheiro` (centavos em `long`, nunca `double`), `Cpf`, `Telefone`, `Cep` e `Email`, que validam, sanitizam (só dígitos) e **mascaram no `toString()`**, para um log descuidado não vazar dado pessoal.
 
 ## 2. Máquina de estados
 
@@ -281,4 +281,4 @@ Conforme o ADR 0002: publicados com o registro de publicação do Spring Modulit
 3. Reserva `EXPIRADO` (ou com prazo vencido) → cobrança `PAGA_APOS_EXPIRACAO`, sem evento. Aparece no painel entre os sinais a devolver (`PAGA_APOS_EXPIRACAO` ou `DEVOLUCAO_PENDENTE`; o status é a única fonte).
 4. Corrida residual (a reserva vence entre o passo 1 e o listener da agenda): a agenda não confirma reserva vencida e publica `ReservaExpirada`; o listener do pagamento encontra a cobrança `PAGA` e a converte para `PAGA_APOS_EXPIRACAO`. Nenhum lado precisa conhecer o outro além do que a tabela de dependências permite.
 
-A forma final fica para a revisão do Alicerce (arquitetura).
+A forma final fica para a revisão de arquitetura.

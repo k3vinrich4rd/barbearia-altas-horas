@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | 🎯 **Para que serve** | visão de contexto, containers, módulos, dependências permitidas e fluxos críticos |
-| 👥 **Área responsável** | **Alicerce (arquitetura)** é o dono; o coordenador mantém o texto |
+| 👥 **Área responsável** | **revisão de arquitetura** é a dona; o Kevin mantém o texto |
 | ⏰ **Quando usar** | antes de criar pacote, classe que fala com outro módulo ou integração externa |
 | 🧰 **Como** | diagramas Mermaid; as regras viram testes (ArchUnit + Spring Modulith) |
 | 🚫 **Não cobre** | colunas ([ERD](../banco/erd.md)) · rotas ([contrato](../contrato/contrato-api.md)) |
 
-> Fonte: proposta do Alicerce de 13/11/2026. Status: **aceita** (ADRs 0001 a 0006, revisão do Alicerce, 13/11/2026). Diagramas mostram o planejado: ainda não há código.
+> Fonte: proposta de arquitetura de 13/11/2026. Status: **aceita** (ADRs 0001 a 0006, revisão de arquitetura, 13/11/2026). Diagramas mostram o planejado: ainda não há código.
 
 ## 1. Contexto (C4 nível 1)
 
@@ -96,7 +96,7 @@ Dentro de cada módulo de negócio:
 | `privacidade` | consentimento, `GET /me/dados`, `DELETE /me`, retenção do guest, alcance (pós-beta) | `ExclusaoSolicitada` | `consentimento`, `solicitacao_titular` |
 | `admin` | controllers `/admin/**` que orquestram agenda, conta e pagamento; auditoria | nada (folha) | `auditoria_admin` |
 
-> `configuracao_agenda` e `usuario_papel` não estavam na lista do Alicerce: entram como tabelas da agenda e da conta. Ponto para a revisão dele.
+> `configuracao_agenda` e `usuario_papel` não estavam na lista da proposta de arquitetura: entram como tabelas da agenda e da conta. Ponto para a revisão dele.
 
 ## 4. Dependências permitidas
 

@@ -914,7 +914,7 @@ Saída real (17/11/2026, 17h13), resumida:
 401  NAO_AUTENTICADO (sem token)
 ```
 
-**O que prova:** a regra de negócio é dado: mudou de 120 para 180 minutos e a disponibilidade de hoje mudou na mesma hora. Cada cadastro deixa uma linha na auditoria, e o papel `BARBEIRO` sem `ADMIN` recebe `403` (A70, `AcessoAdminIT`; o seed `dev` não tem conta só com esse papel). O roteiro completo está em `.equipe/testes/roteiro_5b.py` (saída em `roteiro_5b.out`, para a equipe). Depois de rodar, `grep` por e-mails `@exemplo.test`, WhatsApp e `g1_` no log da API deu **0**.
+**O que prova:** a regra de negócio é dado: mudou de 120 para 180 minutos e a disponibilidade de hoje mudou na mesma hora. Cada cadastro deixa uma linha na auditoria, e o papel `BARBEIRO` sem `ADMIN` recebe `403` (A70, `AcessoAdminIT`; o seed `dev` não tem conta só com esse papel). O roteiro completo fica na área interna da equipe, fora do repositório. Depois de rodar, `grep` por e-mails `@exemplo.test`, WhatsApp e `g1_` no log da API deu **0**.
 
 ### AD14 ✅ Pagamento tardio (modo simulado)
 

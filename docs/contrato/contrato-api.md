@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | 🎯 **Para que serve** | o acordo entre backend, front (BFF) e testes: rotas, papéis, payloads, status e erros |
-| 👥 **Área responsável** | backend (Kevin) · arquitetura: Alicerce · consumidor: front Next.js |
+| 👥 **Área responsável** | backend (Kevin) · arquitetura: revisão independente · consumidor: front Next.js |
 | ⏰ **Quando usar** | antes de criar ou mudar endpoint, DTO, status ou código de erro; na revisão de PR |
 | 🧰 **Como** | este Markdown é o acordo humano; o rascunho de máquina é o [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). Depois do código, o OpenAPI passa a ser **gerado** pelo springdoc e comparado com este documento |
 | 🚫 **Não cobre** | regras de status em detalhe ([domínio](../dominio/modelo-de-dominio.md)) · tabelas ([ERD](../banco/erd.md)) |
 
-> Status: **v1.0 proposta, 13/11/2026**, aguardando revisão do Alicerce (arquitetura) e do Kevin. Valores marcados **HIPÓTESE** vêm da [seção 4 do dossiê](../contexto.md#4-hipóteses-em-aberto). Todos os nomes, e-mails, telefones e CPFs dos exemplos são **fictícios** (o CPF de exemplo é só válido pelos dígitos verificadores).
+> Status: **v1.0 proposta, 13/11/2026**, aguardando a revisão de arquitetura e do Kevin. Valores marcados **HIPÓTESE** vêm da [seção 4 do dossiê](../contexto.md#4-hipóteses-em-aberto). Todos os nomes, e-mails, telefones e CPFs dos exemplos são **fictícios** (o CPF de exemplo é só válido pelos dígitos verificadores).
 
 ## Sumário
 1. [Convenções](#1-convenções)
@@ -406,4 +406,4 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 | 1.1 (proposta) | 2026-11-16 | regras reais da barbearia: pagamento **100% antecipado** por Pix ou cartão de crédito para cliente e guest; cliente logado nasce `AGUARDANDO_PAGAMENTO`; aceite obrigatório da política (`aceitePolitica`, `versaoPolitica`, `GET /politica-pagamento`); **saem** cancelamento e remarcação pelo cliente (`JANELA_CANCELAMENTO_ENCERRADA` vira `ACEITE_POLITICA_OBRIGATORIO`); sai `sinalCentavos`; pagamento tardio confirma se o horário estiver livre. `redocly lint` 2.78.0: 0 erros, 14 avisos | não (não há front ainda) |
 | 1.0 (proposta) | 2026-11-13 | primeira versão: catálogo, disponibilidade, CEP, auth, agendamentos, guest, cobrança, webhook, privacidade e painel admin | não (não há front ainda) |
 | 1.0.2 (proposta) | 2026-11-13 | novo `409 CONFLITO_CONCORRENTE` em `POST /agendamentos`, `POST /agendamentos/guest` e remarcação (deadlock depois do retry; o front pode repetir uma vez) | não (código novo; nenhum renomeado) |
-| 1.0.1 (proposta) | 2026-11-13 | revisão do Alicerce: `cpfMascarado` só no `201` da cobrança (sai da repetição `200` e do painel); `devolucaoPendente` sai de `Cobranca` (o status basta); idempotência compara o corpo por HMAC; `summary` em todas as operações do OpenAPI (`redocly lint` 2.78.0: 0 erros, 14 avisos) | não (não há front ainda) |
+| 1.0.1 (proposta) | 2026-11-13 | revisão de arquitetura: `cpfMascarado` só no `201` da cobrança (sai da repetição `200` e do painel); `devolucaoPendente` sai de `Cobranca` (o status basta); idempotência compara o corpo por HMAC; `summary` em todas as operações do OpenAPI (`redocly lint` 2.78.0: 0 erros, 14 avisos) | não (não há front ainda) |

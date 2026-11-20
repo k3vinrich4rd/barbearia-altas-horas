@@ -1,6 +1,6 @@
 # 📐 Perfil arquitetural
 
-Preenchido a partir do prompt aprovado (13/11/2026) e da arquitetura do Alicerce. O que não veio da ideia está marcado **hipótese**.
+Preenchido a partir do prompt aprovado (13/11/2026) e da proposta de arquitetura. O que não veio da ideia está marcado **hipótese**.
 
 | Força | Resposta |
 |---|---|
