@@ -105,7 +105,7 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 
 > **16/11/2026:** o Kevin confirmou com a barbearia as regras reais. As linhas marcadas **decidida** deixam de ser hipótese; o valor continua configurável (dado, não código).
 
-Perguntas enviadas ao Kevin (via Black) em 13/11/2026. Até a resposta, vale o **valor provisório**, sempre como dado configurável ou seed fictício do perfil `dev`.
+Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provisório**, sempre como dado configurável ou seed fictício do perfil `dev`.
 
 | # | Pergunta | Valor provisório | Onde fica configurado |
 |---|---|---|---|
@@ -165,9 +165,9 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 | # | Risco | Prob. × impacto | Mitigação | Dono |
 |---|---|---|---|---|
 | RISC-01 | Regras reais diferentes das hipóteses | alta × média | tudo configurável; hipóteses marcadas; perguntas ao Kevin antes da fatia S03 | Kevin |
-| RISC-02 | Cold start do Render (~1 min) assusta o cliente | alta × baixa | aviso "servidor acordando" no front; é portfólio | Decolagem / front |
+| RISC-02 | Cold start do Render (~1 min) assusta o cliente | alta × baixa | aviso "servidor acordando" no front; é portfólio | front |
 | RISC-03 | Vercel Hobby proíbe uso comercial (pagamento de visitantes) | média × alta se virar uso real | beta só com sandbox; uso real exige decisão do Kevin (H17) | Kevin |
-| RISC-04 | Aiven free desligado por inatividade | média × média | documentar como religar no `README_DEPLOY`; health check do Render não acorda o banco (não usar health com consulta pesada) | Decolagem |
+| RISC-04 | Aiven free desligado por inatividade | média × média | documentar como religar no `README_DEPLOY`; health check do Render não acorda o banco (não usar health com consulta pesada) | deploy |
 | RISC-05 | Webhook do Asaas autenticado só por token estático | média × alta | token longo aleatório, comparação em tempo constante, HTTPS, e **reconsulta da cobrança na API do gateway** antes de confirmar (ADR 0007) | pagamento |
 | RISC-06 | Job de expiração atrasado prende horário | baixa × média | disponibilidade ignora vencidas (R15) e expiração preguiçosa (R16) | agenda |
 | RISC-07 | Claude Code indisponível atrasa as fatias de domínio difícil | média × média | reserva: Copilot `claude-sonnet-5.5` local; revisão de arquitetura | Kevin |
