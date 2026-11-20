@@ -24,7 +24,7 @@
   align-items: flex-start;
 }
 
-.menu-conta {
+.menu-principal {
   border-top: var(--traco-1) solid var(--borda);
   padding-top: var(--space-3);
 }
@@ -103,7 +103,32 @@
 
 @media (min-width: 60rem) {
   .cabecalho-interno {
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "marca . conta"
+      "principal principal cta";
+    align-items: center;
+  }
+
+  .marca {
+    grid-area: marca;
+  }
+
+  .menu-conta {
+    grid-area: conta;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .menu-principal {
+    grid-area: principal;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .botao-agendar-topo {
+    grid-area: cta;
   }
 
   .botao-menu {
@@ -112,25 +137,12 @@
 
   .menu-do-site,
   .menu-do-site[data-aberto="true"] {
-    display: flex;
-    flex: 1;
-    flex-basis: auto;
-    align-items: center;
-    justify-content: space-between;
+    display: contents;
   }
 
   .menu-do-site .menu ul {
     flex-direction: row;
     align-items: center;
-  }
-
-  .menu-conta {
-    border-top: 0;
-    padding-top: 0;
-  }
-
-  .botao-agendar-topo {
-    flex-basis: auto;
   }
 
   .painel-a11y-titulo {
