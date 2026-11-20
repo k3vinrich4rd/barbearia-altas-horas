@@ -243,27 +243,46 @@ export async function encaminhar(request: Request, segmentos: string[], depsEntr
     modo: modoDaRota(metodo, caminho),
     deps: depsEntrada,
   });
-  return comCookies(resposta, [...setCookies, ...(await cookiesDoPos(metodo, caminho, resposta))]);
+  const pos = await aplicarPos(metodo, caminho, resposta);
+  return comCookies(pos.resposta, [...setCookies, ...pos.setCookies]);
 }
 
-/** Efeitos no cookie depois de certas respostas bem-sucedidas. */
-async function cookiesDoPos(metodo: string, caminho: string, resposta: Response): Promise<string[]> {
+/**
+ * Efeitos depois de certas respostas bem-sucedidas.
+ * No 201 do POST /agendamentos/guest (D150): grava ah_visitante e devolve o corpo SEM tokenGuest.
+ */
+async function aplicarPos(
+  metodo: string,
+  caminho: string,
+  resposta: Response,
+): Promise<{ resposta: Response; setCookies: string[] }> {
   if (metodo === "POST" && caminho === "/agendamentos/guest" && resposta.status === 201) {
     try {
       const dados = await resposta.clone().json();
-      if (typeof dados?.id === "string" && typeof dados?.tokenGuest === "string")
-        return [cookieVisitante(dados.id, dados.tokenGuest)];
+      if (typeof dados?.id === "string" && typeof dados?.tokenGuest === "string") {
+        const semToken = { ...dados };
+        delete semToken.tokenGuest;
+        const corpo = JSON.stringify(semToken);
+        const h = new Headers(resposta.headers);
+        h.set("cache-control", "no-store");
+        h.set("content-length", String(Buffer.byteLength(corpo, "utf8")));
+        if (!h.has("content-type")) h.set("content-type", "application/json");
+        return {
+          resposta: new Response(corpo, { status: resposta.status, headers: h }),
+          setCookies: [cookieVisitante(dados.id, dados.tokenGuest)],
+        };
+      }
     } catch {
-      return [];
+      return { resposta, setCookies: [] };
     }
   }
   if (
     resposta.status === 204 &&
     ((metodo === "PUT" && caminho === "/me/senha") || (metodo === "DELETE" && caminho === "/me"))
   ) {
-    return cookiesApagados();
+    return { resposta, setCookies: cookiesApagados() };
   }
-  return [];
+  return { resposta, setCookies: [] };
 }
 
 export { problema };
