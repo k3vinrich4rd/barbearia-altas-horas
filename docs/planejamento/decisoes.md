@@ -203,6 +203,12 @@ O Kevin confirmou com a barbearia as regras reais. Elas fecham as HIPÓTESES H1 
 | D150 | **O BFF não devolve `tokenGuest` no corpo.** Decisão da revisão de arquitetura: no `201` do `POST /agendamentos/guest`, o BFF continua gravando o cookie `HttpOnly` `ah_visitante` e passa a **retirar o `tokenGuest` do corpo** antes de responder ao navegador, com `Cache-Control: no-store` e `Content-Length` ajustado. O contrato da API não muda: o campo continua no `201` da API; só o BFF o omite. Pagar, confirmar e consultar seguem pelo cookie e pelo fluxo normal (`GET /api/visitante` na confirmação, D134). Teste `D150:` em `bff-visitante.test.ts`; o E2E A57 confere o corpo, o cookie e o fluxo completo. |
 
 
+### Vários barbeiros (20/11/2026)
+
+| # | Decisão | Status | Fonte | Detalhe |
+|---|---|---|---|---|
+| D151 | **Vários barbeiros sem papel novo.** O `ADMIN` é o dono (rótulo "Dono/Admin" na tela) e o `BARBEIRO` fica como está; o dono que atende tem `ADMIN` + `BARBEIRO` + vínculo, vê a própria agenda e as dos outros. O isolamento por `barbeiroId` sai do token (`sub` → `barbeiro.usuario_id` com barbeiro ativo), nunca da URL ou do corpo para o BARBEIRO, e vira uma política única `AcessoAgenda` no módulo `agenda`, chamada pelos serviços (alheio = `404`, ADR 0005), com regra de arquitetura e IT por rota do painel. O barbeiro entra por **convite de uso único** (hash SHA-256, expira, mostrado uma vez na tela do dono e entregue em pessoa) e define a própria senha; senha nunca por chat, e-mail ou log. Desligar desativa a conta e revoga o convite. Contrato previsto 1.8.0, só acréscimos; uma migração `convite_conta` depois da do catálogo. Fatias 10A (política), 10B (convite e desligamento) e 10C (carteira, só se a H24 for confirmada) | proposta | pedido do Kevin (20/11/2026); leitura da `develop` em `178b2a0` | [ADR 0013](../adr/0013-varios-barbeiros-dono-e-convite.md) |
+
 ## Pontos em que uma IA discordou da fonte oficial
 
 | Ponto | O que a IA disse | O que a fonte diz | Valeu |
