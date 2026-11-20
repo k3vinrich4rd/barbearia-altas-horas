@@ -86,7 +86,7 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 | R18 | O cliente **não** cancela nem remarca: não há botão nem rota pública para isso. Antes de pagar, ele aceita (checkbox obrigatório, `aceitePolitica: true` + versão do texto, gravados na reserva) que não há cancelamento, remarcação ou estorno por desistência ou falta. Sem aceite: `422 ACEITE_POLITICA_OBRIGATORIO`. | P | `AceitePoliticaIT` (S12) |
 | R19 | Falta: o barbeiro marca `NAO_COMPARECEU` no painel e o valor pago fica retido pela barbearia (sem devolução). | P | `FechamentoAtendimentoIT` (S10) |
 | R20 | Transições válidas são só as da [máquina de estados](dominio/modelo-de-dominio.md#2-máquina-de-estados); qualquer outra dá `422 TRANSICAO_INVALIDA`. | P | `ReservaStatusTest` (S10) |
-| R21 | `CONCLUIDO` e `NAO_COMPARECEU` só a partir do início da reserva; quem marca é o ADMIN/BARBEIRO (hoje uma pessoa só, Carlos Eduardo Cândido). | P | `FechamentoAtendimentoIT` (S10) |
+| R21 | `CONCLUIDO` e `NAO_COMPARECEU` só a partir do início da reserva; quem marca é o ADMIN/BARBEIRO (hoje uma pessoa só, Carlos Eduardo Candido). | P | `FechamentoAtendimentoIT` (S10) |
 | R22 | Cancelamento **pela barbearia** (único cancelamento possível) exige motivo; o motivo e quem cancelou ficam registrados e a cobrança vai para `DEVOLUCAO_PENDENTE`. | P | `CancelamentoAdminIT` (S10) |
 | R23 | Quem não é dono de uma reserva recebe `404` ao acessá-la (não confirma que o id existe). | P | `ReservaBolaIT` (S08) |
 | R24 | E-mail é único por conta, sem diferença de maiúsculas. | P | `CadastroIT` (S04) |
@@ -110,7 +110,7 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | # | Pergunta | Valor provisório | Onde fica configurado |
 |---|---|---|---|
 | H1 | Dias e horário de funcionamento | **decidida (16/11)**: terça a sábado, 07h00 às 20h00; almoço 12h00 às 13h00 | `jornada` do barbeiro (painel) |
-| H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Cândido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
+| H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Candido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
 | H3 | Serviços, duração e preço | **decidida (16/11), duração revista em 18/11 (D94)**: todos os serviços duram **60 min** (2 slots) · Corte Clássico/Social R$ 45,00 · Corte Degradê/Fade/Navalhado R$ 55,00 · Corte Moderno/Visagismo (tesoura) R$ 60,00 · Barba Completa/Desenhada R$ 30,00 · Acabamento (pezinho)/Sobrancelha R$ 20,00 · sem combos | cadastro de serviços (painel) |
 | H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
 | H5 | Antecedência mínima para agendar | **decidida (16/11)**: 120 min | `configuracao_agenda.antecedencia_minima_min` |
