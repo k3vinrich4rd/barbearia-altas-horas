@@ -129,7 +129,7 @@ O `403` das rotas só do dono não é oráculo: a existência da rota está no c
 4. O dono **entrega em pessoa**: o barbeiro lê o QR no celular (H26).
 5. Na página `/convite`, o código vem do **fragmento** (`#`), que não vai ao servidor nem a log (como o código do visitante, D134). O barbeiro escolhe a própria senha, e o BFF chama `POST /auth/convite`. Depois ele entra pelo login normal.
 6. **Senha nunca** vai por chat, e-mail ou log: quem define a senha é o barbeiro, no app. O código do convite também nunca entra em log, auditoria ou URL de consulta.
-7. **Desligar** (`ativo: false`) desativa a conta (sobe `versao_credencial`, derruba as sessões, o `ContaEmUso` barra o token na hora) e revoga o convite pendente. As reservas e a auditoria continuam apontando para a conta.
+7. **Desligar** (`ativo: false`) desativa a conta (sobe `versao_credencial`, derruba as sessões, o `ContaEmUso` barra o token na hora) e revoga o convite pendente. No mesmo passo, aplica a H33 revisada: anula `senha_hash` e `barbeiro.whatsapp`, apaga refresh tokens, convite e identidade social, e anonimiza nome e e-mail, deixando a "lápide". As reservas e a auditoria continuam apontando para a conta. A troca de `nome_exibicao` por pseudônimo 5 anos depois da última reserva entra no job de retenção (ShedLock, Clock).
 
 **Plano B**, só se o Kevin recusar o convite: senha inicial gerada com `deve_trocar_senha = true`, mostrada uma única vez na tela do dono e entregue em pessoa. Reaproveita a E24 inteira (`403 TROCA_DE_SENHA_OBRIGATORIA`, `ah_troca`), mas o dono fica sabendo a senha até a troca.
 
@@ -161,7 +161,7 @@ Cada fatia ganha a própria spec no formato do [modelo](../sdd/modelo-de-spec.md
 - **A3:** O mesmo código, usado de novo, vencido (relógio adiantado), revogado ou inventado responde sempre `422 CONVITE_INVALIDO`, com o mesmo corpo.
 - **A4:** Dois aceites simultâneos do mesmo código: só um responde `204`.
 - **A5:** Emitir um convite novo invalida o anterior, e `DELETE /admin/barbeiros/{id}/convite` revoga o pendente com `204`, também quando repetido.
-- **A6:** `PUT /admin/barbeiros/{id}` com `ativo: false` desativa a conta. O próximo pedido com o token antigo responde `401`, o refresh falha e o convite pendente é revogado.
+- **A6:** `PUT /admin/barbeiros/{id}` com `ativo: false` desativa a conta. O próximo pedido com o token antigo responde `401`, o refresh falha, o convite pendente é revogado e a conta fica anonimizada como na H33 (nome, e-mail, `senha_hash`, `whatsapp` e identidade social; `id` e papel preservados; `auditoria_admin.ator_id` continua válido).
 - **A7:** O BARBEIRO recebe `403 ACESSO_NEGADO` em `POST` e `DELETE /admin/barbeiros/{id}/convite`.
 - **A8:** O código, o e-mail e a senha nunca aparecem em log, auditoria ou resposta de erro (`SemDadoPessoalNoLogIT` estendido, R30).
 - **A9:** Acima do limite de aceite por IP (H30), a resposta é `429 LIMITE_EXCEDIDO` com `Retry-After`.
@@ -196,6 +196,6 @@ Cada fatia ganha a própria spec no formato do [modelo](../sdd/modelo-de-spec.md
 | H28 | O barbeiro cancela uma reserva própria? | **não** (D124 mantida) |
 | H29 | O barbeiro vê preço e status do pagamento das próprias reservas? | **sim**, como hoje no painel |
 | H30 | Limite de tentativas de aceite de convite | 10 por hora por IP (`app.limites.convite-*`) |
-| H31 | Reativar um barbeiro desligado | exige convite novo, e o barbeiro define outra senha |
+| H31 | Reativar um barbeiro desligado | como o desligamento anonimiza a conta (H33), "reativar" é cadastrar de novo: conta nova, por convite novo, ligada ao mesmo `barbeiro` se ainda dentro dos 5 anos |
 | H32 | E-mail do barbeiro igual ao de uma conta de cliente que já existe | `409 EMAIL_JA_CADASTRADO`: usar outro e-mail. A alternativa (somar o papel à conta existente) fica para depois |
-| H33 | Retenção da conta do barbeiro desligado (nome e e-mail) | manter enquanto houver reserva ou auditoria ligada e anonimizar depois do prazo da H13 (**pendente de fonte legal**) |
+| H33 | Retenção da conta do barbeiro desligado | **revisada (20/11, parecer do Cautelar)**: **não** segue a H13. No dia do desligamento: `senha_hash` anulado; refresh tokens, convite pendente e identidade social apagados; `barbeiro.whatsapp` anulado; nome e e-mail de `usuario` anonimizados, ficando uma linha "lápide" (`id`, papel, `criado_em`, `anonimizado_em`) para `auditoria_admin.ator_id` não quebrar (LGPD arts. 12, 15 I e 16). `barbeiro.nome_exibicao` fica nas reservas por **5 anos depois da última reserva** dele e depois vira pseudônimo ("Ex-barbeiro #N") (LGPD art. 7º IX e VI; CDC art. 27). IP da auditoria: 1 ano; backups: até 30 dias (D128). **Para advogado:** teste de legítimo interesse (LGPD art. 10) e tipo de vínculo do barbeiro (CLT ou Lei 13.352/2016). Corrigir antes da 10B com barbeiro real |
