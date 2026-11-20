@@ -131,15 +131,15 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | H20 | Quantas tentativas o job faz antes de mandar o evento para revisão manual no painel (M) | 5 tentativas | `app.pagamento.webhook.reprocessamento.max-tentativas` (variável de ambiente) |
 | H21 | Limite da consulta pública de CEP (a spec da Fatia 6 a chama de "H15", número que já era da validade das sessões) | **proposta (17/11, Fatia 6A)**: 30 consultas por minuto por IP; passou, `429` com `Retry-After`. É a primeira rota pública que gasta serviço de terceiros (ViaCEP e BrasilAPI) | `app.limites.cep-max` e `app.limites.cep-janela` |
 | H22 | Limite da exportação de dados do titular (a spec da Fatia 6 o chama de "H15") | **proposta (17/11, Fatia 6B)**: 5 exportações por hora por conta; passou, `429` com `Retry-After`. Conta as próprias solicitações gravadas (`solicitacao_titular`), sem memória | `app.limites.exportacao-max` e `app.limites.exportacao-janela` |
-| H24 | Cada barbeiro tem uma carteira de clientes (nome e contato) além da reserva manual? (a H23 é da [Fatia 9](sdd/fatia-9-assistente-de-duvidas.md)) | **proposta (20/11, [ADR 0013](adr/0013-varios-barbeiros-dono-e-convite.md))**: não; só a reserva manual com nome opcional, sem contato | — |
-| H25 | Validade do convite do barbeiro | **proposta (20/11, ADR 0013)**: 48 horas | `app.conta.convite.validade` |
-| H26 | O dono pode mandar o link do convite pelo WhatsApp dele? | **proposta (20/11, ADR 0013)**: só em pessoa (QR na tela do dono) | — |
-| H27 | O barbeiro edita a própria jornada e as próprias folgas? | **proposta (20/11, ADR 0013)**: não; só o dono | `SegurancaConfig` |
-| H28 | O barbeiro cancela uma reserva própria? | **proposta (20/11, ADR 0013)**: não (D124) | `PainelDaAgenda` |
-| H29 | O barbeiro vê preço e status do pagamento das próprias reservas? | **proposta (20/11, ADR 0013)**: sim, como hoje | painel |
-| H30 | Limite de aceite de convite | **proposta (20/11, ADR 0013)**: 10 por hora por IP; passou, `429` com `Retry-After` | `app.limites.convite-*` |
-| H31 | Reativar um barbeiro desligado | **proposta (20/11, ADR 0013)**: exige convite novo | — |
-| H32 | E-mail do barbeiro igual ao de uma conta de cliente | **proposta (20/11, ADR 0013)**: `409 EMAIL_JA_CADASTRADO`; usar outro e-mail | — |
+| H24 | Cada barbeiro tem uma carteira de clientes (nome e contato) além da reserva manual? (a H23 é da [Fatia 9](sdd/fatia-9-assistente-de-duvidas.md)) | **decidido (Kevin, 20/11): não; reserva manual só na própria agenda** | — |
+| H25 | Validade do convite do barbeiro | **decidido (Kevin, 20/11): 48 horas** | `app.conta.convite.validade` |
+| H26 | O dono pode mandar o link do convite pelo WhatsApp dele? | **decidido (Kevin, 20/11): pode ir pelo WhatsApp, uso único, 48 h, revogável** | — |
+| H27 | O barbeiro edita a própria jornada e as próprias folgas? | **decidido (Kevin, 20/11): não; só o dono** | `SegurancaConfig` |
+| H28 | O barbeiro cancela uma reserva própria? | **decidido (Kevin, 20/11): não (D124)** | `PainelDaAgenda` |
+| H29 | O barbeiro vê preço e status do pagamento das próprias reservas? | **decidido (Kevin, 20/11): sim** | painel |
+| H30 | Limite de aceite de convite | **decidido (Kevin, 20/11): 10 por hora por IP** | `app.limites.convite-*` |
+| H31 | Reativar um barbeiro desligado | **decidido (Kevin, 20/11): exige convite novo** | — |
+| H32 | E-mail do barbeiro igual ao de uma conta de cliente | **decidido (Kevin, 20/11): pode; uma conta com CLIENTE + BARBEIRO, papel só no aceite logado, desligar tira só o papel (ADR 0013, 4.1)** | — |
 | H33 | Retenção da conta do barbeiro desligado | **revisada (20/11, ADR 0013, parecer do Cautelar)**: não segue a H13. Anonimizar no dia do desligamento, com "lápide" para a auditoria; `nome_exibicao` nas reservas por 5 anos depois da última reserva e depois pseudônimo; IP da auditoria 1 ano; backup 30 dias. Pendente de advogado: art. 10 da LGPD e tipo de vínculo (CLT ou Lei 13.352/2016) | — |
 
 ## 5. Requisitos não funcionais
