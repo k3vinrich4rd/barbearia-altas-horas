@@ -1,16 +1,27 @@
-# RASCUNHO de máquina do contrato v1.1 (proposta, 16/11/2026: pagamento 100% antecipado).
-# O acordo humano é o contrato-api.md. Depois do código, o OpenAPI passa a ser
-# gerado pelo springdoc e comparado com este arquivo (oasdiff) no CI.
-# Dados de exemplo são fictícios.
+# Contrato de máquina da API da Barbearia Altas Horas (OpenAPI 3.1), escrito à mão antes do código (contrato primeiro).
+# O acordo humano é o contrato-api.md; o front gera o cliente tipado daqui (npm run gerar:tipos).
+# Lint: npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml (0 erros e 0 avisos; exceções justificadas em .redocly.lint-ignore.yaml).
+# Exemplos: respostas reais da API no perfil dev (20/11/2026), só com dados fictícios (e-mails @exemplo.test, CPF de teste).
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.7.0
+  version: 1.7.1
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
-    Contrato v1.1 em proposta. Erros no padrão RFC 9457 (application/problem+json)
-    com as extensões `code`, `traceId` e `errors`. Dinheiro em centavos (inteiro).
-    Data e hora em ISO-8601 com offset.
+    API da agenda online da Barbearia Altas Horas (Jardim Bonança, Osasco, desde 1997).
+    No ar em https://altas-horas-api.onrender.com (plano grátis: a primeira chamada depois de um tempo
+    parado pode levar de 30 a 60 segundos, enquanto o servidor acorda). O site usa a API pelo BFF do Next.js.
+
+    Convenções:
+    - Erros no padrão RFC 9457 (`application/problem+json`) com as extensões `code` (estável, para o front
+      decidir o que mostrar), `traceId` (para achar o pedido no log) e `errors[]` (campo e motivo).
+    - Dinheiro em centavos (inteiro): `precoCentavos: 4500` = R$ 45,00.
+    - Data e hora em ISO-8601 com offset (`2026-11-24T10:00:00-03:00`), no fuso `America/Sao_Paulo`.
+    - Campos desconhecidos no corpo são recusados (`400 CAMPO_DESCONHECIDO`).
+
+    Como testar o fluxo principal em 4 chamadas: `GET /servicos` → `GET /disponibilidade` →
+    `POST /agendamentos/guest` → `POST /pagamentos/cobrancas` (e, no beta, `POST /pagamentos/simulacao/{cobrancaId}/confirmar`).
+    Os exemplos de cada resposta vieram de uma execução real no perfil `dev`.
 
     Política de pagamento (R6 a R8, R18): todo agendamento, de cliente logado ou de
     guest, nasce `AGUARDANDO_PAGAMENTO`, trava o horário por 3 minutos e só vira
@@ -23,20 +34,32 @@ info:
     WhatsApp, fora do app (`POST /admin/agendamentos`). Essa reserva nasce `CONFIRMADO`, com
     origem `MANUAL`, sem cobrança e sem pagamento no sistema.
   license:
-    name: Uso de portfólio
+    name: Uso de portfólio (todos os direitos reservados)
+    url: https://github.com/k3vinrich4rd/barbearia-altas-horas#-autor
 servers:
+  - url: https://altas-horas-api.onrender.com
+    description: produção do beta (Render, plano grátis; pagamento simulado)
   - url: http://localhost:8080
-    description: local (docker compose)
+    description: local, perfil dev (docker compose + ./mvnw spring-boot:run)
 tags:
   - name: catalogo
+    description: "Serviços e barbeiros ativos. Rotas públicas, sem login."
   - name: agenda
+    description: "Horários livres e reserva de quem tem conta."
   - name: cep
+    description: "Endereço pelo CEP (ViaCEP com reserva na BrasilAPI e cache). Nunca impede o cadastro nem a reserva."
   - name: conta
+    description: "Cadastro, login, sessão (JWT curto e refresh rotativo) e troca de senha."
   - name: guest
+    description: "Reserva sem conta (visitante): o acesso à reserva é pelo X-Guest-Token, mostrado uma única vez."
   - name: pagamento
+    description: "Cobrança de 100% do serviço por Pix ou cartão, idempotente; no beta o gateway é simulado."
   - name: privacidade
+    description: "LGPD: consentimento de marketing, política de privacidade, exportar e excluir os próprios dados."
   - name: alcance
+    description: "De onde vêm os clientes, por cidade e bairro, sempre agrupado (nenhum grupo com menos de 5)."
   - name: admin
+    description: "Painel do barbeiro e do administrador: agenda do dia, reserva manual, cadastros, pagamentos e auditoria."
 security:
   - bearer: []
 paths:
@@ -54,6 +77,10 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Servico' }
+              examples:
+                catalogoDev:
+                  summary: "Catálogo do perfil dev (os 5 serviços, todos com 60 min)"
+                  value: [{"id": "6f1c2a8e-0000-4000-8000-000000000005", "nome": "Acabamento (Pezinho) / Sobrancelha", "duracaoMin": 60, "precoCentavos": 2000, "precoFormatado": "R$ 20,00"}, {"id": "6f1c2a8e-0000-4000-8000-000000000004", "nome": "Barba Completa / Desenhada", "duracaoMin": 60, "precoCentavos": 3000, "precoFormatado": "R$ 30,00"}, {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60, "precoCentavos": 4500, "precoFormatado": "R$ 45,00"}, {"id": "6f1c2a8e-0000-4000-8000-000000000002", "nome": "Corte Degradê / Fade / Navalhado", "duracaoMin": 60, "precoCentavos": 5500, "precoFormatado": "R$ 55,00"}, {"id": "6f1c2a8e-0000-4000-8000-000000000003", "nome": "Corte Moderno / Visagismo (Tesoura)", "duracaoMin": 60, "precoCentavos": 6000, "precoFormatado": "R$ 60,00"}]
   /barbeiros:
     get:
       tags: [catalogo]
@@ -72,6 +99,10 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/BarbeiroPublico' }
+              examples:
+                semWhatsapp:
+                  summary: "Barbeiro sem WhatsApp cadastrado: o front esconde o botão"
+                  value: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": null}]
   /disponibilidade:
     get:
       tags: [agenda]
@@ -93,6 +124,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Disponibilidade' }
+              examples:
+                tercaLivre:
+                  summary: "Terça livre (trecho: os 4 primeiros horários de início, a cada 30 min)"
+                  value: {"data": "2026-11-24", "fuso": "America/Sao_Paulo", "servicoId": "6f1c2a8e-0000-4000-8000-000000000001", "duracaoMin": 60, "barbeiros": [{"barbeiroId": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "horarios": ["2026-11-24T07:00:00-03:00", "2026-11-24T07:30:00-03:00", "2026-11-24T08:00:00-03:00", "2026-11-24T08:30:00-03:00"]}]}
         '400': { $ref: '#/components/responses/Erro400' }
         '404': { $ref: '#/components/responses/Erro404' }
         '422': { $ref: '#/components/responses/Erro422' }
@@ -194,6 +229,7 @@ paths:
             schema: { $ref: '#/components/schemas/RefreshRequest' }
       responses:
         '204': { description: Sessão encerrada }
+        '400': { $ref: '#/components/responses/Erro400' }
   /me:
     get:
       tags: [conta]
@@ -310,6 +346,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PoliticaPagamento' }
+              examples:
+                versaoAtual:
+                  summary: "Texto exibido no checkbox do checkout"
+                  value: {"versao": 1, "texto": "Após o pagamento antecipado de 100%, não há cancelamento, remarcação ou estorno em caso de desistência ou falta."}
   /politica-privacidade:
     get:
       tags: [privacidade]
@@ -416,6 +456,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AgendamentoGuest' }
+              examples:
+                reservaCriada:
+                  summary: "Reserva criada: AGUARDANDO_PAGAMENTO, com o prazo em expiraEm (o token real aparece só aqui)"
+                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0, "tokenGuest": "g1_<token-mostrado-uma-única-vez>"}
         '400': { $ref: '#/components/responses/Erro400' }
         '404': { $ref: '#/components/responses/Erro404' }
         '409': { $ref: '#/components/responses/Erro409Agendamento' }
@@ -434,6 +478,13 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Agendamento' }
+              examples:
+                aguardando:
+                  summary: "Antes de pagar"
+                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0}
+                confirmado:
+                  summary: "Depois do pagamento: CONFIRMADO, sem prazo"
+                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "CONFIRMADO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": null, "motivoCancelamento": null, "version": 2}
         '404': { $ref: '#/components/responses/Erro404' }
   /pagamentos/cobrancas:
     post:
@@ -462,11 +513,19 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CobrancaCriada' }
+              examples:
+                pixSimulado:
+                  summary: "Pix no modo simulado do beta: copia e cola sem QR em base64 (o front gera o QR)"
+                  value: {"id": "898173a0-e09e-4e71-942b-74e08c6d121b", "reservaId": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "PENDENTE", "metodo": "PIX", "valorCentavos": 4500, "pix": {"copiaECola": "SIMULADO-898173a0-e09e-4e71-942b-74e08c6d121b", "qrCodeBase64": null, "expiraEm": "2026-11-20T11:25:07-03:00"}, "cartao": null, "cpfMascarado": "***.***.***-25"}
         '200':
           description: Repetição com a mesma chave e o mesmo corpo (sem cpfMascarado)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Cobranca' }
+              examples:
+                repeticao:
+                  summary: "Mesma chave e mesmo corpo: devolve a mesma cobrança, sem cpfMascarado"
+                  value: {"id": "898173a0-e09e-4e71-942b-74e08c6d121b", "reservaId": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "PENDENTE", "metodo": "PIX", "valorCentavos": 4500, "pix": {"copiaECola": "SIMULADO-898173a0-e09e-4e71-942b-74e08c6d121b", "qrCodeBase64": null, "expiraEm": "2026-11-20T11:25:07-03:00"}, "cartao": null}
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '404': { $ref: '#/components/responses/Erro404' }
@@ -499,6 +558,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Cobranca' }
+              examples:
+                paga:
+                  summary: "Cobrança paga; a reserva vira CONFIRMADO"
+                  value: {"id": "898173a0-e09e-4e71-942b-74e08c6d121b", "reservaId": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "PAGA", "metodo": "PIX", "valorCentavos": 4500, "pix": {"copiaECola": "SIMULADO-898173a0-e09e-4e71-942b-74e08c6d121b", "qrCodeBase64": null, "expiraEm": "2026-11-20T11:25:07-03:00"}, "cartao": null}
         '401': { $ref: '#/components/responses/Erro401' }
         '404': { $ref: '#/components/responses/Erro404' }
   /pagamentos/webhook:
@@ -1023,11 +1086,60 @@ components:
       in: query
       schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
   responses:
-    Erro400: { description: Pedido inválido, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
-    Erro401: { description: Não autenticado, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
-    Erro403: { description: Sem permissão, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
-    Erro404: { description: Não encontrado ou de outro dono, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
-    Erro409: { description: Conflito, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro400:
+      description: "Pedido inválido: campo faltando ou com formato errado. `errors[]` diz qual campo e por quê."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            validacaoInvalida:
+              summary: "Campos obrigatórios faltando (POST /agendamentos/guest)"
+              value: {"detail": "Um ou mais campos estão inválidos.", "instance": "/agendamentos/guest", "status": 400, "title": "Dados inválidos", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#validacao_invalida", "code": "VALIDACAO_INVALIDA", "traceId": "181d75b340244392b54f2346e0ee2feb", "errors": [{"field": "barbeiroId", "message": "obrigatório"}, {"field": "email", "message": "obrigatório"}, {"field": "nome", "message": "obrigatório"}, {"field": "whatsapp", "message": "obrigatório"}]}
+            cpfInvalido:
+              summary: "CPF com dígito verificador errado (POST /pagamentos/cobrancas)"
+              value: {"detail": "O CPF informado não é válido.", "instance": "/pagamentos/cobrancas", "status": 400, "title": "CPF inválido", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#cpf_invalido", "code": "CPF_INVALIDO", "traceId": "2c0693c76ab34adfae4b9399113f24ba", "errors": []}
+            cepInvalido:
+              summary: "CEP fora do formato (GET /cep/123)"
+              value: {"detail": "O CEP deve ter 8 dígitos.", "instance": "/cep/123", "status": 400, "title": "CEP inválido", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#cep_invalido", "code": "CEP_INVALIDO", "traceId": "3b7cc30a9d50453c8b719ea2d390c308", "errors": []}
+    Erro401:
+      description: "Não autenticado: sem token, token vencido ou credenciais erradas."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            naoAutenticado:
+              summary: "Rota protegida chamada sem token (GET /me)"
+              value: {"detail": "Faça login para continuar.", "instance": "/me", "status": 401, "title": "Não autenticado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#nao_autenticado", "code": "NAO_AUTENTICADO", "traceId": "5ea662f2dc9149d9a0d59415a8898671", "errors": []}
+            credenciaisInvalidas:
+              summary: "Login com e-mail ou senha errados"
+              value: {"detail": "E-mail ou senha inválidos.", "instance": "/auth/login", "status": 401, "title": "Credenciais inválidas", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#credenciais_invalidas", "code": "CREDENCIAIS_INVALIDAS", "traceId": "fbd5469059494434a20b33d2b9006235", "errors": []}
+    Erro403:
+      description: "Sem permissão: o papel de quem chama não pode usar esta rota."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            acessoNegado:
+              summary: "CLIENTE tentando abrir o painel (GET /admin/agenda)"
+              value: {"detail": "Você não tem permissão para esta ação.", "instance": "/admin/agenda", "status": 403, "title": "Acesso negado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#acesso_negado", "code": "ACESSO_NEGADO", "traceId": "16b9141caf824089a605c5cbe899a44a", "errors": []}
+    Erro404:
+      description: "Não encontrado ou de outro dono. Recurso alheio também responde 404, para não revelar que existe (BOLA, ADR 0005)."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            naoEncontrado:
+              summary: "Reserva de visitante com o token errado"
+              value: {"detail": "Agendamento não encontrado.", "instance": "/agendamentos/guest/0baf3fc1-4b92-458e-baed-c07646d94692", "status": 404, "title": "Não encontrado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado", "code": "RECURSO_NAO_ENCONTRADO", "traceId": "2f051080e00b447abc09e1d5ec863287", "errors": []}
+    Erro409:
+      description: "Conflito com o estado atual (e-mail repetido, versão antiga, nome repetido)."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            emailJaCadastrado:
+              summary: "Cadastro com e-mail que já tem conta"
+              value: {"detail": "Já existe uma conta com este e-mail.", "instance": "/auth/cadastro", "status": 409, "title": "E-mail já cadastrado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#email_ja_cadastrado", "code": "EMAIL_JA_CADASTRADO", "traceId": "49fe5f2a980c4558810d312776968816", "errors": []}
     Erro409Agendamento:
       description: |
         Conflito ao reservar. HORARIO_INDISPONIVEL = horário ocupado (o front esconde o horário).
@@ -1043,9 +1155,10 @@ components:
                 title: Horário indisponível
                 status: 409
                 detail: Este horário acabou de ser reservado. Escolha outro.
-                instance: /agendamentos
+                instance: /agendamentos/guest
                 code: HORARIO_INDISPONIVEL
-                traceId: 4bf92f3577b34da6a3ce929d0e0e4736
+                traceId: e85960c98be6444b99f2a959a6625350
+                errors: []
             conflitoConcorrente:
               value:
                 type: https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#conflito_concorrente
@@ -1055,7 +1168,18 @@ components:
                 instance: /agendamentos
                 code: CONFLITO_CONCORRENTE
                 traceId: 0af7651916cd43dd8448eb211c80319c
-    Erro422: { description: Regra de negócio, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problema' } } } }
+    Erro422:
+      description: "Regra de negócio: o pedido está bem formado, mas a regra não deixa."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            foraDoHorizonte:
+              summary: "Data além do horizonte da agenda (GET /disponibilidade)"
+              value: {"detail": "A agenda aceita datas de hoje até 30 dias à frente.", "instance": "/disponibilidade", "status": 422, "title": "Data além do permitido", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#fora_do_horizonte", "code": "FORA_DO_HORIZONTE", "traceId": "a63f7bfb96e54c42a5b75964242a0775", "errors": []}
+            aceiteObrigatorio:
+              summary: "Cobrança sem aceitar a política de pagamento"
+              value: {"detail": "Aceite a política de pagamento para continuar.", "instance": "/pagamentos/cobrancas", "status": 422, "title": "Aceite da política obrigatório", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#aceite_politica_obrigatorio", "code": "ACEITE_POLITICA_OBRIGATORIO", "traceId": "0131a184037443a48f1f0ddf801f565b", "errors": []}
     Erro429:
       description: Limite de tentativas
       headers:

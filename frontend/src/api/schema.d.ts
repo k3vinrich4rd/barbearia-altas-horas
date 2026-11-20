@@ -1532,7 +1532,7 @@ export interface components {
         };
     };
     responses: {
-        /** @description Pedido inválido */
+        /** @description Pedido inválido: campo faltando ou com formato errado. `errors[]` diz qual campo e por quê. */
         Erro400: {
             headers: {
                 [name: string]: unknown;
@@ -1541,7 +1541,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
-        /** @description Não autenticado */
+        /** @description Não autenticado: sem token, token vencido ou credenciais erradas. */
         Erro401: {
             headers: {
                 [name: string]: unknown;
@@ -1550,7 +1550,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
-        /** @description Sem permissão */
+        /** @description Sem permissão: o papel de quem chama não pode usar esta rota. */
         Erro403: {
             headers: {
                 [name: string]: unknown;
@@ -1559,7 +1559,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
-        /** @description Não encontrado ou de outro dono */
+        /** @description Não encontrado ou de outro dono. Recurso alheio também responde 404, para não revelar que existe (BOLA, ADR 0005). */
         Erro404: {
             headers: {
                 [name: string]: unknown;
@@ -1568,7 +1568,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
-        /** @description Conflito */
+        /** @description Conflito com o estado atual (e-mail repetido, versão antiga, nome repetido). */
         Erro409: {
             headers: {
                 [name: string]: unknown;
@@ -1590,7 +1590,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
-        /** @description Regra de negócio */
+        /** @description Regra de negócio: o pedido está bem formado, mas a regra não deixa. */
         Erro422: {
             headers: {
                 [name: string]: unknown;
@@ -1827,6 +1827,7 @@ export interface operations {
                 };
                 content?: never;
             };
+            400: components["responses"]["Erro400"];
         };
     };
     meuPerfil: {

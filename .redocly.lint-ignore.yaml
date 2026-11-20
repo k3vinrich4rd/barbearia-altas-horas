@@ -1,0 +1,13 @@
+# Exceções do lint do contrato (Redocly), cada uma com o motivo. Regerar: npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml --generate-ignore-file
+# (rodar na raiz do repositório e devolver os comentários abaixo).
+docs/contrato/openapi.yaml:
+  # O servidor local (perfil dev, docker compose) é de propósito: é onde quem clona o projeto testa.
+  no-server-example.com:
+    - '#/servers/1/url'
+  # Leituras públicas sem parâmetro nem corpo: não existe resposta 4xx real para documentar
+  # (conferido no perfil dev em 20/11/2026). Inventar um 4xx só para o lint passar seria mentir no contrato.
+  operation-4xx-response:
+    - '#/paths/~1servicos/get/responses'
+    - '#/paths/~1barbeiros/get/responses'
+    - '#/paths/~1politica-pagamento/get/responses'
+    - '#/paths/~1politica-privacidade/get/responses'
