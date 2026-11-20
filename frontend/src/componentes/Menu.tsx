@@ -1,7 +1,8 @@
 "use client";
 // Cabeçalho do site (PDF, pág. 1): marca, menu com as âncoras da home, links da conta e o botão "Agendar horário".
 // No celular o menu fica recolhido atrás do botão "Menu" (padrão Disclosure da APG), para a ação principal
-// aparecer na primeira tela. No desktop tudo fica visível. Esc fecha e devolve o foco ao botão; trocar de rota fecha.
+// aparecer na primeira tela. No desktop tudo fica visível, em duas linhas (conta em cima, seções embaixo), na
+// mesma ordem do DOM, para a ordem de foco seguir a leitura. Esc fecha e devolve o foco ao botão; trocar de rota fecha.
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -62,7 +63,7 @@ export function Menu() {
         <button
           ref={botaoMenu}
           type="button"
-          className="botao botao-secundario botao-menu"
+          className="botao-mini botao-menu"
           aria-expanded={aberto}
           aria-controls="menu-do-site"
           onClick={() => setAberto(!aberto)}
@@ -70,17 +71,6 @@ export function Menu() {
           {aberto ? "Fechar menu" : "Menu"}
         </button>
         <div id="menu-do-site" className="menu-do-site" data-aberto={aberto}>
-          <nav aria-label="Principal" className="menu">
-            <ul>
-              {SECOES_DA_HOME.map((s) => (
-                <li key={s.href}>
-                  <Link href={s.href} onClick={fechar}>
-                    {s.texto}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
           <nav aria-label="Conta" className="menu menu-conta">
             <ul>
               <li>
@@ -127,6 +117,17 @@ export function Menu() {
                   </li>
                 </>
               )}
+            </ul>
+          </nav>
+          <nav aria-label="Principal" className="menu menu-principal">
+            <ul>
+              {SECOES_DA_HOME.map((s) => (
+                <li key={s.href}>
+                  <Link href={s.href} onClick={fechar}>
+                    {s.texto}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </nav>
         </div>
