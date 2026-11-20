@@ -13,7 +13,7 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 ### 1. Base legal: consentimento (LGPD art. 7º, I)
 
 - A F6 **não** usa legítimo interesse, então não precisa do registro do art. 10.
-- Na tela, o "CEP (opcional)" vem com uma **caixinha desmarcada**: "Autorizo usar só o meu bairro e a minha cidade, somados com outros clientes, para mostrar de onde vêm os clientes da barbearia. Não guardamos o CEP." O CEP só é enviado com a caixinha marcada.
+- Na tela, o "CEP (opcional)" vem com uma **caixinha desmarcada**: "Autorizo usar só meu bairro e minha cidade, somados aos de outros clientes, para mostrar no site de onde vêm os clientes da barbearia. Não guardamos o CEP. Posso retirar esta autorização quando quiser." (texto revisado pelo Cautelar). A caixinha não é obrigatória e o registro guarda a data e a versão do texto (art. 8º §2º). Ao lado do campo aparece o canal `APP_PRIVACIDADE_CONTATO`, que precisa estar preenchido em produção. A confirmação da reserva do visitante traz um link para retirar a autorização, que usa o `tokenGuest` da reserva, passa pelo BFF e apaga a região na hora (art. 8º §5º). O CEP só é enviado com a caixinha marcada.
 - Para provar o consentimento (art. 8º, §2º):
   - na conta, o registro vai em `consentimento`, com a finalidade nova `REGIAO_ALCANCE` e a versão do texto;
   - no visitante, a reserva guarda `regiao_consentimento_versao` junto com a região.
@@ -61,6 +61,7 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 10. O teste de propriedade do item 6 também cobre as faixas: a partir das respostas públicas, não dá para isolar a faixa de um bairro escondido.
 
 11. Uma pessoa com 5 atendimentos no mesmo bairro conta como 1 cliente e, sozinha, não libera a porcentagem do bairro.
+12. O link de revogação da confirmação apaga a região da reserva do visitante. Ele só funciona com o `tokenGuest` certo e, para qualquer outro, responde 404.
 ## Consequências
 
 - O alcance continua útil com poucos clientes, porque o dado sobe de nível em vez de sumir.
