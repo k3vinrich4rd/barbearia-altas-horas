@@ -35,6 +35,17 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 - **Supressão complementar** (contra descobrir por subtração): quando o total do nível de cima aparece e só um lugar ficou escondido, o "Outros" mostra "menos de k", sem número. Se mesmo assim desse para calcular, o total do nível de cima também não aparece.
 - Valores abaixo de k nunca aparecem como número, percentual, `0`, `null` ou "NaN".
 
+### 4. Vitrine pública: porcentagem em faixas, sem total (pedido do Kevin, regras do Cautelar)
+
+- Na home, o bloco "de onde vêm os clientes" mostra os municípios. Ao clicar num município, aparecem os bairros com **porcentagem**, não com número.
+- Porcentagem só para bairro com **pelo menos k (5) clientes**. Os outros entram em "Outros bairros", **sem porcentagem**.
+- A porcentagem é arredondada para baixo em **faixas de 5%** e aparece como "cerca de 15%". Abaixo de 5%, fica "menos de 5%". O "Outros bairros" nunca mostra porcentagem, então o "100 menos a soma" não revela um bairro, porque as faixas arredondam para baixo.
+- Município com **menos de 20 clientes**: só os nomes dos bairros que passam no k, sem porcentagem.
+- **Nunca** expor o total de clientes nem contagens absolutas no `GET /alcance` público. Na vitrine, o contador vira "clientes de N bairros", onde N conta só os bairros que passam no k.
+- Tudo é calculado no backend. O front recebe as faixas prontas, nunca os números para calcular.
+- Painel do Dono/Admin (autenticado): continua com contagens, aplicando as regras de k e de subida de nível da seção 3.
+- Contrato: no `GET /alcance` público entra o campo `faixaPercentual` (string, ex.: `"15"` ou `"<5"`, nula quando não há porcentagem). O `atendimentos` e qualquer total passam a vir sempre `null`, marcados como `deprecated`, até a próxima major. Isso entra no mesmo minor da seção 1.
+
 ## Critérios de aceite (para o SDD)
 
 1. Uma reserva ou conta sem a caixinha marcada não grava região, e o CEP não é enviado.
@@ -44,6 +55,9 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 5. Um bairro com 3 clientes aparece como parte de "Outros bairros". Se esse grupo também tiver menos de k, sobe para a cidade.
 6. **Teste de propriedade:** para dados aleatórios, nenhuma combinação de respostas públicas do alcance (totais, níveis e filtros) permite calcular uma contagem positiva menor que k.
 7. `app.alcance.k` muda o comportamento sem mudar código.
+8. `GET /alcance` público nunca traz contagem nem total. Só traz nomes e `faixaPercentual` em múltiplos de 5 (ou `"<5"`), e o "Outros bairros" vem sem faixa.
+9. Um município com 19 clientes devolve só os nomes dos bairros que passam no k, sem faixa. Com 20 ou mais, devolve as faixas.
+10. O teste de propriedade do item 6 também cobre as faixas: a partir das respostas públicas, não dá para isolar a faixa de um bairro escondido.
 
 ## Consequências
 
