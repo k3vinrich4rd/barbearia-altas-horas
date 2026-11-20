@@ -1,8 +1,8 @@
 # 0003. Anti double booking no banco com `EXCLUDE USING gist`
 
-- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Status: **aceito** (revisão de arquitetura, 13/11/2026)
 - Data: 2026-11-13 (proposta e aceite)
-- Decisores: Alicerce (dono), Quarteto Dev (texto)
+- Decisores: revisão de arquitetura (dona), Kevin Richard (texto)
 
 
 > **Atualização 16/11/2026 (D31 a D35):** a barbearia definiu pagamento **100% antecipado** por Pix ou cartão para todos, sem cancelamento ou remarcação pelo cliente. Onde este registro fala em "sinal" ou remarcação, vale a regra nova; o ADR fica como histórico da decisão.
@@ -51,7 +51,7 @@ CONSTRAINT reserva_sem_sobreposicao EXCLUDE USING gist (
   - Para cada `id` devolvido, publica `ReservaExpirada` (mesmo evento do job).
   - **A remarcação (R19) usa o mesmo caminho**: expira as vencidas que conflitam com o horário novo, na mesma transação, antes de mover a reserva.
   - **Risco real de deadlock:** dois `INSERT` concorrentes no mesmo horário travam as mesmas linhas na mesma ordem (`ORDER BY id`) e um simplesmente espera o outro. O risco de verdade é com o **job de expiração** (R17), que trava lotes de vencidas de vários barbeiros; por isso o job usa `FOR UPDATE SKIP LOCKED` (pula o que a inserção já travou) e também ordena por `id`.
-  - **Se mesmo assim vier `40P01`** (deadlock detectado), a **transação inteira** é refeita (expirar + inserir), **uma vez só**. Na segunda falha, a API responde **`409` com `code` `CONFLITO_CONCORRENTE`** e `detail` "Muitas reservas ao mesmo tempo. Tente de novo.", e registra a métrica. **Não** usa `HORARIO_INDISPONIVEL`: esse código faz o front esconder o horário, e depois de um deadlock o horário pode estar livre. O front pode repetir a mesma requisição **uma vez**; se vier `HORARIO_INDISPONIVEL` na repetição, aí sim o horário está ocupado. Vale para `POST /agendamentos`, `POST /agendamentos/guest` e `POST /agendamentos/{id}/remarcacao` (os três passam pela expiração preguiçosa + escrita). Ajuste da revisão do Alicerce no PR #2. Ajuste da revisão do Alicerce sobre a crítica 4 do Gemini (pesquisa interna da equipe).
+  - **Se mesmo assim vier `40P01`** (deadlock detectado), a **transação inteira** é refeita (expirar + inserir), **uma vez só**. Na segunda falha, a API responde **`409` com `code` `CONFLITO_CONCORRENTE`** e `detail` "Muitas reservas ao mesmo tempo. Tente de novo.", e registra a métrica. **Não** usa `HORARIO_INDISPONIVEL`: esse código faz o front esconder o horário, e depois de um deadlock o horário pode estar livre. O front pode repetir a mesma requisição **uma vez**; se vier `HORARIO_INDISPONIVEL` na repetição, aí sim o horário está ocupado. Vale para `POST /agendamentos`, `POST /agendamentos/guest` e `POST /agendamentos/{id}/remarcacao` (os três passam pela expiração preguiçosa + escrita). Ajuste da revisão de arquitetura no PR #2. Ajuste da revisão de arquitetura sobre a crítica 4 do Gemini (pesquisa interna da equipe).
 - Opção 1 descartada: duas transações passam na verificação ao mesmo tempo. Opção 2 descartada: não protege duas instâncias nem um `INSERT` manual. Opção 3 funciona, mas serializa a agenda inteira do barbeiro e depende de todo caminho lembrar do lock.
 
 ## Prova

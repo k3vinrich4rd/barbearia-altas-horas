@@ -1,8 +1,8 @@
 # 0006. Sessão: JWT curto + refresh rotativo em cookie `HttpOnly` via BFF
 
-- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Status: **aceito** (revisão de arquitetura, 13/11/2026)
 - Data: 2026-11-13 (proposta e aceite)
-- Decisores: Alicerce (dono), Quarteto Dev (texto)
+- Decisores: revisão de arquitetura (dona), Kevin Richard (texto)
 
 ## Contexto
 O front roda na Vercel e a API no Render (domínios diferentes). Guardar token no `localStorage` expõe a sessão a XSS. O plano grátis não comporta um provedor de identidade separado.
