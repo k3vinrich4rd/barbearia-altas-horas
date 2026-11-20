@@ -42,6 +42,7 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 - A porcentagem é arredondada para baixo em **faixas de 5%** e aparece como "cerca de 15%". Abaixo de 5%, fica "menos de 5%". O "Outros bairros" nunca mostra porcentagem, então o "100 menos a soma" não revela um bairro, porque as faixas arredondam para baixo.
 - Município com **menos de 20 clientes**: só os nomes dos bairros que passam no k, sem porcentagem.
 - **Nunca** expor o total de clientes nem contagens absolutas no `GET /alcance` público. Na vitrine, o contador vira "clientes de N bairros", onde N conta só os bairros que passam no k.
+- **O que se conta são pessoas diferentes, não atendimentos.** O k (5), o limite de 20 e as porcentagens usam clientes distintos, porque 5 atendimentos podem ser de uma pessoa só. Cliente com conta é contado pelo `usuario.id`. Convidado é contado pelo `whatsapp` normalizado, ou pelo `email` em minúsculas quando o WhatsApp faltar. Convidado e conta com o mesmo WhatsApp ou e-mail contam como uma pessoa só. Cada pessoa entra no bairro do seu consentimento mais recente. A política de privacidade (1.1, linha 35) deve trocar "atendimentos" por "clientes" na versão 1.2.
 - Tudo é calculado no backend. O front recebe as faixas prontas, nunca os números para calcular.
 - Painel do Dono/Admin (autenticado): continua com contagens, aplicando as regras de k e de subida de nível da seção 3.
 - Contrato: no `GET /alcance` público entra o campo `faixaPercentual` (string, ex.: `"15"` ou `"<5"`, nula quando não há porcentagem). O `atendimentos` e qualquer total passam a vir sempre `null`, marcados como `deprecated`, até a próxima major. Isso entra no mesmo minor da seção 1.
@@ -59,6 +60,7 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 9. Um município com 19 clientes devolve só os nomes dos bairros que passam no k, sem faixa. Com 20 ou mais, devolve as faixas.
 10. O teste de propriedade do item 6 também cobre as faixas: a partir das respostas públicas, não dá para isolar a faixa de um bairro escondido.
 
+11. Uma pessoa com 5 atendimentos no mesmo bairro conta como 1 cliente e, sozinha, não libera a porcentagem do bairro.
 ## Consequências
 
 - O alcance continua útil com poucos clientes, porque o dado sobe de nível em vez de sumir.
