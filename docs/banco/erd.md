@@ -3,19 +3,19 @@
 | | |
 |---|---|
 | 🎯 **Para que serve** | o modelo de dados do beta, as constraints que protegem as regras e o porquê de cada índice |
-| 👥 **Área responsável** | backend · arquitetura: Alicerce |
+| 👥 **Área responsável** | backend · arquitetura: revisão independente |
 | ⏰ **Quando usar** | antes de criar entidade JPA, consulta ou migração |
 | 🧰 **Como** | ERD em Mermaid + o DDL em [`V1__agenda.proposta.sql`](V1__agenda.proposta.sql), que vira `backend/src/main/resources/db/migration/V1__agenda.sql` na fatia S01 |
 | 🚫 **Não cobre** | regras de transição ([domínio](../dominio/modelo-de-dominio.md)) |
 
-> Status: **proposta (13/11/2026)**, aguardando revisão do Alicerce (arquitetura). Os valores iniciais de `configuracao_agenda` são **HIPÓTESES** ([dossiê, seção 4](../contexto.md#4-hipóteses-em-aberto)).
+> Status: **proposta (13/11/2026)**, aguardando a revisão de arquitetura. Os valores iniciais de `configuracao_agenda` são **HIPÓTESES** ([dossiê, seção 4](../contexto.md#4-hipóteses-em-aberto)).
 
 
 > **Alinhado na Fatia 1 (16/11/2026, D31 a D35, D44)** na migração real [`V1__agenda.sql`](../../backend/src/main/resources/db/migration/V1__agenda.sql): sai `sinal_centavos`, `percentual_sinal`, `politica_sinal` e `janela_cancelamento_min`; entram `metodo` na cobrança, `aceite_politica_versao` e `aceite_politica_em` na reserva e a transição `EXPIRADO → CONFIRMADO`. O diagrama abaixo ainda mostra a proposta de 13/11; a verdade do schema é a migração.
 
 ## 1. ERD
 
-Cada cor de módulo é dona das próprias tabelas (arquitetura do Alicerce, seção 3). FKs entre tabelas de módulos diferentes são permitidas no banco; no código, a referência é só pelo id.
+Cada cor de módulo é dona das próprias tabelas (proposta de arquitetura, seção 3). FKs entre tabelas de módulos diferentes são permitidas no banco; no código, a referência é só pelo id.
 
 ```mermaid
 erDiagram
@@ -220,7 +220,7 @@ Os planos (`EXPLAIN`) das consultas de disponibilidade e da agenda entram no PR 
 
 ## 4. Validação manual feita nesta etapa
 
-Em 13/11/2026, o coordenador aplicou o DDL num **PostgreSQL 17.12** limpo (imagem `postgres:17` no Docker) e conferiu à mão, com dados fictícios:
+Em 13/11/2026, foi aplicado o DDL num **PostgreSQL 17.12** limpo (imagem `postgres:17` no Docker) e conferiu à mão, com dados fictícios:
 
 | Caso | Resultado observado |
 |---|---|
@@ -232,7 +232,7 @@ Em 13/11/2026, o coordenador aplicou o DDL num **PostgreSQL 17.12** limpo (image
 | Mesmo evento de webhook duas vezes com `ON CONFLICT DO NOTHING` | uma linha só |
 | Duas transações simultâneas no mesmo horário (a primeira segura o commit por 2 s) | a segunda esperou e falhou com `23P01`; ficou 1 reserva |
 
-**Revalidação depois da revisão do Alicerce (13/11/2026, PostgreSQL 17.12 no Docker):** DDL ajustado aplicado sem erro (sem a coluna `devolucao_pendente`, com os índices `cobranca_devolucao_ix` por status e `evento_webhook_pendente_ix`); o `EXPLAIN` das duas instruções de expiração (preguiçosa com `FOR UPDATE` e job com `FOR UPDATE SKIP LOCKED` em lote) passou; o segundo `INSERT ... ON CONFLICT DO NOTHING RETURNING id` do mesmo evento devolveu zero linhas e o `SELECT ... FOR UPDATE` seguinte achou o evento com `processado_em` nulo (caso de reprocessar).
+**Revalidação depois da revisão de arquitetura (13/11/2026, PostgreSQL 17.12 no Docker):** DDL ajustado aplicado sem erro (sem a coluna `devolucao_pendente`, com os índices `cobranca_devolucao_ix` por status e `evento_webhook_pendente_ix`); o `EXPLAIN` das duas instruções de expiração (preguiçosa com `FOR UPDATE` e job com `FOR UPDATE SKIP LOCKED` em lote) passou; o segundo `INSERT ... ON CONFLICT DO NOTHING RETURNING id` do mesmo evento devolveu zero linhas e o `SELECT ... FOR UPDATE` seguinte achou o evento com `processado_em` nulo (caso de reprocessar).
 
 **Revalidação do job de reprocessamento (13/11/2026, PostgreSQL 17.12 no Docker):** DDL com `tentativas`, `ultima_tentativa_em`, `ultimo_erro`, o check `evento_webhook_tentativas_ck` e os índices `evento_webhook_pendente_ix` e `evento_webhook_revisao_ix` aplicado sem erro. Com N = 10 min, a instrução de reivindicação do lote pegou só o evento não processado com 20 min; ignorou o de 2 min, o já processado e o que estava em `REVISAO_MANUAL`, e incrementou `tentativas`. Com outra sessão segurando `FOR UPDATE` num evento elegível, o `SKIP LOCKED` pulou esse evento. `tentativas = -1` foi recusado pelo check.
 

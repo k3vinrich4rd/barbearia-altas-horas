@@ -1,8 +1,8 @@
 # 0001. Monólito modular com Spring Modulith
 
-- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Status: **aceito** (revisão de arquitetura, 13/11/2026)
 - Data: 2026-11-13 (proposta e aceite)
-- Decisores: Alicerce (arquitetura, dono), Quarteto Dev (texto), Kevin (aprovação no release)
+- Decisores: revisão de arquitetura (dona), Kevin Richard (texto e aprovação no release)
 - Consultados: Gemini (`gemini-3.8-flash-medium`, ataque à proposta: pesquisa interna da equipe)
 
 ## Contexto

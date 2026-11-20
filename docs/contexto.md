@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | 🎯 **Para que serve** | o "por quê", "para quem" e "até onde" do projeto: a fonte do contrato, dos ADRs e do README |
-| 👥 **Área responsável** | Kevin (regras de negócio) · coordenador (texto) · Alicerce (arquitetura) |
+| 👥 **Área responsável** | Kevin (regras de negócio e texto) · revisão de arquitetura |
 | ⏰ **Quando usar** | antes de mexer no projeto; atualize no mesmo PR que mudar regra, dado pessoal, dependência externa ou requisito não funcional |
 | 🧰 **Como** | tabelas e regras numeradas (R#), citadas nos testes (`@DisplayName("R12 ...")`) e nos PRs |
 | 🚫 **Não cobre** | rotas e payloads ([contrato](contrato/contrato-api.md)) · decisões de arquitetura ([ADRs](adr/)) |
@@ -62,7 +62,7 @@
 
 ## 3. Regras de negócio
 
-Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde veio: **P** = prompt aprovado pelo Kevin em 13/11/2026; **A** = arquitetura do Alicerce; **H** = hipótese (seção 4).
+Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde veio: **P** = prompt aprovado pelo Kevin em 13/11/2026; **A** = proposta de arquitetura; **H** = hipótese (seção 4).
 
 | # | Regra | Origem | Teste previsto (fatia) |
 |---|---|---|---|
@@ -170,7 +170,7 @@ Metas **propostas**, ainda **sem medição**. O "valor atual" só entra depois d
 | RISC-04 | Aiven free desligado por inatividade | média × média | documentar como religar no `README_DEPLOY`; health check do Render não acorda o banco (não usar health com consulta pesada) | Decolagem |
 | RISC-05 | Webhook do Asaas autenticado só por token estático | média × alta | token longo aleatório, comparação em tempo constante, HTTPS, e **reconsulta da cobrança na API do gateway** antes de confirmar (ADR 0007) | pagamento |
 | RISC-06 | Job de expiração atrasado prende horário | baixa × média | disponibilidade ignora vencidas (R15) e expiração preguiçosa (R16) | agenda |
-| RISC-07 | Claude Code indisponível atrasa as fatias de domínio difícil | média × média | reserva: Copilot `claude-sonnet-5.5` local; revisão do Alicerce | coordenador |
+| RISC-07 | Claude Code indisponível atrasa as fatias de domínio difícil | média × média | reserva: Copilot `claude-sonnet-5.5` local; revisão de arquitetura | Kevin |
 
 ### 7.2 STRIDE leve por fluxo crítico
 
