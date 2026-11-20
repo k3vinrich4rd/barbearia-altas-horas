@@ -1184,7 +1184,7 @@ export interface components {
             cobrancaStatus?: components["schemas"]["StatusCobranca"] | null;
         };
         AgendamentoGuest: components["schemas"]["Agendamento"] & {
-            /** @description mostrado uma única vez; o banco guarda só o hash */
+            /** @description mostrado uma única vez; o banco guarda só o hash. A API sempre devolve o campo; o BFF grava o token num cookie HttpOnly e o tira do corpo antes de responder ao navegador (D150) */
             tokenGuest: string;
         };
         PaginaAgendamentos: {
@@ -1568,6 +1568,33 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
+        /** @description Não encontrado. Mesmo código e título do Erro404; o `detail` diz o que faltou. */
+        Erro404Servico: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
+        /** @description Não encontrado. Mesmo código e título do Erro404; o `detail` diz o que faltou. */
+        Erro404Reserva: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
+        /** @description Não encontrado. Mesmo código e título do Erro404; o `detail` diz o que faltou. */
+        Erro404Cobranca: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
         /** @description Conflito com o estado atual (e-mail repetido, versão antiga, nome repetido). */
         Erro409: {
             headers: {
@@ -1695,7 +1722,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["Erro400"];
-            404: components["responses"]["Erro404"];
+            404: components["responses"]["Erro404Servico"];
             422: components["responses"]["Erro422"];
         };
     };
@@ -2120,7 +2147,10 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Reserva do guest criada; tokenGuest aparece só aqui */
+            /**
+             * @description Reserva do guest criada; tokenGuest aparece só aqui. A API continua devolvendo o campo `tokenGuest` neste corpo;
+             *     o BFF do Next grava o token num cookie HttpOnly e tira o campo antes de responder ao navegador (D150).
+             */
             201: {
                 headers: {
                     /** @example /agendamentos/guest/3fa85f64-5717-4562-b3fc-2c963f66afa6 */
@@ -2132,7 +2162,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["Erro400"];
-            404: components["responses"]["Erro404"];
+            404: components["responses"]["Erro404Servico"];
             409: components["responses"]["Erro409Agendamento"];
             422: components["responses"]["Erro422"];
             429: components["responses"]["Erro429"];
@@ -2196,7 +2226,7 @@ export interface operations {
             };
             400: components["responses"]["Erro400"];
             401: components["responses"]["Erro401"];
-            404: components["responses"]["Erro404"];
+            404: components["responses"]["Erro404Reserva"];
             /**
              * @description COBRANCA_EM_ANDAMENTO: a reserva já tem uma cobrança PENDENTE (ou PAGA) com outra chave de idempotência;
              *     o `detail` traz o id da existente. Só uma cobrança viva por reserva.
@@ -2235,7 +2265,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["Erro401"];
-            404: components["responses"]["Erro404"];
+            404: components["responses"]["Erro404Cobranca"];
         };
     };
     receberWebhook: {

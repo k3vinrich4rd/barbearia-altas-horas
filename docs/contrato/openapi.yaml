@@ -38,7 +38,7 @@ info:
     url: https://github.com/k3vinrich4rd/barbearia-altas-horas#-autor
 servers:
   - url: https://altas-horas-api.onrender.com
-    description: produção do beta (Render, plano grátis; pagamento simulado)
+    description: beta publicado (Render, plano grátis; pagamento simulado)
   - url: http://localhost:8080
     description: local, perfil dev (docker compose + ./mvnw spring-boot:run)
 tags:
@@ -129,7 +129,7 @@ paths:
                   summary: "Terça livre (trecho: os 4 primeiros horários de início, a cada 30 min)"
                   value: {"data": "2026-11-24", "fuso": "America/Sao_Paulo", "servicoId": "6f1c2a8e-0000-4000-8000-000000000001", "duracaoMin": 60, "barbeiros": [{"barbeiroId": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "horarios": ["2026-11-24T07:00:00-03:00", "2026-11-24T07:30:00-03:00", "2026-11-24T08:00:00-03:00", "2026-11-24T08:30:00-03:00"]}]}
         '400': { $ref: '#/components/responses/Erro400' }
-        '404': { $ref: '#/components/responses/Erro404' }
+        '404': { $ref: '#/components/responses/Erro404Servico' }
         '422': { $ref: '#/components/responses/Erro422' }
   /cep/{cep}:
     get:
@@ -450,7 +450,9 @@ paths:
             schema: { $ref: '#/components/schemas/AgendamentoGuestRequest' }
       responses:
         '201':
-          description: Reserva do guest criada; tokenGuest aparece só aqui
+          description: |
+            Reserva do guest criada; tokenGuest aparece só aqui. A API continua devolvendo o campo `tokenGuest` neste corpo;
+            o BFF do Next grava o token num cookie HttpOnly e tira o campo antes de responder ao navegador (D150).
           headers:
             Location: { schema: { type: string }, example: /agendamentos/guest/3fa85f64-5717-4562-b3fc-2c963f66afa6 }
           content:
@@ -461,7 +463,7 @@ paths:
                   summary: "Reserva criada: AGUARDANDO_PAGAMENTO, com o prazo em expiraEm (o token real aparece só aqui)"
                   value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0, "tokenGuest": "g1_<token-mostrado-uma-única-vez>"}
         '400': { $ref: '#/components/responses/Erro400' }
-        '404': { $ref: '#/components/responses/Erro404' }
+        '404': { $ref: '#/components/responses/Erro404Servico' }
         '409': { $ref: '#/components/responses/Erro409Agendamento' }
         '422': { $ref: '#/components/responses/Erro422' }
         '429': { $ref: '#/components/responses/Erro429' }
@@ -528,7 +530,7 @@ paths:
                   value: {"id": "898173a0-e09e-4e71-942b-74e08c6d121b", "reservaId": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "PENDENTE", "metodo": "PIX", "valorCentavos": 4500, "pix": {"copiaECola": "SIMULADO-898173a0-e09e-4e71-942b-74e08c6d121b", "qrCodeBase64": null, "expiraEm": "2026-11-20T11:25:07-03:00"}, "cartao": null}
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
-        '404': { $ref: '#/components/responses/Erro404' }
+        '404': { $ref: '#/components/responses/Erro404Reserva' }
         '409':
           description: |
             COBRANCA_EM_ANDAMENTO: a reserva já tem uma cobrança PENDENTE (ou PAGA) com outra chave de idempotência;
@@ -536,6 +538,10 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problema' }
+              examples:
+                cobrancaEmAndamento:
+                  summary: "Segunda cobrança para a mesma reserva, com outra chave de idempotência"
+                  value: {"detail": "Esta reserva já tem uma cobrança em andamento: 898173a0-e09e-4e71-942b-74e08c6d121b.", "instance": "/pagamentos/cobrancas", "status": 409, "title": "Cobrança em andamento", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#cobranca_em_andamento", "code": "COBRANCA_EM_ANDAMENTO", "traceId": "9b3e51d7a04c4f2e8d6a1c0b7e5f3a29", "errors": []}
         '422': { $ref: '#/components/responses/Erro422' }
         '429': { $ref: '#/components/responses/Erro429' }
         '503': { $ref: '#/components/responses/Erro503' }
@@ -563,7 +569,7 @@ paths:
                   summary: "Cobrança paga; a reserva vira CONFIRMADO"
                   value: {"id": "898173a0-e09e-4e71-942b-74e08c6d121b", "reservaId": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "PAGA", "metodo": "PIX", "valorCentavos": 4500, "pix": {"copiaECola": "SIMULADO-898173a0-e09e-4e71-942b-74e08c6d121b", "qrCodeBase64": null, "expiraEm": "2026-11-20T11:25:07-03:00"}, "cartao": null}
         '401': { $ref: '#/components/responses/Erro401' }
-        '404': { $ref: '#/components/responses/Erro404' }
+        '404': { $ref: '#/components/responses/Erro404Cobranca' }
   /pagamentos/webhook:
     post:
       tags: [pagamento]
@@ -1131,6 +1137,33 @@ components:
             naoEncontrado:
               summary: "Reserva de visitante com o token errado"
               value: {"detail": "Agendamento não encontrado.", "instance": "/agendamentos/guest/0baf3fc1-4b92-458e-baed-c07646d94692", "status": 404, "title": "Não encontrado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado", "code": "RECURSO_NAO_ENCONTRADO", "traceId": "2f051080e00b447abc09e1d5ec863287", "errors": []}
+    Erro404Servico:
+      description: "Não encontrado. Mesmo código e título do Erro404; o `detail` diz o que faltou."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            naoEncontrado:
+              summary: "servicoId que não existe (GET /disponibilidade ou POST /agendamentos/guest)"
+              value: {"detail": "Serviço não encontrado.", "instance": "/disponibilidade", "status": 404, "title": "Não encontrado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado", "code": "RECURSO_NAO_ENCONTRADO", "traceId": "7d41c0e2b39a4f6c8e15a2b0d9c3f871", "errors": []}
+    Erro404Reserva:
+      description: "Não encontrado. Mesmo código e título do Erro404; o `detail` diz o que faltou."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            naoEncontrado:
+              summary: "reservaId que não existe ou é de outro dono (POST /pagamentos/cobrancas)"
+              value: {"detail": "Reserva não encontrada.", "instance": "/pagamentos/cobrancas", "status": 404, "title": "Não encontrado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado", "code": "RECURSO_NAO_ENCONTRADO", "traceId": "c2e8a95f1b7d4e03a6f4d18b2c9e7a50", "errors": []}
+    Erro404Cobranca:
+      description: "Não encontrado. Mesmo código e título do Erro404; o `detail` diz o que faltou."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+          examples:
+            naoEncontrado:
+              summary: "cobrancaId que não existe ou é de outro dono"
+              value: {"detail": "Cobrança não encontrada.", "instance": "/pagamentos/simulacao/568ecc7e-3b1a-4c2d-9e8f-0a1b2c3d4e5f/confirmar", "status": 404, "title": "Não encontrado", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#recurso_nao_encontrado", "code": "RECURSO_NAO_ENCONTRADO", "traceId": "e4b07d2c9a1f4b68b35e0c7d91a2f6e3", "errors": []}
     Erro409:
       description: "Conflito com o estado atual (e-mail repetido, versão antiga, nome repetido)."
       content:
@@ -1150,6 +1183,7 @@ components:
           schema: { $ref: '#/components/schemas/Problema' }
           examples:
             horarioIndisponivel:
+              summary: "Outro cliente reservou o mesmo horário antes"
               value:
                 type: https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#horario_indisponivel
                 title: Horário indisponível
@@ -1160,14 +1194,16 @@ components:
                 traceId: e85960c98be6444b99f2a959a6625350
                 errors: []
             conflitoConcorrente:
+              summary: "Deadlock que persistiu depois do retry interno (o instance é o caminho chamado: /agendamentos/guest ou /agendamentos)"
               value:
                 type: https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#conflito_concorrente
                 title: Conflito momentâneo
                 status: 409
                 detail: Muitas reservas ao mesmo tempo. Tente de novo.
-                instance: /agendamentos
+                instance: /agendamentos/guest
                 code: CONFLITO_CONCORRENTE
                 traceId: 0af7651916cd43dd8448eb211c80319c
+                errors: []
     Erro422:
       description: "Regra de negócio: o pedido está bem formado, mas a regra não deixa."
       content:
@@ -1514,7 +1550,7 @@ components:
         - type: object
           required: [tokenGuest, expiraEm]
           properties:
-            tokenGuest: { type: string, description: 'mostrado uma única vez; o banco guarda só o hash' }
+            tokenGuest: { type: string, description: 'mostrado uma única vez; o banco guarda só o hash. A API sempre devolve o campo; o BFF grava o token num cookie HttpOnly e o tira do corpo antes de responder ao navegador (D150)' }
     PaginaAgendamentos:
       type: object
       required: [itens, pagina, tamanho, total]
