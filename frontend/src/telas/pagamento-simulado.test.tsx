@@ -9,6 +9,8 @@ import { PagamentoSimulado } from "@/telas/PagamentoSimulado";
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
 ligarServidor();
 
+const ROTULO = "Ver a tela de confirmação (simula o pagamento aprovado)";
+
 const cobranca = cobrancaPix({
   metodo: "CARTAO_CREDITO",
   pix: null,
@@ -21,7 +23,7 @@ beforeEach(() => {
 });
 
 describe("pagamento simulado", () => {
-  test("A63: /pagamento-simulado/{cobrancaId} confirma a cobrança simulada e vai à confirmação, sem campo de cartão", async () => {
+  test("A63: 200 na confirmação simulada leva à tela de confirmação, sem campo de cartão", async () => {
     let chamado = 0;
     servidor.use(
       http.post(`${BFF}/pagamentos/simulacao/:cobrancaId/confirmar`, ({ params }) => {
@@ -34,21 +36,29 @@ describe("pagamento simulado", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Pagamento com cartão");
     expect(screen.queryByLabelText(/número do cartão|cvv|validade/i)).toBeNull();
     expect(document.querySelector('input[autocomplete^="cc-"]')).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Ver a tela de confirmação (simula o pagamento aprovado)" }));
-    await waitFor(() =>
-      expect(roteador.push).toHaveBeenCalledWith(`/agendar/confirmacao/${cobranca.reservaId}`),
-    );
+    await user.click(screen.getByRole("button", { name: ROTULO }));
+    await waitFor(() => expect(roteador.push).toHaveBeenCalledWith(`/agendar/confirmacao/${cobranca.reservaId}`));
     expect(chamado).toBe(1);
+  });
 
-    zerarNavegacao();
+  test("A63: 404 (cobrança de outro dono ou inexistente) mostra o erro e não sai da tela", async () => {
     servidor.use(
       http.post(`${BFF}/pagamentos/simulacao/:cobrancaId/confirmar`, () => erro(404, "RECURSO_NAO_ENCONTRADO")),
     );
-    const outra = renderizar(<PagamentoSimulado cobrancaId={cobranca.id} />);
-    await outra.user.click(
-      screen.getByRole("button", { name: "Ver a tela de confirmação (simula o pagamento aprovado)" }),
-    );
+    const { user } = renderizar(<PagamentoSimulado cobrancaId={cobranca.id} />);
+    await user.click(screen.getByRole("button", { name: ROTULO }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(roteador.push).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: ROTULO })).toBeEnabled();
+  });
+
+  test("A63: visitante sem cookie recebe 401, vê o erro e não é redirecionado", async () => {
+    servidor.use(http.post(`${BFF}/pagamentos/simulacao/:cobrancaId/confirmar`, () => erro(401, "NAO_AUTENTICADO")));
+    const { user } = renderizar(<PagamentoSimulado cobrancaId={cobranca.id} />);
+    await user.click(screen.getByRole("button", { name: ROTULO }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(roteador.push).not.toHaveBeenCalled();
+    expect(roteador.replace).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Pagamento com cartão");
   });
 });
