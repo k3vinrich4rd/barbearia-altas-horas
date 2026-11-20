@@ -140,7 +140,7 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | H30 | Limite de aceite de convite | **proposta (20/11, ADR 0013)**: 10 por hora por IP; passou, `429` com `Retry-After` | `app.limites.convite-*` |
 | H31 | Reativar um barbeiro desligado | **proposta (20/11, ADR 0013)**: exige convite novo | — |
 | H32 | E-mail do barbeiro igual ao de uma conta de cliente | **proposta (20/11, ADR 0013)**: `409 EMAIL_JA_CADASTRADO`; usar outro e-mail | — |
-| H33 | Retenção da conta do barbeiro desligado | **proposta (20/11, ADR 0013)**: manter enquanto houver reserva ou auditoria ligada; anonimizar depois do prazo da H13 (**pendente de fonte legal**) | — |
+| H33 | Retenção da conta do barbeiro desligado | **revisada (20/11, ADR 0013, parecer do Cautelar)**: não segue a H13. Anonimizar no dia do desligamento, com "lápide" para a auditoria; `nome_exibicao` nas reservas por 5 anos depois da última reserva e depois pseudônimo; IP da auditoria 1 ano; backup 30 dias. Pendente de advogado: art. 10 da LGPD e tipo de vínculo (CLT ou Lei 13.352/2016) | — |
 
 ## 5. Requisitos não funcionais
 
