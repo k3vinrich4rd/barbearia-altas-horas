@@ -340,7 +340,7 @@ Saída real (17/11/2026, 13h31):
 200  {"id":"76d3d50a-…","status":"CONFIRMADO","inicio":"2026-12-01T10:00:00-03:00","origem":"GUEST"}
 ```
 
-**O que prova:** a confirmação passa pelo **mesmo** fluxo do webhook (evento gravado, gateway reconsultado, reserva confirmada). Prova também a porta de entrada real: `POST /pagamentos/webhook` sem o cabeçalho `asaas-access-token` responde `401 WEBHOOK_NAO_AUTENTICADO`. No modo real (`asaas`) a rota de simulação deixa de existir.
+**O que prova:** a confirmação passa pelo **mesmo** fluxo do webhook (evento gravado, gateway reconsultado, reserva confirmada). Prova também a porta de entrada real: `POST /pagamentos/webhook` sem o cabeçalho `asaas-access-token` responde `401 WEBHOOK_NAO_AUTENTICADO`. No modo real (`asaas`) a rota de simulação deixa de existir. No front, o `urlCheckout` do cartão abre `/pagamento-simulado/{cobrancaId}` (D149, A63): a tela só confirma a simulação e não pede número de cartão.
 
 ### V10 ✅ Não pagar em 3 minutos
 
