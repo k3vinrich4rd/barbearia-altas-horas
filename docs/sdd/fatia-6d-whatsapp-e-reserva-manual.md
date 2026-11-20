@@ -65,7 +65,7 @@ A numeração é própria desta fatia (A1 a A28). Os testes antigos que dependia
 | A9 | números com 9 ou 14 dígitos ou sem dígitos | `POST` e `PUT` | `400 VALIDACAO_INVALIDA` no campo `whatsapp`, nada gravado | `WhatsappDoBarbeiroIT` |
 | A10 | BARBEIRO, CLIENTE, sem token | `POST` e `PUT` de barbeiro | `403`, `403`, `401`; número intacto | `WhatsappDoBarbeiroIT` |
 | A11 | política | `GET /politica-privacidade` | versão `1.1`; texto do WhatsApp comercial, da reserva por fora e do backup de 30 dias | `WhatsappDoBarbeiroIT` |
-| A12 | perfil dev | seed e `GET /barbeiros` | Eduardo sem WhatsApp | `SeedDevWhatsappIT` |
+| A12 | perfil dev | seed e `GET /barbeiros` | o seed dev não grava WhatsApp; desde a D152 o Eduardo tem o número comercial público da V8 | `SeedDevWhatsappIT` |
 | A13 | BARBEIRO, 15:00 livre | `POST /admin/agendamentos` | `201` CONFIRMADO, MANUAL, sem prazo, sem cobrança, sem `reserva_guest`, sem aceite, `criado_por`, auditoria sem nome | `ReservaManualIT` |
 | A14 | ADMIN | para o barbeiro B | `201` | `ReservaManualIT` |
 | A15 | BARBEIRO para outro barbeiro · conta sem vínculo · ADMIN com barbeiro inexistente | `POST` | `404`, nada gravado nem auditado | `ReservaManualIT` |

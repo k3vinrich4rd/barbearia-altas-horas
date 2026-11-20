@@ -122,7 +122,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 ```
 Só os **ativos**, em ordem de nome (sem diferença de maiúsculas). `GET /barbeiros` → `200`
 ```json
-[ { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": "5511912345678" } ]
+[ { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "whatsapp": "5511912345678" } ]
 ```
 **WhatsApp do barbeiro (1.6.0, Fatia 6D).** `whatsapp` é o contato comercial do barbeiro, só dígitos (DDD e DDI opcional), ou `null` quando ele não cadastrou. O front monta `https://wa.me/<whatsapp>` e esconde o botão se for `null`. É contato de trabalho que o próprio barbeiro divulga, cadastrado só pelo ADMIN (`POST` e `PUT /admin/barbeiros`, com ou sem máscara; a resposta devolve só dígitos): não é dado de cliente.
 As três rotas de catálogo (`/servicos`, `/barbeiros`, `/politica-pagamento`) respondem com `Cache-Control: max-age=60, public`.
@@ -141,7 +141,7 @@ As três rotas de catálogo (`/servicos`, `/barbeiros`, `/politica-pagamento`) r
   "barbeiros": [
     {
       "barbeiroId": "b0000000-0000-4000-8000-000000000001",
-      "nomeExibicao": "Carlos Eduardo Cândido",
+      "nomeExibicao": "Eduardo Candido",
       "horarios": ["2026-12-01T07:00:00-03:00", "2026-12-01T07:30:00-03:00", "2026-12-01T08:00:00-03:00"]
     }
   ]
@@ -204,7 +204,7 @@ Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13
   "status": "AGUARDANDO_PAGAMENTO",
   "origem": "CLIENTE",
   "servico": { "id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Degradê / Fade / Navalhado", "duracaoMin": 30 },
-  "barbeiro": { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido" },
+  "barbeiro": { "id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido" },
   "inicio": "2026-12-01T10:00:00-03:00",
   "fim": "2026-12-01T10:30:00-03:00",
   "precoCentavos": 5500,

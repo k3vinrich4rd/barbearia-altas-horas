@@ -49,7 +49,7 @@ class SeedDevIT {
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[?(@.nome=='Corte Degradê / Fade / Navalhado')].precoFormatado").value("R$ 55,00"));
         mvc.perform(get("/barbeiros"))
-                .andExpect(jsonPath("$[0].nomeExibicao").value("Carlos Eduardo Cândido"));
+                .andExpect(jsonPath("$[0].nomeExibicao").value("Eduardo Candido"));
 
         // Próxima terça depois de hoje: sempre dentro do horizonte de 30 dias e além das 2 h de antecedência.
         LocalDate terca = LocalDate.now(clock).with(TemporalAdjusters.next(DayOfWeek.TUESDAY));
@@ -57,15 +57,15 @@ class SeedDevIT {
                         .param("servicoId", "6f1c2a8e-0000-4000-8000-000000000002")
                         .param("data", terca.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.barbeiros[0].nomeExibicao").value("Carlos Eduardo Cândido"))
+                .andExpect(jsonPath("$.barbeiros[0].nomeExibicao").value("Eduardo Candido"))
                 .andExpect(jsonPath("$.barbeiros[0].horarios.length()").value(22));
     }
 
     @Test
-    @DisplayName("A9: 1 barbeiro, Carlos Eduardo Cândido")
+    @DisplayName("A9: 1 barbeiro, Eduardo Candido")
     void barbeiro() {
         assertThat(jdbc.queryForList("SELECT nome_exibicao FROM barbeiro", String.class))
-                .containsExactly("Carlos Eduardo Cândido");
+                .containsExactly("Eduardo Candido");
     }
 
     @Test

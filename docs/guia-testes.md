@@ -40,7 +40,7 @@ docker compose up -d                                         # PostgreSQL 18 na 
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Deixe esse terminal aberto (a API fica rodando) e abra **outro** para os testes. O perfil `dev` não precisa de `.env` e cria dados fictícios: o barbeiro **Carlos Eduardo Cândido**, os 5 serviços reais e a jornada de terça a sábado (07h–12h e 13h–20h).
+Deixe esse terminal aberto (a API fica rodando) e abra **outro** para os testes. O perfil `dev` não precisa de `.env` e cria dados fictícios: o barbeiro **Eduardo Candido**, os 5 serviços reais e a jornada de terça a sábado (07h–12h e 13h–20h).
 
 ```bash
 curl -i http://localhost:8080/actuator/health
@@ -235,7 +235,7 @@ HTTP/1.1 200
 Cache-Control: no-store
 
 {"data":"2026-12-01","fuso":"America/Sao_Paulo","servicoId":"6f1c2a8e-0000-4000-8000-000000000003","duracaoMin":60,
- "barbeiros":[{"barbeiroId":"b0000000-0000-4000-8000-000000000001","nomeExibicao":"Carlos Eduardo Cândido",
+ "barbeiros":[{"barbeiroId":"b0000000-0000-4000-8000-000000000001","nomeExibicao":"Eduardo Candido",
  "horarios":["2026-12-01T07:00:00-03:00","2026-12-01T07:30:00-03:00", "...", "2026-12-01T11:00:00-03:00",
              "2026-12-01T13:00:00-03:00", "...", "2026-12-01T19:00:00-03:00"]}]}
 ```
@@ -998,14 +998,14 @@ status da reserva depois do job: EXPIRADO
 **2. O WhatsApp do barbeiro.** Antes e depois do cadastro pelo admin; a rota pública não precisa de token:
 
 ```text
-GET /barbeiros antes: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": null}]
+GET /barbeiros antes: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "whatsapp": null}]
 PUT admin (whatsapp "(11) 91234-5678"): 200 whatsapp = 11912345678 version = 1
-GET /barbeiros (sem token): [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": "11912345678"}]
+GET /barbeiros (sem token): [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "whatsapp": "11912345678"}]
 link: https://wa.me/11912345678
 PUT com número inválido ("123"): 400 VALIDACAO_INVALIDA [{'message': 'deve ter de 10 a 13 dígitos', 'field': 'whatsapp'}]
 ```
 
-**O que prova:** o seed dev fica sem número; o admin cadastra com máscara e o banco guarda só os dígitos; a rota pública devolve o número para o front montar o `wa.me`; formato errado dá `400` no campo certo.
+**O que prova:** o seed dev fica sem número (desde a D152, o perfil dev já nasce com o WhatsApp comercial público gravado pela V8); o admin cadastra com máscara e o banco guarda só os dígitos; a rota pública devolve o número para o front montar o `wa.me`; formato errado dá `400` no campo certo.
 
 **3. A reserva manual.** Admin trava a quinta 26/11 às 10h (horário livre, `10:00` na disponibilidade):
 
