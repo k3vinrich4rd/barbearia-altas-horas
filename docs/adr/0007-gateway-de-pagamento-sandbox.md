@@ -1,8 +1,8 @@
 # 0007. Gateway de pagamento: Asaas sandbox
 
-- Status: **proposta** (dono: Quarteto Dev; o Alicerce revisa só o impacto na arquitetura)
+- Status: **proposta** (dono: Kevin Richard; a revisão de arquitetura confere só o impacto)
 - Data: 2026-11-13
-- Decisores: Quarteto Dev; consultados: Gemini (pesquisa) e documentação oficial (conferida pelo coordenador)
+- Decisores: Kevin Richard; consultados: Gemini (pesquisa) e documentação oficial (conferida na fonte)
 - Fontes: verificação interna da equipe (13/11/2026) (consulta em 13/11/2026)
 
 
@@ -47,7 +47,7 @@ Por quê:
 
 Se a API cair entre 2 e 3, a cobrança órfã no Asaas é achada pelo `externalReference` (conciliação na fatia S12). Se o Asaas tiver chave de idempotência própria, ela entra como camada extra, sem trocar a nossa.
 
-**Job de reprocessamento de eventos presos** (ajuste da revisão do Alicerce no PR #2):
+**Job de reprocessamento de eventos presos** (ajuste da revisão de arquitetura no PR #2):
 - roda com **ShedLock** (uma execução por vez, mesmo com mais de uma instância), a cada 5 min (configurável) e **também uma vez quando a aplicação sobe**, porque a API hiberna no Render free;
 - pega só eventos com `processado_em IS NULL` e `recebido_em < agora - N minutos` (a coluna `recebido_em` é a data de criação da linha; **N = HIPÓTESE H19**, proposta 10 min), com o `agora` vindo do `Clock` injetado;
 - trabalha em **lotes** com `FOR UPDATE SKIP LOCKED`: pula o evento que um webhook está processando agora, e cada lote é reivindicado numa transação curta que já incrementa `tentativas`:

@@ -1,8 +1,8 @@
 # 0004. Tempo em `timestamptz`/UTC com `Clock` injetado; dinheiro em centavos
 
-- Status: **aceito** (revisão do Alicerce, 13/11/2026)
+- Status: **aceito** (revisão de arquitetura, 13/11/2026)
 - Data: 2026-11-13 (proposta e aceite)
-- Decisores: Alicerce (dono), Quarteto Dev (texto)
+- Decisores: revisão de arquitetura (dona), Kevin Richard (texto)
 
 
 > **Atualização 16/11/2026 (D31 a D35):** a barbearia definiu pagamento **100% antecipado** por Pix ou cartão para todos, sem cancelamento ou remarcação pelo cliente. Onde este registro fala em "sinal" ou remarcação, vale a regra nova; o ADR fica como histórico da decisão.
