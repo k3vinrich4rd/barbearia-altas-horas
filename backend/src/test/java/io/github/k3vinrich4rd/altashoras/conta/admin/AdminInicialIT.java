@@ -47,7 +47,8 @@ class AdminInicialIT {
     private static final String EMAIL = "Admin.Inicial@exemplo.test";
     private static final String SENHA = "Inicial-" + UUID.randomUUID();
     private static final String NOVA = "Trocada-" + UUID.randomUUID();
-    private static final UUID BARBEIRO = UUID.randomUUID();
+    /** O barbeiro que a V8 cria (D152): num banco novo, é o único barbeiro sem conta quando o admin nasce. */
+    private static final UUID BARBEIRO = UUID.fromString("b0000000-0000-4000-8000-000000000001");
 
     @Autowired
     AdminInicial adminInicial;
@@ -85,9 +86,9 @@ class AdminInicialIT {
 
     @Test
     @Order(3)
-    @DisplayName("A23: com as variáveis, cria o admin com ADMIN e BARBEIRO, senha só em hash, vinculado ao único barbeiro")
+    @DisplayName("A23: com as variáveis, cria o admin com ADMIN e BARBEIRO, senha só em hash, vinculado ao único barbeiro (o da V8)")
     void criaOAdmin() throws Exception {
-        jdbc.update("INSERT INTO barbeiro (id, nome_exibicao) VALUES (?, 'Carlos Eduardo Cândido')", BARBEIRO);
+        assertThat(jdbc.queryForObject("SELECT usuario_id FROM barbeiro WHERE id = ?", UUID.class, BARBEIRO)).isNull();
 
         assertThat(adminInicial.garantir(EMAIL, SENHA)).isTrue();
 
