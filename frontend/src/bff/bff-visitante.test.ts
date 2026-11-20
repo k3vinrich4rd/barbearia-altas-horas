@@ -5,7 +5,7 @@ import { encaminhar } from "./proxy";
 import { codigoDaReserva } from "./visitante";
 
 describe("código do visitante no BFF", () => {
-  test("A8: grava ah_visitante HttpOnly, paga com X-Guest-Token do cookie e outra reserva dá 404 como na API", async () => {
+  async function reservaVisitanteSemTokenNoCorpo() {
     const api = apiFalsa((c) => {
       if (c.caminho === "/agendamentos/guest" && c.metodo === "POST")
         return json({ id: "reserva-1", status: "AGUARDANDO_PAGAMENTO", tokenGuest: "CODIGO-SECRETO" }, 201);
@@ -24,8 +24,14 @@ describe("código do visitante no BFF", () => {
       api.deps,
     );
     expect(criada.status).toBe(201);
-    expect((await criada.json()).tokenGuest).toBe("CODIGO-SECRETO");
+    expect(criada.headers.get("cache-control")).toBe("no-store");
+    const corpo = await criada.json();
+    expect(corpo).toEqual({ id: "reserva-1", status: "AGUARDANDO_PAGAMENTO" });
+    expect(corpo).not.toHaveProperty("tokenGuest");
+    const esperado = JSON.stringify({ id: "reserva-1", status: "AGUARDANDO_PAGAMENTO" });
+    expect(criada.headers.get("content-length")).toBe(String(Buffer.byteLength(esperado, "utf8")));
     const cookie = cookiesDe(criada).ah_visitante;
+    expect(cookie).toBeDefined();
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Strict");
     expect(cookie).toContain("Secure");
@@ -53,7 +59,11 @@ describe("código do visitante no BFF", () => {
       api.deps,
     );
     expect(outra.status).toBe(404);
-  });
+  }
+
+  test("D150: o 201 do visitante não devolve tokenGuest no corpo, grava ah_visitante HttpOnly, paga com o cookie e outra reserva dá 404", reservaVisitanteSemTokenNoCorpo);
+
+  test("A8: grava ah_visitante HttpOnly, não devolve tokenGuest no corpo do BFF, paga com o cookie e outra reserva dá 404", reservaVisitanteSemTokenNoCorpo);
 
   test("a confirmação lê o código do cookie só para a mesma reserva", async () => {
     const api = apiFalsa(() => json({ id: "reserva-1", tokenGuest: "CODIGO-SECRETO" }, 201));
