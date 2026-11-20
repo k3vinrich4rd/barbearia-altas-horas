@@ -41,7 +41,7 @@ export function Rodape() {
   return (
     <footer className="rodape">
       <div className="rodape-colunas">
-        <section aria-labelledby="rodape-onde">
+        <section id="onde-estamos" aria-labelledby="rodape-onde">
           <h2 id="rodape-onde" className="rodape-titulo">
             Onde estamos
           </h2>
