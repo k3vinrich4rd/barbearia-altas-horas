@@ -50,7 +50,7 @@ class ContratoPrivacidadeTest extends PrivacidadeBase {
     @DisplayName("A61: o OpenAPI 1.5.0 declara as rotas da 6B com as respostas que o código devolve (401, 403, 409, 429) e os schemas novos")
     void contratoDizOQueOCodigoFaz() throws IOException {
         String openapi = ler("docs/contrato/openapi.yaml");
-        assertThat(openapi).contains("version: 1.7.0");
+        assertThat(openapi).contains("version: 1.7.1");
 
         String politica = operacao(rota(openapi, "/politica-privacidade"), "get");
         assertThat(politica).contains("security: []").contains("PoliticaPrivacidade");

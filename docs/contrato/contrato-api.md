@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.0 (proposta)
+# 📑 Contrato da API · v1.7.1
 
 | | |
 |---|---|
@@ -25,7 +25,7 @@
 
 | Tema | Regra |
 |---|---|
-| Base URL | local `http://localhost:8080`; produção definida no deploy. **Sem prefixo `/api`** no backend (o `/api` é do BFF no Next) |
+| Base URL | produção do beta `https://altas-horas-api.onrender.com` (plano grátis: a primeira chamada depois de um tempo parado pode levar de 30 a 60 s); local `http://localhost:8080`. **Sem prefixo `/api`** no backend (o `/api` é do BFF no Next) |
 | Formato | JSON UTF-8; campos em `camelCase` em português; enums em MAIÚSCULAS |
 | IDs | UUID em texto |
 | Dinheiro | inteiro em **centavos** (`precoCentavos: 4000` = R$ 40,00), nunca decimal (ADR 0004) |
@@ -391,6 +391,7 @@ Só a assinatura; não entram no beta.
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.7.1 | 2026-11-20 | Só documentação: descrição de cada tag, servidor de produção, exemplos **reais** (perfil `dev`) nas respostas do fluxo principal e nos erros `400`, `401`, `403`, `404`, `409`, `422`; `400` documentado em `POST /auth/logout`; lint do Redocly com 0 avisos (exceções justificadas em `.redocly.lint-ignore.yaml`) e rodando no CI | não (nenhuma rota, campo ou status de sucesso mudou) |
 | 1.7.0 (proposta) | 2026-11-18 | Fatia 7B (painel): rota nova `GET /admin/minha-jornada` (ADMIN ou BARBEIRO), a jornada do barbeiro da própria conta, para a agenda do BARBEIRO listrar o almoço (D142). Nenhum campo ou rota existente mudou | não (só acrescenta) |
 | 1.6.0 (proposta) | 2026-11-18 | Fatia 6D: prazo de pagamento de 3 minutos (descrições e `expiracaoPagamentoMin` de 3 a 60); `whatsapp` em `GET /barbeiros` e em `POST` e `PUT /admin/barbeiros`; rota nova `POST /admin/agendamentos` (reserva manual) e schema `ReservaManualRequest`; `origem = MANUAL` e `observacao` em `AgendamentoAdmin`; política de privacidade e texto do consentimento na versão `1.1` | não (campos novos; o front que fixa a versão do texto em `1.0` passa a receber `400` no consentimento e deve ler a versão de `GET /politica-privacidade`) |
 | 1.5.0 (proposta) | 2026-11-17 | Fatia 6B (privacidade): rota nova `GET /politica-privacidade` e schema `PoliticaPrivacidade`; `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` em `DELETE /me`; `429` em `GET /me/dados` (H22); `ExportacaoDados` detalhado (`conta`, `agendamentos`); `GET /me/consentimentos` devolve o estado atual por finalidade. Fatia 6A (CEP): `GET /cep/{cep}` detalhado (erros, `fonte: CACHE`, `429` com `Retry-After`, limite de 30 por minuto por IP); `POST /auth/cadastro` passa a preencher bairro, cidade e uf quando o CEP é resolvido (nunca `404` ou `503` por causa do CEP, R31). Fatia 6C (alcance): `cep` opcional em `POST /agendamentos/guest`; rotas novas `GET /admin/alcance` (`AlcancePainel`) e `GET /alcance` (`AlcancePublico`, pública); sem subir a versão. `redocly lint` 2.78.0: 0 erros | não (campos e códigos já existiam; `cep` é opcional) |
