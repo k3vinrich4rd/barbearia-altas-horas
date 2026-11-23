@@ -65,14 +65,14 @@ class ArquivosDeImplantacaoTest {
     }
 
     @Test
-    @DisplayName("A17: render.yaml tem só a API (Docker, plano free, health check) e nenhum banco do Render")
+    @DisplayName("A17: render.yaml tem só a API (Docker, plano free, health check no liveness) e nenhum banco do Render")
     void blueprintDaApi() throws IOException {
         Map<String, Object> raizDoYaml = yaml("render.yaml");
         Map<String, Object> web = servicoWeb();
 
         assertThat(raizDoYaml).doesNotContainKeys("databases", "keyValueServices");
         assertThat(web).containsEntry("type", "web").containsEntry("runtime", "docker").containsEntry("plan", "free")
-                .containsEntry("healthCheckPath", "/actuator/health").containsEntry("dockerContext", "./backend")
+                .containsEntry("healthCheckPath", "/actuator/health/liveness").containsEntry("dockerContext", "./backend")
                 .containsEntry("dockerfilePath", "./backend/Dockerfile").containsEntry("branch", "main");
         assertThat(Files.exists(raiz().resolve("backend/Dockerfile"))).isTrue();
     }
