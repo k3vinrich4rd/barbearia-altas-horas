@@ -1,0 +1,164 @@
+/* Navegação (feature/ux-navegacao): cabeçalho que cabe na primeira tela do celular, painel de acessibilidade
+ * recolhível no celular e rodapé do PDF. Só tokens (A56). Celular primeiro; a partir de 60rem, tudo visível. */
+
+.cabecalho-interno {
+  justify-content: space-between;
+}
+
+.botao-menu {
+  min-height: var(--space-12);
+}
+
+.menu-do-site {
+  display: none;
+  flex-basis: 100%;
+  gap: var(--space-4);
+}
+
+.menu-do-site[data-aberto="true"] {
+  display: grid;
+}
+
+.menu-do-site .menu ul {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.menu-principal {
+  border-top: var(--traco-1) solid var(--borda);
+  padding-top: var(--space-3);
+}
+
+.menu a[aria-current="page"] {
+  text-decoration-thickness: var(--traco-3);
+}
+
+.botao-agendar-topo {
+  flex-basis: 100%;
+}
+
+/* Painel de acessibilidade: no celular, um botão que abre as opções */
+.painel-a11y-titulo {
+  display: none;
+}
+
+.painel-a11y-alternar {
+  margin-inline-start: auto;
+}
+
+.painel-a11y-opcoes {
+  display: none;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
+
+.painel-a11y-opcoes[data-aberto="true"] {
+  display: flex;
+}
+
+/* Rodapé */
+.rodape-colunas {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.rodape-titulo {
+  margin: 0 0 var(--space-2);
+  font-family: var(--tipo-rotulo-familia);
+  font-size: var(--tipo-legenda-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+  letter-spacing: var(--tipo-rotulo-espacamento);
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.rodape address {
+  font-style: normal;
+}
+
+.rodape-lista {
+  list-style: none;
+  padding-inline-start: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+}
+
+.rodape-colunas .rodape-lista {
+  flex-direction: column;
+}
+
+.rodape a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-12);
+}
+
+.rodape-credito {
+  margin-top: var(--space-6);
+}
+
+@media (min-width: 60rem) {
+  .cabecalho-interno {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "marca . conta"
+      "principal principal cta";
+    align-items: center;
+  }
+
+  .marca {
+    grid-area: marca;
+  }
+
+  .menu-conta {
+    grid-area: conta;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .menu-principal {
+    grid-area: principal;
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .botao-agendar-topo {
+    grid-area: cta;
+  }
+
+  .botao-menu {
+    display: none;
+  }
+
+  .menu-do-site,
+  .menu-do-site[data-aberto="true"] {
+    display: contents;
+  }
+
+  .menu-do-site .menu ul {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .painel-a11y-titulo {
+    display: inline;
+  }
+
+  .painel-a11y-alternar {
+    display: none;
+  }
+
+  .painel-a11y-opcoes,
+  .painel-a11y-opcoes[data-aberto="true"] {
+    display: contents;
+  }
+
+  .rodape-colunas {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
