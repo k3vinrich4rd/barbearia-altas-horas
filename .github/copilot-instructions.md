@@ -1,6 +1,6 @@
 # Instruções para o GitHub Copilot · Barbearia Altas Horas
 
-Agenda online da Barbearia Altas Horas (Osasco), feita pelo Kevin Richard para o pai, o barbeiro Eduardo Cândido. Projeto individual. Responda e escreva comentários, commits e PRs em **português do Brasil**.
+Agenda online da Barbearia Altas Horas (Osasco), feita pelo Kevin Richard para o pai, o barbeiro Eduardo Candido. Projeto individual. Responda e escreva comentários, commits e PRs em **português do Brasil**.
 
 ## Regra de ouro: Spec-Driven Development
 - Nenhum código de produção sem spec aprovada em `docs/sdd/fatia-N-*.md`. Se a tarefa não tem spec ou critério (`A#`) correspondente, **pare e peça a spec** em vez de supor.
