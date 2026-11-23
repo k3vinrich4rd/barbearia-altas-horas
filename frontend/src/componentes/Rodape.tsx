@@ -58,14 +58,14 @@ export function Rodape() {
         </section>
         <section aria-labelledby="rodape-horario">
           <h2 id="rodape-horario" className="rodape-titulo">
-            Horário
+            Horário de funcionamento
           </h2>
           <p>Terça a sábado, das 7h às 20h</p>
           <p>Almoço das 12h às 13h · domingo e segunda: fechado</p>
         </section>
         <section aria-labelledby="rodape-contato">
           <h2 id="rodape-contato" className="rodape-titulo">
-            {link ? "Instagram e WhatsApp" : "Instagram"}
+            Contato
           </h2>
           <ul className="rodape-lista">
             <li>
@@ -97,7 +97,7 @@ export function Rodape() {
           <Link href="/privacidade">Política de privacidade</Link>
         </li>
         <li>
-          <a href="#conteudo">Voltar para o início</a>
+          <a href="#conteudo">Voltar ao topo</a>
         </li>
       </ul>
     </footer>

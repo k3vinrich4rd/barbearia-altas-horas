@@ -239,25 +239,3 @@ export function Duvidas() {
     </section>
   );
 }
-
-export function OndeEstamos() {
-  return (
-    <section id="onde" aria-labelledby="t-onde" className="secao">
-      <h2 id="t-onde">Onde estamos</h2>
-      <address>
-        R. São Judas Tadeu, 313
-        <br />
-        Jd. Bonança · Osasco/SP
-      </address>
-      <h3>Horário</h3>
-      <p>Terça a sábado, das 7h às 20h</p>
-      <p>Almoço das 12h às 13h · domingo e segunda: fechado</p>
-      <h3>Instagram</h3>
-      <p>
-        <a href="https://www.instagram.com/eduardo_candido_barber/" rel="noopener noreferrer">
-          @eduardo_candido_barber
-        </a>
-      </p>
-    </section>
-  );
-}
