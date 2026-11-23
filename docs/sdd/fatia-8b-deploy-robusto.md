@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin · nenhuma linha de código, `render.yaml`, Dockerfile ou workflow foi alterada por esta spec |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com as 10 propostas (D-1 a D-10) como estão · em implementação na branch `feat/fatia-8b-deploy-robusto` |
 | **Fatias do plano** | sucessora da [Fatia 8](fatia-8-deploy.md) (deploy grátis, já no ar em beta). Ela fecha o que a 8 deixou aberto: deploy só com CI verde, subida mais rápida, health que não derruba a API à toa, ping que cabe nas 750 h, rollback, alerta e backup de verdade |
 | **Branch** | `feat/fatia-8b-deploy-robusto` |
 | **Regras** | R30 (nada pessoal em log), H14/R26 (limite por IP), API8 do dossiê (health sem detalhes), D12 (pool pequeno para o Aiven), D38 e D66 (custo zero, banco free) |
@@ -203,7 +203,7 @@ O RKF Bank precisa ficar abaixo de **459 h/mês** para as duas APIs caberem (≈
 
 ## 10. Pronto quando
 
-- [ ] OK do Kevin nas D-1 a D-10
+- [x] OK do Kevin nas D-1 a D-10 (23/11/2026)
 - [ ] A1 a A12, A13 a A18, A22, A24 a A26, A32 e A33 verdes (saída real no [guia de testes](../guia-testes.md), com a tabela de tempos de subida de A10)
 - [ ] A19: `scripts/horas-render.sh --conferir` ≤ 300 h
 - [ ] roteiros do Kevin feitos e registrados: A3, A4, A20, A21, A23, A27, A28, A29 a A31
