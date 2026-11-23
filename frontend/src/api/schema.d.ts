@@ -108,6 +108,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/convite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * O barbeiro aceita o convite e cria o próprio login (Fatia 10B)
+         * @description Pública, com limite de 10 pedidos por hora por IP (`429` com `Retry-After`). O dono gera o convite em
+         *     `POST /admin/barbeiros/{id}/convite` e entrega o link `/convite#<codigo>` por WhatsApp ou em pessoa; o barbeiro abre a
+         *     página (abrir **não** consome: o código vai no fragmento da URL, que nem o servidor nem a prévia de link recebem),
+         *     digita o **próprio e-mail** e cria a senha.
+         *
+         *     Ordem das checagens: (1) a forma do corpo, sem tocar no banco (`400`; a senha segue a regra do cadastro, de 10 a
+         *     72 **bytes** em UTF-8); (2) o limite por IP; (3) a busca pelo SHA-256 do código, com o relógio. Tudo o que não é um aceite
+         *     certo é **o mesmo** `422 CONVITE_INVALIDO`, com o mesmo corpo, título e mensagem: código inexistente, vencido, usado,
+         *     revogado, e-mail de conta de equipe ou de conta desativada, ou conta que já existe sem estar logada. A conta nova nasce
+         *     com o papel BARBEIRO e fica ligada ao barbeiro do convite.
+         *
+         *     **Conta que já existe (H32).** Se o e-mail é de um cliente, o aceite só vale com o token **dessa** conta
+         *     (`Authorization: Bearer`), sem `senha`: o convite soma o papel BARBEIRO e nunca define nem troca a senha. Mandar `senha`
+         *     nesse caso é `400 CAMPO_DESCONHECIDO`. Mandar o e-mail de um cliente sem a conta logada é o `422` genérico e soma uma
+         *     tentativa. Depois de 5 tentativas com o código certo (`app.conta.convite.tentativas-max`) o convite é revogado.
+         */
+        post: operations["aceitarConvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -658,10 +692,44 @@ export interface paths {
          * @description Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta; sem `whatsapp`, sem número) e exige a `version` que a tela viu.
          *     Inativar tira o barbeiro de `GET /barbeiros` e da disponibilidade, mas não cancela reserva futura.
          *     A conta ligada passa a ver a própria agenda em `GET /admin/agenda`.
+         *
+         *     **Inativar é o desligamento (ADR 0013, H31, H33): tira o acesso e mantém o histórico, não apaga nada.** O papel BARBEIRO sai
+         *     da conta e o token antigo para de valer na hora; o convite pendente é revogado e o WhatsApp comercial some. Se a conta é
+         *     também de cliente (ou do dono), ela continua ativa com os dados e as reservas. Se era só de equipe, é desativada e anonimizada
+         *     (sem senha, sessão ou identidade social; nome e e-mail viram uma lápide). As reservas e a auditoria continuam apontando para o
+         *     mesmo id. Reativar (`ativo: true`) sozinho não devolve o acesso (`acesso = DESLIGADO`): só um convite novo.
          */
         put: operations["alterarBarbeiro"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/barbeiros/{id}/convite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gera o convite de uso único do barbeiro (reenvia também: o anterior é revogado)
+         * @description Só ADMIN (o dono). **Sem corpo**: o dono não informa e-mail nenhum; o barbeiro digita o próprio ao aceitar (D-1). A resposta
+         *     traz o `codigo` **uma vez**, para montar o link `/convite#<codigo>` e o QR; o banco guarda só o SHA-256 e o código nunca
+         *     volta (nem em lista, nem em log, nem na auditoria). Vale por 48 horas (`app.conta.convite.validade`, de 1 hora a 7 dias).
+         *     Emitir de novo revoga o convite pendente e devolve um código novo. O barbeiro que já tem acesso ativo é
+         *     `409 USUARIO_JA_VINCULADO`. Com a senha inicial ainda em uso: `403 TROCA_DE_SENHA_OBRIGATORIA`.
+         */
+        post: operations["gerarConviteDoBarbeiro"];
+        /**
+         * Revoga o convite pendente do barbeiro
+         * @description Só ADMIN. Idempotente: sem convite pendente também responde `204`.
+         */
+        delete: operations["revogarConviteDoBarbeiro"];
         options?: never;
         head?: never;
         patch?: never;
@@ -908,7 +976,7 @@ export interface components {
             }[];
         };
         /** @enum {string} */
-        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "ERRO_INTERNO";
+        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
         /** @enum {string} */
         StatusReserva: "AGUARDANDO_PAGAMENTO" | "CONFIRMADO" | "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO" | "EXPIRADO";
         /** @enum {string} */
@@ -969,6 +1037,33 @@ export interface components {
             /** Format: int64 */
             version: number;
             jornada?: components["schemas"]["IntervaloJornada"][];
+            /**
+             * @description em que pé está o login do barbeiro (só leitura, 1.8.0); o e-mail dele nunca volta aqui
+             * @enum {string}
+             */
+            readonly acesso: "SEM_CONTA" | "CONVITE_PENDENTE" | "ATIVO" | "DESLIGADO";
+            /**
+             * Format: date-time
+             * @description só quando acesso = CONVITE_PENDENTE
+             */
+            readonly conviteExpiraEm?: string | null;
+        };
+        ConviteAceiteRequest: {
+            /** @description 43 caracteres base64url (32 bytes de SecureRandom), do link /convite#<codigo> */
+            codigo: string;
+            /**
+             * Format: email
+             * @description o PRÓPRIO e-mail do barbeiro (vira o login)
+             */
+            email: string;
+            /** @description de 10 a 72 bytes em UTF-8 (a mesma regra do cadastro); só para conta nova: conta que já tem senha não manda */
+            senha?: string;
+        };
+        ConviteEmitido: {
+            /** @description aparece uma vez; o banco guarda só o SHA-256 */
+            codigo: string;
+            /** Format: date-time */
+            expiraEm: string;
         };
         BarbeiroRequest: {
             nomeExibicao: string;
@@ -1782,6 +1877,33 @@ export interface operations {
             429: components["responses"]["Erro429"];
         };
     };
+    aceitarConvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteAceiteRequest"];
+            };
+        };
+        responses: {
+            /** @description Convite aceito; entre com o e-mail e a senha novos */
+            204: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Erro400"];
+            422: components["responses"]["Erro422"];
+            429: components["responses"]["Erro429"];
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -2570,6 +2692,59 @@ export interface operations {
             403: components["responses"]["Erro403"];
             404: components["responses"]["Erro404"];
             409: components["responses"]["Erro409"];
+        };
+    };
+    gerarConviteDoBarbeiro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convite gerado */
+            201: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteEmitido"];
+                };
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+            409: components["responses"]["Erro409"];
+        };
+    };
+    revogarConviteDoBarbeiro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revogado (ou já não havia convite) */
+            204: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
         };
     };
     substituirJornada: {

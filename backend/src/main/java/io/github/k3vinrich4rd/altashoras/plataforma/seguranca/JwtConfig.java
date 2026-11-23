@@ -81,7 +81,8 @@ class JwtConfig {
             ValidadorDeConta validador = contas.getIfAvailable();
             if (validador != null && token.getSubject() != null) {
                 try {
-                    if (!validador.podeAcessar(UUID.fromString(token.getSubject()))) {
+                    if (!validador.podeAcessar(UUID.fromString(token.getSubject()),
+                            token.getClaimAsStringList("papeis") == null ? List.of() : token.getClaimAsStringList("papeis"))) {
                         return OAuth2TokenValidatorResult.failure(
                                 new OAuth2Error("invalid_token", "A conta deste token não está mais em uso.", null));
                     }

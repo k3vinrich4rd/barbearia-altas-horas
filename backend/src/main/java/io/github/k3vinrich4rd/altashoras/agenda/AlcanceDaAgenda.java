@@ -11,14 +11,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.k3vinrich4rd.altashoras.agenda.alcance.ConsultaAlcance;
 import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.ConfiguracaoAgenda;
 import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.ConfiguracaoAgendaRepository;
-import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
 /**
@@ -67,13 +65,13 @@ public class AlcanceDaAgenda {
 
     private final ConsultaAlcance consulta;
     private final ConfiguracaoAgendaRepository configuracoes;
-    private final JdbcClient jdbc;
+    private final AcessoAgenda acesso;
     private final Clock clock;
 
-    AlcanceDaAgenda(ConsultaAlcance consulta, ConfiguracaoAgendaRepository configuracoes, JdbcClient jdbc, Clock clock) {
+    AlcanceDaAgenda(ConsultaAlcance consulta, ConfiguracaoAgendaRepository configuracoes, AcessoAgenda acesso, Clock clock) {
         this.consulta = consulta;
         this.configuracoes = configuracoes;
-        this.jdbc = jdbc;
+        this.acesso = acesso;
         this.clock = clock;
     }
 
@@ -93,7 +91,7 @@ public class AlcanceDaAgenda {
         if (inicio.plusDays(PERIODO_MAXIMO_DIAS).isBefore(fim.plusDays(1))) {
             throw ExcecaoDeNegocio.campoInvalido("ate", "O período pode ter no máximo " + PERIODO_MAXIMO_DIAS + " dias.");
         }
-        UUID alvo = barbeiroDoPedido(escopo, barbeiroId);
+        UUID alvo = acesso.alvoDoAlcance(escopo, barbeiroId);
         return consulta.painel(new Periodo(inicio, fim), utc(inicio.atStartOfDay(fuso).toInstant()),
                 utc(fim.plusDays(1).atStartOfDay(fuso).toInstant()), alvo);
     }
@@ -116,26 +114,6 @@ public class AlcanceDaAgenda {
         return new Publico(FORMATO.format(agora.atZone(fuso)), regioes.size(), bairros, regioes);
     }
 
-    /**
-     * ADMIN vê todos ou o barbeiro filtrado (inexistente é 404). BARBEIRO vê sempre o próprio, seja qual for o que mandou
-     * (E36); sem vínculo com um barbeiro, 404.
-     */
-    private @Nullable UUID barbeiroDoPedido(PainelDaAgenda.Escopo escopo, @Nullable UUID barbeiroId) {
-        if (escopo.admin()) {
-            if (barbeiroId == null) {
-                return null;
-            }
-            boolean existe = jdbc.sql("SELECT count(*) FROM barbeiro WHERE id = :id").param("id", barbeiroId)
-                    .query(Long.class).single() > 0;
-            if (!existe) {
-                throw barbeiroNaoEncontrado();
-            }
-            return barbeiroId;
-        }
-        return jdbc.sql("SELECT id FROM barbeiro WHERE usuario_id = :usuario").param("usuario", escopo.usuarioId())
-                .query(UUID.class).optional().orElseThrow(AlcanceDaAgenda::barbeiroNaoEncontrado);
-    }
-
     private ZoneId fuso() {
         return ZoneId.of(configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow().getFuso());
     }
@@ -144,7 +122,4 @@ public class AlcanceDaAgenda {
         return OffsetDateTime.ofInstant(instante, ZoneOffset.UTC);
     }
 
-    private static ExcecaoDeNegocio barbeiroNaoEncontrado() {
-        return new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Barbeiro não encontrado.");
-    }
 }

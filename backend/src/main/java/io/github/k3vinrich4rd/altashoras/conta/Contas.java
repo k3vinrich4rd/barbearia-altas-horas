@@ -1,12 +1,22 @@
 package io.github.k3vinrich4rd.altashoras.conta;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.k3vinrich4rd.altashoras.conta.convite.CodigoDeConvite;
+import io.github.k3vinrich4rd.altashoras.conta.convite.ConvitesDeConta;
+import io.github.k3vinrich4rd.altashoras.conta.convite.ParametrosDoConvite;
+import io.github.k3vinrich4rd.altashoras.conta.usuario.RefreshTokenRepository;
+import io.github.k3vinrich4rd.altashoras.conta.usuario.Usuario;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.UsuarioRepository;
 
 /**
@@ -18,9 +28,18 @@ import io.github.k3vinrich4rd.altashoras.conta.usuario.UsuarioRepository;
 public class Contas {
 
     private final UsuarioRepository usuarios;
+    private final RefreshTokenRepository refreshTokens;
+    private final ConvitesDeConta convites;
+    private final ParametrosDoConvite parametros;
+    private final Clock clock;
 
-    Contas(UsuarioRepository usuarios) {
+    Contas(UsuarioRepository usuarios, RefreshTokenRepository refreshTokens, ConvitesDeConta convites,
+            ParametrosDoConvite parametros, Clock clock) {
         this.usuarios = usuarios;
+        this.refreshTokens = refreshTokens;
+        this.convites = convites;
+        this.parametros = parametros;
+        this.clock = clock;
     }
 
     /**
@@ -41,6 +60,60 @@ public class Contas {
         return usuarios.findById(usuarioId)
                 .filter(u -> u.getCidade() != null && u.getUf() != null)
                 .map(u -> new Regiao(u.getBairro(), u.getCidade(), u.getUf()));
+    }
+
+    /** Das contas pedidas, as ativas com o papel: uma consulta só, para a lista de barbeiros do painel. */
+    @Transactional(readOnly = true)
+    public Set<UUID> comPapel(Collection<UUID> usuarioIds, String papel) {
+        return usuarioIds.isEmpty() ? Set.of() : Set.copyOf(usuarios.ativasComPapel(usuarioIds, papel));
+    }
+
+    /**
+     * Gera o convite de uso único do barbeiro (Fatia 10B): o código de 32 bytes, o SHA-256 no banco e a validade de
+     * {@code app.conta.convite.validade}. É também o "reenviar": o convite pendente anterior é revogado na mesma transação.
+     * O nome de exibição vira o nome da conta quando o barbeiro aceitar.
+     */
+    @Transactional
+    public ConviteEmitido emitirConvite(UUID barbeiroId, String nomeDoBarbeiro, UUID geradoPor) {
+        Instant agora = clock.instant();
+        convites.revogarPendente(barbeiroId, agora);
+        String codigo = CodigoDeConvite.gerar();
+        Instant expiraEm = agora.plus(parametros.validade());
+        convites.inserir(barbeiroId, nomeDoBarbeiro, CodigoDeConvite.hash(codigo), expiraEm, geradoPor);
+        return new ConviteEmitido(codigo, expiraEm);
+    }
+
+    /** Revoga o convite pendente do barbeiro. Idempotente: sem convite pendente devolve {@code false}. */
+    @Transactional
+    public boolean revogarConvite(UUID barbeiroId) {
+        return convites.revogarPendente(barbeiroId, clock.instant());
+    }
+
+    /** Quando vence o convite pendente de cada barbeiro (só os que ainda valem). */
+    @Transactional(readOnly = true)
+    public Map<UUID, Instant> convitesPendentes() {
+        return convites.pendentes(clock.instant());
+    }
+
+    /**
+     * O desligamento do barbeiro (E10, H31, H33): a conta perde o papel BARBEIRO e a versão da credencial sobe, o que
+     * derruba o token antigo na hora. Se a conta é também de cliente (ou do dono), ela continua ativa com os dados e as reservas
+     * dela. Se era só de equipe, a conta é desativada e anonimizada no mesmo passo: sem senha, sem sessão, sem identidade
+     * social, nome e e-mail trocados por "lápide". A linha (id e papel) fica, porque reservas e auditoria apontam para ela.
+     */
+    @Transactional
+    public void desligarContaDeEquipe(UUID usuarioId) {
+        usuarios.findById(usuarioId).ifPresent(usuario -> {
+            boolean temOutraConta = usuario.getPapeis().contains(Usuario.CLIENTE) || usuario.getPapeis().contains(Usuario.ADMIN);
+            if (temOutraConta) {
+                usuario.tirarPapel(Usuario.BARBEIRO);
+            } else {
+                refreshTokens.apagarDoUsuario(usuarioId);
+                usuarios.apagarIdentidadesSociais(usuarioId);
+                usuario.anonimizar(clock.instant());
+            }
+            usuarios.saveAndFlush(usuario);
+        });
     }
 
     /** Conta ativa com o papel pedido (CLIENTE, BARBEIRO ou ADMIN). Conta inexistente ou desativada: {@code false}. */
