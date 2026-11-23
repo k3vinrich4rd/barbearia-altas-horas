@@ -119,7 +119,12 @@ con="$(psql_pg "SELECT conname FROM pg_constraint WHERE conname='reserva_sem_sob
 
 # ---------- A9: perfil prod de verdade (sem seed, sem usuário de desenvolvimento) ----------
 docker logs "$API" 2>&1 | grep -q 'The following 1 profile is active: "prod"' && ok A9a "perfil ativo: prod" || falha A9a "perfil prod não apareceu no log"
-[ "$(psql_pg "SELECT count(*) FROM servico")" = "0" ] && ok A9b "banco sem seed fictício (catálogo vazio até o admin cadastrar)" || falha A9b "há serviços no banco: o seed dev vazou?"
+# Desde a V8 (D152) o catálogo real nasce em todos os perfis: 5 serviços e 1 barbeiro. O seed dev é a migração
+# repetível R__seed_dev.sql: se ela aparecer no histórico do Flyway, o perfil dev vazou para a imagem.
+seed_dev="$(psql_pg "SELECT count(*) FROM flyway_schema_history WHERE script LIKE 'R__%'")"
+servicos="$(psql_pg "SELECT count(*) FROM servico")"
+[ "$seed_dev" = "0" ] && [ "$servicos" = "5" ] && ok A9b "sem seed dev no banco e com o catálogo inicial da V8 (5 serviços)" \
+  || falha A9b "seed dev no histórico: $seed_dev; serviços: $servicos (esperado 0 e 5)"
 
 # ---------- A10: jobs de subida (retenção) ----------
 docker logs "$API" 2>&1 | grep -q 'Retenção de dados: limpeza=' && ok A10 "a retenção de dados rodou na subida" || falha A10 "a retenção não rodou na subida"
