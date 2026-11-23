@@ -177,4 +177,28 @@ class ArquiteturaTest {
                 .because("o admin só enxerga SQL de auditoria_admin; as outras tabelas são dos donos (ADR 0002)")
                 .check(CLASSES);
     }
+
+    @Test
+    @DisplayName("A1: só AcessoAgenda liga a conta ao barbeiro (findByUsuarioId); nenhum outro fonte da agenda filtra barbeiro por usuario_id em SQL")
+    void soAcessoAgendaLigaContaEBarbeiro() throws java.io.IOException {
+        noClasses().that().doNotHaveSimpleName("AcessoAgenda")
+                .should().callMethod(io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroRepository.class,
+                        "findByUsuarioId", java.util.UUID.class)
+                .because("a política de quem mexe na agenda de quem é única (ADR 0013, D151)")
+                .check(CLASSES);
+        java.nio.file.Path fontes = java.nio.file.Path.of("src/main/java/io/github/k3vinrich4rd/altashoras/agenda");
+        java.util.regex.Pattern filtro = java.util.regex.Pattern.compile("(?is)where\\s+(\\w+\\.)?usuario_id\\s*=");
+        try (var arquivos = java.nio.file.Files.walk(fontes)) {
+            var infratores = arquivos.filter(p -> p.toString().endsWith(".java"))
+                    .filter(p -> !p.getFileName().toString().equals("AcessoAgenda.java"))
+                    .filter(p -> {
+                        try {
+                            return filtro.matcher(java.nio.file.Files.readString(p)).find();
+                        } catch (java.io.IOException falha) {
+                            throw new java.io.UncheckedIOException(falha);
+                        }
+                    }).toList();
+            org.assertj.core.api.Assertions.assertThat(infratores).isEmpty();
+        }
+    }
 }
