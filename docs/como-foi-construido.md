@@ -36,6 +36,7 @@ Ordem fixa de toda entrega: **regra → spec → OK do Kevin → contrato → te
 | 17/11/2026 | **RAG e release** | busca híbrida na documentação (Spring AI + pgvector), Copilot e Actions documentados; tudo mergeado na `main` | [RAG](ia/rag-vetorial.md), [PR #9](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/9) |
 | 17/11/2026 | **Fatia 3** | spec com 25 decisões e 44 critérios, aprovada e implementada: cadastro, login, refresh rotativo, troca de senha, admin inicial, limite de tentativas, negar por padrão e CSRF onde há cookie; **115 testes** | [spec](sdd/fatia-3-conta-e-acesso.md) |
 | a seguir | Fatias 4 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
+| 23/11/2026 | **Fatia 10** | convite e login do barbeiro: política única `AcessoAgenda` com testes de isolamento A×B (10A) e convite de uso único, aceite com o próprio e-mail, desligamento que mantém o histórico e telas em layout neutro (10B); só o dono mexe na agenda de outro | [spec](sdd/fatia-10-convite-do-barbeiro.md), [D153 a D155](planejamento/decisoes.md) |
 
 ## 4. O que existe no código hoje (Fatia 1), arquivo por arquivo
 

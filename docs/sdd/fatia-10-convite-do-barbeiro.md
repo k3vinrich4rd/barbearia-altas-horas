@@ -2,18 +2,19 @@
 
 | | |
 |---|---|
-| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com a D-1 ajustada: o dono só gera o convite e o **barbeiro digita o próprio e-mail** e a senha ao aceitar; as demais dúvidas seguem a proposta |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com a D-1 ajustada: o dono só gera o convite e o **barbeiro digita o próprio e-mail** e a senha ao aceitar; as demais dúvidas seguem a proposta. **Implementada** em 23/11/2026 (branch `feat/fatia-10-convite-do-barbeiro`); as telas novas estão **aguardando desenho** (layout neutro, só com tokens) |
 | **Origem** | pedido do Kevin em 23/11/2026, sobre o [ADR 0013](../adr/0013-varios-barbeiros-dono-e-convite.md) (aceito em 20/11) e a D151. Esta fatia reúne as 10A (política única de acesso) e 10B (convite e desligamento) do ADR, porque o isolamento entre barbeiros é o que torna o convite seguro |
-| **Entrega em duas PRs** (proposta) | **10A** · política única `AcessoAgenda` e testes de isolamento, sem contrato e sem migração (`feat/fatia-10a-acesso-a-agenda`) · **10B** · convite, aceite, desligamento e telas (`feat/fatia-10b-convite-do-barbeiro`). A 10B só começa com a 10A mergeada |
+| **Entrega** | uma branch só (`feat/fatia-10-convite-do-barbeiro`), com commits separados: **10A** · política única `AcessoAgenda` e testes de isolamento, sem contrato e sem migração · **10B** · convite, aceite, desligamento e telas. Migração `V9`, contrato `1.8.0` |
 | **Regras** | R23 (alheio = `404`), R24 (e-mail único), R26 (limite de tentativas), R30 (nada pessoal em log), R33 e R34 (reserva manual e WhatsApp do barbeiro); [H24 a H33](../contexto.md#4-hipóteses-em-aberto) (todas decididas); [D151](../planejamento/decisoes.md) |
 | **ADRs** | [0013](../adr/0013-varios-barbeiros-dono-e-convite.md) (decisão), [0005](../adr/0005-erros-rfc-9457.md) (`404` sem oráculo), [0006](../adr/0006-sessao-jwt-refresh-cookie-bff.md) (sessão), [0009](../adr/0009-lgpd-marketing-cpf-e-retencao.md) (LGPD), [0002](../adr/0002-comunicacao-entre-modulos.md) (módulos) |
 | **Contrato** | `1.7.1 → 1.8.0`, só acréscimos |
+| **Quem pode o quê** (esclarecimento do Kevin, 23/11) | Só o **barbeiro ADMINISTRADOR** (Dono/Admin) mexe na agenda de outro barbeiro (ver, reserva manual, fechar e cancelar, quando houver problema), adiciona um barbeiro novo (convite) e o tira do sistema. O barbeiro **convidado NUNCA mexe na agenda de outro**, só na própria. "Excluir" barbeiro é o **desligamento** do ADR 0013 / H33: tira o acesso e mantém o histórico pela retenção; **não apaga de verdade** ([D153](../planejamento/decisoes.md)) |
 | **Custo** | **zero**: sem e-mail, sem SMS e sem serviço novo (D59); o link vai por WhatsApp ou em pessoa (H26) |
 | **Não cobre** | carteira de clientes por barbeiro (H24 = não, 10C descartada) · cobrança, comissão ou repasse ao barbeiro (fora do beta) · o barbeiro editar a própria jornada ou folgas (H27) · o barbeiro cancelar reserva (H28, D124) · e-mail de convite (gatilho do ADR) · o alcance por nível, que é a [Fatia 11](fatia-11-alcance-por-nivel.md) |
 
 ## 1. Objetivo
 
-O Dono/Admin cadastra um barbeiro e gera um **convite de uso único que expira**. O barbeiro abre o link, cria o **próprio** login e senha e passa a ver **só** a própria agenda, fechar **só** os próprios atendimentos e travar horários **só** na própria agenda (reserva manual), para os clientes que marcaram com ele pelo WhatsApp. Os clientes dele marcam pelo app, com ou sem cadastro, escolhendo esse barbeiro. Dinheiro, devoluções, cadastros, auditoria e convites ficam só com o Dono/Admin. Um barbeiro nunca lê nem escreve a agenda, os clientes, o alcance ou as pendências de outro.
+O Dono/Admin cadastra um barbeiro e gera um **convite de uso único que expira** (sem informar e-mail nenhum). O barbeiro abre o link, digita o **próprio e-mail**, cria a senha e passa a ver **só** a própria agenda, fechar **só** os próprios atendimentos e travar horários **só** na própria agenda (reserva manual), para os clientes que marcaram com ele pelo WhatsApp. Os clientes dele marcam pelo app, com ou sem cadastro, escolhendo esse barbeiro. Dinheiro, devoluções, cadastros, auditoria e convites ficam só com o Dono/Admin. Um barbeiro nunca lê nem escreve a agenda, os clientes, o alcance ou as pendências de outro; **só o Dono/Admin** vê, cria reserva manual, fecha e cancela na agenda de qualquer barbeiro.
 
 ## 2. Contrato
 
@@ -21,28 +22,30 @@ Versão **1.8.0** do [`openapi.yaml`](../contrato/openapi.yaml) e do [`contrato-
 
 | Método | Rota | Quem | Sucesso | Erros |
 |---|---|---|---|---|
-| `POST` | `/admin/barbeiros/{id}/convite` (**nova**) | só `ADMIN` | `201` `{ codigo, expiraEm }` com `Cache-Control: no-store`. É também o **reenviar**: emitir de novo revoga o convite pendente e devolve um código novo | `400 VALIDACAO_INVALIDA` (e-mail inválido) · `400 CAMPO_DESCONHECIDO` · `401` · `403` (BARBEIRO, CLIENTE; ADMIN com senha inicial: `TROCA_DE_SENHA_OBRIGATORIA`) · `404` (barbeiro inexistente) · `409 USUARIO_JA_VINCULADO` (barbeiro já tem conta ativa, ou e-mail de conta de equipe) |
+| `POST` | `/admin/barbeiros/{id}/convite` (**nova**) | só `ADMIN` | **sem corpo** (o dono não informa e-mail). `201` `{ codigo, expiraEm }` com `Cache-Control: no-store`. É também o **reenviar**: emitir de novo revoga o convite pendente e devolve um código novo | `401` · `403` (BARBEIRO, CLIENTE; ADMIN com senha inicial: `TROCA_DE_SENHA_OBRIGATORIA`) · `404` (barbeiro inexistente) · `409 USUARIO_JA_VINCULADO` (o barbeiro já tem acesso ativo) |
 | `DELETE` | `/admin/barbeiros/{id}/convite` (**nova**) | só `ADMIN` | `204` (idempotente: sem convite pendente também é `204`) | `401` · `403` · `404` (barbeiro inexistente) |
-| `POST` | `/auth/convite` (**nova**) | público, com limite por IP; o token do cliente é opcional | `204`, `Cache-Control: no-store` | `400 VALIDACAO_INVALIDA` (formato do código, e-mail ou senha) · `400 CAMPO_DESCONHECIDO` · `422 CONVITE_INVALIDO` (**uma resposta só**) · `429 LIMITE_EXCEDIDO` com `Retry-After` |
+| `POST` | `/auth/convite` (**nova**) | público, com limite por IP; o token do cliente é opcional | `204`, `Cache-Control: no-store` | `400 VALIDACAO_INVALIDA` (formato do código, e-mail ou senha; senha ausente para e-mail novo) · `400 CAMPO_DESCONHECIDO` (mandou `senha` para conta que já tem senha) · `422 CONVITE_INVALIDO` (**uma resposta só**) · `429 LIMITE_EXCEDIDO` com `Retry-After` |
 | `GET` | `/admin/barbeiros` e `/admin/barbeiros/{id}` (mudam) | só `ADMIN` | `BarbeiroAdmin` ganha `acesso` (só leitura): `SEM_CONTA`, `CONVITE_PENDENTE`, `ATIVO` ou `DESLIGADO`, e `conviteExpiraEm` (nulo fora de `CONVITE_PENDENTE`). O e-mail do barbeiro **não** volta | |
-| `PUT` | `/admin/barbeiros/{id}` (muda a descrição) | só `ADMIN` | com `ativo: false` o desligamento tira o acesso (item E9). Reativar exige convite novo (H31) | |
+| `PUT` | `/admin/barbeiros/{id}` (muda a descrição) | só `ADMIN` | com `ativo: false` o **desligamento** tira o acesso e mantém o histórico (E10, D153). Reativar exige convite novo (H31) | |
+| `DELETE` | `/me` (muda a descrição) | só quem tem `CLIENTE` | cliente que também é **barbeiro ativo** recebe `409 USUARIO_JA_VINCULADO` ("peça ao dono para desligar antes"); nada é apagado (A29) | |
 
 Corpos:
 
-- `POST /admin/barbeiros/{id}/convite`: `{ email? }`. O `email` é obrigatório quando o barbeiro ainda **não** tem conta ligada; num reenvio, sem o campo, vale o e-mail já ligado.
-- `POST /auth/convite`: `{ codigo, email, senha? }` (o `email` é a proposta D-1; sem a D-1, o corpo é `{ codigo, senha? }` como no ADR). `senha` só vale para **conta nova**. Para conta que **já tem senha** (H32) o corpo é `{ codigo, email }`, exige o token da própria conta, e mandar `senha` é `400 CAMPO_DESCONHECIDO`.
+- `POST /admin/barbeiros/{id}/convite`: **sem corpo** (D-1 ajustada pelo Kevin: o dono só gera o convite; quem digita o e-mail é o barbeiro).
+- `POST /auth/convite`: `{ codigo, email, senha? }`. O `email` é o **próprio e-mail do barbeiro** e vira o login. `senha` só vale para **conta nova** (e-mail que ainda não tem conta; sem ela, `400` no campo `senha` e o convite não é consumido). Para conta de **cliente que já existe** (H32) o corpo é `{ codigo, email }`, exige o token **da própria conta** e mandar `senha` é `400 CAMPO_DESCONHECIDO`.
 - `codigo`: 43 caracteres base64url (32 bytes de `SecureRandom`); `senha`: a mesma regra de `POST /auth/cadastro` e de `PUT /me/senha`, de 10 a 72 **bytes** em UTF-8 (Fatia 3, E2).
 
-Código de erro novo: **`422 CONVITE_INVALIDO`** (inexistente, vencido, usado, revogado, e-mail que não bate, ou de outra conta; **o mesmo corpo, o mesmo título e a mesma mensagem nos seis casos**).
+Código de erro novo: **`422 CONVITE_INVALIDO`** (inexistente, vencido, usado, revogado, e-mail de conta de equipe ou desativada, ou de conta que já existe sem estar logada nela; **o mesmo corpo, o mesmo título e a mesma mensagem nos seis casos**).
 
-### Banco · migração `V?__convite_de_conta.sql`
+### Banco · migração `V9__convite_de_conta.sql`
 
-Vem depois da migração do catálogo inicial (se aquela for a `V8`, esta é a `V9`). Só **uma tabela nova**, nenhuma alteração de tabela existente, nenhum dado pessoal em seed:
+Vem depois da `V8` (catálogo inicial). Só **uma tabela nova**, nenhuma alteração de tabela existente, nenhum dado pessoal em seed. Como o dono não informa e-mail, **não existe conta** até o aceite: o convite aponta para o **barbeiro** (e não para um `usuario`), guarda o nome de exibição dele (vira o nome da conta) e **nenhum e-mail**. Versão real (a que está em `backend/src/main/resources/db/migration/`):
 
 ```sql
 CREATE TABLE convite_conta (
     id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id   uuid        NOT NULL REFERENCES usuario (id) ON DELETE CASCADE,
+    barbeiro_id  uuid        NOT NULL REFERENCES barbeiro (id),
+    nome         varchar(120) NOT NULL,            -- nome de exibição do barbeiro, copiado na emissão
     token_hash   char(64)    NOT NULL UNIQUE,      -- SHA-256 hex do código; o código nunca é guardado
     expira_em    timestamptz NOT NULL,
     usado_em     timestamptz,
@@ -52,32 +55,34 @@ CREATE TABLE convite_conta (
     criado_em    timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT convite_conta_hash_ck CHECK (token_hash ~ '^[0-9a-f]{64}$')
 );
--- um convite pendente por conta
-CREATE UNIQUE INDEX convite_conta_pendente_ux ON convite_conta (usuario_id)
+-- um convite pendente por barbeiro
+CREATE UNIQUE INDEX convite_conta_pendente_ux ON convite_conta (barbeiro_id)
     WHERE usado_em IS NULL AND revogado_em IS NULL;
 ```
 
-`usuario` e `usuario_papel` **não mudam**: a conta convidada nasce `ativo = false` e `senha_hash = NULL`, que o `V1` já aceita e o login já recusa. `CHECK` de `usuario_papel` continua com os três papéis (nenhum papel novo, ADR 0013, opção B).
+`usuario` e `usuario_papel` **não mudam**: a conta nasce **no aceite**, já ativa e com senha. `CHECK` de `usuario_papel` continua com os três papéis (nenhum papel novo, ADR 0013, opção B). O vínculo `barbeiro.usuario_id` é gravado no aceite pela agenda, que escuta o evento `ConviteAceito` da conta (a conta não conhece a agenda).
 
 ## 3. Decisões de desenho
 
 | # | Tema | Decisão | Por quê |
 |---|---|---|---|
-| E1 | Papéis | **Nenhum papel novo.** "Barbeiro terceiro" é um `BARBEIRO` comum; "Dono/Admin" é o rótulo de tela do `ADMIN`. O dono que atende tem `ADMIN` + `BARBEIRO` + vínculo | ADR 0013, opção B: zero migração de papel e zero quebra de contrato |
-| E2 | Isolamento | O `barbeiroId` do BARBEIRO sai **sempre do token** (`sub` → `barbeiro.usuario_id` com `barbeiro.ativo`), nunca da URL nem do corpo. Política única `agenda/AcessoAgenda` (`alvo`, `exigirDonoDaReserva`, `proprio`), chamada por `PainelDaAgenda`, `AlcanceDaAgenda` e `CadastrosDoPainel`; as três cópias saem. Alheio, inexistente ou sem vínculo = `404` igual | D151; `@PreAuthorize` precisaria do banco no SpEL e daria `403` (ADR 0005, R23) |
+| E1 | Papéis | **Nenhum papel novo.** "Barbeiro terceiro" é um `BARBEIRO` comum; "Dono/Admin" é o rótulo de tela do `ADMIN`. O dono que atende tem `ADMIN` + `BARBEIRO` + vínculo. **Só o ADMIN** mexe na agenda de outro barbeiro, convida e desliga; o convidado só mexe na própria | ADR 0013, opção B: zero migração de papel e zero quebra de contrato |
+| E2 | Isolamento | O `barbeiroId` do BARBEIRO sai **sempre do token** (`sub` → `barbeiro.usuario_id` com `barbeiro.ativo`), nunca da URL nem do corpo. Política única `agenda/AcessoAgenda` (`alvo`, `alvoDoAlcance`, `exigirDonoDaReserva`, `proprio`), chamada por `PainelDaAgenda`, `AlcanceDaAgenda` e `CadastrosDoPainel`; as três cópias saem. **O ADMIN passa por `alvo` sem restrição** (qualquer barbeiro existente); o barbeiro **desligado** (`ativo = false`) responde `404` (A8). Alheio, inexistente ou sem vínculo = `404` igual | D151; `@PreAuthorize` precisaria do banco no SpEL e daria `403` (ADR 0005, R23) |
 | E3 | Convite | Código de 32 bytes de `SecureRandom`, mostrado **uma vez** na tela do dono como link `/convite#<codigo>` e QR. O banco guarda só o SHA-256 (sem BCrypt: a entropia é de 256 bits). Vale por `app.conta.convite.validade` (padrão **48 h**, H25; a subida falha se ficar fora de **1 h a 7 dias**). Um pendente por conta (índice parcial) | o código não é senha: expira, serve uma vez e é revogável |
 | E4 | Uso único | O aceite é um `UPDATE ... SET usado_em = :agora WHERE token_hash = :hash AND usado_em IS NULL AND revogado_em IS NULL AND expira_em > :agora`, com o `Clock` (ADR 0004). Só segue se afetou **uma** linha | dois aceites ao mesmo tempo: um só vence |
 | E5 | Abrir não consome | `GET /convite` (página) não chama a API com o código; só o `POST` consome. O código vai no **fragmento** (`#`), que nem a prévia de link do WhatsApp nem o servidor recebem | H26: robô de prévia não queima o link |
 | E6 | Ordem das checagens no `POST /auth/convite` | (1) forma do corpo e da senha, **sem tocar no banco** → `400`; (2) limite por IP → `429`; (3) busca pelo hash, com o relógio → `422` genérico. Assim o `400` da senha fraca nunca revela se o código existe | sem oráculo (sem enumeração) |
-| E7 | Sem enumerar e-mail | A emissão devolve o mesmo `201` para e-mail novo e para e-mail de conta de cliente. O aceite com e-mail errado é o mesmo `422`. O e-mail do barbeiro não volta em nenhuma lista | LGPD art. 6º, III (necessidade) e R30 |
-| E8 | Tentativas por convite | Além do limite por IP (H30: **10 por hora por IP**, `app.limites.convite-max` e `convite-janela`), um convite com código **certo** e e-mail errado soma `tentativas`; na 5ª (`app.conta.convite.tentativas-max`) é **revogado**. O dono vê `acesso = SEM_CONTA` e gera outro | quem tem o link mas não sabe o e-mail não adivinha em silêncio |
-| E9 | Conta que já existe (H32) | Convite para o e-mail de um cliente não cria conta: fica ligado a ela e o papel `BARBEIRO` só entra no aceite, que **exige estar logado nessa conta** (`sub` = `convite.usuario_id`), soma o papel e sobe `versao_credencial`. O convite **nunca** define nem troca a senha de conta que já tem senha (fecha o sequestro por quem tiver o link). E-mail de equipe (`ADMIN` ou `BARBEIRO` vinculado) = `409 USUARIO_JA_VINCULADO` | ADR 0013, 4.1 |
-| E10 | Desligar (`ativo: false`) | Sempre: `barbeiro.ativo = false`, tira o papel `BARBEIRO`, sobe `versao_credencial` (o `ContaEmUso` barra o token na hora), revoga o convite e anula `barbeiro.whatsapp`. Conta **também de cliente**: segue ativa como cliente, com dados e reservas; a H33 não se aplica à conta. Conta **só de equipe**: desativa e **anonimiza** no mesmo passo (H33 revisada): anula `senha_hash`, apaga refresh tokens, convite e identidade social, troca nome e e-mail por "lápide". As reservas e a auditoria continuam apontando para a conta | H31 e H33; `auditoria_admin.ator_id` continua válido |
+| E7 | Sem enumerar e-mail | A emissão não recebe nem guarda e-mail (D-1): a resposta é sempre a mesma forma. No aceite, e-mail de conta de equipe ou desativada, ou de cliente que não está logado nela, é o mesmo `422`. Quem tem um código **válido** pode distinguir "e-mail sem conta" (pede senha, `400`) de "e-mail com conta" (`422`); isso exige o código de 256 bits e some depois de 5 tentativas (E8). O e-mail do barbeiro não volta em nenhuma lista | LGPD art. 6º, III (necessidade) e R30 |
+| E7b | Exceção ao 422 único | O 422 único vale para tudo que **não** é um aceite certo. Só **com código válido** (256 bits, de quem o dono escolheu) a API responde diferente em dois casos, e só nesses: `400 VALIDACAO_INVALIDA` no campo `senha` quando o e-mail não tem conta e a senha não veio (o convite continua valendo), e `400 CAMPO_DESCONHECIDO` quando a conta logada já tem senha e o corpo mandou `senha`. Quem não tem um código válido nunca vê nenhum dos dois. O tempo da resposta do e-mail existente e do novo é igualado com um BCrypt fictício | o 400 não é oráculo para quem adivinha (precisa do código) e a tela precisa dele para ajudar o barbeiro |
+| E8 | Tentativas por convite | Além do limite por IP (H30: **10 por hora por IP**, `app.limites.convite-max` e `convite-janela`), um convite com código **certo** e e-mail que não serve (conta de equipe, desativada, ou de cliente sem login) soma `tentativas`; na 5ª (`app.conta.convite.tentativas-max`) é **revogado**. O dono vê `acesso = SEM_CONTA` e gera outro | o link sozinho não deixa tentar e-mails de outras pessoas em silêncio |
+| E9 | Conta que já existe (H32) | O barbeiro digita o e-mail no aceite. Se é de um cliente, o aceite **exige estar logado nessa conta** (`sub` = a conta do e-mail), sem `senha`: soma o papel `BARBEIRO` e sobe `versao_credencial`. O convite **nunca** define nem troca a senha de conta que já tem senha (fecha o sequestro por quem tiver o link). E-mail de equipe (`ADMIN` ou `BARBEIRO`) ou de conta desativada = o mesmo `422` genérico | ADR 0013, 4.1 |
+| E10 | Desligar (`ativo: false`) = **"excluir" o barbeiro, sem apagar** (D153) | Sempre: `barbeiro.ativo = false`, tira o papel `BARBEIRO`, sobe `versao_credencial` (o `ContaEmUso` barra o token na hora), revoga o convite e anula `barbeiro.whatsapp`. Conta **também de cliente**: segue ativa como cliente, com dados e reservas; a H33 não se aplica à conta. Conta **só de equipe**: desativa e **anonimiza** no mesmo passo (H33 revisada): anula `senha_hash`, apaga refresh tokens, convite e identidade social, troca nome e e-mail por "lápide". As reservas e a auditoria continuam apontando para a conta. O token antigo de quem perdeu o papel `BARBEIRO` e continua ativo (cliente) é barrado na hora pelo `ContaEmUso` (o token não pode ter papel que a conta já não tem) | H31 e H33; `auditoria_admin.ator_id` continua válido |
 | E11 | Retenção depois do desligamento | `nome_exibicao` nas reservas por **5 anos** depois da última reserva e depois pseudônimo (job `RetencaoDeDados`, ShedLock, `Clock`); IP da auditoria 1 ano (D99); backup 30 dias (D128). **Pendente de advogado:** art. 10 da LGPD e o tipo de vínculo (CLT ou Lei 13.352/2016) | H33; ver D-6 |
-| E12 | Orquestração | `admin → conta` e `admin → agenda` (ADR 0001/0002): o caso de uso do `admin` chama `conta.Contas` (`convidarBarbeiro`, `revogarConvite`, `desligarContaDeEquipe`) e `PainelDaAgenda.alterarBarbeiro` na **mesma transação** da auditoria. A rota pública `/auth/convite` fica no `conta`, que não depende da `agenda` | o vínculo já foi gravado na emissão |
-| E13 | Auditoria | Só nomes de campos, nunca o código, o e-mail, o nome ou a senha (R30). Ações: `CONVITE_EMITIDO` (ator = dono), `CONVITE_REVOGADO` (dono), `CONVITE_REVOGADO_POR_TENTATIVAS` (ator = sistema), `CONVITE_ACEITO` (ator = o próprio barbeiro) e `BARBEIRO_DESLIGADO` (dono). As duas do meio e a `CONVITE_ACEITO` **acrescentam** ao ADR (que citava três) | quem fez o quê e quando, sem dado pessoal |
+| E12 | Orquestração | `admin → conta` e `admin → agenda` (ADR 0001/0002): o caso de uso do `admin` chama `conta.Contas` (`emitirConvite`, `revogarConvite`, `desligarContaDeEquipe`) e `PainelDaAgenda.alterarBarbeiro` na **mesma transação** da auditoria. A rota pública `/auth/convite` fica no `conta`, que não depende da `agenda` nem do `admin`: o aceite publica `ConviteAceito` (síncrono, na mesma transação), que a **agenda** escuta para ligar `barbeiro.usuario_id` e o **admin** escuta para auditar | o vínculo é gravado no aceite; se não puder (barbeiro desligado, ou já com outra conta ativa), tudo desfaz e o aceite é o `422` genérico |
+| E13 | Auditoria | Só nomes de campos, nunca o código, o e-mail, o nome ou a senha (R30). Ações: `CONVITE_EMITIDO` (ator = dono), `CONVITE_REVOGADO` (dono), `CONVITE_REVOGADO_POR_TENTATIVAS` (ator = sistema), `CONVITE_ACEITO` (ator = o próprio barbeiro) e `BARBEIRO_DESLIGADO` (dono). As duas do meio e a `CONVITE_ACEITO` **acrescentam** ao ADR (que citava três). A tabela exige um autor: na revogação por tentativas o autor é o dono que gerou o convite (`detalhe.origem = TENTATIVAS`) | quem fez o quê e quando, sem dado pessoal |
 | E14 | Clientes do barbeiro | Os clientes dele agendam como hoje (`GET /barbeiros`, `GET /disponibilidade?barbeiroId=`, `POST /agendamentos` e `/agendamentos/guest`), com ou sem cadastro; a reserva leva o `barbeiro_id` e só aparece na agenda dele. O que ele combinar por WhatsApp entra pela **reserva manual própria** (nome opcional, sem contato, R33). **Sem carteira de clientes** (H24) | pedido do Kevin; nada novo no contrato |
 | E15 | Dinheiro | Só o `ADMIN` vê e mexe em `/admin/pagamentos/**`, devoluções, `/admin/auditoria`, `/admin/configuracao`, `/admin/servicos/**` e `/admin/barbeiros/**` (incluindo convites). O BARBEIRO vê preço e status do pagamento **só das próprias reservas** (H29) | H27, H28 e H29 |
+| E17 | Admin na agenda de outro (esclarecimento do Kevin, 23/11) | O ADMIN faz, na agenda de **qualquer** barbeiro: ver (`GET /admin/agenda?barbeiroId=`), reserva manual (`POST /admin/agendamentos`), concluir, marcar falta e cancelar (`PATCH .../status`), com a auditoria registrando o admin como autor. O BARBEIRO convidado faz tudo isso **só na própria** (cancelar continua só do dono, D124) e recebe `404` na de outro | A39, A40 e A41 |
 | E16 | Senha | Mesma política do cadastro (10 a 72 bytes, BCrypt custo `app.seguranca.bcrypt-custo`); sem regra de composição. Senha nunca por chat, e-mail nem log: quem a define é o barbeiro, no app | Fatia 3, E2 e E3 |
 
 ## 4. Critérios de aceite
@@ -105,37 +110,40 @@ Convenção dos testes: dois barbeiros reais no banco, **A** e **B** (Testcontai
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A13 | barbeiro sem conta, ADMIN | `POST /admin/barbeiros/{id}/convite` com `{ email }` | `201 { codigo, expiraEm }` com `Cache-Control: no-store`; conta `BARBEIRO` **inativa e sem senha**, ligada ao barbeiro; no banco só o `token_hash` (o código não está em nenhuma coluna) | `ConviteDoBarbeiroIT` |
-| A14 | convite válido | `POST /auth/convite` com código, e-mail e senha | `204`; conta ativa; login com o e-mail e a senha novos funciona e `GET /admin/agenda` mostra **só** a agenda daquele barbeiro | `ConviteDoBarbeiroIT` |
+| A13 | barbeiro sem conta, ADMIN | `POST /admin/barbeiros/{id}/convite` (sem corpo) | `201 { codigo, expiraEm }` com `Cache-Control: no-store`; **nenhuma conta nasce ainda**; no banco só o `token_hash` (o código não está em nenhuma coluna); barbeiro inexistente `404`, barbeiro com acesso ativo `409 USUARIO_JA_VINCULADO` | `ConviteDoBarbeiroIT` |
+| A14 | convite válido | `POST /auth/convite` com código, o **próprio e-mail do barbeiro** e a senha | `204`; conta ativa só com `BARBEIRO` e ligada ao barbeiro, com a auditoria `CONVITE_ACEITO`; login com o e-mail e a senha novos funciona e `GET /admin/agenda` mostra **só** a agenda daquele barbeiro | `ConviteDoBarbeiroIT` |
 | A15 | convite válido | senha com 9 bytes, 73 bytes e 40 letras acentuadas (80 bytes) | `400 VALIDACAO_INVALIDA` no campo `senha`; o convite **não** é consumido e o mesmo código ainda aceita uma senha boa | `ConviteDoBarbeiroIT` |
 | A16 | código já usado · vencido (relógio +48 h) · revogado · inventado · e-mail que não bate · de outra conta | `POST /auth/convite` | `422 CONVITE_INVALIDO` nos seis, com o **mesmo** corpo, título e mensagem | `ConviteSegurancaIT` |
 | A17 | convite válido | dois `POST /auth/convite` ao mesmo tempo (dois fios) | exatamente um `204` e um `422`; uma só senha gravada | `ConviteSegurancaIT` |
-| A18 | convite pendente | emitir de novo (reenviar) · `DELETE .../convite` · `DELETE` repetido · `DELETE` sem convite | o código antigo dá `422` e o novo dá `204` · `204` · `204` · `204`; no reenvio sem `email` vale o e-mail já ligado | `ConviteDoBarbeiroIT` |
-| A19 | `app.conta.convite.validade = 48h` e relógio fixo | aceitar em +47h59m59s · em +48h · validade configurada em 30 min · em 8 dias | `204` · `422` · vale a nova · a aplicação **não sobe** com validade fora de 1 h a 7 dias | `ConviteSegurancaIT` |
+| A18 | convite pendente | emitir de novo (reenviar) · `DELETE .../convite` · `DELETE` repetido · `DELETE` sem convite · `DELETE` de barbeiro inexistente | o código antigo dá `422` e o novo dá `204` · `204` · `204` · `204` · `404` | `ConviteDoBarbeiroIT` |
+| A19 | `app.conta.convite.validade = 48h` e relógio fixo | aceitar em +47h59m59s · em +48h · validade configurada em 30 min · em 8 dias | `204` · `422` · a aplicação **não sobe** com validade fora de 1 h a 7 dias (30 min e 8 dias recusam; 1 h e 7 dias valem) | `ConviteSegurancaIT` (prazo) e `ParametrosDoConviteTest` (configuração) |
 | A20 | limite de 10 aceites por hora por IP | 11 `POST /auth/convite` (códigos inventados) do mesmo IP | do 11º em diante `429 LIMITE_EXCEDIDO` com `Retry-After`; outro IP não é afetado; a contagem inclui os pedidos inválidos | `ConviteSegurancaIT` |
-| A21 | convite válido | 5 `POST` com o código certo e e-mail errado | todos `422` iguais; na 5ª o convite fica **revogado** (`acesso = SEM_CONTA`, `CONVITE_REVOGADO_POR_TENTATIVAS` na auditoria) e o código certo também dá `422` | `ConviteSegurancaIT` |
-| A22 | e-mail novo, e-mail de cliente e e-mail inexistente | emitir convite | o mesmo `201` e a mesma forma de resposta; e-mail de conta de equipe é `409 USUARIO_JA_VINCULADO`; nenhuma lista devolve e-mail | `ConviteSegurancaIT` |
-| A23 (H32) | cliente `ana@x` com conta e senha; convite emitido para `ana@x` | `POST /auth/convite` sem login · logado em **outra** conta · logado em `ana@x` · logado em `ana@x` mandando `senha` | `422` · `422` · `204` (soma `BARBEIRO` e sobe `versao_credencial`) · `400 CAMPO_DESCONHECIDO`; a senha antiga continua valendo | `ConviteContaExistenteIT` |
-| A24 (H32) | conta `CLIENTE` + `BARBEIRO` (reserva de cliente com B, agenda própria) | painel e rotas de cliente | no painel, só a própria agenda; nas rotas de cliente, só as próprias reservas, inclusive as marcadas com outro barbeiro, sem enxergar a agenda dele | `ConviteContaExistenteIT` |
+| A21 | convite válido | 5 `POST` com o código certo e e-mail de conta que não serve (cliente sem login) | todos `422` iguais; na 5ª o convite fica **revogado** (`acesso = SEM_CONTA`, `CONVITE_REVOGADO_POR_TENTATIVAS` na auditoria) e o código certo também dá `422` | `ConviteSegurancaIT` |
+| A22 | barbeiros diferentes, e um aceite com e-mail | emitir convite · listar · ler auditoria e erro | a emissão tem sempre a mesma forma (`codigo`, `expiraEm`, sem e-mail); a tabela não tem coluna de e-mail; nenhuma lista, auditoria ou erro traz o e-mail do barbeiro | `ConviteSegurancaIT` |
+| A23 | (H32) cliente `ana@x` com conta e senha; convite emitido | `POST /auth/convite` com `ana@x` sem login · logado em **outra** conta · logado em `ana@x` · logado em `ana@x` mandando `senha` | `422` · `422` · `204` (soma `BARBEIRO`, sobe `versao_credencial`, liga ao barbeiro) · `400 CAMPO_DESCONHECIDO` sem consumir o convite; a senha antiga continua valendo | `ConviteContaExistenteIT` |
+| A24 | (H32) conta `CLIENTE` + `BARBEIRO` (reserva de cliente com B, agenda própria) | painel e rotas de cliente | no painel, só a própria agenda; nas rotas de cliente, só as próprias reservas, inclusive as marcadas com outro barbeiro, sem enxergar a agenda dele | `ConviteContaExistenteIT` |
 | A25 | BARBEIRO · CLIENTE · sem token · ADMIN com senha inicial | `POST` e `DELETE /admin/barbeiros/{id}/convite` | `403` · `403` · `401` · `403 TROCA_DE_SENHA_OBRIGATORIA` | `ConviteDoBarbeiroIT` |
-| A26 | barbeiro **só de equipe** com sessão aberta e convite pendente | `PUT /admin/barbeiros/{id}` com `ativo: false` | token antigo `401` na hora; refresh falha; convite revogado; conta anonimizada (nome, e-mail, `senha_hash`, `whatsapp`, refresh e identidade social anulados; `id` e papel preservados); as reservas e `auditoria_admin.ator_id` continuam válidos | `DesligarBarbeiroIT` |
-| A27 (H32) | barbeiro que **também é cliente** | desligar | token antigo `401`; sem o papel `BARBEIRO`; a conta entra como cliente com nome, e-mail e reservas intactos | `DesligarBarbeiroIT` |
+| A26 | barbeiro **só de equipe** com sessão aberta (e, em outro caso, com convite pendente) | `PUT /admin/barbeiros/{id}` com `ativo: false` | token antigo `401` na hora; refresh falha; convite revogado; conta anonimizada (nome, e-mail, `senha_hash`, `whatsapp`, refresh e identidade social anulados; `id` e papel preservados); as reservas e `auditoria_admin.ator_id` continuam válidos | `DesligarBarbeiroIT` |
+| A27 | (H32) barbeiro que **também é cliente** | desligar | token antigo `401`; sem o papel `BARBEIRO`; a conta entra como cliente com nome, e-mail e reservas intactos | `DesligarBarbeiroIT` |
 | A28 | barbeiro desligado | `PUT` com `ativo: true` · gerar convite novo e aceitar | reativar sozinho não devolve o acesso (`acesso = DESLIGADO`) · só com convite novo (H31) | `DesligarBarbeiroIT` |
-| A29 | barbeiro ativo que também é cliente | `DELETE /me` | `409` pedindo que o dono desligue antes; nada apagado | `DesligarBarbeiroIT` |
-| A30 (H33) | barbeiro desligado há 5 anos e 1 dia da última reserva (relógio) | job `RetencaoDeDados` | `nome_exibicao` vira pseudônimo nas reservas; antes disso o nome é mantido; IP da auditoria some depois de 1 ano; o job é idempotente | `RetencaoDeBarbeiroIT` |
-| A31 | todo o fluxo (emitir, aceitar, revogar, errar, desligar) | ler log, auditoria e corpos de erro | nenhum código, e-mail, nome ou senha; a auditoria só traz nomes de campos (E13) | `SemDadoPessoalNoLogIT` (estendido) |
+| A29 | barbeiro ativo que também é cliente | `DELETE /me` | `409 USUARIO_JA_VINCULADO` pedindo que o dono desligue antes; nada apagado; depois de desligado, a exclusão de cliente passa | `DesligarBarbeiroIT` |
+| A30 | (H33) barbeiro desligado há 5 anos e 1 dia da última reserva (relógio) | job `RetencaoDeDados` | `nome_exibicao` vira pseudônimo nas reservas; antes disso o nome é mantido; IP da auditoria some depois de 1 ano; o job é idempotente | `RetencaoDeBarbeiroIT` |
+| A31 | todo o fluxo (emitir, aceitar, revogar, errar, desligar) | ler log, auditoria e corpos de erro | nenhum código, e-mail, nome ou senha; a auditoria só traz nomes de campos (E13) | `SemDadoPessoalNoLogConviteIT` |
 | A32 | barbeiros em cada estado | `GET /admin/barbeiros` | `acesso` = `SEM_CONTA`, `CONVITE_PENDENTE` (com `conviteExpiraEm`), `ATIVO` ou `DESLIGADO`; sem e-mail no JSON | `ConviteDoBarbeiroIT` |
-| A33 | `openapi.yaml` 1.8.0 | `redocly lint` · `scripts/conferir-spec.sh 10 --exigir` | 0 erros; `CONVITE_INVALIDO` e as rotas novas com exemplos reais; cada `A#` tem teste com o número | CI |
-| A34 | módulo `conta` | `ArquiteturaTest` | `conta` não depende de `agenda` nem de `admin`; só o `admin` chama `Contas.convidarBarbeiro`; a rota `/auth/convite` está liberada no `SegurancaConfig` e **só ela** | `ArquiteturaTest` |
+| A33 | `openapi.yaml` 1.8.0 | `redocly lint` · `scripts/conferir-spec.sh 10 --exigir` | 0 erros; `CONVITE_INVALIDO` e as rotas novas documentados; cada `A#` tem teste com o número | `ContratoExemplosDeErroTest` (e o redocly e o `conferir-spec.sh` no CI) |
+| A39 | ADMIN e os barbeiros A e B (esclarecimento do Kevin) | o ADMIN faz `POST /admin/agendamentos` na agenda de B | `201`, a reserva é de B, a auditoria registra o admin como autor, aparece na agenda de B e não na de A. (O BARBEIRO A fazendo o mesmo é o A4: `404`) | `IsolamentoEntreBarbeirosIT` |
+| A40 | reservas de B | o ADMIN conclui, marca falta e cancela (com motivo) reservas de B | `200` nos três, com `cancelado_por` = admin e uma linha de auditoria cada. (O BARBEIRO A nos mesmos casos é o A3: `404`) | `IsolamentoEntreBarbeirosIT` |
+| A41 | barbeiro **convidado** que acabou de aceitar | faz reserva manual, conclui e cancela na agenda de **outro** barbeiro · e na própria | `404` nos três da agenda de outro, sem mudar a reserva nem gravar auditoria · na própria: reserva manual `201`, concluir `200`, cancelar `403` (só o dono cancela, D124) | `ConviteDoBarbeiroIT` |
+| A34 | módulo `conta` | `ArquiteturaTest` | `conta` não depende de `agenda` nem de `admin`; só o `admin` chama `Contas.emitirConvite`; a rota `/auth/convite` está liberada no `SegurancaConfig` e **só ela** | `ArquiteturaTest` |
 
 ### Telas (front, depois do contrato)
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A35 | Dono/Admin em Cadastros → Barbeiros | toca em "Gerar convite" e informa o e-mail | o link `/convite#<codigo>` e o QR aparecem **uma vez**, com o prazo (e o botão "Copiar link" e "Enviar pelo WhatsApp"); fechou a tela, só aparece "convite pendente até <data>" com "Gerar outro" (reenviar) e "Revogar"; o rótulo do papel `ADMIN` é "Dono/Admin" | `PainelConvite.test.tsx`, E2E |
-| A36 | `/convite#<codigo>` | abrir a página (e o robô de prévia) | nenhum pedido à API leva o código; nenhum consumo; o código sai da barra de endereço depois de lido; `Referrer-Policy: no-referrer` e `Cache-Control: no-store` na página | `ConvitePagina.test.tsx`, `convite.spec.ts` |
-| A37 | tela "Criar minha senha" | preencher e-mail e senha (e confirmar a senha) e enviar | o BFF chama `POST /auth/convite`, **não devolve o código** no corpo; sucesso leva ao login com a mensagem "Senha criada. Entre com seu e-mail e a nova senha"; `400` mostra o erro no campo da senha; `422` mostra uma frase só ("Este link não vale mais ou não pode ser usado aqui") com o caminho "Já tenho conta no site: entrar"; `429` mostra o tempo de espera | `ConvitePagina.test.tsx` |
-| A38 | acessibilidade da tela | teclado e leitor | rótulos ligados, erro com `role="alert"`, foco no primeiro erro, senha com botão "mostrar" e `autocomplete="new-password"`, contraste do design system | `ConvitePagina.test.tsx`, axe |
+| A35 | Dono/Admin em Cadastros → Barbeiros | toca em "Gerar convite" (sem informar e-mail) | o link `/convite#<codigo>` e o QR aparecem **uma vez**, com o prazo (e o botão "Copiar link" e "Enviar pelo WhatsApp"); fechou a tela, só aparece "convite pendente até <data>" com "Gerar outro" (reenviar) e "Revogar"; o rótulo do papel `ADMIN` é "Dono/Admin" | `PainelConvite`, E2E |
+| A36 | `/convite#<codigo>` | abrir a página (e o robô de prévia) | nenhum pedido à API leva o código; nenhum consumo; o código sai da barra de endereço depois de lido; `Referrer-Policy: no-referrer` e `Cache-Control: no-store` na página | `ConvitePagina`, `convite` |
+| A37 | tela "Criar minha senha" | o barbeiro digita o **próprio e-mail**, a senha e a confirmação e envia | o BFF chama `POST /auth/convite`, **não devolve o código** no corpo; sucesso leva ao login com a mensagem "Senha criada. Entre com seu e-mail e a nova senha"; `400` mostra o erro no campo da senha; `422` mostra uma frase só ("Este link não vale mais ou não pode ser usado aqui") com o caminho "Já tenho conta no site: entrar"; `429` mostra o tempo de espera | `ConvitePagina`, `bff-convite` |
+| A38 | acessibilidade da tela | teclado e leitor | rótulos ligados, erro com `role="alert"`, foco no primeiro erro, senha com botão "mostrar" e `autocomplete="new-password"`, contraste do design system | `ConvitePagina`, axe |
 
 ## 5. Entregas
 
@@ -149,9 +157,9 @@ Convenção dos testes: dois barbeiros reais no banco, **A** e **B** (Testcontai
 - **Front** (BFF e telas): rota `/convite` e o BFF `POST /api/convite`; bloco "Convite" em Cadastros → Barbeiros; rótulo "Dono/Admin"; ver a tabela de telas abaixo.
 - **Docs**: guia de testes com a saída real, política de privacidade (parágrafo sobre o barbeiro: dados e retenção, a revisar pelo Cautelar), `docs/fluxo-ponta-a-ponta.md` e o roteiro de visitantes.
 
-### Telas (design system)
+### Telas (design system) · **aguardam desenho**
 
-O design system é a fonte do visual: **não decido o visual aqui**. O canvas do `frontend/design/README.md` tem "Troca de senha inicial" (`TrocaSenha.dc.html`) e "Painel: cadastros" (`PainelCadastros.dc.html`), mas **nenhum dos dois cobre o convite**. Telas que **precisam de desenho** (marcadas "aguarda design"; o PDF atual não as traz):
+O design system é a fonte do visual: **não decido o visual aqui**. O canvas do `frontend/design/README.md` tem "Troca de senha inicial" (`TrocaSenha.dc.html`) e "Painel: cadastros" (`PainelCadastros.dc.html`), mas **nenhum dos dois cobre o convite**. Telas que **precisam de desenho** (marcadas "aguarda design"; o PDF atual não as traz). Enquanto o desenho não vem, foram feitas em **layout neutro**, só com tokens e os componentes que já existem (`Campo`, `Botao`, `Aviso`, `Dialogo`, `CopiarTexto`, `QrPix`), e **trocam de visual quando o desenho chegar** (os testes A35 a A38 não dependem do visual):
 
 | Tela | Situação | Observação |
 |---|---|---|
@@ -183,7 +191,9 @@ O design system é a fonte do visual: **não decido o visual aqui**. O canvas do
 | Dado de terceiros digitado pelo barbeiro (reserva manual) | 🟢 ok | só nome opcional e observação; sem contato (R30, D125) |
 | Segurança do convite | 🟢 ok | hash, uso único, expiração, limite e `422` único (E3 a E8) |
 
-## 7. Dúvidas para o Kevin
+## 7. Dúvidas para o Kevin (decididas em 23/11/2026)
+
+> **D-1 decidida com ajuste:** o dono **só gera o convite**; o **barbeiro digita o próprio e-mail** e a senha ao aceitar. D-2 a D-8 seguem a proposta. A tabela abaixo guarda o texto original; onde ele fala de "o dono informa o e-mail", vale o ajuste.
 
 | # | Dúvida | Proposta (padrão se o Kevin aprovar sem mexer) |
 |---|---|---|
@@ -198,9 +208,10 @@ O design system é a fonte do visual: **não decido o visual aqui**. O canvas do
 
 ## 8. Pronto quando
 
-- [ ] todos os critérios A1 a A38 com teste verde no `./mvnw verify` (e no CI, `scripts/conferir-spec.sh 10 --exigir`)
-- [ ] contrato 1.8.0 com `redocly lint` em 0 erros e o histórico de versões atualizado
-- [ ] o Dono/Admin gera, reenvia e revoga convites; o barbeiro cria a senha e vê só a própria agenda (fluxo ponta a ponta com dois barbeiros reais, saída colada nos docs)
-- [ ] telas "aguarda design" desenhadas e implementadas
-- [ ] texto da política revisado pelo Cautelar e pendências jurídicas da H33 anotadas
-- [ ] [checklist da PR](checklist-pr.md) completo; roteiro de visitantes e de equipe atualizados
+- [x] todos os critérios A1 a A41 com teste verde (backend no `./mvnw verify`, front no vitest e no E2E; `scripts/conferir-spec.sh 10 --exigir` confere 41 de 41)
+- [x] contrato 1.8.0 com `redocly lint` em 0 erros e o histórico de versões atualizado
+- [x] o Dono/Admin gera, reenvia e revoga convites; o barbeiro cria a senha e vê só a própria agenda (E2E `convite.spec.ts` contra a API real; o fluxo manual no [guia de testes](../guia-testes.md#74-convite-do-barbeiro-fatia-10) fica "a preencher")
+- [ ] **telas "aguarda design" desenhadas** e o visual trocado (hoje em layout neutro, só tokens): depende do desenho do Kevin
+- [ ] texto da política de privacidade revisado pelo Cautelar (parágrafo do barbeiro) e as pendências jurídicas da H33 levadas ao advogado (art. 10 e tipo de vínculo): **não feito nesta entrega**
+- [ ] [checklist da PR](checklist-pr.md) completo na abertura da PR (o Kevin abre; esta branch não abriu PR)
+

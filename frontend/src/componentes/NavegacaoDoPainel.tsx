@@ -13,12 +13,20 @@ export const ITENS_DO_PAINEL: { href: string; texto: string; papeis: string[] }[
   { href: "/painel/alcance", texto: "Alcance", papeis: ["ADMIN", "BARBEIRO"] },
 ];
 
+/** O papel ADMIN aparece como "Dono/Admin" (ADR 0013); só texto, o papel no contrato continua ADMIN. */
+export function rotuloDoPapel(papeis: string[] | undefined): string | undefined {
+  if (papeis?.includes("ADMIN")) return "Dono/Admin";
+  if (papeis?.includes("BARBEIRO")) return "Barbeiro";
+  return undefined;
+}
+
 export function NavegacaoDoPainel() {
   const sessao = useSessao();
   const caminho = usePathname();
   const itens = ITENS_DO_PAINEL.filter((i) => sessao.papeis?.some((p) => i.papeis.includes(p)));
   return (
     <nav aria-label="Painel" className="painel-menu">
+      {rotuloDoPapel(sessao.papeis) && <p className="painel-papel">Você entrou como {rotuloDoPapel(sessao.papeis)}</p>}
       <ul>
         {itens.map((i) => (
           <li key={i.href}>

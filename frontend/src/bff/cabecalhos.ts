@@ -39,6 +39,7 @@ export function semCache(caminho: string): boolean {
     caminho.startsWith("/meus-agendamentos") ||
     caminho.startsWith("/painel") ||
     caminho.startsWith("/agendar") ||
+    caminho.startsWith("/convite") ||
     caminho.startsWith("/reserva")
   );
 }
