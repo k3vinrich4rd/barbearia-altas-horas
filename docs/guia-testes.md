@@ -1087,7 +1087,7 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 | P8 | Cadastros | editar serviço (preço `55,90`), barbeiro (WhatsApp com máscara), jornada, folga e regras | preço vira centavos; nome repetido aparece no campo; jornada sobreposta marca o dia; fuso só leitura; prazo de 3 a 60 min | Saída real: a preencher no fluxo manual |
 | P9 | Auditoria e alcance | abrir as duas telas | auditoria sem IP; alcance com "menos de 5" e sem percentual nas linhas pequenas | Saída real: a preencher no fluxo manual |
 
-### 7.4 Site mais fluido (Fatia 12) ✅
+### 7.5 Site mais fluido (Fatia 12) ✅
 
 **Passos à mão (visitante, no celular ou numa janela estreita):**
 
@@ -1116,6 +1116,21 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 
   O **LCP** fica entre 2,46 e 2,63 s, **até 130 ms acima** do orçamento de 2,5 s em parte das execuções (o título repinta quando a fonte Playfair troca, `display: swap`, D-1 do design system). Com `display: optional` o mesmo teste deu 2,44 a 2,51 s; não foi aplicado porque muda o desenho. Antes de reservar espaço para a lista de serviços e fixar o resumo, o `/agendar` tinha CLS 0,141; hoje 0,002.
 - Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada).
+### 7.4 Convite do barbeiro (Fatia 10)
+
+O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a senha; o convidado só mexe na própria agenda. As telas ainda **aguardam desenho** (layout neutro). Para repetir à mão: API no perfil `dev`, front em `http://localhost:3000`, o admin do `ADMIN_EMAIL`. O teste de ponta a ponta de verdade é `frontend/e2e/convite.spec.ts` (A36), que faz tudo isso contra a API real.
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| C1 | Cadastros → Barbeiros | como dono, criar um barbeiro e tocar em "Gerar convite" (não pede e-mail) | diálogo com o link `/convite#…`, o QR, o prazo de 48 h, "Copiar link" e "Enviar pelo WhatsApp"; ao fechar o código some e a linha mostra "Convite pendente até …" com "Gerar outro" e "Revogar" | Saída real: a preencher no fluxo manual |
+| C2 | Abrir o link | colar o link numa janela anônima | "Criar minha senha"; o código sai da barra de endereço; recarregar a página mostra o mesmo formulário (abrir não consome o convite) | Saída real: a preencher no fluxo manual |
+| C3 | Criar a senha | digitar o próprio e-mail, a senha (10 a 72 caracteres) e a confirmação | vai para o login com "Senha criada. Entre com seu e-mail e a nova senha."; ao entrar, o menu mostra "Você entrou como Barbeiro" e só a própria agenda | Saída real: a preencher no fluxo manual |
+| C4 | Link repetido | abrir o mesmo link de novo e tentar criar outra conta | uma frase só ("Este link não vale mais ou não pode ser usado aqui") e o caminho "Já tenho conta no site: entrar" | Saída real: a preencher no fluxo manual |
+| C5 | Conta que já existe | entrar como cliente, abrir um convite novo e digitar o e-mail da conta | "Aceitar convite" (sem senha); depois, entrar de novo mostra o painel de barbeiro e a senha antiga continua valendo | Saída real: a preencher no fluxo manual |
+| C6 | Dono na agenda de outro | como dono, filtrar a agenda pelo barbeiro convidado, fazer uma reserva manual e fechar e cancelar uma reserva dele | funciona, com o dono como autor na auditoria; o convidado, nos mesmos atos na agenda de outro, recebe "não encontrado" | Saída real: a preencher no fluxo manual |
+| C7 | Desligar | como dono, editar o barbeiro, desmarcar "Ativo" e confirmar | a confirmação explica que mantém o histórico; a linha vira "Desligado"; a sessão do barbeiro cai na hora; reativar sozinho não devolve o acesso (só um convite novo) | Saída real: a preencher no fluxo manual |
+
+Para o teste de visitantes, esta seção **não** entra: o público só testa o cliente (13 passos); o convite e o desligamento são da equipe.
 
 ## 8. Jornada completa
 

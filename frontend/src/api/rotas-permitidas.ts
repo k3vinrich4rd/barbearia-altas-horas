@@ -1,6 +1,7 @@
 // GERADO por scripts/gerar-rotas.mjs a partir de docs/contrato/openapi.yaml. NÃO EDITAR.
 // Rotas que o BFF aceita (método + caminho do contrato). O webhook do gateway nunca entra (E4).
 export const ROTAS_PERMITIDAS: readonly string[] = [
+  "DELETE /admin/barbeiros/{id}/convite",
   "DELETE /admin/barbeiros/{id}/folgas/{folgaId}",
   "DELETE /me",
   "GET /admin/agenda",
@@ -29,6 +30,7 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "PATCH /admin/agendamentos/{id}/status",
   "POST /admin/agendamentos",
   "POST /admin/barbeiros",
+  "POST /admin/barbeiros/{id}/convite",
   "POST /admin/barbeiros/{id}/folgas",
   "POST /admin/pagamentos/eventos/{id}/revisao",
   "POST /admin/pagamentos/{id}/devolucao",
@@ -36,6 +38,7 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "POST /agendamentos",
   "POST /agendamentos/guest",
   "POST /auth/cadastro",
+  "POST /auth/convite",
   "POST /auth/login",
   "POST /auth/logout",
   "POST /auth/refresh",

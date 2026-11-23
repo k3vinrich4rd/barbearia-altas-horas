@@ -24,3 +24,15 @@ export function origemPermitida(request: Request): boolean {
     return false;
   }
 }
+
+const IP = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-fA-F:]{2,45})$/;
+
+/**
+ * O IP do cliente que a Vercel define (D156): o PRIMEIRO de `x-forwarded-for`, ou `x-real-ip`. Só vale com a mesma premissa de
+ * implantação do host (D144): a Vercel descarta o que o navegador mandou nesses cabeçalhos e põe o IP da conexão. Valor que
+ * não parece um IP é ignorado (nada é encadeado nem repassado cru). A API recebe só este IP em `X-Forwarded-For`.
+ */
+export function ipDoCliente(request: Request): string | undefined {
+  const bruto = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim();
+  return bruto && IP.test(bruto) ? bruto : undefined;
+}

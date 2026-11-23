@@ -3,7 +3,17 @@ import { useState } from "react";
 import { Botao } from "./Botao";
 
 /** Mostra um texto (copia e cola, código da reserva) com o botão "Copiar" que anuncia "copiado". */
-export function CopiarTexto({ texto, rotulo, id }: { texto: string; rotulo: string; id: string }) {
+export function CopiarTexto({
+  texto,
+  rotulo,
+  id,
+  botao = "Copiar",
+}: {
+  texto: string;
+  rotulo: string;
+  id: string;
+  botao?: string;
+}) {
   const [copiado, setCopiado] = useState(false);
   async function copiar() {
     try {
@@ -18,7 +28,7 @@ export function CopiarTexto({ texto, rotulo, id }: { texto: string; rotulo: stri
     <div className="copiar">
       <label htmlFor={id}>{rotulo}</label>
       <input id={id} readOnly value={texto} className="copiar-texto" onFocus={(e) => e.currentTarget.select()} />
-      <Botao onClick={copiar}>Copiar</Botao>
+      <Botao onClick={copiar}>{botao}</Botao>
       <span role="status" className="copiar-aviso">
         {copiado ? "Copiado" : ""}
       </span>

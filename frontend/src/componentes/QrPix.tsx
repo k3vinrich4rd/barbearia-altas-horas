@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 
-export function QrPix({ copiaECola, qrCodeBase64 }: { copiaECola: string; qrCodeBase64?: string | null }) {
+/** `descricao` troca o texto alternativo quando o QR não é do Pix (o QR do convite do barbeiro, 10B). */
+export function QrPix({
+  copiaECola,
+  qrCodeBase64,
+  descricao = "QR Code do Pix: aponte a câmera do app do seu banco para pagar",
+}: {
+  copiaECola: string;
+  qrCodeBase64?: string | null;
+  descricao?: string;
+}) {
   const [gerado, setGerado] = useState<string | undefined>();
   useEffect(() => {
     if (qrCodeBase64) return;
@@ -26,7 +35,7 @@ export function QrPix({ copiaECola, qrCodeBase64 }: { copiaECola: string; qrCode
       src={src}
       width={256}
       height={256}
-      alt="QR Code do Pix: aponte a câmera do app do seu banco para pagar"
+      alt={descricao}
       className="qr"
     />
   );

@@ -46,6 +46,9 @@ export interface EstadoDaSessao {
 
 export const entrar = (email: string, senha: string) => postar<RespostaLogin>("/api/auth/login", { email, senha });
 export const cadastrarConta = (corpo: Record<string, unknown>) => postar<RespostaLogin>("/api/auth/cadastro", corpo);
+/** Aceita o convite do barbeiro (10B). Sem `senha` quando a conta já existe e está logada (H32). Nunca devolve corpo. */
+export const aceitarConvite = (codigo: string, email: string, senha?: string) =>
+  postar<void>("/api/convite", { codigo, email, ...(senha === undefined ? {} : { senha }) });
 export const sair = () => postar<void>("/api/auth/logout");
 export const lerSessao = () => pedir<EstadoDaSessao>("/api/sessao");
 export const codigoDoVisitante = (reservaId: string) =>

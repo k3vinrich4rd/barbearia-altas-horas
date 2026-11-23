@@ -9,6 +9,10 @@ import java.util.UUID;
  */
 public interface ValidadorDeConta {
 
-    /** Falso quando a conta existe e foi desativada (exclusão ou desligamento). Conta desconhecida não é barrada aqui. */
-    boolean podeAcessar(UUID usuarioId);
+    /**
+     * Falso quando a conta existe e foi desativada (exclusão ou desligamento) ou quando o token carrega um papel que a conta
+     * não tem mais (o desligamento do barbeiro que também é cliente derruba o token antigo na hora, H31).
+     * Conta desconhecida não é barrada aqui.
+     */
+    boolean podeAcessar(UUID usuarioId, java.util.Collection<String> papeisDoToken);
 }
