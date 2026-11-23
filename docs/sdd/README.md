@@ -56,6 +56,7 @@ flowchart LR
 | 7 · Telas em Next.js | [fatia-7-telas.md](fatia-7-telas.md) | ✅ aprovada (18/11) · **7A e 7B prontas, aguardando revisão** (62 critérios com teste: A1 a A62; acabamento visual V1 a V12 implementado; contrato 1.7.0 com `GET /admin/minha-jornada`) |
 | 8 · Deploy grátis | escrita antes de começar | ⏳ |
 | 9 · Assistente de dúvidas (RAG) | [fatia-9-assistente-de-duvidas.md](fatia-9-assistente-de-duvidas.md) | 📝 pós-beta, desligada por padrão |
+| Catálogo inicial (V8) | [fatia-catalogo-inicial.md](fatia-catalogo-inicial.md) | ✅ implementada (20/11/2026): 5 serviços, o barbeiro e a jornada no banco, A1 a A7 (D152) |
 
 ## A IA no processo
 
