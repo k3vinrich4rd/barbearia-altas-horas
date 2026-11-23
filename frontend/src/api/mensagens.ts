@@ -37,6 +37,7 @@ export const MENSAGENS: Record<string, string> = {
   COBRANCA_EM_ANDAMENTO: "Já existe um pagamento em andamento para esta reserva.",
   SERVICO_INATIVO: "Este serviço não está disponível agora. Escolha outro.",
   IDEMPOTENCIA_CONFLITO: "Não foi possível repetir este pagamento. Comece de novo.",
+  CONVITE_INVALIDO: "Este link não vale mais ou não pode ser usado aqui.",
   JORNADA_SOBREPOSTA: "Há horários que se sobrepõem no mesmo dia. Ajuste a jornada.",
   FOLGA_COM_RESERVAS: "Há agendamentos neste período. Cancele-os antes ou escolha outro período.",
   USUARIO_JA_VINCULADO: "Esta conta já está ligada a outro barbeiro.",
