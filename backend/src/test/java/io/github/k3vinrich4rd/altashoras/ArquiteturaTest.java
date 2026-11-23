@@ -201,4 +201,22 @@ class ArquiteturaTest {
             org.assertj.core.api.Assertions.assertThat(infratores).isEmpty();
         }
     }
+
+    @Test
+    @DisplayName("A34: a conta não depende da agenda nem do admin; só o admin gera o convite; /auth/convite é a única rota de convite liberada no SegurancaConfig")
+    void conviteSoPeloAdminERotaPublicaUnica() throws java.io.IOException {
+        noClasses().that().resideInAPackage("..conta..")
+                .should().dependOnClassesThat().resideInAnyPackage("..agenda..", "..admin..")
+                .because("a conta não sabe que a agenda existe: o vínculo do barbeiro vem por evento (ADR 0002)")
+                .check(CLASSES);
+        noClasses().that().resideOutsideOfPackage("..admin..").and().doNotHaveSimpleName("Contas")
+                .should().callMethod(io.github.k3vinrich4rd.altashoras.conta.Contas.class, "emitirConvite",
+                        java.util.UUID.class, String.class, java.util.UUID.class)
+                .because("gerar convite é do dono (ADMIN); a rota que o aceita não gera nenhum")
+                .check(CLASSES);
+        String seguranca = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/io/github/k3vinrich4rd/altashoras/plataforma/seguranca/SegurancaConfig.java"));
+        org.assertj.core.api.Assertions.assertThat(seguranca.split("\"/auth/convite\"", -1)).hasSize(2);
+        org.assertj.core.api.Assertions.assertThat(seguranca).doesNotContain("\"/auth/**\"").doesNotContain("\"/admin/barbeiros/*/convite\"");
+    }
 }
