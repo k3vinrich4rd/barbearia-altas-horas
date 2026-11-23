@@ -101,7 +101,8 @@ function respostaDeRenovacaoFalha(r: Extract<Renovacao, { ok: false }>): Respons
   return apiIndisponivel();
 }
 
-type Modo = "publico" | "guest" | "misto" | "bearer";
+/** "opcional": manda o token da sessão SE houver (o aceite do convite de quem já tem conta, H32); sem sessão, vai sem token. */
+type Modo = "publico" | "guest" | "misto" | "bearer" | "opcional";
 
 function modoDaRota(metodo: string, caminho: string): Modo {
   if (casa(PUBLICAS, metodo, caminho)) return "publico";
@@ -165,8 +166,9 @@ export async function chamarComSessao(
   if (modo === "guest" || (modo === "misto" && !cookies[COOKIE_ACESSO] && !cookies[COOKIE_REFRESH])) {
     guest = request.headers.get("x-guest-token") ?? lerVisitante(request)?.token;
   }
-  const usaBearer = modo === "bearer" || (modo === "misto" && !guest);
   const refresh = cookies[COOKIE_REFRESH];
+  const temSessao = Boolean(cookies[COOKIE_ACESSO] || refresh);
+  const usaBearer = modo === "bearer" || (modo === "misto" && !guest) || (modo === "opcional" && temSessao);
   if (usaBearer) {
     bearer = cookies[COOKIE_ACESSO];
     if (!bearer && refresh) {
@@ -286,3 +288,4 @@ async function aplicarPos(
 }
 
 export { problema };
+export type { Modo };

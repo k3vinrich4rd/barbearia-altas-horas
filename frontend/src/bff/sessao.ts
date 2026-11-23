@@ -94,6 +94,30 @@ export async function cadastro(request: Request, depsEntrada?: DepsBff): Promise
   }
 }
 
+/**
+ * Aceite do convite do barbeiro (Fatia 10B): `POST /api/convite`. Não existe na API do navegador de propósito: o BFF repassa
+ * o corpo para `POST /auth/convite` (com o token da sessão, se houver, para quem já tem conta, H32) e NUNCA devolve o código
+ * nem dado nenhum: só o status. Se o aceite soma o papel BARBEIRO a uma conta logada, a sessão local cai, para o token novo
+ * (com o papel) vir do login.
+ */
+export async function convite(request: Request, depsEntrada?: DepsBff): Promise<Response> {
+  if (!origemPermitida(request)) return origemNegada();
+  const corpo = await lerCorpo(request);
+  if (!corpo) return problema(400, "JSON_MALFORMADO", "JSON malformado");
+  const cookies = lerCookies(request);
+  const comSessao = Boolean(cookies[COOKIE_ACESSO] || cookies[COOKIE_REFRESH]);
+  const { resposta, setCookies } = await chamarComSessao(request, "POST", "/auth/convite", {
+    corpo: new TextEncoder().encode(corpo.texto).buffer as ArrayBuffer,
+    modo: "opcional",
+    deps: depsEntrada,
+  });
+  const h = new Headers(resposta.headers);
+  h.set("cache-control", "no-store");
+  for (const c of setCookies) h.append("set-cookie", c);
+  if (resposta.status === 204 && comSessao) for (const c of cookiesApagados()) h.append("set-cookie", c);
+  return new Response(resposta.status === 204 ? null : resposta.body, { status: resposta.status, headers: h });
+}
+
 /** Logout: a sessão local SEMPRE cai, mesmo com a API fora do ar. */
 export async function logout(request: Request, depsEntrada?: DepsBff): Promise<Response> {
   if (!origemPermitida(request)) return origemNegada();
