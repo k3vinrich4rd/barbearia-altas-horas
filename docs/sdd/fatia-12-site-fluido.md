@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026) com as 12 propostas (D-1 a D-12) · entrega em 12A, 12B e 12C, na mesma branch `feat/fatia-12-site-fluido` |
 | **Origem** | pedido do Kevin em 23/11/2026: não gostou do andamento nem da divisão do site no ar (<https://barbearia-altas-horas.vercel.app>). Quer o site **mais fluido e mais completo**, mantendo a **paleta** ([`frontend/design/tokens.json`](../../frontend/design/tokens.json): preto, branco e cinzas, xadrez, Playfair) e a **lógica de funcionamento** |
 | **Não muda** | as 3 formas de agendar (com cadastro, sem cadastro e WhatsApp com reserva manual, R33) · o pagamento antecipado, com o prazo vindo de `expiraEm` (D121, 3 a 60 min) · o painel (Fatias 5 e 7B) · as regras de negócio e o contrato dos endpoints existentes |
 | **Entrega em três PRs** (proposta) | **12A** · galeria, serviço novo e renomear "Trajetória" (`feat/fatia-12a-galeria-e-trajetoria`) · **12B** · nova home, mobile-first (`feat/fatia-12b-home-fluida`) · **12C** · fluxo de agendar em poucos toques (`feat/fatia-12c-agendar-fluido`) |
