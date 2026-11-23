@@ -25,7 +25,7 @@ describe("menu do site", () => {
     const principal = screen.getByRole("navigation", { name: "Principal" });
     const links = within(principal).getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual([
-      "A história",
+      "Trajetória",
       "Serviços",
       "Como funciona",
       "Galeria",
