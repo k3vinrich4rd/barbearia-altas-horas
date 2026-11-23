@@ -34,8 +34,8 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 /**
  * API pública da agenda para o painel (ADR 0002, E1): a agenda do dia ou da semana e o fechamento do atendimento.
  * O módulo admin chama este serviço e grava a auditoria na mesma transação; ele nunca lê a tabela da reserva.
- * A conta é ligada ao barbeiro por {@code barbeiro.usuario_id}: o BARBEIRO só enxerga e fecha o que é dele, e o que
- * não é dele responde 404, igual a "não existe" (R23, H9).
+ * Quem pode mexer na agenda de quem é da política única {@link AcessoAgenda}: o ADMIN vê e fecha a de qualquer barbeiro;
+ * o BARBEIRO só a própria, e o que não é dele responde 404, igual a "não existe" (R23, H9).
  */
 @Service
 public class PainelDaAgenda {
@@ -168,9 +168,12 @@ public class PainelDaAgenda {
     private final Clock clock;
     private final CadastrosDoPainel cadastros;
     private final ReservarHorario reservas;
+    private final AcessoAgenda acesso;
 
     PainelDaAgenda(JdbcClient jdbc, EntityManager em, ConfiguracaoAgendaRepository configuracoes,
-            ApplicationEventPublisher eventos, Clock clock, CadastrosDoPainel cadastros, ReservarHorario reservas) {
+            ApplicationEventPublisher eventos, Clock clock, CadastrosDoPainel cadastros, ReservarHorario reservas,
+            AcessoAgenda acesso) {
+        this.acesso = acesso;
         this.cadastros = cadastros;
         this.reservas = reservas;
         this.jdbc = jdbc;
@@ -186,7 +189,7 @@ public class PainelDaAgenda {
      */
     @Transactional(readOnly = true)
     public List<Item> agenda(Escopo escopo, LocalDate data, Visao visao, @Nullable UUID barbeiroId) {
-        UUID alvo = barbeiroDoPedido(escopo, barbeiroId);
+        UUID alvo = acesso.alvo(escopo, barbeiroId);
         ZoneId fuso = ZoneId.of(configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow().getFuso());
         LocalDate primeiroDia = visao == Visao.SEMANA ? data.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) : data;
         LocalDate diaSeguinte = primeiroDia.plusDays(visao == Visao.SEMANA ? 7 : 1);
@@ -213,38 +216,10 @@ public class PainelDaAgenda {
      * {@code @Transactional}: o caso de uso da reserva abre a própria transação, para o deadlock poder ser refeito (E4).
      */
     public Item criarReservaManual(Escopo escopo, NovaReservaManual pedido, Consumer<UUID> aoGravar) {
-        barbeiroDoPedido(escopo, pedido.barbeiroId());
+        acesso.alvo(escopo, pedido.barbeiroId());
         UUID id = reservas.comoBarbearia(new ReservarHorario.Manual(pedido.servicoId(), pedido.barbeiroId(),
                 pedido.inicio(), pedido.nomeCliente(), pedido.observacao(), escopo.usuarioId()), aoGravar);
         return jdbc.sql(SELECIONAR + " WHERE r.id = :id").param("id", id).query(LINHA).single();
-    }
-
-    /**
-     * ADMIN vê todos os barbeiros ou o filtrado; BARBEIRO só o próprio. Barbeiro inexistente, alheio ou conta sem
-     * vínculo: 404, sem confirmar que existe (R23).
-     */
-    private @Nullable UUID barbeiroDoPedido(Escopo escopo, @Nullable UUID barbeiroId) {
-        if (escopo.admin()) {
-            if (barbeiroId == null) {
-                return null;
-            }
-            boolean existe = jdbc.sql("SELECT count(*) FROM barbeiro WHERE id = :id").param("id", barbeiroId)
-                    .query(Long.class).single() > 0;
-            if (!existe) {
-                throw barbeiroNaoEncontrado();
-            }
-            return barbeiroId;
-        }
-        UUID proprio = barbeiroDaConta(escopo.usuarioId());
-        if (proprio == null || (barbeiroId != null && !barbeiroId.equals(proprio))) {
-            throw barbeiroNaoEncontrado();
-        }
-        return proprio;
-    }
-
-    private @Nullable UUID barbeiroDaConta(UUID usuarioId) {
-        return jdbc.sql("SELECT id FROM barbeiro WHERE usuario_id = :usuario").param("usuario", usuarioId)
-                .query(UUID.class).optional().orElse(null);
     }
 
     /**
@@ -258,9 +233,7 @@ public class PainelDaAgenda {
         if (reserva == null) {
             throw reservaNaoEncontrada();
         }
-        if (!escopo.admin() && !reserva.getBarbeiroId().equals(barbeiroDaConta(escopo.usuarioId()))) {
-            throw reservaNaoEncontrada();
-        }
+        acesso.exigirDonoDaReserva(escopo, reserva.getBarbeiroId());
         if (alvo == StatusAlvo.CANCELADO && !escopo.admin()) {
             throw new ExcecaoDeNegocio(CodigoErro.ACESSO_NEGADO, "Só o administrador cancela uma reserva.");
         }
@@ -311,6 +284,11 @@ public class PainelDaAgenda {
         return cadastros.barbeiros();
     }
 
+    /** Um barbeiro pelo id (o painel precisa do estado de antes para desligar e convidar). Inexistente: 404. */
+    public BarbeiroCadastrado barbeiro(UUID id) {
+        return cadastros.barbeiro(id);
+    }
+
     public BarbeiroCadastrado criarBarbeiro(String nomeExibicao, @Nullable UUID usuarioId, @Nullable String whatsapp) {
         return cadastros.criarBarbeiro(nomeExibicao, usuarioId, whatsapp);
     }
@@ -357,10 +335,6 @@ public class PainelDaAgenda {
 
     private static OffsetDateTime utc(Instant instante) {
         return OffsetDateTime.ofInstant(instante, ZoneOffset.UTC);
-    }
-
-    private static ExcecaoDeNegocio barbeiroNaoEncontrado() {
-        return new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Barbeiro não encontrado.");
     }
 
     private static ExcecaoDeNegocio reservaNaoEncontrada() {

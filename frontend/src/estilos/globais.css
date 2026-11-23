@@ -947,6 +947,7 @@ ul {
   position: fixed;
   inset: 0;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
   padding: var(--space-4);
   background: var(--fundo);
@@ -962,6 +963,9 @@ ul {
   padding: var(--space-6);
   display: grid;
   gap: var(--space-4);
+  /* diálogos altos (o QR do convite) rolam dentro da caixa, em vez de empurrar o botão para fora da tela */
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .copiar {
@@ -1238,4 +1242,10 @@ select[aria-invalid="true"] {
   .painel-menu ul {
     flex-direction: column;
   }
+}
+
+/* Convite do barbeiro (Fatia 10B): link e QR do diálogo. Layout neutro, só tokens; aguarda desenho. */
+.dialogo .qr {
+  display: block;
+  margin: var(--space-4) auto;
 }

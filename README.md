@@ -165,7 +165,7 @@ O catálogo do beta publicado ainda está vazio, então estes prints são do mes
 | Idempotência com HMAC | `CriarCobranca` (`X-Idempotency-Key` + hash HMAC-SHA256 do corpo) | repetir o pedido não cobra duas vezes |
 
 - 🤖 **IA no projeto:** SDD, agentes, RAG da documentação e recuperação por identificador, tudo em [IA no projeto](#-ia-no-projeto).
-- 🗺 **Status das fatias:** 1 a 7B, 6D e 8 **no ar em beta** (pagamento simulado); 8B aprovada e em implementação; convite do barbeiro e alcance por nível em especificação; 9 (assistente) pós-beta. Tabela completa em [Status das fatias](#-status-das-fatias).
+- 🗺 **Status das fatias:** 1 a 7B, 6D e 8 **no ar em beta** (pagamento simulado); 8B aprovada e em implementação; convite do barbeiro (Fatia 10) implementado na branch `feat/fatia-10-convite-do-barbeiro`, aguardando a PR e o desenho das telas novas; alcance por nível em especificação; 9 (assistente) pós-beta. Tabela completa em [Status das fatias](#-status-das-fatias).
 
 ## 🏆 Trajetória e prêmios
 
@@ -741,7 +741,7 @@ flowchart LR
 | **7C · Painel no canvas** | 🔄 | em andamento (branch `wip/fatia-7c-painel-canvas`) |
 | **8 · Deploy grátis** | ✅ | API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)), PostgreSQL free na Aiven, front na Vercel e backup semanal criptografado; o pagamento ainda é simulado ([spec](docs/sdd/fatia-8-deploy.md)) |
 | **8B · Deploy robusto e econômico** | 🔄 | aprovada e em implementação: CI verde antes do deploy, subida mais rápida, health sem falso alarme, ping dentro das 750 h, rollback e backup ([spec](docs/sdd/fatia-8b-deploy-robusto.md)) |
-| **Vários barbeiros e convite** | 📝 | Dono/Admin, isolamento por `barbeiroId` e convite de uso único; em especificação ([ADR 0013](docs/adr/0013-varios-barbeiros-dono-e-convite.md)) |
+| **Vários barbeiros e convite** | 🚧 | Dono/Admin, isolamento por `barbeiroId` e convite de uso único; implementado na branch `feat/fatia-10-convite-do-barbeiro` (telas aguardando desenho) ([ADR 0013](docs/adr/0013-varios-barbeiros-dono-e-convite.md)) |
 | **Alcance por nível** | 📝 | subir de nível em vez de sumir, k = 5 e consentimento para a região do CEP; em especificação ([ADR 0014](docs/adr/0014-alcance-k-anonimato-e-consentimento-do-cep.md)) |
 | **9 · Assistente de dúvidas** | 📝 | RAG para o cliente, desligado por padrão; pós-beta ([spec](docs/sdd/fatia-9-assistente-de-duvidas.md)) |
 

@@ -37,6 +37,12 @@ class AnonimizaContaDaExclusao {
     void aoSolicitarExclusao(ExclusaoSolicitada evento) {
         Usuario usuario = usuarios.findById(evento.usuarioId())
                 .orElseThrow(() -> new ExcecaoDeNegocio(CodigoErro.NAO_AUTENTICADO));
+        // Barbeiro ativo que também é cliente (H32): o dono desliga o acesso de barbeiro antes; nada é apagado (A29).
+        if (usuario.isAtivo() && usuario.getPapeis().contains(Usuario.BARBEIRO)
+                && !usuario.getPapeis().contains(Usuario.ADMIN)) {
+            throw new ExcecaoDeNegocio(CodigoErro.USUARIO_JA_VINCULADO,
+                    "Esta conta tem acesso de barbeiro. Peça ao dono para desligar o acesso antes de excluir a conta.");
+        }
         // Segunda barreira (a primeira é o SegurancaConfig): conta de equipe não se exclui pelo app.
         if (!usuario.isAtivo() || usuario.getPapeis().stream().anyMatch(papel -> !Usuario.CLIENTE.equals(papel))) {
             throw new ExcecaoDeNegocio(CodigoErro.ACESSO_NEGADO);
