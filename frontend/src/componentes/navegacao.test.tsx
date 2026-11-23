@@ -7,6 +7,8 @@ import { definirCaminho, zerarNavegacao } from "@/testes/navegacao";
 import { ANONIMO, CLIENTE, renderizar } from "@/testes/render";
 import { Menu, SECOES_DA_HOME } from "./Menu";
 import { PainelDeAcessibilidade } from "./PainelDeAcessibilidade";
+import NaoEncontrada from "@/app/not-found";
+import Home from "@/app/page";
 import { formatarWhatsapp, Rodape } from "./Rodape";
 
 // Navegação (feature/ux-navegacao): menu com as âncoras do PDF, Disclosure no celular, rodapé do PDF.
@@ -98,13 +100,69 @@ describe("rodapé", () => {
   test("sem número na API, a linha do WhatsApp some", async () => {
     servidor.use(http.get(`${BFF}/barbeiros`, () => HttpResponse.json([])));
     render(<Rodape />);
-    expect(await screen.findByRole("heading", { name: "Instagram" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Contato" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /abre o WhatsApp/ })).toBeNull();
+    expect(screen.queryByText(/\(11\)/)).toBeNull();
+  });
+
+  test("o título do bloco de contato não muda quando o número chega, e o rodapé tem os blocos nomeados", async () => {
+    servidor.use(
+      http.get(`${BFF}/barbeiros`, () =>
+        HttpResponse.json([{ id: "b1", nomeExibicao: "Eduardo Candido", whatsapp: "11900000000" }]),
+      ),
+    );
+    render(<Rodape />);
+    expect(screen.getByRole("heading", { name: "Contato" })).toBeInTheDocument();
+    await screen.findByRole("link", { name: /abre o WhatsApp/ });
+    expect(screen.getByRole("heading", { name: "Contato" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Instagram e WhatsApp" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Onde estamos" })).toHaveAttribute("id", "onde-estamos");
+    expect(screen.getByRole("region", { name: "Horário de funcionamento" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar ao topo" })).toHaveAttribute("href", "#conteudo");
   });
 
   test("formata o número público para exibição", () => {
     expect(formatarWhatsapp("11906941689")).toBe("(11) 90694-1689");
     expect(formatarWhatsapp("5511906941689")).toBe("(11) 90694-1689");
     expect(formatarWhatsapp("1133334444")).toBe("(11) 3333-4444");
+  });
+});
+
+describe("página não encontrada", () => {
+  test("mostra o título e os caminhos de volta", () => {
+    render(<NaoEncontrada />);
+    expect(screen.getByRole("heading", { level: 1, name: "Página não encontrada" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Voltar para o início" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Agendar horário" })).toHaveAttribute("href", "/agendar");
+    expect(screen.getByRole("link", { name: "Consultar reserva" })).toHaveAttribute("href", "/reserva");
+  });
+});
+
+describe("regiões da home", () => {
+  test("a home com menu e rodapé não tem duas regiões ou navegações com o mesmo nome", () => {
+    renderizar(
+      <>
+        <Menu />
+        <main>
+          <Home />
+        </main>
+        <Rodape />
+      </>,
+      ANONIMO,
+    );
+    const nomes = [
+      ...screen.getAllByRole("region").map((r) => r.getAttribute("aria-label") ?? ""),
+      ...screen.getAllByRole("navigation").map((n) => n.getAttribute("aria-label") ?? ""),
+    ];
+    // as seções nomeadas por aria-labelledby: pega o texto do título que as nomeia
+    const porTitulo = screen.getAllByRole("region").map((r) => {
+      const id = r.getAttribute("aria-labelledby");
+      return id ? (document.getElementById(id)?.textContent ?? "") : "";
+    });
+    const todos = [...nomes, ...porTitulo].filter(Boolean);
+    expect(todos.length).toBeGreaterThan(8);
+    expect(new Set(todos).size).toBe(todos.length);
+    expect(screen.getAllByRole("region", { name: "Onde estamos" })).toHaveLength(1);
+    expect(screen.getAllByText("Horário de funcionamento")).toHaveLength(1);
   });
 });
