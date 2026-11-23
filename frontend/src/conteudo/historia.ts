@@ -76,7 +76,7 @@ export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
 ];
 
 // Galeria da home (Fatia 12, E2 a E4): 3 fotos que já estavam em docs/assets/galeria e 15 novas dos Instagrams do Eduardo
-// e da barbearia, com a autorização de imagem confirmada pelo Kevin (D155). Largura e altura são as reais do arquivo
+// e da barbearia, com a autorização de imagem confirmada pelo Kevin (D158). Largura e altura são as reais do arquivo
 // (o next/image reserva o espaço, sem salto de layout). Sem nome de cliente em legenda ou texto alternativo.
 export const GALERIA: readonly { src: string; legenda: string; alt: string; largura: number; altura: number }[] = [
   {

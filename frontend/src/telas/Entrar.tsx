@@ -15,6 +15,8 @@ const AVISOS: Record<string, string> = {
   sessao: "Sua sessão terminou. Entre de novo.",
   "conta-criada": "Conta criada. Entre para continuar.",
   "senha-trocada": "Senha trocada. Entre com a nova senha.",
+  "convite-aceito": "Senha criada. Entre com seu e-mail e a nova senha.",
+  "convite-aceito-conta": "Convite aceito. Entre de novo com a sua senha de sempre para ver o painel de barbeiro.",
 };
 
 export function Entrar() {

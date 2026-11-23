@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.7.1
+# 📑 Contrato da API · v1.8.0
 
 | | |
 |---|---|
@@ -53,13 +53,14 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/disponibilidade` | horários livres de um dia | 🌐 | `200` | `400 VALIDACAO_INVALIDA`, `404 RECURSO_NAO_ENCONTRADO`, `422 FORA_DO_HORIZONTE` | [4.2](#42-disponibilidade) |
 | `GET` | `/cep/{cep}` | endereço pelo CEP (cache) | 🌐 | `200` | `400 CEP_INVALIDO`, `404 CEP_NAO_ENCONTRADO`, `503 CEP_INDISPONIVEL`, `429` | [4.3](#43-cep) |
 | `POST` | `/auth/cadastro` | cria conta de cliente | 🌐 | `201` | `400 VALIDACAO_INVALIDA`, `409 EMAIL_JA_CADASTRADO`, `429` | [4.4](#44-autenticação-e-conta) |
+| `POST` | `/auth/convite` | o barbeiro aceita o convite do dono: digita o **próprio e-mail** e cria a senha (**novo na 1.8.0**, 10B). Conta que já existe: com o token dela e sem `senha` (H32) | 🌐 (10 por hora por IP; token do cliente opcional) | `204` | `400 VALIDACAO_INVALIDA`, `400 CAMPO_DESCONHECIDO`, `422 CONVITE_INVALIDO` (uma resposta só), `429 LIMITE_EXCEDIDO` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
 | `POST` | `/auth/login` | login (cliente, barbeiro, admin) | 🌐 | `200` | `400`, `401 CREDENCIAIS_INVALIDAS`, `429 LIMITE_EXCEDIDO` | [4.4](#44-autenticação-e-conta) |
 | `POST` | `/auth/refresh` | troca o refresh (rotativo) | 🌐 (com refresh) | `200` | `401 REFRESH_INVALIDO`, `401 REFRESH_REUTILIZADO` | [4.4](#44-autenticação-e-conta) |
 | `POST` | `/auth/logout` | encerra a família do refresh | 🌐 (com refresh) | `204` | — | [4.4](#44-autenticação-e-conta) |
 | `GET` | `/me` | meu perfil | 👤 ✂️ 🛠 | `200` | `401` | [4.4](#44-autenticação-e-conta) |
 | `PUT` | `/me/senha` | troca a própria senha e encerra as outras sessões | 👤 ✂️ 🛠 | `204` | `400`, `401 CREDENCIAIS_INVALIDAS` (senha atual errada), `401 NAO_AUTENTICADO` | [4.4](#44-autenticação-e-conta) |
 | `GET` | `/me/dados` | exportar meus dados (LGPD) | 👤 ✂️ 🛠 | `200` | `401`, `429` (5 por hora por conta, H22) | [4.9](#49-privacidade) |
-| `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 (só cliente) | `204` | `401`, `403 ACESSO_NEGADO` (barbeiro e admin não se excluem), `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` | [4.9](#49-privacidade) |
+| `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 (só cliente) | `204` | `401`, `403 ACESSO_NEGADO` (admin e barbeiro sem papel de cliente não se excluem), `409 EXCLUSAO_BLOQUEADA_POR_RESERVA`, `409 USUARIO_JA_VINCULADO` (cliente que também é barbeiro ativo: o dono desliga o acesso antes, **1.8.0**) | [4.9](#49-privacidade) |
 | `GET` | `/me/consentimentos` | meus consentimentos | 👤 | `200` | `401` | [4.9](#49-privacidade) |
 | `PUT` | `/me/consentimentos/marketing` | aceita ou revoga marketing | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
 | `GET` | `/politica-privacidade` | política de privacidade e texto da caixa de marketing, com a versão vigente | 🌐 | `200` | — | [4.9](#49-privacidade) |
@@ -78,8 +79,10 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `PATCH` | `/admin/agendamentos/{id}/status` | conclui, marca falta (valor retido) ou cancela pela barbearia (só ADMIN cancela) | 🛠 ✂️ | `200` | `400`, `401`, `403`, `404`, `409 CONFLITO_DE_VERSAO`, `422 TRANSICAO_INVALIDA`, `422 MOTIVO_OBRIGATORIO` | [Painel](../admin/painel-admin.md) |
 | `GET` `POST` | `/admin/servicos` | lista (inclusive inativos) e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 NOME_JA_EXISTE` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/servicos/{id}` | altera nome, duração, preço, ativo (preço a partir de 1 centavo) | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 NOME_JA_EXISTE`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
-| `GET` `POST` | `/admin/barbeiros` | lista e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 USUARIO_JA_VINCULADO` | [Painel](../admin/painel-admin.md) |
+| `GET` `POST` | `/admin/barbeiros` | lista (com `acesso` e `conviteExpiraEm`, **1.8.0**) e cria | 🛠 | `200` / `201` | `400`, `401`, `403`, `409 USUARIO_JA_VINCULADO` | [Painel](../admin/painel-admin.md) |
 | `PUT` | `/admin/barbeiros/{id}` | altera nome, WhatsApp comercial (**novo na 1.6.0**), ativo, login vinculado | 🛠 | `200` | `400`, `401`, `403`, `404`, `409 USUARIO_JA_VINCULADO`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
+| `POST` | `/admin/barbeiros/{id}/convite` | gera o convite de uso único, sem corpo; é também o "reenviar" (**novo na 1.8.0**, 10B) | 🛠 | `201` `{ codigo, expiraEm }` | `401`, `403`, `404`, `409 USUARIO_JA_VINCULADO` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
+| `DELETE` | `/admin/barbeiros/{id}/convite` | revoga o convite pendente (idempotente) (**novo na 1.8.0**) | 🛠 | `204` | `401`, `403`, `404` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
 | `PUT` | `/admin/barbeiros/{id}/jornada` | substitui a jornada semanal | 🛠 | `200` | `400`, `401`, `403`, `404`, `422 JORNADA_SOBREPOSTA` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/barbeiros/{id}/folgas` | folgas de hoje em diante (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/barbeiros/{id}/folgas` | cria folga | 🛠 | `201` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` | [Painel](../admin/painel-admin.md) |
@@ -314,6 +317,24 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 - **Depois de criada:** aparece em `GET /admin/agenda`, ocupa o horário na disponibilidade e pode ser concluída ou marcada como falta (`PATCH /admin/agendamentos/{id}/status`). Só o ADMIN cancela, com motivo; como não há cobrança, nada vai para devolução.
 - **Privacidade:** não existe campo de WhatsApp, e-mail nem CPF do cliente, e o sistema não guarda. `nomeCliente` e `observacao` somem 90 dias depois do fim da reserva. Cliente e visitante recebem `404` ao tentar ver ou pagar essa reserva. Não conta no alcance. Pagamento por fora (dinheiro, Pix direto) não gera registro financeiro.
 
+### 4.12 Convite do barbeiro (1.8, Fatia 10B)
+
+**Quem faz o quê.** Só o **ADMIN** (o dono, "Dono/Admin" na tela) adiciona um barbeiro novo, gera o convite e o tira do sistema; só ele vê e mexe na agenda de outro barbeiro (ver, reserva manual, fechar e cancelar). O barbeiro convidado **nunca** mexe na agenda de outro, só na própria. Os papéis continuam os três de sempre (ADR 0013, opção B).
+
+`POST /admin/barbeiros/{id}/convite` (ADMIN, **sem corpo**) → `201` com `Cache-Control: no-store`
+```json
+{ "codigo": "q3tD7mYb2uVn0pLwXc8sKfHrJ1aZgE5iO9vTyNdB4Mk", "expiraEm": "2026-12-03T10:00:00-03:00" }
+```
+O `codigo` (43 caracteres base64url, 32 bytes de `SecureRandom`) aparece **uma vez**; o banco guarda só o SHA-256. O dono entrega o link `/convite#<codigo>` por WhatsApp ou em pessoa (o código vai no fragmento, que nem o servidor nem a prévia de link recebem; abrir a página não consome). Vale 48 horas (`app.conta.convite.validade`). Emitir de novo revoga o pendente. Barbeiro que já tem acesso ativo: `409 USUARIO_JA_VINCULADO`. `DELETE` revoga e é idempotente.
+
+`POST /auth/convite` (pública, 10 por hora por IP)
+```json
+{ "codigo": "q3tD7mYb2uVn0pLwXc8sKfHrJ1aZgE5iO9vTyNdB4Mk", "email": "barbeiro.novo@exemplo.test", "senha": "Senha-de-teste-123" }
+```
+`204`. O barbeiro digita o **próprio e-mail** e a senha (10 a 72 bytes); a conta nasce só com o papel BARBEIRO e fica ligada ao cadastro dele, e ele entra pelo login de sempre. Ordem: forma do corpo (`400`, sem tocar no banco) → limite por IP (`429`) → busca pelo hash com o relógio (`422 CONVITE_INVALIDO`, **o mesmo corpo** para código inexistente, vencido, usado, revogado, e-mail de equipe ou de conta desativada, e conta que já existe sem estar logada). **Conta de cliente que já existe (H32):** a pessoa entra no site, abre o link e aceita com o token dela, **sem** `senha` (com `senha`: `400 CAMPO_DESCONHECIDO`); o convite soma o papel BARBEIRO e nunca define nem troca a senha. Cada falha com o código certo soma uma tentativa e a 5ª revoga o convite.
+
+**Desligar** é `PUT /admin/barbeiros/{id}` com `ativo: false`: tira o acesso e **mantém o histórico**, não apaga. O token antigo para de valer na hora, o convite pendente é revogado e o WhatsApp comercial some. Conta também de cliente (ou do dono) continua ativa; conta só de equipe é desativada e anonimizada (nome e e-mail viram lápide). Reativar sozinho não devolve o acesso: só um convite novo. `BarbeiroAdmin.acesso` (só leitura): `SEM_CONTA`, `CONVITE_PENDENTE` (com `conviteExpiraEm`), `ATIVO` ou `DESLIGADO`; o e-mail do barbeiro nunca volta.
+
 ### 4.10 Regras de negócio citadas
 
 As regras R1 a R34 ficam no [dossiê, seção 3](../contexto.md#3-regras-de-negócio), para não duplicar. Testes e PRs citam o número.
@@ -373,6 +394,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 422 | <a id="idempotencia_conflito"></a>`IDEMPOTENCIA_CONFLITO` | mesma chave com corpo diferente | Chave de idempotência já usada |
 | 422 | <a id="jornada_sobreposta"></a>`JORNADA_SOBREPOSTA` | intervalos da jornada se sobrepõem | Jornada inválida |
 | 422 | <a id="folga_com_reservas"></a>`FOLGA_COM_RESERVAS` | folga sobre reservas que ocupam horário | Existem reservas no período |
+| 422 | <a id="convite_invalido"></a>`CONVITE_INVALIDO` | `POST /auth/convite`: convite inexistente, vencido, usado, revogado, e-mail que não pode usá-lo ou conta que já existe sem login; **o mesmo corpo em todos os casos** (**novo na 1.8.0**) | Convite inválido |
 | 429 | <a id="limite_excedido"></a>`LIMITE_EXCEDIDO` | limite de tentativas (H14), com `Retry-After` | Muitas tentativas |
 | 503 | <a id="gateway_indisponivel"></a>`GATEWAY_INDISPONIVEL` | gateway fora ou lento | Pagamento indisponível no momento |
 | 503 | <a id="cep_indisponivel"></a>`CEP_INDISPONIVEL` | ViaCEP e BrasilAPI fora | Consulta de CEP indisponível |
@@ -395,6 +417,7 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.8.0 | 2026-11-23 | Fatia 10B (convite do barbeiro): `POST` e `DELETE /admin/barbeiros/{id}/convite` (só ADMIN), `POST /auth/convite` (pública, com limite por IP), código de erro `422 CONVITE_INVALIDO`, `BarbeiroAdmin.acesso` e `conviteExpiraEm` (só leitura); `DELETE /me` de cliente que também é barbeiro ativo responde `409 USUARIO_JA_VINCULADO`. Só acréscimos; os papéis, as rotas e as telas atuais continuam valendo | não (só acrescenta) |
 | 1.7.1 | 2026-11-20 | Só documentação: descrição de cada tag, servidor do beta publicado, exemplos **reais** (perfil `dev`) nas respostas do fluxo principal e nos erros `400`, `401`, `403`, `404`, `409`, `422` (o `404` com a mensagem de cada rota: serviço, reserva, cobrança; o `409 COBRANCA_EM_ANDAMENTO` com exemplo); a descrição do `201` do visitante diz que o BFF tira o `tokenGuest` do corpo (D150); `400` documentado em `POST /auth/logout`; lint do Redocly com 0 avisos (exceções justificadas em `.redocly.lint-ignore.yaml`) e rodando no CI | não (nenhuma rota, campo ou status de sucesso mudou) |
 | 1.7.0 (proposta) | 2026-11-18 | Fatia 7B (painel): rota nova `GET /admin/minha-jornada` (ADMIN ou BARBEIRO), a jornada do barbeiro da própria conta, para a agenda do BARBEIRO listrar o almoço (D142). Nenhum campo ou rota existente mudou | não (só acrescenta) |
 | 1.6.0 (proposta) | 2026-11-18 | Fatia 6D: prazo de pagamento de 3 minutos (descrições e `expiracaoPagamentoMin` de 3 a 60); `whatsapp` em `GET /barbeiros` e em `POST` e `PUT /admin/barbeiros`; rota nova `POST /admin/agendamentos` (reserva manual) e schema `ReservaManualRequest`; `origem = MANUAL` e `observacao` em `AgendamentoAdmin`; política de privacidade e texto do consentimento na versão `1.1` | não (campos novos; o front que fixa a versão do texto em `1.0` passa a receber `400` no consentimento e deve ler a versão de `GET /politica-privacidade`) |

@@ -11,9 +11,9 @@ import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
 /** Itens do menu (Fatia 12, A2): as seções da home na ordem em que o cliente decide e "Onde estamos", que aponta para o rodapé
- * (em todas as páginas). "Como funciona" virou faixa do herói; "Serviços" leva ao bloco da home, que tem o link "Ver todos". */
+ * (em todas as páginas). "Como funciona" virou faixa do herói; "Serviços" abre a página /servicos (decisão do Kevin); a home tem o link "Ver todos". */
 export const SECOES_DA_HOME: { href: string; texto: string }[] = [
-  { href: "/#servicos", texto: "Serviços" },
+  { href: "/servicos", texto: "Serviços" }, // página com a lista completa e os preços (decisão do Kevin, 23/11, opção B)
   { href: "/#barbeiro", texto: "Barbeiro" },
   { href: "/#galeria", texto: "Galeria" },
   { href: "/#trajetoria", texto: "Trajetória" },

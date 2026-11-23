@@ -54,4 +54,21 @@ describe("home: de onde vêm nossos clientes (Fatia 12, E10)", () => {
     expect(comDados).not.toHaveTextContent("Em breve");
     expect(comDados.textContent).not.toMatch(/\d/);
   });
+
+  test("A17: regiões vazias, 429 ou rede fora: sem número, sem erro de página inteira, e a história e os serviços continuam (desde a Fatia 12 o bloco aparece com o estado vazio, A15)", async () => {
+    for (const [nome, resposta] of Object.entries(respostas)) {
+      servidor.use(
+        http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)),
+        http.get(`${BFF}/alcance`, resposta),
+      );
+      renderizar(<Home />);
+      expect(await screen.findByText("Corte Clássico / Social"), nome).toBeInTheDocument();
+      await screen.findByText(/Em breve/);
+      expect(screen.queryByText(/0 cidades/), nome).toBeNull();
+      expect(screen.queryByRole("alert"), nome).toBeNull();
+      expect(screen.getByRole("heading", { level: 1 }), nome).toBeInTheDocument();
+      expect(screen.getAllByText(/Jardim Bonança, em Osasco/).length).toBeGreaterThan(0);
+      cleanup();
+    }
+  });
 });

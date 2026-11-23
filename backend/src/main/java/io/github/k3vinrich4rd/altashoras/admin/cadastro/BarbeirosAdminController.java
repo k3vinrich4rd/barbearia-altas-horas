@@ -29,10 +29,12 @@ class BarbeirosAdminController {
 
     private final CadastroDeBarbeiros barbeiros;
     private final CadastroDeFolgas folgas;
+    private final ConviteDeBarbeiro convites;
 
-    BarbeirosAdminController(CadastroDeBarbeiros barbeiros, CadastroDeFolgas folgas) {
+    BarbeirosAdminController(CadastroDeBarbeiros barbeiros, CadastroDeFolgas folgas, ConviteDeBarbeiro convites) {
         this.barbeiros = barbeiros;
         this.folgas = folgas;
+        this.convites = convites;
     }
 
     @GetMapping("/admin/barbeiros")
@@ -52,6 +54,20 @@ class BarbeirosAdminController {
     ResponseEntity<BarbeiroAdmin> alterar(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
             @PathVariable UUID id, @Valid @RequestBody BarbeiroAlteracaoRequest pedido) {
         return ResponseEntity.ok().cacheControl(SEM_CACHE).body(barbeiros.alterar(Ator.de(token, request), id, pedido));
+    }
+
+    /** O convite de uso único (Fatia 10B). Sem corpo: o barbeiro digita o próprio e-mail ao aceitar (D-1). */
+    @PostMapping("/admin/barbeiros/{id}/convite")
+    ResponseEntity<ConviteGerado> gerarConvite(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+            @PathVariable UUID id) {
+        return ResponseEntity.status(201).cacheControl(SEM_CACHE).body(convites.gerar(Ator.de(token, request), id));
+    }
+
+    @DeleteMapping("/admin/barbeiros/{id}/convite")
+    ResponseEntity<Void> revogarConvite(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+            @PathVariable UUID id) {
+        convites.revogar(Ator.de(token, request), id);
+        return ResponseEntity.noContent().cacheControl(SEM_CACHE).build();
     }
 
     @PutMapping("/admin/barbeiros/{id}/jornada")

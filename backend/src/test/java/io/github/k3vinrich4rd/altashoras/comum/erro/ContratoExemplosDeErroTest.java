@@ -101,4 +101,19 @@ class ContratoExemplosDeErroTest {
         Set<String> doCodigo = Arrays.stream(CodigoErro.values()).map(Enum::name).collect(Collectors.toSet());
         assertThat(Set.copyOf(doContrato)).isEqualTo(doCodigo);
     }
+
+    @Test
+    @DisplayName("A33: o contrato 1.8.0 declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
+    @SuppressWarnings("unchecked")
+    void contratoDoConvite() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(mapa(c, "info").get("version")).isEqualTo("1.8.0");
+        assertThat(mapa(c, "paths")).containsKeys("/auth/convite", "/admin/barbeiros/{id}/convite");
+        assertThat(mapa(mapa(c, "paths"), "/admin/barbeiros/{id}/convite")).containsKeys("post", "delete");
+        assertThat((List<String>) mapa(mapa(mapa(c, "components"), "schemas"), "CodigoErro").get("enum")).contains("CONVITE_INVALIDO");
+        assertThat(exemplos(c)).anySatisfy(ex -> assertThat(ex.valor().get("code")).isEqualTo("CONVITE_INVALIDO"));
+        assertThat(CodigoErro.CONVITE_INVALIDO.status()).isEqualTo(422);
+        assertThat(mapa(mapa(mapa(mapa(c, "components"), "schemas"), "BarbeiroAdmin").get("allOf") instanceof List<?> l ? (Map<String, Object>) l.get(1) : Map.of(), "properties"))
+                .containsKeys("acesso", "conviteExpiraEm");
+    }
 }

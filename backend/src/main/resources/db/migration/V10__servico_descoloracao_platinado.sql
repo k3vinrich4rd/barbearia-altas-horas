@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migração Flyway V10 · serviço "Descoloração / Platinado (química)" (Fatia 12, E5 e D156)
+-- Migração Flyway V10 · serviço "Descoloração / Platinado (química)" (Fatia 12, E5 e D159)
 --
 -- Por quê: quem quer descoloração ou platinado não achava o serviço no catálogo, e o
 -- Eduardo posta esse trabalho no Instagram. O preço (R$ 80,00) foi definido pelo Kevin em

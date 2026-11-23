@@ -123,6 +123,20 @@ public class Usuario {
         this.anonimizadoEm = agora;
     }
 
+    /** Soma um papel à conta (o aceite do convite, H32): sobe a versão da credencial. */
+    public void somarPapel(String papel) {
+        if (papeis.add(papel)) {
+            this.versaoCredencial++;
+        }
+    }
+
+    /** Tira um papel da conta (o desligamento, H31): sobe a versão da credencial. */
+    public void tirarPapel(String papel) {
+        if (papeis.remove(papel)) {
+            this.versaoCredencial++;
+        }
+    }
+
     public UUID getId() {
         return id;
     }
