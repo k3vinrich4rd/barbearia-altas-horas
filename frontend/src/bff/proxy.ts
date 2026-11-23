@@ -12,7 +12,7 @@ import {
   type Tokens,
 } from "./cookies";
 import { resolver, type DepsBff, type DepsResolvidas } from "./config";
-import { exigeOrigem, origemPermitida } from "./origem";
+import { exigeOrigem, ipDoCliente, origemPermitida } from "./origem";
 import { apiIndisponivel, naoEncontrado, origemNegada, problema } from "./problema";
 
 interface Padrao {
@@ -157,6 +157,9 @@ export async function chamarComSessao(
   if (tipo) base.set("content-type", tipo);
   const chave = request.headers.get("x-idempotency-key");
   if (chave) base.set("x-idempotency-key", chave);
+  // o IP real do cliente, para o limite por IP e a auditoria da API não virarem o IP do BFF (D156)
+  const ip = ipDoCliente(request);
+  if (ip) base.set("x-forwarded-for", ip);
 
   let bearer: string | undefined;
   let guest: string | undefined;

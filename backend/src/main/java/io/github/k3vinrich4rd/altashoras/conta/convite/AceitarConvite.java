@@ -105,6 +105,8 @@ public class AceitarConvite {
         UUID usuarioId;
         if (existente.isPresent()) {
             Usuario conta = existente.get();
+            // Mesmo custo do ramo "e-mail novo" (que gera o BCrypt da senha): o tempo da resposta não diz se o e-mail tem conta.
+            codificador.encode(UUID.randomUUID().toString());
             boolean ehEquipe = conta.getPapeis().contains(Usuario.BARBEIRO) || conta.getPapeis().contains(Usuario.ADMIN);
             boolean logadaNela = conta.getId().equals(contaLogada);
             if (!conta.isAtivo() || ehEquipe || !logadaNela) {

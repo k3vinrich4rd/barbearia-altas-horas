@@ -2,7 +2,7 @@
 // Os tokens só passam por aqui: vão para cookies HttpOnly e nunca para o corpo devolvido ao navegador.
 import { COOKIE_ACESSO, COOKIE_REFRESH, cookiesApagados, cookiesDeSessao, lerCookies, type Tokens } from "./cookies";
 import { resolver, type DepsBff, type DepsResolvidas } from "./config";
-import { origemPermitida } from "./origem";
+import { ipDoCliente, origemPermitida } from "./origem";
 import { apiIndisponivel, origemNegada, problema } from "./problema";
 import { chamarComSessao } from "./proxy";
 
@@ -40,10 +40,16 @@ async function lerCorpo(request: Request): Promise<{ texto: string; json: Record
   }
 }
 
-async function chamarLogin(deps: DepsResolvidas, texto: string): Promise<Response> {
+/** Cabeçalhos das chamadas próprias do BFF: leva o IP real do cliente (D156) para o limite por IP da API. */
+function cabecalhosDaApi(request: Request, extra: Record<string, string> = {}): Record<string, string> {
+  const ip = ipDoCliente(request);
+  return { accept: "application/json", ...extra, ...(ip ? { "x-forwarded-for": ip } : {}) };
+}
+
+async function chamarLogin(deps: DepsResolvidas, request: Request, texto: string): Promise<Response> {
   return deps.fetch(`${deps.apiUrl}/auth/login`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
+    headers: cabecalhosDaApi(request, { "content-type": "application/json" }),
     body: texto,
     signal: AbortSignal.timeout(deps.tempoLimiteMs),
   });
@@ -60,7 +66,7 @@ export async function login(request: Request, depsEntrada?: DepsBff): Promise<Re
   const corpo = await lerCorpo(request);
   if (!corpo) return problema(400, "JSON_MALFORMADO", "JSON malformado");
   try {
-    const r = await chamarLogin(deps, corpo.texto);
+    const r = await chamarLogin(deps, request, corpo.texto);
     if (!r.ok) return passarErro(r);
     return respostaDeSessao((await r.json()) as Tokens);
   } catch {
@@ -77,13 +83,13 @@ export async function cadastro(request: Request, depsEntrada?: DepsBff): Promise
   try {
     const r = await deps.fetch(`${deps.apiUrl}/auth/cadastro`, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
+      headers: cabecalhosDaApi(request, { "content-type": "application/json" }),
       body: corpo.texto,
       signal: AbortSignal.timeout(deps.tempoLimiteMs),
     });
     if (r.status !== 201) return passarErro(r);
     try {
-      const l = await chamarLogin(deps, JSON.stringify({ email: corpo.json.email, senha: corpo.json.senha }));
+      const l = await chamarLogin(deps, request, JSON.stringify({ email: corpo.json.email, senha: corpo.json.senha }));
       if (l.ok) return respostaDeSessao((await l.json()) as Tokens, 201, { sessao: true });
     } catch {
       // só o login falhou: a conta existe, a tela manda para /entrar

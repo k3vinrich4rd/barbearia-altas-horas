@@ -28,6 +28,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
  */
 class ConviteSegurancaIT extends ConviteBase {
 
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    org.springframework.security.crypto.password.PasswordEncoder codificador;
+
     private static final String SEM_TRACE = "\"traceId\":\"[0-9a-f]+\",?";
 
     private String emailDe(Conta conta) {
@@ -195,5 +198,20 @@ class ConviteSegurancaIT extends ConviteBase {
         assertThat(get("/admin/barbeiros", dono).andReturn().getResponse().getContentAsString()).doesNotContain(email);
         assertThat(jdbc.queryForList("SELECT detalhe::text FROM auditoria_admin", String.class).toString()).doesNotContain(email);
         assertThat(corpoDoErro(aceitar(com.jayway.jsonpath.JsonPath.read(corpoA, "$.codigo"), email, SENHA))).doesNotContain(email);
+    }
+
+    @Test
+    @DisplayName("A16: o ramo 'e-mail já existente' paga o mesmo BCrypt do 'e-mail novo' (o tempo não diz se o e-mail tem conta)")
+    void mesmoCustoComEmailExistenteOuNovo() throws Exception {
+        String cliente = clienteCadastrado();
+        String codigo = gerarCodigo(dono(), barbeiroSemConta());
+        org.mockito.Mockito.clearInvocations(codificador);
+
+        corpoDoErro(aceitar(codigo, cliente, SENHA)); // existente, sem login: 422
+        org.mockito.Mockito.verify(codificador, org.mockito.Mockito.times(1)).encode(org.mockito.ArgumentMatchers.anyString());
+
+        org.mockito.Mockito.clearInvocations(codificador);
+        aceitar(codigo, emailDoBarbeiro(), SENHA).andExpect(status().isNoContent()); // novo: encode da senha
+        org.mockito.Mockito.verify(codificador, org.mockito.Mockito.times(1)).encode(org.mockito.ArgumentMatchers.anyString());
     }
 }

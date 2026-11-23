@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, test } from "vitest";
-import { apiFalsa, cookiesDe, json, problemaApi, requisicao } from "@/testes/bff";
+import { apiFalsa, cookiesDe, json, problemaApi, requisicao, tokensDeExemplo } from "@/testes/bff";
 import { encaminhar } from "./proxy";
-import { convite } from "./sessao";
+import { cadastro, convite, login } from "./sessao";
 
 const CODIGO = "q3tD7mYb2uVn0pLwXc8sKfHrJ1aZgE5iO9vTyNdB4Mk";
 const CORPO = { codigo: CODIGO, email: "barbeiro.novo@exemplo.test", senha: "senha-bem-longa-2026" };
@@ -64,5 +64,32 @@ describe("BFF do convite do barbeiro", () => {
     const generico = await encaminhar(requisicao("/api/auth/convite", { metodo: "POST", corpo: CORPO }), ["auth", "convite"], api.deps);
     expect(generico.status).toBe(404);
     expect(api.chamadas).toHaveLength(0);
+  });
+
+  test("A37: o BFF manda à API só o IP real do cliente (o primeiro do x-forwarded-for da Vercel, ou o x-real-ip) em X-Forwarded-For; valor que não é IP é ignorado", async () => {
+    const api = apiFalsa(() => json({}, 204));
+    await convite(
+      requisicao("/api/convite", { metodo: "POST", corpo: CORPO, headers: { "x-forwarded-for": "203.0.113.9, 10.1.1.1" } }),
+      api.deps,
+    );
+    await convite(requisicao("/api/convite", { metodo: "POST", corpo: CORPO, headers: { "x-real-ip": "198.51.100.4" } }), api.deps);
+    await convite(
+      requisicao("/api/convite", { metodo: "POST", corpo: CORPO, headers: { "x-forwarded-for": "<script>, 1.2.3.4" } }),
+      api.deps,
+    );
+    await convite(requisicao("/api/convite", { metodo: "POST", corpo: CORPO }), api.deps);
+
+    expect(api.chamadas.map((c) => c.headers.get("x-forwarded-for"))).toEqual(["203.0.113.9", "198.51.100.4", null, null]);
+  });
+
+  test("A37: login, cadastro e o proxy genérico também levam o IP real do cliente à API", async () => {
+    const api = apiFalsa((c) => (c.caminho === "/auth/login" ? json(tokensDeExemplo()) : json({}, 201)));
+    const ip = { "x-forwarded-for": "203.0.113.9" };
+    await login(requisicao("/api/auth/login", { metodo: "POST", corpo: { email: "a@exemplo.test", senha: "x" }, headers: ip }), api.deps);
+    await cadastro(requisicao("/api/auth/cadastro", { metodo: "POST", corpo: { email: "a@exemplo.test", senha: "x" }, headers: ip }), api.deps);
+    await encaminhar(requisicao("/api/servicos", { headers: ip }), ["servicos"], api.deps);
+
+    expect(api.chamadas.length).toBeGreaterThanOrEqual(3);
+    for (const chamada of api.chamadas) expect(chamada.headers.get("x-forwarded-for")).toBe("203.0.113.9");
   });
 });
