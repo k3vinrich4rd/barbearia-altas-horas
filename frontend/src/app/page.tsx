@@ -8,7 +8,6 @@ import {
   Duvidas,
   Galeria,
   Historia,
-  OndeEstamos,
   Premios,
   WhatsappDaHome,
 } from "@/componentes/SecoesDaHome";
@@ -60,7 +59,6 @@ export default function Home() {
       <Galeria />
       <Duvidas />
       <AlcanceDaHome />
-      <OndeEstamos />
     </>
   );
 }
