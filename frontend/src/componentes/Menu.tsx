@@ -10,10 +10,10 @@ import { useEffect, useRef, useState } from "react";
 import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
-/** Âncoras da home, na ordem do PDF. "Onde estamos" aponta para o rodapé, que está em todas as páginas. */
+/** Itens do menu, na ordem do PDF: âncoras da home, a página de serviços e "Onde estamos", que aponta para o rodapé (em todas as páginas). */
 export const SECOES_DA_HOME: { href: string; texto: string }[] = [
   { href: "/#historia", texto: "A história" },
-  { href: "/#servicos-titulo", texto: "Serviços" },
+  { href: "/servicos", texto: "Serviços" }, // página com a lista completa e os preços (decisão do Kevin, 23/11)
   { href: "/#como-funciona", texto: "Como funciona" },
   { href: "/#galeria", texto: "Galeria" },
   { href: "/#duvidas", texto: "Dúvidas" },
@@ -123,7 +123,11 @@ export function Menu() {
             <ul>
               {SECOES_DA_HOME.map((s) => (
                 <li key={s.href}>
-                  <Link href={s.href} onClick={fechar}>
+                  <Link
+                    href={s.href}
+                    onClick={fechar}
+                    aria-current={s.href.startsWith("/") && !s.href.includes("#") ? atual(s.href) : undefined}
+                  >
                     {s.texto}
                   </Link>
                 </li>
