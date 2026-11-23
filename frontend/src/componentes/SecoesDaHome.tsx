@@ -75,7 +75,7 @@ export function Historia() {
           </p>
           <blockquote>
             <p>“Amor na ponta da tesoura!”</p>
-            <footer>Eduardo Cândido, ao receber o Prêmio Barbeiros do Brasil</footer>
+            <footer>Eduardo Candido, ao receber o Prêmio Barbeiros do Brasil</footer>
           </blockquote>
         </div>
       </div>

@@ -102,7 +102,7 @@ paths:
               examples:
                 semWhatsapp:
                   summary: "Barbeiro sem WhatsApp cadastrado: o front esconde o botão"
-                  value: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": null}]
+                  value: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "whatsapp": null}]
   /disponibilidade:
     get:
       tags: [agenda]
@@ -127,7 +127,7 @@ paths:
               examples:
                 tercaLivre:
                   summary: "Terça livre (trecho: os 4 primeiros horários de início, a cada 30 min)"
-                  value: {"data": "2026-11-24", "fuso": "America/Sao_Paulo", "servicoId": "6f1c2a8e-0000-4000-8000-000000000001", "duracaoMin": 60, "barbeiros": [{"barbeiroId": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "horarios": ["2026-11-24T07:00:00-03:00", "2026-11-24T07:30:00-03:00", "2026-11-24T08:00:00-03:00", "2026-11-24T08:30:00-03:00"]}]}
+                  value: {"data": "2026-11-24", "fuso": "America/Sao_Paulo", "servicoId": "6f1c2a8e-0000-4000-8000-000000000001", "duracaoMin": 60, "barbeiros": [{"barbeiroId": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "horarios": ["2026-11-24T07:00:00-03:00", "2026-11-24T07:30:00-03:00", "2026-11-24T08:00:00-03:00", "2026-11-24T08:30:00-03:00"]}]}
         '400': { $ref: '#/components/responses/Erro400' }
         '404': { $ref: '#/components/responses/Erro404Servico' }
         '422': { $ref: '#/components/responses/Erro422' }
@@ -461,7 +461,7 @@ paths:
               examples:
                 reservaCriada:
                   summary: "Reserva criada: AGUARDANDO_PAGAMENTO, com o prazo em expiraEm (o token real aparece só aqui)"
-                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0, "tokenGuest": "g1_<token-mostrado-uma-única-vez>"}
+                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0, "tokenGuest": "g1_<token-mostrado-uma-única-vez>"}
         '400': { $ref: '#/components/responses/Erro400' }
         '404': { $ref: '#/components/responses/Erro404Servico' }
         '409': { $ref: '#/components/responses/Erro409Agendamento' }
@@ -483,10 +483,10 @@ paths:
               examples:
                 aguardando:
                   summary: "Antes de pagar"
-                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0}
+                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "AGUARDANDO_PAGAMENTO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": "2026-11-20T11:25:07-03:00", "motivoCancelamento": null, "version": 0}
                 confirmado:
                   summary: "Depois do pagamento: CONFIRMADO, sem prazo"
-                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "CONFIRMADO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": null, "motivoCancelamento": null, "version": 2}
+                  value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "CONFIRMADO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": null, "motivoCancelamento": null, "version": 2}
         '404': { $ref: '#/components/responses/Erro404' }
   /pagamentos/cobrancas:
     post:

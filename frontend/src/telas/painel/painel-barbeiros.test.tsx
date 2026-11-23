@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-const EDUARDO = barbeiroAdmin({ whatsapp: "11906941689", usuarioId: "u-eduardo", nomeExibicao: "Eduardo Cândido" });
+const EDUARDO = barbeiroAdmin({ whatsapp: "11996941689", usuarioId: "u-eduardo", nomeExibicao: "Eduardo Candido" });
 
 function lista(...barbeiros: unknown[]) {
   servidor.use(http.get(`${BFF}/admin/barbeiros`, () => HttpResponse.json(barbeiros)));
@@ -33,8 +33,8 @@ describe("barbeiros, jornada e folgas", () => {
     const { user } = renderizar(<CadastroDeBarbeiros />, ADMIN);
     const tabela = await screen.findByRole("table", { name: "Barbeiros" });
     const linhas = within(tabela).getAllByRole("row").slice(1);
-    expect(linhas[0]).toHaveTextContent("Eduardo Cândido");
-    expect(linhas[0]).toHaveTextContent("(11) 90694-1689");
+    expect(linhas[0]).toHaveTextContent("Eduardo Candido");
+    expect(linhas[0]).toHaveTextContent("(11) 99694-1689");
     expect(linhas[0]).toHaveTextContent("Vinculada");
     expect(linhas[0]).toHaveTextContent("Ativo");
     expect(linhas[0]).toHaveTextContent("almoço 12h às 13h");
@@ -67,7 +67,7 @@ describe("barbeiros, jornada e folgas", () => {
       }),
     );
     const { user } = renderizar(<CadastroDeBarbeiros />, ADMIN);
-    await user.click(await screen.findByRole("button", { name: "Jornada e folgas de Eduardo Cândido" }));
+    await user.click(await screen.findByRole("button", { name: "Jornada e folgas de Eduardo Candido" }));
 
     // terça a sábado carregadas; segunda e domingo sem expediente; almoço é a lacuna, não cadastro à parte
     const terca = screen.getByRole("group", { name: "Terça" });
@@ -119,7 +119,7 @@ describe("barbeiros, jornada e folgas", () => {
       }),
     );
     const { user } = renderizar(<CadastroDeBarbeiros />, ADMIN);
-    await user.click(await screen.findByRole("button", { name: "Jornada e folgas de Eduardo Cândido" }));
+    await user.click(await screen.findByRole("button", { name: "Jornada e folgas de Eduardo Candido" }));
     expect(await screen.findByText(/quarta, 25\/11 às 09:00 até quarta, 25\/11 às 12:00 · Médico/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Dia do início"), "2026-11-26");

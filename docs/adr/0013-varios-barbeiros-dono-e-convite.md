@@ -8,7 +8,7 @@
 
 ## Contexto
 
-O Kevin pediu que a barbearia tenha **vários barbeiros**. O Eduardo Cândido é o dono e administrador e cadastra os barbeiros novos pelo app. Cada barbeiro tem login e agenda próprios, separados da agenda do dono, e trava ali os horários combinados por fora (reserva manual). O cliente escolhe o barbeiro ao marcar.
+O Kevin pediu que a barbearia tenha **vários barbeiros**. O Eduardo Candido é o dono e administrador e cadastra os barbeiros novos pelo app. Cada barbeiro tem login e agenda próprios, separados da agenda do dono, e trava ali os horários combinados por fora (reserva manual). O cliente escolhe o barbeiro ao marcar.
 
 Boa parte disso **já existe** no código. O que segue foi lido na `develop`:
 
