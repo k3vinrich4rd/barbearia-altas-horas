@@ -1,6 +1,6 @@
 # Barbearia Altas Horas
 
-A identidade visual da **Barbearia Altas Horas**, de Eduardo Cândido, no Jardim Bonança, em Osasco, desde 1997. Este design system é a fonte da verdade visual da agenda online e do site (Next.js, Fatia 7 do projeto). Ele foi tirado do repositório [`k3vinrich4rd/barbearia-altas-horas`](https://github.com/k3vinrich4rd/barbearia-altas-horas) (`main@3f259ff`): os grafismos de `docs/assets/`, o logo, as fotos e o README. A barbearia real (fachada, adesivos no vidro, parede xadrez) serviu de referência.
+A identidade visual da **Barbearia Altas Horas**, de Eduardo Candido, no Jardim Bonança, em Osasco, desde 1997. Este design system é a fonte da verdade visual da agenda online e do site (Next.js, Fatia 7 do projeto). Ele foi tirado do repositório [`k3vinrich4rd/barbearia-altas-horas`](https://github.com/k3vinrich4rd/barbearia-altas-horas) (`main@3f259ff`): os grafismos de `docs/assets/`, o logo, as fotos e o README. A barbearia real (fachada, adesivos no vidro, parede xadrez) serviu de referência.
 
 > **Para quem vai implementar (pessoa ou IA):** leia este arquivo inteiro antes de escrever qualquer CSS. Use os tokens pelo nome (`var(--acao-fundo)`), nunca o valor solto. O que estiver marcado **PROPOSTA** ainda não está no código e pode mudar.
 
@@ -19,7 +19,7 @@ Preto e branco, xadrez e serifa: o adesivo redondo do vidro, a parede xadrez atr
 - **Grade e duração são coisas diferentes.** A **grade** da agenda é de 30 em 30 min: são os horários de início possíveis. A **duração** de todos os serviços é **60 min**, então cada atendimento ocupa **2 casas** da grade, e a terça tem **22 horários** de início. Escreva "horários a cada 30 min" para a grade e "60 min" para o serviço; nunca "serviço de 30 min".
 - **Nomes dos serviços** como estão no catálogo: Corte Clássico / Social, Corte Degradê / Fade / Navalhado, Corte Moderno / Visagismo (tesoura), Barba Completa / Desenhada, Acabamento (pezinho) / Sobrancelha, todos com 60 min. Preço sempre em `R$ 45,00` (com vírgula e espaço).
 - **Caixa alta** só em rótulos curtos (dias da semana, "AGENDA · ALTAS HORAS", botões). Títulos e frases vão em caixa normal.
-- **Português do Brasil**, com acentos ("Cândido", "Bonança", "degradê").
+- **Português do Brasil**, com acentos ("Clássico", "Bonança", "degradê").
 - **Emoji:** o README do GitHub usa emoji (✂️ 💳 🔒), mas **a interface não usa**. No site, os únicos símbolos são os do logo: ★ e ✂.
 
 ## Fundamentos visuais
@@ -176,7 +176,7 @@ Telas com o botão Play no canvas são interativas e mostram os estados: no chec
 A meta é **WCAG 2.2 nível AA** e a **ABNT NBR 17225**, a norma brasileira de acessibilidade web (março de 2025), que atende ao artigo 63 da Lei Brasileira de Inclusão. Na prática:
 
 - **Estrutura para leitor de tela.** Um link "Pular para o conteúdo" como primeiro item; regiões `header`, `nav`, `main` e `footer`; um `h1` por página e seções com `h2`. Botões são `<button>`, links são `<a>`, campos têm `<label>`. Símbolos decorativos (★ ✂, o xadrez) ficam com `aria-hidden`.
-- **Textos alternativos** descrevem a pessoa e a cena ("Eduardo Cândido, de terno escuro, segurando o troféu…"). Imagem só decorativa leva `alt=""`.
+- **Textos alternativos** descrevem a pessoa e a cena ("Eduardo Candido, de terno escuro, segurando o troféu…"). Imagem só decorativa leva `alt=""`.
 - **Links com sentido sozinhos.** Botões repetidos como "Agendar" levam `aria-label` com o serviço e o preço ("Agendar Corte Degradê, 60 minutos, R$ 55,00").
 - **Alvos de toque** com pelo menos 44×44px (o mínimo da 2.5.8 é 24px; aqui usamos o nível AAA).
 - **Painel de acessibilidade** no topo da página, sempre visível: diminuir e aumentar o texto (100% a 150%; os tamanhos são em `em`, então tudo cresce junto), tema claro, alto contraste e sem animação. Cada botão de alternar usa `aria-pressed`.

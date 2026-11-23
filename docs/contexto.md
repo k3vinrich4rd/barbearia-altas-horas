@@ -86,7 +86,7 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 | R18 | O cliente **não** cancela nem remarca: não há botão nem rota pública para isso. Antes de pagar, ele aceita (checkbox obrigatório, `aceitePolitica: true` + versão do texto, gravados na reserva) que não há cancelamento, remarcação ou estorno por desistência ou falta. Sem aceite: `422 ACEITE_POLITICA_OBRIGATORIO`. | P | `AceitePoliticaIT` (S12) |
 | R19 | Falta: o barbeiro marca `NAO_COMPARECEU` no painel e o valor pago fica retido pela barbearia (sem devolução). | P | `FechamentoAtendimentoIT` (S10) |
 | R20 | Transições válidas são só as da [máquina de estados](dominio/modelo-de-dominio.md#2-máquina-de-estados); qualquer outra dá `422 TRANSICAO_INVALIDA`. | P | `ReservaStatusTest` (S10) |
-| R21 | `CONCLUIDO` e `NAO_COMPARECEU` só a partir do início da reserva; quem marca é o ADMIN/BARBEIRO (hoje uma pessoa só, Carlos Eduardo Cândido). | P | `FechamentoAtendimentoIT` (S10) |
+| R21 | `CONCLUIDO` e `NAO_COMPARECEU` só a partir do início da reserva; quem marca é o ADMIN/BARBEIRO (hoje uma pessoa só, Carlos Eduardo Candido). | P | `FechamentoAtendimentoIT` (S10) |
 | R22 | Cancelamento **pela barbearia** (único cancelamento possível) exige motivo; o motivo e quem cancelou ficam registrados e a cobrança vai para `DEVOLUCAO_PENDENTE`. | P | `CancelamentoAdminIT` (S10) |
 | R23 | Quem não é dono de uma reserva recebe `404` ao acessá-la (não confirma que o id existe). | P | `ReservaBolaIT` (S08) |
 | R24 | E-mail é único por conta, sem diferença de maiúsculas. | P | `CadastroIT` (S04) |
@@ -110,7 +110,7 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | # | Pergunta | Valor provisório | Onde fica configurado |
 |---|---|---|---|
 | H1 | Dias e horário de funcionamento | **decidida (16/11)**: terça a sábado, 07h00 às 20h00; almoço 12h00 às 13h00 | `jornada` do barbeiro (painel) |
-| H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Cândido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
+| H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Candido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
 | H3 | Serviços, duração e preço | **decidida (16/11), duração revista em 18/11 (D94)**: todos os serviços duram **60 min** (2 slots) · Corte Clássico/Social R$ 45,00 · Corte Degradê/Fade/Navalhado R$ 55,00 · Corte Moderno/Visagismo (tesoura) R$ 60,00 · Barba Completa/Desenhada R$ 30,00 · Acabamento (pezinho)/Sobrancelha R$ 20,00 · sem combos | cadastro de serviços (painel) |
 | H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
 | H5 | Antecedência mínima para agendar | **decidida (16/11)**: 120 min | `configuracao_agenda.antecedencia_minima_min` |
@@ -131,6 +131,16 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | H20 | Quantas tentativas o job faz antes de mandar o evento para revisão manual no painel (M) | 5 tentativas | `app.pagamento.webhook.reprocessamento.max-tentativas` (variável de ambiente) |
 | H21 | Limite da consulta pública de CEP (a spec da Fatia 6 a chama de "H15", número que já era da validade das sessões) | **proposta (17/11, Fatia 6A)**: 30 consultas por minuto por IP; passou, `429` com `Retry-After`. É a primeira rota pública que gasta serviço de terceiros (ViaCEP e BrasilAPI) | `app.limites.cep-max` e `app.limites.cep-janela` |
 | H22 | Limite da exportação de dados do titular (a spec da Fatia 6 o chama de "H15") | **proposta (17/11, Fatia 6B)**: 5 exportações por hora por conta; passou, `429` com `Retry-After`. Conta as próprias solicitações gravadas (`solicitacao_titular`), sem memória | `app.limites.exportacao-max` e `app.limites.exportacao-janela` |
+| H24 | Cada barbeiro tem uma carteira de clientes (nome e contato) além da reserva manual? (a H23 é da [Fatia 9](sdd/fatia-9-assistente-de-duvidas.md)) | **decidido (Kevin, 20/11): não; reserva manual só na própria agenda** | — |
+| H25 | Validade do convite do barbeiro | **decidido (Kevin, 20/11): 48 horas** | `app.conta.convite.validade` |
+| H26 | O dono pode mandar o link do convite pelo WhatsApp dele? | **decidido (Kevin, 20/11): pode ir pelo WhatsApp, uso único, 48 h, revogável** | — |
+| H27 | O barbeiro edita a própria jornada e as próprias folgas? | **decidido (Kevin, 20/11): não; só o dono** | `SegurancaConfig` |
+| H28 | O barbeiro cancela uma reserva própria? | **decidido (Kevin, 20/11): não (D124)** | `PainelDaAgenda` |
+| H29 | O barbeiro vê preço e status do pagamento das próprias reservas? | **decidido (Kevin, 20/11): sim** | painel |
+| H30 | Limite de aceite de convite | **decidido (Kevin, 20/11): 10 por hora por IP** | `app.limites.convite-*` |
+| H31 | Reativar um barbeiro desligado | **decidido (Kevin, 20/11): exige convite novo** | — |
+| H32 | E-mail do barbeiro igual ao de uma conta de cliente | **decidido (Kevin, 20/11): pode; uma conta com CLIENTE + BARBEIRO, papel só no aceite logado, desligar tira só o papel (ADR 0013, 4.1)** | — |
+| H33 | Retenção da conta do barbeiro desligado | **revisada (20/11, ADR 0013, parecer jurídico)**: não segue a H13. Anonimizar no dia do desligamento, com "lápide" para a auditoria; `nome_exibicao` nas reservas por 5 anos depois da última reserva e depois pseudônimo; IP da auditoria 1 ano; backup 30 dias. Pendente de advogado: art. 10 da LGPD e tipo de vínculo (CLT ou Lei 13.352/2016) | — |
 
 ## 5. Requisitos não funcionais
 

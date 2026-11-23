@@ -9,15 +9,15 @@
 -- =============================================================================
 
 INSERT INTO barbeiro (id, nome_exibicao)
-VALUES ('b0000000-0000-4000-8000-000000000001', 'Carlos Eduardo Cândido')
+VALUES ('b0000000-0000-4000-8000-000000000001', 'Eduardo Candido')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO servico (id, nome, duracao_min, preco_centavos) VALUES
     ('6f1c2a8e-0000-4000-8000-000000000001', 'Corte Clássico / Social',             60, 4500),
     ('6f1c2a8e-0000-4000-8000-000000000002', 'Corte Degradê / Fade / Navalhado',    60, 5500),
-    ('6f1c2a8e-0000-4000-8000-000000000003', 'Corte Moderno / Visagismo (Tesoura)', 60, 6000),
+    ('6f1c2a8e-0000-4000-8000-000000000003', 'Corte Moderno / Visagismo (tesoura)', 60, 6000),
     ('6f1c2a8e-0000-4000-8000-000000000004', 'Barba Completa / Desenhada',          60, 3000),
-    ('6f1c2a8e-0000-4000-8000-000000000005', 'Acabamento (Pezinho) / Sobrancelha',  60, 2000)
+    ('6f1c2a8e-0000-4000-8000-000000000005', 'Acabamento (pezinho) / Sobrancelha',  60, 2000)
 ON CONFLICT (id) DO UPDATE
     SET duracao_min = EXCLUDED.duracao_min,
         version = servico.version + 1,

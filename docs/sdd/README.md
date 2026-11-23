@@ -54,8 +54,10 @@ flowchart LR
 | 6 · CEP e privacidade (LGPD) | [fatia-6-cep-e-privacidade.md](fatia-6-cep-e-privacidade.md) | ✅ aprovada (17/11) · **6A CEP (A1 a A22): pronta (revisada, fluxo manual B3 e B4)** · **6B privacidade (A23 a A61): implementada, aguardando revisão** · **6C alcance por região (A62 a A75): pronta, aguardando revisão** |
 | 6D · Prazo de 3 min, WhatsApp do barbeiro e reserva manual | [fatia-6d-whatsapp-e-reserva-manual.md](fatia-6d-whatsapp-e-reserva-manual.md) | ✅ aprovada pelo Kevin (18/11/2026) · implementada (28 critérios, A1 a A28) |
 | 7 · Telas em Next.js | [fatia-7-telas.md](fatia-7-telas.md) | ✅ aprovada (18/11) · **7A e 7B prontas, aguardando revisão** (62 critérios com teste: A1 a A62; acabamento visual V1 a V12 implementado; contrato 1.7.0 com `GET /admin/minha-jornada`) |
-| 8 · Deploy grátis | escrita antes de começar | ⏳ |
+| 8 · Deploy grátis | [fatia-8-deploy.md](fatia-8-deploy.md) | ✅ preparada e no ar em beta |
+| 8B · Deploy robusto e econômico | [fatia-8b-deploy-robusto.md](fatia-8b-deploy-robusto.md) | 📝 aguarda aprovação do Kevin (CI verde antes do deploy, subida mais rápida, health sem falso alarme, ping dentro das 750 h, rollback, backup) |
 | 9 · Assistente de dúvidas (RAG) | [fatia-9-assistente-de-duvidas.md](fatia-9-assistente-de-duvidas.md) | 📝 pós-beta, desligada por padrão |
+| Catálogo inicial (V8) | [fatia-catalogo-inicial.md](fatia-catalogo-inicial.md) | ✅ implementada (20/11/2026): 5 serviços, o barbeiro e a jornada no banco, A1 a A7 (D152) |
 
 ## A IA no processo
 

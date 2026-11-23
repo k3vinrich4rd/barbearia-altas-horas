@@ -2,7 +2,7 @@
 
 <img src="docs/assets/logo-altas-horas.png" width="200" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
 
-<img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Cândido, com horário garantido."/>
+<img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Candido, com horário garantido."/>
 
 [![Site no ar](https://img.shields.io/website?url=https%3A%2F%2Fbarbearia-altas-horas.vercel.app&label=site&up_message=no%20ar%20%C2%B7%20beta&down_message=fora%20do%20ar&style=flat-square&labelColor=FFFFFF&color=0A0A0A)](https://barbearia-altas-horas.vercel.app)
 [![Status](https://img.shields.io/badge/status-beta_no_ar_·_Fatias_1_a_8-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-roadmap-em-fatias)
@@ -34,9 +34,9 @@
 
 ### Quase três décadas de tradição, agora com agenda inteligente
 
-<img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
+<img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Candido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
 
-O caminho do **Eduardo Cândido**, meu pai, na barbearia começou em **1995**, com o primeiro mestre. Dois anos depois, em **1997**, ele abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então comanda a cadeira: quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Em 2017, esse trabalho foi reconhecido duas vezes, com o **Prêmio Barbeiros do Brasil**, que ele fez questão de trazer para Osasco, e o **Prêmio Master Barber · Êxito Profissional**. Instrutor formado pela Ibel Formação, hoje ele também ensina na **Altas Horas Barbearia Academy**, preparando a próxima geração de barbeiros.
+O caminho do **Eduardo Candido**, meu pai, na barbearia começou em **1995**, com o primeiro mestre. Dois anos depois, em **1997**, ele abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então comanda a cadeira: quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Em 2017, esse trabalho foi reconhecido duas vezes, com o **Prêmio Barbeiros do Brasil**, que ele fez questão de trazer para Osasco, e o **Prêmio Master Barber · Êxito Profissional**. Instrutor formado pela Ibel Formação, hoje ele também ensina na **Altas Horas Barbearia Academy**, preparando a próxima geração de barbeiros.
 
 Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no caderno e no WhatsApp. É aí que aparece um problema clássico da barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta mais. Para quem atende sozinho, cadeira vazia é tempo perdido e dinheiro que deixa de entrar.
 
@@ -137,11 +137,11 @@ O catálogo do beta publicado ainda está vazio, então estes prints são do mes
 <table>
 <tr>
 <td align="center" width="50%">
-<img src="docs/assets/premios/premio-barbeiros-do-brasil-2017.jpg" width="100%" alt="Eduardo Cândido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro"/>
+<img src="docs/assets/premios/premio-barbeiros-do-brasil-2017.jpg" width="100%" alt="Eduardo Candido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro"/>
 <br/><b>Prêmio Barbeiros do Brasil</b><br/><sub>2017 · trazido para Osasco</sub>
 </td>
 <td align="center" width="50%">
-<img src="docs/assets/premios/premio-master-barber-2017.jpg" width="100%" alt="Eduardo Cândido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber"/>
+<img src="docs/assets/premios/premio-master-barber-2017.jpg" width="100%" alt="Eduardo Candido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber"/>
 <br/><b>Prêmio Master Barber · Êxito Profissional</b><br/><sub>2017</sub>
 </td>
 </tr>
@@ -159,7 +159,7 @@ timeline
 ```
 
 <div align="center">
-<sub><i>"Amor na ponta da tesoura!"</i> · Eduardo Cândido, ao receber o Prêmio Barbeiros do Brasil</sub>
+<sub><i>"Amor na ponta da tesoura!"</i> · Eduardo Candido, ao receber o Prêmio Barbeiros do Brasil</sub>
 </div>
 
 ## 💈 A barbearia
@@ -210,7 +210,7 @@ curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-00
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="docs/assets/galeria/eduardo-em-atendimento.jpg" width="100%" alt="Eduardo Cândido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo"/><br/><sub>O Eduardo em atendimento</sub></td>
+<td align="center" width="33%"><img src="docs/assets/galeria/eduardo-em-atendimento.jpg" width="100%" alt="Eduardo Candido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo"/><br/><sub>O Eduardo em atendimento</sub></td>
 <td align="center" width="33%"><img src="docs/assets/galeria/corte-topete-parede-do-logo.jpg" width="100%" alt="Cliente de perfil com topete alto e degradê, em frente à parede xadrez preta e branca com o logo da barbearia"/><br/><sub>A parede xadrez do logo</sub></td>
 <td align="center" width="33%"><img src="docs/assets/galeria/corte-degrade-com-desenho.jpg" width="100%" alt="Cliente de costas com cabelo crespo em degradê, pontas descoloridas e um desenho feito na navalha na nuca"/><br/><sub>Degradê com desenho na navalha</sub></td>
 </tr>
@@ -616,7 +616,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 
 ## 🔭 E outros barbeiros?
 
-Hoje, não: o projeto é **a agenda do Eduardo Cândido na Altas Horas**, e todo o esforço vai para ela funcionar bem.
+Hoje, não: o projeto é **a agenda do Eduardo Candido na Altas Horas**, e todo o esforço vai para ela funcionar bem.
 
 O que fica pronto para o futuro, sem custo agora: o modelo já tem a entidade `Barbeiro` com jornada própria, a disponibilidade responde por barbeiro e preços e horários são dados do banco. Se um dia entrar outro profissional na cadeira ao lado, é cadastro, não reescrita.
 
@@ -628,7 +628,7 @@ O que fica pronto para o futuro, sem custo agora: o modelo já tem a entidade `B
 
 <img src="docs/assets/logo-altas-horas.png" width="96" alt="Logo da Barbearia Altas Horas"/>
 
-**Para o meu pai, Eduardo Cândido**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997** e ensina o ofício na **Altas Horas Barbearia Academy**.
+**Para o meu pai, Eduardo Candido**, que mantém a cadeira da **Barbearia Altas Horas** girando desde **1997** e ensina o ofício na **Altas Horas Barbearia Academy**.
 Este projeto é a minha forma de levar para o código o cuidado que ele coloca em cada corte.
 
 **★ 19 ✂ 97 ★**
