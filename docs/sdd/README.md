@@ -56,8 +56,8 @@ flowchart LR
 | 7 · Telas em Next.js | [fatia-7-telas.md](fatia-7-telas.md) | ✅ aprovada (18/11) · **7A e 7B prontas, aguardando revisão** (62 critérios com teste: A1 a A62; acabamento visual V1 a V12 implementado; contrato 1.7.0 com `GET /admin/minha-jornada`) |
 | 8 · Deploy grátis | escrita antes de começar | ⏳ |
 | 9 · Assistente de dúvidas (RAG) | [fatia-9-assistente-de-duvidas.md](fatia-9-assistente-de-duvidas.md) | 📝 pós-beta, desligada por padrão |
-| 10 · Convite e login do barbeiro terceiro (10A isolamento, 10B convite) | [fatia-10-convite-do-barbeiro.md](fatia-10-convite-do-barbeiro.md) | 📝 aguarda aprovação do Kevin (38 critérios, A1 a A38; contrato 1.8.0; ADR 0013) |
-| 11 · Alcance por estado, município e região (k = 5, consentimento sem CEP) | [fatia-11-alcance-por-nivel.md](fatia-11-alcance-por-nivel.md) | 📝 aguarda aprovação do Kevin (54 critérios, A1 a A54; contrato 1.9.0; ADR 0014; substitui a regra de "sem limite" de 19/11) |
+| 10 · Convite e login do barbeiro terceiro (10A isolamento, 10B convite) | [fatia-10-convite-do-barbeiro.md](fatia-10-convite-do-barbeiro.md) | ✅ aprovada (23/11) |
+| 11 · Alcance por estado, município e região (k = 5, consentimento sem CEP) | [fatia-11-alcance-por-nivel.md](fatia-11-alcance-por-nivel.md) | ✅ aprovada (23/11) |
 
 ## A IA no processo
 
