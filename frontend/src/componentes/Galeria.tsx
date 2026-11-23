@@ -8,6 +8,8 @@ import { GALERIA } from "@/conteudo/historia";
 import { Aviso } from "./Aviso";
 import { Dialogo } from "./Dialogo";
 
+// Distância da tela em que a miniatura começa a carregar: perto o bastante para a foto estar pronta ao rolar.
+const MARGEM_DE_CARGA = "200px";
 const TAMANHOS_DA_MINIATURA = "(min-width: 60rem) 18rem, 33vw";
 
 /** A foto do visualizador, com a mensagem de erro por forma e palavra se o arquivo não carregar. */
@@ -79,6 +81,64 @@ function Visualizador({
   );
 }
 
+/** A miniatura só monta a imagem quando chega perto da tela (A26: a home não baixa as 18 fotos de uma vez). Sem
+ * IntersectionObserver (testes, navegador muito antigo), monta na hora. O botão e o espaço (aspect-ratio) ficam sempre. */
+function Miniatura({
+  foto,
+  aoAbrir,
+  registrar,
+}: {
+  foto: (typeof GALERIA)[number];
+  aoAbrir: () => void;
+  registrar: (el: HTMLButtonElement | null) => void;
+}) {
+  const botao = useRef<HTMLButtonElement | null>(null);
+  const [perto, setPerto] = useState(false);
+  useEffect(() => {
+    const el = botao.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setPerto(true);
+      return;
+    }
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) {
+          setPerto(true);
+          observador.disconnect();
+        }
+      },
+      { rootMargin: MARGEM_DE_CARGA },
+    );
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, []);
+  return (
+    <button
+      ref={(el) => {
+        botao.current = el;
+        registrar(el);
+      }}
+      type="button"
+      className="galeria-miniatura"
+      aria-haspopup="dialog"
+      aria-label={`Ampliar foto: ${foto.legenda}`}
+      onClick={aoAbrir}
+    >
+      {perto && (
+        <Image
+          className="galeria-foto"
+          src={foto.src}
+          alt={foto.alt}
+          width={foto.largura}
+          height={foto.altura}
+          sizes={TAMANHOS_DA_MINIATURA}
+          loading="lazy"
+        />
+      )}
+    </button>
+  );
+}
+
 export function Galeria() {
   const [aberta, setAberta] = useState<number | null>(null);
   const ultima = useRef(0);
@@ -91,8 +151,10 @@ export function Galeria() {
   const mudar = abrir;
   // Fechou: o foco volta à miniatura da foto em que o visualizador estava (o Dialogo devolve à que abriu).
   const fechada = aberta === null;
+  const jaAbriu = useRef(false);
   useEffect(() => {
-    if (fechada) miniaturas.current[ultima.current]?.focus();
+    if (!fechada) jaAbriu.current = true;
+    else if (jaAbriu.current) miniaturas.current[ultima.current]?.focus(); // só ao fechar, nunca na carga da página
   }, [fechada]);
 
   return (
@@ -105,26 +167,13 @@ export function Galeria() {
       <ul className="galeria-grade">
         {GALERIA.map((f, i) => (
           <li key={f.src}>
-            <button
-              ref={(el) => {
+            <Miniatura
+              foto={f}
+              aoAbrir={() => abrir(i)}
+              registrar={(el) => {
                 miniaturas.current[i] = el;
               }}
-              type="button"
-              className="galeria-miniatura"
-              aria-haspopup="dialog"
-              aria-label={`Ampliar foto: ${f.legenda}`}
-              onClick={() => abrir(i)}
-            >
-              <Image
-                className="galeria-foto"
-                src={f.src}
-                alt={f.alt}
-                width={f.largura}
-                height={f.altura}
-                sizes={TAMANHOS_DA_MINIATURA}
-                loading="lazy"
-              />
-            </button>
+            />
           </li>
         ))}
       </ul>

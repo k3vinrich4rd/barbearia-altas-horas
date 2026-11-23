@@ -4,24 +4,36 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { api, chamar } from "@/api/cliente";
-import { DUVIDAS, HISTORIA, IMAGENS, MARCOS } from "@/conteudo/historia";
-import { type BarbeiroComWhatsapp, ContatoWhatsapp } from "./ContatoWhatsapp";
+import { DUVIDAS, HISTORIA, IMAGENS, MARCOS, PASSOS_DA_FAIXA } from "@/conteudo/historia";
+import { linkDoWhatsapp } from "./ContatoWhatsapp";
 import { Icone } from "./Icone";
 
-/** "Prefere combinar pelo WhatsApp?": o número é público e vem da API (6D). Sem número, o bloco some. */
-export function WhatsappDaHome() {
-  const [barbeiro, setBarbeiro] = useState<BarbeiroComWhatsapp | undefined>();
+/** "Falar no WhatsApp" do herói: o número é público e vem só de GET /barbeiros (6D). Sem número, o botão some. */
+export function WhatsappDoHeroi() {
+  const [numero, setNumero] = useState<string | undefined>();
   useEffect(() => {
     let vivo = true;
     chamar(api().GET("/barbeiros")).then(
-      (lista) => vivo && setBarbeiro(lista.find((b) => Boolean(b.whatsapp))),
+      (lista) => vivo && setNumero(lista.find((b) => Boolean(b.whatsapp))?.whatsapp ?? undefined),
       () => undefined,
     );
     return () => {
       vivo = false;
     };
   }, []);
-  return <ContatoWhatsapp barbeiro={barbeiro} />;
+  const link = numero ? linkDoWhatsapp(numero) : undefined;
+  if (!link) return null;
+  return (
+    <a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="botao botao-secundario"
+      aria-label="Falar no WhatsApp (abre o WhatsApp)"
+    >
+      <Icone nome="conversa" /> Falar no WhatsApp
+    </a>
+  );
 }
 
 /** Links antigos para `/#historia` (já divulgados) levam à Trajetória (E1): troca o hash e rola até o bloco. */
@@ -143,36 +155,18 @@ export function Trajetoria() {
   );
 }
 
-export function ComoFunciona() {
-  const passos = [
-    ["01", "Escolha", "O serviço e um horário livre, em até 30 dias, com pelo menos 2 horas de antecedência."],
-    [
-      "02",
-      "Pague",
-      "Por Pix ou cartão, no prazo que o contador mostra. Enquanto isso, o horário fica reservado só para você.",
-    ],
-    [
-      "03",
-      "Confirmado",
-      "O pagamento confirma o horário na agenda do Eduardo. Dois clientes nunca ficam com o mesmo horário.",
-    ],
-  ];
+/** Faixa "Como funciona" dentro do herói (D-11): três passos de uma linha. O prazo do pagamento NÃO tem número aqui:
+ * ele só aparece onde existe `expiraEm` (tela de pagamento), porque é configurável de 3 a 60 min (D121, A19). */
+export function FaixaComoFunciona() {
   return (
-    <section id="como-funciona" aria-labelledby="t-como" className="secao">
-      <p className="sobretitulo">Como funciona</p>
-      <h2 id="t-como">Três passos, e a cadeira é sua</h2>
-      <ol className="passos">
-        {passos.map(([n, titulo, texto]) => (
-          <li key={n} className="cartao">
-            <span aria-hidden="true" className="passo-numero">
-              {n}
-            </span>
-            <h3>{titulo}</h3>
-            <p>{texto}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <ol className="faixa-passos" aria-label="Como funciona">
+      {PASSOS_DA_FAIXA.map((p) => (
+        <li key={p.titulo}>
+          <strong>{p.titulo}</strong>
+          <span className="destaque">{p.texto}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

@@ -162,3 +162,37 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Barra fixa "Agendar horário" (Fatia 12, E8): só no celular, largura total, área segura do aparelho. O rodapé ganha o
+ * espaço da barra para ela nunca cobrir o último conteúdo; a barra é fixa, então não desloca o layout (CLS 0). */
+.barra-agendar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: var(--space-2) var(--space-4);
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
+  background: var(--fundo);
+  border-top: var(--traco-1) solid var(--borda);
+}
+
+.barra-agendar .botao {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  min-height: var(--space-12);
+}
+
+.rodape {
+  padding-bottom: calc(var(--space-16) + var(--space-4) + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 48rem) {
+  .barra-agendar {
+    display: none;
+  }
+
+  .rodape {
+    padding-bottom: var(--space-8);
+  }
+}
