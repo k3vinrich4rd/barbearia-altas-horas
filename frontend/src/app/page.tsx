@@ -3,14 +3,8 @@ import { Suspense } from "react";
 import { AvisoDaHome } from "@/componentes/AvisoDaHome";
 import { LinkBotao } from "@/componentes/Botao";
 import { AlcanceDaHome, ServicosDaHome } from "@/componentes/ListaDeServicos";
-import {
-  ComoFunciona,
-  Duvidas,
-  Galeria,
-  Historia,
-  Premios,
-  WhatsappDaHome,
-} from "@/componentes/SecoesDaHome";
+import { Galeria } from "@/componentes/Galeria";
+import { ComoFunciona, Duvidas, Trajetoria, WhatsappDaHome } from "@/componentes/SecoesDaHome";
 import { FATOS_DA_HOME, IMAGENS, SUBTITULO_DA_HOME, TITULO_DA_HOME } from "@/conteudo/historia";
 
 export default function Home() {
@@ -52,8 +46,7 @@ export default function Home() {
       <div className="divisor" aria-hidden="true">
         <span className="selo">19 ✂ 97</span>
       </div>
-      <Historia />
-      <Premios />
+      <Trajetoria />
       <ServicosDaHome />
       <ComoFunciona />
       <Galeria />

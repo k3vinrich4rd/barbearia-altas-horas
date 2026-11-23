@@ -1,9 +1,10 @@
 "use client";
-// Seções interativas da home (Main.dc.html): ouvir a história, linha do tempo, galeria e dúvidas. Tudo por teclado.
+// Seções interativas da home (Main.dc.html): Trajetória (ouvir, linha do tempo e prêmios), como funciona e dúvidas.
+// A galeria mora em Galeria.tsx. Tudo por teclado.
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { api, chamar } from "@/api/cliente";
-import { DUVIDAS, GALERIA, HISTORIA, IMAGENS, MARCOS } from "@/conteudo/historia";
+import { DUVIDAS, HISTORIA, IMAGENS, MARCOS } from "@/conteudo/historia";
 import { type BarbeiroComWhatsapp, ContatoWhatsapp } from "./ContatoWhatsapp";
 import { Icone } from "./Icone";
 
@@ -23,10 +24,25 @@ export function WhatsappDaHome() {
   return <ContatoWhatsapp barbeiro={barbeiro} />;
 }
 
-export function Historia() {
+/** Links antigos para `/#historia` (já divulgados) levam à Trajetória (E1): troca o hash e rola até o bloco. */
+function useRedirecionarHistoria() {
+  useEffect(() => {
+    function ir() {
+      if (window.location.hash !== "#historia") return;
+      window.history.replaceState(null, "", "#trajetoria");
+      document.getElementById("trajetoria")?.scrollIntoView();
+    }
+    ir();
+    window.addEventListener("hashchange", ir);
+    return () => window.removeEventListener("hashchange", ir);
+  }, []);
+}
+
+export function Trajetoria() {
   const [falando, setFalando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [marco, setMarco] = useState(1);
+  useRedirecionarHistoria();
 
   useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
@@ -50,24 +66,24 @@ export function Historia() {
     };
     voz.speak(fala);
     setFalando(true);
-    setAviso("Lendo a história em voz alta.");
+    setAviso("Lendo a trajetória em voz alta.");
   }
 
   return (
-    <section id="historia" aria-labelledby="t-historia" className="secao">
+    <section id="trajetoria" aria-labelledby="t-trajetoria" className="secao">
       <div className="duas-colunas">
         <figure className="retrato">
           <Image src={IMAGENS.retrato.src} alt={IMAGENS.retrato.alt} width={360} height={360} />
         </figure>
         <div>
-          <p className="sobretitulo">A história</p>
-          <h2 id="t-historia">Quase três décadas na mesma cadeira</h2>
+          <p className="sobretitulo">Trajetória</p>
+          <h2 id="t-trajetoria">Quase três décadas na mesma cadeira</h2>
           {HISTORIA.map((p) => (
             <p key={p}>{p}</p>
           ))}
           <p>
             <button type="button" className="botao botao-secundario" onClick={alternarVoz} aria-pressed={falando}>
-              <Icone nome="voz" /> {falando ? "Parar leitura" : "Ouvir a história"}
+              <Icone nome="voz" /> {falando ? "Parar leitura" : "Ouvir a trajetória"}
             </button>
           </p>
           <p role="status" className="nota">
@@ -101,15 +117,7 @@ export function Historia() {
         </strong>{" "}
         {MARCOS[marco].texto}
       </p>
-    </section>
-  );
-}
-
-export function Premios() {
-  return (
-    <section id="premios" aria-labelledby="t-premios" className="secao">
-      <p className="sobretitulo">Trajetória e prêmios</p>
-      <h2 id="t-premios">Reconhecido duas vezes em 2017</h2>
+      <h3>Reconhecido duas vezes em 2017</h3>
       <p>
         Vinte anos depois de abrir a barbearia, o trabalho do Eduardo foi premiado duas vezes no mesmo ano. Os troféus
         vieram para Osasco e hoje ficam na prateleira do salão, à vista de quem senta na cadeira.
@@ -164,58 +172,6 @@ export function ComoFunciona() {
           </li>
         ))}
       </ol>
-    </section>
-  );
-}
-
-export function Galeria() {
-  const [i, setI] = useState(0);
-  const atual = GALERIA[i];
-  return (
-    <section id="galeria" aria-labelledby="t-galeria" className="secao">
-      <p className="sobretitulo">Da cadeira</p>
-      <h2 id="t-galeria">Do social ao degradê navalhado</h2>
-      <figure className="foto-inteira galeria-grande">
-        <Image src={atual.src} alt={atual.alt} width={640} height={640} />
-        <figcaption aria-live="polite">
-          <strong>{atual.legenda}</strong>
-          <span className="destaque">
-            Foto {i + 1} de {GALERIA.length}
-          </span>
-        </figcaption>
-      </figure>
-      <div className="acoes">
-        <button
-          type="button"
-          className="botao botao-secundario"
-          aria-label="Foto anterior"
-          onClick={() => setI((i + GALERIA.length - 1) % GALERIA.length)}
-        >
-          Anterior
-        </button>
-        <button
-          type="button"
-          className="botao botao-secundario"
-          aria-label="Próxima foto"
-          onClick={() => setI((i + 1) % GALERIA.length)}
-        >
-          Próxima
-        </button>
-      </div>
-      <div role="group" aria-label="Miniaturas da galeria" className="miniaturas">
-        {GALERIA.map((f, n) => (
-          <button
-            key={f.src}
-            type="button"
-            aria-pressed={n === i}
-            aria-label={`Ver foto: ${f.legenda}`}
-            onClick={() => setI(n)}
-            className="miniatura"
-          >
-            <Image src={f.src} alt="" width={96} height={96} />
-          </button>
-        ))}
-      </div>
     </section>
   );
 }

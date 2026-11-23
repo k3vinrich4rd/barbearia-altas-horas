@@ -12,7 +12,7 @@ import { useSessao } from "./Sessao";
 
 /** Itens do menu, na ordem do PDF: âncoras da home, a página de serviços e "Onde estamos", que aponta para o rodapé (em todas as páginas). */
 export const SECOES_DA_HOME: { href: string; texto: string }[] = [
-  { href: "/#historia", texto: "A história" },
+  { href: "/#trajetoria", texto: "Trajetória" },
   { href: "/servicos", texto: "Serviços" }, // página com a lista completa e os preços (decisão do Kevin, 23/11)
   { href: "/#como-funciona", texto: "Como funciona" },
   { href: "/#galeria", texto: "Galeria" },

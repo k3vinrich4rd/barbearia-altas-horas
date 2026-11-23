@@ -829,8 +829,7 @@ blockquote footer {
   color: var(--texto-suave);
 }
 
-.linha-do-tempo,
-.miniaturas {
+.linha-do-tempo {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
@@ -860,23 +859,52 @@ blockquote footer {
   font-size: var(--tipo-subtitulo-tamanho);
 }
 
-.miniatura {
+/* Galeria (Fatia 12, E4): grade de miniaturas com a foto inteira (contain, sem corte) sobre o cinza do token */
+.galeria-grade {
+  list-style: none;
+  margin: var(--space-6) 0 0;
   padding: 0;
-  border: var(--traco-2) solid transparent;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.galeria-miniatura {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: var(--traco-1) solid var(--borda);
   border-radius: var(--radius-sm);
   background: var(--superficie);
   cursor: pointer;
+  overflow: hidden;
 }
 
-.miniatura[aria-pressed="true"] {
-  border-color: var(--texto);
+.galeria-miniatura:hover {
+  border-color: var(--borda-forte);
 }
 
-.miniatura img {
+.galeria-foto {
   display: block;
-  width: var(--space-16);
-  height: var(--space-16);
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+}
+
+.galeria-ampliada {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  background: var(--superficie);
+}
+
+.galeria-ampliada .galeria-foto {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--medida-lista-alta);
 }
 
 .duvida {
@@ -950,6 +978,7 @@ ul {
   place-items: center;
   padding: var(--space-4);
   background: var(--fundo);
+  overflow-y: auto;
   z-index: 20;
 }
 
@@ -1013,6 +1042,10 @@ caption {
 
 /* Telas largas: duas colunas onde o desenho pede */
 @media (min-width: 60rem) {
+  .galeria-grade {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .heroi {
     grid-template-columns: 1.2fr 1fr;
   }
