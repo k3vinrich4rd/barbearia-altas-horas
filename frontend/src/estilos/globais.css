@@ -750,14 +750,88 @@ dd {
   list-style: none;
   padding: 0;
   margin: var(--space-6) 0 0;
-  display: grid;
-  gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
 }
 
 .fatos li {
   display: grid;
   border-inline-start: var(--traco-3) solid var(--texto);
   padding-inline-start: var(--space-3);
+}
+
+/* Faixa "Como funciona" do herói (Fatia 12): três passos de uma linha, sob o herói */
+.faixa-passos {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+}
+
+.faixa-passos li {
+  display: grid;
+}
+
+/* Bloco do barbeiro */
+.grade-barbeiros {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-6);
+}
+
+.cartao-barbeiro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.cartao-barbeiro:hover {
+  transform: none;
+}
+
+.foto-barbeiro {
+  display: block;
+  width: var(--space-16);
+  height: var(--space-16);
+  flex: none;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: var(--fundo);
+}
+
+.cartao-barbeiro-texto {
+  flex: 1;
+  min-width: var(--medida-coluna-minima);
+}
+
+.cartao-barbeiro-texto h3 {
+  margin: 0;
+}
+
+/* Estado vazio do alcance: ícone e palavra, tracejado (a forma diz "ainda não há"), sem botão nem número */
+.estado-vazio {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: var(--traco-1) dashed var(--borda-forte);
+  border-radius: var(--radius-md);
+  max-width: var(--medida-leitura);
+}
+
+.estado-vazio p {
+  margin: 0 0 var(--space-2);
+}
+
+.estado-vazio p:last-child {
+  margin-bottom: 0;
 }
 
 .duas-colunas {
@@ -1041,6 +1115,12 @@ caption {
 }
 
 /* Telas largas: duas colunas onde o desenho pede */
+@media (min-width: 48rem) {
+  .faixa-passos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (min-width: 60rem) {
   .galeria-grade {
     grid-template-columns: repeat(4, 1fr);

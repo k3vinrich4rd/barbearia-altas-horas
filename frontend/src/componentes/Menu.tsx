@@ -10,12 +10,13 @@ import { useEffect, useRef, useState } from "react";
 import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
-/** Itens do menu, na ordem do PDF: âncoras da home, a página de serviços e "Onde estamos", que aponta para o rodapé (em todas as páginas). */
+/** Itens do menu (Fatia 12, A2): as seções da home na ordem em que o cliente decide e "Onde estamos", que aponta para o rodapé
+ * (em todas as páginas). "Como funciona" virou faixa do herói; "Serviços" leva ao bloco da home, que tem o link "Ver todos". */
 export const SECOES_DA_HOME: { href: string; texto: string }[] = [
-  { href: "/#trajetoria", texto: "Trajetória" },
-  { href: "/servicos", texto: "Serviços" }, // página com a lista completa e os preços (decisão do Kevin, 23/11)
-  { href: "/#como-funciona", texto: "Como funciona" },
+  { href: "/#servicos", texto: "Serviços" },
+  { href: "/#barbeiro", texto: "Barbeiro" },
   { href: "/#galeria", texto: "Galeria" },
+  { href: "/#trajetoria", texto: "Trajetória" },
   { href: "/#duvidas", texto: "Dúvidas" },
   { href: "#onde-estamos", texto: "Onde estamos" },
 ];

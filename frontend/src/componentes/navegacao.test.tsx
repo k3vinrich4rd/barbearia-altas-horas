@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { BFF, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { definirCaminho, zerarNavegacao } from "@/testes/navegacao";
 import { ANONIMO, CLIENTE, renderizar } from "@/testes/render";
+import { BarraAgendar } from "./BarraAgendar";
 import { Menu, SECOES_DA_HOME } from "./Menu";
 import { PainelDeAcessibilidade } from "./PainelDeAcessibilidade";
 import NaoEncontrada from "@/app/not-found";
@@ -20,19 +21,22 @@ beforeEach(() => {
 });
 
 describe("menu do site", () => {
-  test("tem as âncoras da home na ordem do PDF, os links da conta e um único Agendar horário", () => {
+  test("A2: tem as âncoras da home (Serviços, Barbeiro, Galeria, Trajetória, Dúvidas, Onde estamos), sem A história nem Como funciona, os links da conta e um único Agendar horário", () => {
     renderizar(<Menu />, ANONIMO);
     const principal = screen.getByRole("navigation", { name: "Principal" });
     const links = within(principal).getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual([
-      "Trajetória",
       "Serviços",
-      "Como funciona",
+      "Barbeiro",
       "Galeria",
+      "Trajetória",
       "Dúvidas",
       "Onde estamos",
     ]);
     expect(links.map((l) => l.getAttribute("href"))).toEqual(SECOES_DA_HOME.map((s) => s.href));
+    expect(links.find((l) => l.textContent === "Trajetória")).toHaveAttribute("href", "/#trajetoria");
+    expect(within(principal).queryByRole("link", { name: "A história" })).toBeNull();
+    expect(within(principal).queryByRole("link", { name: "Como funciona" })).toBeNull();
     const conta = screen.getByRole("navigation", { name: "Conta" });
     expect(within(conta).getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/entrar");
     expect(within(conta).getByRole("link", { name: "Consultar reserva" })).toHaveAttribute("href", "/reserva");
@@ -62,6 +66,32 @@ describe("menu do site", () => {
     renderizar(<Menu />, CLIENTE);
     expect(await screen.findByRole("link", { name: "Meus agendamentos" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("link", { name: "Entrar" })).toBeNull();
+  });
+});
+
+describe("barra fixa Agendar horário (Fatia 12, E8)", () => {
+  test("A6: não há barra fixa em /agendar, /agendar/dados, /entrar, /cadastro e /painel; na home e nas outras telas ela leva a /agendar", () => {
+    for (const caminho of [
+      "/agendar",
+      "/agendar/dados",
+      "/agendar/pagamento/r1",
+      "/entrar",
+      "/cadastro",
+      "/painel",
+      "/painel/agenda",
+    ]) {
+      definirCaminho(caminho);
+      const { container, unmount } = render(<BarraAgendar />);
+      expect(container.querySelector(".barra-agendar"), caminho).toBeNull();
+      unmount();
+    }
+    for (const caminho of ["/", "/servicos", "/reserva"]) {
+      definirCaminho(caminho);
+      const { container, unmount } = render(<BarraAgendar />);
+      expect(container.querySelector(".barra-agendar"), caminho).not.toBeNull();
+      expect(screen.getByRole("link", { name: "Agendar horário" }), caminho).toHaveAttribute("href", "/agendar");
+      unmount();
+    }
   });
 });
 
@@ -95,6 +125,20 @@ describe("rodapé", () => {
     expect(screen.getByText(/Agenda online feita por Kevin Richard, filho do Eduardo\./)).toBeInTheDocument();
     const whats = await screen.findByRole("link", { name: /\(11\) 90000-0000 \(abre o WhatsApp\)/ });
     expect(whats).toHaveAttribute("href", "https://wa.me/5511900000000");
+  });
+
+  test("A20: Onde estamos tem endereço, horário de terça a sábado e o link Abrir no mapa em nova aba, sem iframe", () => {
+    servidor.use(http.get(`${BFF}/barbeiros`, () => HttpResponse.json([])));
+    const { container } = render(<Rodape />);
+    const onde = screen.getByRole("region", { name: "Onde estamos" });
+    expect(onde).toHaveTextContent("R. São Judas Tadeu, 313");
+    expect(onde).toHaveTextContent("Osasco/SP");
+    expect(screen.getByRole("region", { name: "Horário de funcionamento" })).toHaveTextContent(/Terça a sábado/);
+    const mapa = within(onde).getByRole("link", { name: /Abrir no mapa/ });
+    expect(mapa).toHaveAttribute("target", "_blank");
+    expect(mapa).toHaveAttribute("rel", "noopener noreferrer");
+    expect(mapa.getAttribute("href")).toContain("google.com/maps");
+    expect(container.querySelector("iframe")).toBeNull();
   });
 
   test("sem número na API, a linha do WhatsApp some", async () => {

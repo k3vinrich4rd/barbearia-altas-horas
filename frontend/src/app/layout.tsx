@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import "@/estilos/tokens.css";
 import "@/estilos/globais.css";
 import "@/estilos/navegacao.css";
+import { BarraAgendar } from "@/componentes/BarraAgendar";
 import { FocoNoTitulo } from "@/componentes/FocoNoTitulo";
 import { Menu } from "@/componentes/Menu";
 import { PainelDeAcessibilidade } from "@/componentes/PainelDeAcessibilidade";
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main id="conteudo">{children}</main>
         </SessaoProvider>
         <Rodape />
+        <BarraAgendar />
       </body>
     </html>
   );

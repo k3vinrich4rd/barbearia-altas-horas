@@ -11,6 +11,13 @@ export const FATOS_DA_HOME: readonly { titulo: string; texto: string }[] = [
   { titulo: "2 prêmios", texto: "nacionais em 2017" },
 ];
 
+// Faixa "Como funciona" do herói (Fatia 12, D-11). Nenhum número de minutos: o prazo vem só do `expiraEm` (A19).
+export const PASSOS_DA_FAIXA: readonly { titulo: string; texto: string }[] = [
+  { titulo: "1 · Escolha", texto: "o serviço e um horário livre" },
+  { titulo: "2 · Pague", texto: "por Pix ou cartão, num prazo curto" },
+  { titulo: "3 · Confirmado", texto: "o horário fica garantido na agenda" },
+];
+
 export const HISTORIA: readonly string[] = [
   "O Eduardo Candido começou no ofício em 1995, com o primeiro mestre. Em 1997 abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e desde então atende de terça a sábado, do corte social clássico ao degradê navalhado.",
   "Na prateleira do salão, os troféus dividem espaço com fotos antigas. Para o Eduardo, cada um marca uma etapa do caminho, e cada dia na cadeira carrega um pouco da dedicação de quase 30 anos.",
@@ -208,6 +215,12 @@ export const IMAGENS = {
   retrato: {
     src: "/assets/eduardo-candido-avatar.png",
     alt: "Eduardo Candido, barbeiro e professor da Altas Horas, de camisa branca e gravata",
+  },
+  barbeiro: {
+    src: "/assets/eduardo-candido.jpg",
+    alt: "Eduardo Candido, de camisa branca e gravata preta, olhando para a câmera",
+    largura: 480,
+    altura: 480,
   },
   fachada: {
     src: "/assets/fachada.jpg",
