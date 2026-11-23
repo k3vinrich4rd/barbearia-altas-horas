@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin (rascunho do Alicerce, 23/11/2026) |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com a D-1 ajustada: o dono só gera o convite e o **barbeiro digita o próprio e-mail** e a senha ao aceitar; as demais dúvidas seguem a proposta |
 | **Origem** | pedido do Kevin em 23/11/2026, sobre o [ADR 0013](../adr/0013-varios-barbeiros-dono-e-convite.md) (aceito em 20/11) e a D151. Esta fatia reúne as 10A (política única de acesso) e 10B (convite e desligamento) do ADR, porque o isolamento entre barbeiros é o que torna o convite seguro |
 | **Entrega em duas PRs** (proposta) | **10A** · política única `AcessoAgenda` e testes de isolamento, sem contrato e sem migração (`feat/fatia-10a-acesso-a-agenda`) · **10B** · convite, aceite, desligamento e telas (`feat/fatia-10b-convite-do-barbeiro`). A 10B só começa com a 10A mergeada |
 | **Regras** | R23 (alheio = `404`), R24 (e-mail único), R26 (limite de tentativas), R30 (nada pessoal em log), R33 e R34 (reserva manual e WhatsApp do barbeiro); [H24 a H33](../contexto.md#4-hipóteses-em-aberto) (todas decididas); [D151](../planejamento/decisoes.md) |

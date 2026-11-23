@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin (rascunho do Alicerce, 23/11/2026) |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com as dúvidas D-1 a D-9 como propostas (a D-1 atualiza o ADR 0014 na implementação) |
 | **Origem** | pedido do Kevin em 23/11/2026, sobre o [ADR 0014](../adr/0014-alcance-k-anonimato-e-consentimento-do-cep.md) (aceito em 20/11). Implementa o ADR inteiro (consentimento sem guardar o CEP, contagem de pessoas, k = 5, subida de nível, supressão complementar e vitrine em faixas) e acrescenta o **painel por estado, município e região** para o Dono/Admin e para o barbeiro convidado |
 | **Substitui** | **a regra de "sem limite" de 19/11** (o painel do alcance contar qualquer quantidade de atendimentos, sem mínimo para aparecer). Ela **não está registrada** em `decisoes.md` nem em spec (procurei em `docs/` na `develop`); fica aqui revogada por escrito. Valem o k do ADR 0014, a D109 (k = 5 por bairro e por cidade) só como ponto de partida, e a D114 (grupo "Outros" abaixo de 5 nulo), **trocadas** pelas regras desta spec. O `percentual` e o `atendimentos` do painel atual (contagem de atendimentos) passam a contar **pessoas** |
 | **Entrega em quatro PRs** (proposta) | **11A** · consentimento e região sem CEP (`feat/fatia-11a-consentimento-regiao`) · **11B** · pessoas distintas, k e subida de nível, no backend (`feat/fatia-11b-k-e-niveis`) · **11C** · vitrine pública em faixas (`feat/fatia-11c-vitrine-em-faixas`) · **11D** · painel por nível e telas (`feat/fatia-11d-painel-por-nivel`) |
