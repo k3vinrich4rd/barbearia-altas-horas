@@ -56,7 +56,7 @@ export function Agendar() {
 
   return (
     <>
-      <p className="sobretitulo">Agenda · Eduardo Cândido</p>
+      <p className="sobretitulo">Agenda · Eduardo Candido</p>
       <h1>Agende seu horário</h1>
       {ocupado && <Aviso tipo="aviso">{mensagemDoErro({ code: "HORARIO_INDISPONIVEL", status: 409 })}</Aviso>}
 

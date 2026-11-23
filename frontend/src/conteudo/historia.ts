@@ -12,7 +12,7 @@ export const FATOS_DA_HOME: readonly { titulo: string; texto: string }[] = [
 ];
 
 export const HISTORIA: readonly string[] = [
-  "O Eduardo Cândido começou no ofício em 1995, com o primeiro mestre. Em 1997 abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e desde então atende de terça a sábado, do corte social clássico ao degradê navalhado.",
+  "O Eduardo Candido começou no ofício em 1995, com o primeiro mestre. Em 1997 abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e desde então atende de terça a sábado, do corte social clássico ao degradê navalhado.",
   "Na prateleira do salão, os troféus dividem espaço com fotos antigas. Para o Eduardo, cada um marca uma etapa do caminho, e cada dia na cadeira carrega um pouco da dedicação de quase 30 anos.",
   "Instrutor formado pela Ibel Formação, hoje ele também ensina na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e foi para a internet.",
 ];
@@ -72,7 +72,7 @@ export const GALERIA: readonly { src: string; legenda: string; alt: string }[] =
   {
     src: "/assets/galeria/eduardo-em-atendimento.jpg",
     legenda: "O Eduardo em atendimento",
-    alt: "Eduardo Cândido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo",
+    alt: "Eduardo Candido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo",
   },
   {
     src: "/assets/galeria/corte-topete-parede-do-logo.jpg",
@@ -98,7 +98,7 @@ export const IMAGENS = {
   },
   retrato: {
     src: "/assets/eduardo-candido-avatar.png",
-    alt: "Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata",
+    alt: "Eduardo Candido, barbeiro e professor da Altas Horas, de camisa branca e gravata",
   },
   fachada: {
     src: "/assets/fachada.jpg",
@@ -107,11 +107,11 @@ export const IMAGENS = {
   premios: [
     {
       src: "/assets/premios/premio-barbeiros-do-brasil-2017.jpg",
-      alt: "Eduardo Cândido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro",
+      alt: "Eduardo Candido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro",
     },
     {
       src: "/assets/premios/premio-master-barber-2017.jpg",
-      alt: "Eduardo Cândido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber",
+      alt: "Eduardo Candido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber",
     },
   ],
 } as const;
