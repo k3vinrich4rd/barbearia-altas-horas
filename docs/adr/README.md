@@ -15,3 +15,4 @@ Formato MADR (adr.github.io/madr). Um ADR aceito nunca é reescrito: um ADR novo
 | [0009](0009-lgpd-marketing-cpf-e-retencao.md) | LGPD: marketing por consentimento, CPF não persistido, retenção do guest | Kevin Richard | proposta |
 | [0010](0010-versoes-da-plataforma.md) | Versões: Java 25 LTS e Spring Boot 4.1.2 | Kevin Richard | proposta |
 | [0011](0011-hexagonal-seletivo-no-monolito-modular.md) | Hexagonal seletivo dentro do monólito modular | Kevin | aceito em 16/11/2026 |
+| [0013](0013-varios-barbeiros-dono-e-convite.md) | Vários barbeiros: Dono/Admin, isolamento por `barbeiroId` e convite de uso único | revisão de arquitetura | aceito |
