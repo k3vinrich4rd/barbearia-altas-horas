@@ -130,7 +130,7 @@ O catálogo do beta publicado ainda está vazio, então estes prints são do mes
   - **RAG da documentação: existe.** Está em `ferramentas/rag/` (Spring AI 2.0.2 + pgvector + embeddings locais, busca híbrida). Medido em 17/11/2026: só vetor acerta 10 de 17 perguntas; a híbrida, 15 de 17 ([detalhes](docs/ia/rag-vetorial.md)).
   - **SDD com um teste por critério:** nada entra sem spec, e o CI cobra um teste para cada critério ([como funciona](#-como-o-projeto-é-feito-sdd--ia)).
   - **Assistente de dúvidas para clientes: planejado** (Fatia 9). Vai nascer desligado por padrão, reaproveitando o RAG; a IA generativa só liga no ambiente publicado, por configuração. Não existe código disso ainda.
-- 🗺 **Status das fatias:** 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 7A e 7B (telas e painel) e 8 (deploy grátis) **no ar em beta**, com pagamento simulado ([site](https://barbearia-altas-horas.vercel.app)) · 7C (painel no canvas) em andamento · 9 (assistente) planejada. Lista completa no [roadmap](#-roadmap-em-fatias).
+- 🗺 **Status das fatias:** **10 (convite e login do barbeiro, com o dono como único que mexe na agenda de outro) implementada na branch `feat/fatia-10-convite-do-barbeiro`, aguardando a PR e o desenho das telas novas** · 1 a 6 (CEP, privacidade/LGPD e alcance por região) prontas · 7A e 7B (telas e painel) e 8 (deploy grátis) **no ar em beta**, com pagamento simulado ([site](https://barbearia-altas-horas.vercel.app)) · 7C (painel no canvas) em andamento · 9 (assistente) planejada. Lista completa no [roadmap](#-roadmap-em-fatias).
 
 ## 🏆 Trajetória e prêmios
 
