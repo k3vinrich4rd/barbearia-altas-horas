@@ -834,6 +834,94 @@ dd {
   margin-bottom: 0;
 }
 
+/* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
+.dias-tira {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.dia-chip {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  min-width: var(--space-16);
+  min-height: var(--space-12);
+  padding: var(--space-2) var(--space-3);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: var(--tipo-corpo-familia);
+  cursor: pointer;
+}
+
+.dia-chip[aria-pressed="true"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+}
+
+.dia-chip[data-livre="nao"] {
+  border-style: dashed;
+  color: var(--texto-apagado);
+}
+
+.dia-chip-nota {
+  font-size: var(--tipo-legenda-tamanho);
+}
+
+.chip-horario[aria-pressed="true"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+}
+
+.chip-indisponivel {
+  border-style: dashed;
+  color: var(--texto-apagado);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* Reserva de espaço no celular: o resumo é fixo na base da tela e a lista de serviços ocupa o lugar antes de chegar,
+ * para nada pular quando a API responde (CLS). A partir de 48rem o resumo volta a ser sticky e a reserva some. */
+.reserva-servicos {
+  min-height: calc(var(--space-16) * 7);
+}
+
+.resumo-fixo-espaco {
+  height: calc(var(--space-16) * 4);
+}
+
+.resumo-fixo {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 5;
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  border-top: var(--traco-2) solid var(--borda-forte);
+  background: var(--fundo);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.resumo-fixo dl {
+  gap: var(--space-1) var(--space-4);
+}
+
+.resumo-fixo .nota {
+  margin: 0;
+}
+
+.resumo-fixo .botao {
+  min-height: var(--space-12);
+  justify-content: center;
+}
+
 .duas-colunas {
   display: grid;
   gap: var(--space-8);
@@ -1116,6 +1204,19 @@ caption {
 
 /* Telas largas: duas colunas onde o desenho pede */
 @media (min-width: 48rem) {
+  .reserva-servicos {
+    min-height: 0;
+  }
+
+  .resumo-fixo-espaco {
+    display: none;
+  }
+
+  .resumo-fixo {
+    position: sticky;
+    inset-inline: auto;
+  }
+
   .faixa-passos {
     grid-template-columns: repeat(3, 1fr);
   }

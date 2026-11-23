@@ -55,6 +55,7 @@ export async function escolherHorario(page: Page, h: Horario) {
   await page.getByRole("radio").first().check();
   await page.locator("#data").fill(h.dia);
   await page.getByRole("button", { name: h.hora, exact: true }).first().click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click(); // o chip escolhe; o resumo fixo continua (Fatia 12C)
   await expect(page).toHaveURL(/\/agendar\/dados\?/);
 }
 

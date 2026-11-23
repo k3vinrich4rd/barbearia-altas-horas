@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { BARBEIRO, CINCO_SERVICOS } from "@/testes/dados";
 import { BFF, erro, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
-import { definirBusca, zerarNavegacao } from "@/testes/navegacao";
+import { definirBusca, roteador, zerarNavegacao } from "@/testes/navegacao";
 import { fixarRelogio, renderizar } from "@/testes/render";
 import { Agendar } from "./Agendar";
 
@@ -53,7 +53,7 @@ describe("horários", () => {
       ),
     );
     renderizar(<Agendar />);
-    const dia = await screen.findByLabelText("Dia");
+    const dia = await screen.findByLabelText(/Outro dia/);
     expect(dia).toHaveAttribute("min", "2026-11-18");
     expect(dia).toHaveAttribute("max", "2026-12-18");
 
@@ -87,8 +87,8 @@ describe("horários", () => {
 
     // dia sem horários
     fireEvent.change(dia, { target: { value: "2026-11-25" } });
-    expect(await screen.findByText(/Sem horário livre neste dia/)).toBeInTheDocument();
-    expect(screen.queryByRole("group")).toBeNull();
+    expect(await screen.findByText(/Sem horários neste dia/)).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /Horários de/ })).toBeNull();
   });
 
   test("A20: 422 FORA_DO_HORIZONTE mostra a mensagem junto do campo, leva o foco a ela e limpa os horários antigos", async () => {
@@ -102,7 +102,7 @@ describe("horários", () => {
       ),
     );
     renderizar(<Agendar />);
-    const dia = await screen.findByLabelText("Dia");
+    const dia = await screen.findByLabelText(/Outro dia/);
     fireEvent.change(dia, { target: { value: "2026-11-24" } });
     expect(await screen.findByRole("button", { name: "10:00" })).toBeInTheDocument();
 
@@ -112,5 +112,61 @@ describe("horários", () => {
     await waitFor(() => expect(alerta).toHaveFocus());
     expect(screen.queryByRole("button", { name: "10:00" })).toBeNull();
     expect(dia.parentElement).toContainElement(alerta);
+  });
+
+  test("A16: os horários do dia são chips (livres e escolhíveis) e o que falta na grade vira chip cinza com aria-disabled", async () => {
+    servidor.use(
+      http.get(`${BFF}/disponibilidade`, () =>
+        disponibilidade([
+          {
+            barbeiroId: BARBEIRO.id,
+            nomeExibicao: "Carlos Eduardo",
+            horarios: ["2026-11-24T10:00:00-03:00", "2026-11-24T10:30:00-03:00", "2026-11-24T11:30:00-03:00"],
+          },
+        ]),
+      ),
+    );
+    const { user } = renderizar(<Agendar />);
+    fireEvent.change(await screen.findByLabelText(/Outro dia/), { target: { value: "2026-11-24" } });
+
+    const livre = await screen.findByRole("button", { name: "10:00" });
+    expect(livre).not.toHaveAttribute("aria-disabled");
+    expect(livre).toHaveAttribute("aria-pressed", "false");
+    await user.click(livre);
+    expect(livre).toHaveAttribute("aria-pressed", "true");
+
+    const cinza = screen.getByRole("button", { name: /^11:00/ });
+    expect(cinza).toHaveAttribute("aria-disabled", "true");
+    expect(cinza).toHaveClass("chip-indisponivel");
+    await user.click(cinza);
+    expect(cinza).not.toHaveAttribute("aria-pressed", "true");
+    expect(roteador.push).not.toHaveBeenCalled();
+  });
+
+  test("A17: dia sem horário mostra 'Sem horários neste dia' e o botão leva ao próximo dia com horário", async () => {
+    servidor.use(
+      http.get(`${BFF}/disponibilidade`, ({ request }) => {
+        const data = new URL(request.url).searchParams.get("data");
+        return HttpResponse.json({
+          data,
+          fuso: "America/Sao_Paulo",
+          servicoId: CINCO_SERVICOS[1].id,
+          duracaoMin: 60,
+          barbeiros:
+            data === "2026-11-27"
+              ? [{ barbeiroId: BARBEIRO.id, nomeExibicao: "Carlos Eduardo", horarios: ["2026-11-27T09:00:00-03:00"] }]
+              : [],
+        });
+      }),
+    );
+    const { user } = renderizar(<Agendar />);
+    const dia = await screen.findByLabelText(/Outro dia/);
+    fireEvent.change(dia, { target: { value: "2026-11-25" } });
+    expect(await screen.findByText("Sem horários neste dia.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ver o próximo dia com horário" }));
+    expect(await screen.findByRole("button", { name: "09:00" })).toBeInTheDocument();
+    expect(dia).toHaveValue("2026-11-27");
+    expect(screen.queryByText("Sem horários neste dia.")).toBeNull();
   });
 });
