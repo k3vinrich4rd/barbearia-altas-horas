@@ -35,6 +35,7 @@ Ordem fixa de toda entrega: **regra → spec → OK do Kevin → contrato → te
 | 16/11/2026 | **Fatia 2** | spec com 15 decisões e 29 critérios, aprovada e implementada: catálogo, política e disponibilidade; hexagonal seletivo (ADR 0011); **69 testes** | [spec](sdd/fatia-2-catalogo-disponibilidade.md), [PR #6](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/6) |
 | 17/11/2026 | **RAG e release** | busca híbrida na documentação (Spring AI + pgvector), Copilot e Actions documentados; tudo mergeado na `main` | [RAG](ia/rag-vetorial.md), [PR #9](https://github.com/k3vinrich4rd/barbearia-altas-horas/pull/9) |
 | 17/11/2026 | **Fatia 3** | spec com 25 decisões e 44 critérios, aprovada e implementada: cadastro, login, refresh rotativo, troca de senha, admin inicial, limite de tentativas, negar por padrão e CSRF onde há cookie; **115 testes** | [spec](sdd/fatia-3-conta-e-acesso.md) |
+| 23/11/2026 | **Fatia 12** | site mais fluido: spec com 27 critérios e 12 dúvidas aprovada, implementada em 3 partes (12A galeria de 18 fotos, serviço de platinado na V10 e Trajetória; 12B home na nova ordem com barra fixa; 12C `/agendar` em chips com resumo fixo); Lighthouse móvel medido de verdade | [spec](sdd/fatia-12-site-fluido.md), [guia de testes 7.4](guia-testes.md) |
 | a seguir | Fatias 4 a 8 | uma spec por vez | [roadmap](../README.md#-roadmap-em-fatias) |
 
 ## 4. O que existe no código hoje (Fatia 1), arquivo por arquivo
