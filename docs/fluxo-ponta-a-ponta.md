@@ -275,6 +275,19 @@ Todas as rotas `/admin/**` exigem login e papel; o admin inicial precisa **troca
 | Alcance por região ✅ (6C) | `GET /admin/alcance?de&ate&barbeiroId` | `AlcanceController` (módulo `admin`) → `AlcanceDaAgenda.painel` (API pública da `agenda`: confere o escopo, o período de até 366 dias e o barbeiro) → `ConsultaAlcance` (uma consulta agrupa `CONFIRMADO` e `CONCLUIDO` por cidade, uf e bairro e agrega em memória). **K-anonimato (k ≥ 5):** bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades". O ADMIN vê tudo ou filtra por barbeiro; o BARBEIRO vê só os próprios (o `barbeiroId` da query é trocado pelo dele). Nunca em cache |
 | Vitrine pública do alcance ✅ (6C) | `GET /alcance` (sem token) | `AlcancePublicoController` (módulo `agenda`): limite de 30 por minuto por IP (`LimitadorDeTentativas`), cache Caffeine de 1 hora com `Ticker` injetável → `AlcanceDaAgenda.publico`: últimos 12 meses, **só nomes** das cidades e dos bairros que passam no k ≥ 5, sem contagens |
 
+### 4.1 Convite e acesso do barbeiro (Fatia 10)
+
+Quem pode o quê: só o **ADMIN** (Dono/Admin) adiciona um barbeiro, gera o convite, o desliga e mexe na agenda de outro (ver, reserva manual, fechar, cancelar); o barbeiro convidado só mexe na própria e recebe `404` igual na de outro.
+
+| Passo | Rota | Classes |
+|---|---|---|
+| Política de acesso | (toda rota de escopo do painel) | `AcessoAgenda` (módulo `agenda`, a única que liga conta e barbeiro): `alvo`, `alvoDoAlcance`, `exigirDonoDaReserva`, `proprio`; `PainelDaAgenda`, `AlcanceDaAgenda` e `CadastrosDoPainel` só perguntam a ela |
+| Gerar convite ✅ (10B) | `POST /admin/barbeiros/{id}/convite` (só ADMIN, sem corpo) | `BarbeirosAdminController` → `ConviteDeBarbeiro` → `Contas.emitirConvite` (código de 32 bytes, SHA-256 em `convite_conta`, 48 h) + `Auditor` na mesma transação |
+| Abrir o link | `/convite#<codigo>` (página, sem chamar a API) | `Convite.tsx`: lê o fragmento, tira da barra de endereço |
+| Aceitar ✅ (10B) | `POST /api/convite` (BFF) → `POST /auth/convite` | `convite()` no BFF (token da sessão só se houver) → `ConviteController` → `AceitarConvite` (limite por IP, `SELECT ... FOR UPDATE`, conta nova ou H32) → evento `ConviteAceito` → `VinculoDoConvite` (agenda liga `barbeiro.usuario_id`) e `AuditoriaDoConvite` (painel audita) |
+| Desligar ✅ (10B) | `PUT /admin/barbeiros/{id}` com `ativo: false` | `CadastroDeBarbeiros.alterar` → `Contas.revogarConvite` e `Contas.desligarContaDeEquipe` (tira o papel, anonimiza a conta só de equipe); `ContaEmUso` barra o token antigo; histórico mantido (D153) |
+| Retenção | job `RetencaoDeDados` | `RetencaoDeBarbeiroDesligado`: pseudônimo no `nome_exibicao` 5 anos depois da última reserva |
+
 ## 5. Por baixo: o que sustenta tudo
 
 **Eventos e outbox.** Os módulos conversam por API pública (`Reservas`, `PainelDaAgenda`, `CepApi`, `Contas`, `PendenciasDePagamento`) e por eventos (`ReservaExpirada`, `ReservaCancelada`). O Spring Modulith grava cada evento na tabela `event_publication` (migração `V3__eventos.sql`) **na mesma transação** da mudança; o listener (`@ApplicationModuleListener`) completa depois. Se a API cair no meio, o evento não se perde. As fronteiras são conferidas por `ModulithTest` (por exemplo, `agendaEPagamentoSoPelaApiPublica`: a agenda não depende do pagamento).
