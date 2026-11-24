@@ -126,7 +126,7 @@ describe("agenda do painel", () => {
 
     servidor.use(http.get(`${BFF}/admin/agenda`, () => HttpResponse.json([])));
     renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    expect(await screen.findByText("Sem agendamentos neste dia.")).toBeInTheDocument();
+    expect(await screen.findByText("Nenhum cliente marcado neste dia ainda.")).toBeInTheDocument();
     expect(within(document.body).queryByText(/Almoço/)).toBeNull();
   });
 });

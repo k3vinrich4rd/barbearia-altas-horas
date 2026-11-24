@@ -15,6 +15,7 @@ import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { useSessao } from "@/componentes/Sessao";
+import { TEXTOS } from "@/conteudo/textos";
 
 const CAMPOS = ["nome", "email", "whatsapp", "cep"] as const;
 
@@ -47,7 +48,7 @@ export function ReservaDados() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envio.erro]);
 
-  if (sessao.carregando) return <p role="status">Carregando…</p>;
+  if (sessao.carregando) return <p role="status">{TEXTOS.carregando}</p>;
   if (!servicoId || !barbeiroId || !inicio) {
     return (
       <>
@@ -157,9 +158,16 @@ export function ReservaDados() {
       {erro && !erro.acordando && <ErroDaReserva erro={erro} voltar={voltarParaEscolha()} />}
       {erro?.acordando && (
         <Aviso tipo="erro" focar>
-          Não sabemos se a reserva foi criada.{" "}
-          {sessao.autenticado ? "Confira em " : "Confira antes de tentar de novo. "}
-          {sessao.autenticado && <Link href="/meus-agendamentos">Meus agendamentos</Link>}
+          {sessao.autenticado ? (
+            <>
+              {TEXTOS.redeCaiuNaReserva.split("Meus agendamentos")[0]}
+              <Link href="/meus-agendamentos">Meus agendamentos</Link>
+              {TEXTOS.redeCaiuNaReserva.split("Meus agendamentos")[1]}
+            </>
+          ) : (
+            // o visitante não tem Meus agendamentos: confere pelo código que recebeu
+            `${TEXTOS.redeCaiuNaReserva.split(" Confira")[0]} Confira antes de tentar de novo.`
+          )}
         </Aviso>
       )}
       {erro && Object.keys(camposComErro).length > 0 && (

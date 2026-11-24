@@ -5,14 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { entrar } from "@/api/bff";
 import { useEnvio } from "@/api/hooks";
+import { MENSAGENS } from "@/api/mensagens";
 import { voltarSeguro } from "@/api/sessao-encerrada";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
+import { CampoSenha } from "@/componentes/CampoSenha";
 import { useSessao } from "@/componentes/Sessao";
 
 const AVISOS: Record<string, string> = {
-  sessao: "Sua sessão terminou. Entre de novo.",
+  sessao: MENSAGENS.REFRESH_INVALIDO,
   "conta-criada": "Conta criada. Entre para continuar.",
   "senha-trocada": "Senha trocada. Entre com a nova senha.",
   "convite-aceito": "Senha criada. Entre com seu e-mail e a nova senha.",
@@ -62,10 +64,9 @@ export function Entrar() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <Campo
+        <CampoSenha
           id="senha"
           rotulo="Senha"
-          type="password"
           autoComplete="current-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}

@@ -39,7 +39,7 @@ describe("checkout", () => {
 
     await user.type(screen.getByLabelText("CPF"), "111.111.111-11");
     await user.click(pagar);
-    expect(await screen.findByText(/CPF inválido/)).toBeInTheDocument();
+    expect(await screen.findByText(/Esse CPF não confere/)).toBeInTheDocument();
     expect(screen.getByLabelText("CPF")).toHaveAttribute("aria-invalid", "true");
     expect(corpo).toBeUndefined();
 
@@ -73,7 +73,7 @@ describe("checkout", () => {
     const pagar = screen.getByRole("button", { name: "Pagar" });
     await user.dblClick(pagar); // duplo clique: um envio só
     await waitFor(() => expect(chaves.length).toBeGreaterThanOrEqual(1));
-    expect(await screen.findByText(/servidor está acordando/i)).toBeInTheDocument();
+    expect(await screen.findByText(/A agenda está acordando. Toque em Pagar de novo/)).toBeInTheDocument();
     modo = "200"; // a repetição devolve 200 (sem cpfMascarado) e é tratada como sucesso
     await user.click(screen.getByRole("button", { name: "Pagar" }));
     expect(await screen.findByLabelText("Pix copia e cola")).toHaveValue("SIMULADO-0001-ABCDEF");

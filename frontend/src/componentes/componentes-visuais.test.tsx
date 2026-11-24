@@ -81,7 +81,7 @@ describe("V3 · contador do pagamento", () => {
     const { container } = render(<Cronometro expiraEm="2026-11-18T08:03:00-03:00" aoZerar={aoZerar} />);
     expect(screen.getByRole("timer", { name: "Tempo para pagar" })).toHaveTextContent("03:00");
     expect(container.querySelector("[aria-live=polite]")).toHaveTextContent("Faltam 3 minutos para pagar.");
-    expect(screen.queryByText("Falta menos de 1 minuto.")).toBeNull();
+    expect(screen.queryByText("Menos de 1 minuto para pagar.")).toBeNull();
 
     // 20 s depois: o relógio andou, mas o texto falado não mudou (sem anúncio por segundo)
     await passar(20);
@@ -94,7 +94,7 @@ describe("V3 · contador do pagamento", () => {
 
     // último minuto: barra listrada e texto
     await passar(70);
-    expect(screen.getByText("Falta menos de 1 minuto.")).toBeInTheDocument();
+    expect(screen.getByText("Menos de 1 minuto para pagar.")).toBeInTheDocument();
     expect(container.querySelector(".cronometro-barra")).toHaveAttribute("data-ultimo", "true");
 
     // 30 s e fim

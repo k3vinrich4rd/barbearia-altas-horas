@@ -18,6 +18,8 @@ import { Cronometro, descreverTempo } from "@/componentes/Cronometro";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { QrPix } from "@/componentes/QrPix";
 import { useSessao } from "@/componentes/Sessao";
+import { TEXTOS } from "@/conteudo/textos";
+import { MENSAGENS } from "@/api/mensagens";
 
 type Reserva = components["schemas"]["Agendamento"];
 type Cobranca = components["schemas"]["Cobranca"];
@@ -107,7 +109,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
       return;
     }
     if (!cpfValido(cpf)) {
-      setErroCpf("CPF inválido. Confira os números.");
+      setErroCpf(MENSAGENS.CPF_INVALIDO);
       document.getElementById("cpf")?.focus();
       return;
     }
@@ -142,7 +144,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
   useEffect(() => {
     const c = envio.erro?.code;
     if (c === "COBRANCA_EM_ANDAMENTO") setAcompanhando(true);
-    if (c === "CPF_INVALIDO") setErroCpf("CPF inválido. Confira os números.");
+    if (c === "CPF_INVALIDO") setErroCpf(MENSAGENS.CPF_INVALIDO);
     if (c === "ACEITE_POLITICA_OBRIGATORIO") aceiteRef.current?.focus();
   }, [envio.erro]);
 
@@ -257,7 +259,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
               {expirada ? (
                 <>
                   <Aviso tipo="aviso" focar>
-                    O tempo acabou e o horário voltou para a agenda. Nada foi cobrado.
+                    {TEXTOS.tempoAcabou}
                   </Aviso>
                   <LinkBotao href="/agendar" variante="principal">
                     Escolher outro horário
@@ -331,7 +333,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                         )}
                       {envio.erro?.acordando && (
                         <Aviso tipo="aviso">
-                          O servidor está acordando. Toque em Pagar de novo em instantes: o pagamento não será cobrado
+                          A agenda está acordando. Toque em Pagar de novo em instantes: o pagamento não será cobrado
                           duas vezes.
                         </Aviso>
                       )}
@@ -366,7 +368,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                           </a>
                         </p>
                       )}
-                      <p role="status">Aguardando a confirmação do pagamento…</p>
+                      <p role="status">{TEXTOS.esperandoPagamento}</p>
                       {mostrarSimular && (
                         <Botao onClick={simular}>
                           <Icone nome="visto" /> Simular pagamento

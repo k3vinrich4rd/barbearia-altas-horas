@@ -113,7 +113,7 @@ describe("reserva do visitante", () => {
       if (cep === "123") {
         const campo = await screen.findByRole("textbox", { name: "CEP" });
         await waitFor(() => expect(campo).toHaveAttribute("aria-invalid", "true"));
-        expect(campo).toHaveAccessibleDescription(/CEP inválido. Digite os 8 números./);
+        expect(campo).toHaveAccessibleDescription(/Esse CEP não confere. Digite os 8 números./);
       }
       unmount();
       roteador.push.mockClear();

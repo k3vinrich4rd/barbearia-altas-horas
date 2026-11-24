@@ -130,7 +130,7 @@ describe("acrescentar 1 minuto", () => {
     servir({ prorrogacao: janela(), resposta: () => erro(422, "RESERVA_EXPIRADA") });
     let tela = montar();
     await tela.user.click(await screen.findByRole("button", { name: "Acrescentar 1 minuto" }));
-    expect(await screen.findByText(/O tempo acabou e o horário voltou para a agenda/)).toBeInTheDocument();
+    expect(await screen.findByText(/O tempo para pagar acabou e o horário voltou para a agenda/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Escolher outro horário" })).toHaveAttribute("href", "/agendar");
     expect(botao()).toBeNull();
     tela.unmount();

@@ -13,7 +13,13 @@ ligarServidor();
 
 // Fatia 14A (D197): a agenda não tem antecedência mínima nem limite de dias à frente. Hoje é ter 01/12/2026.
 const VAZIA = (data: string) =>
-  HttpResponse.json({ data, fuso: "America/Sao_Paulo", servicoId: CINCO_SERVICOS[1].id, duracaoMin: 60, barbeiros: [] });
+  HttpResponse.json({
+    data,
+    fuso: "America/Sao_Paulo",
+    servicoId: CINCO_SERVICOS[1].id,
+    duracaoMin: 60,
+    barbeiros: [],
+  });
 
 beforeEach(() => {
   zerarNavegacao();
@@ -52,7 +58,7 @@ describe("agenda sem limites", () => {
 
     fireEvent.change(dia, { target: { value: "2028-01-05" } });
     await waitFor(() => expect(datas).toContain("2028-01-05"));
-    expect(await screen.findByText(/Sem horários neste dia/)).toBeInTheDocument();
+    expect(await screen.findByText(/Esse dia já está cheio/)).toBeInTheDocument();
 
     const pagina = document.body.textContent ?? "";
     expect(pagina).not.toMatch(/dias à frente/i);

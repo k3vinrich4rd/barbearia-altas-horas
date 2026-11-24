@@ -5,8 +5,11 @@ import type { Consulta } from "@/api/hooks";
 import { Aviso, AvisoDeErro } from "./Aviso";
 import { Botao } from "./Botao";
 
-export const TEXTO_ACORDANDO = "O servidor está acordando. Aguarde alguns segundos.";
-export const TEXTO_SEM_RESPOSTA = "O servidor não respondeu. Tente de novo em instantes.";
+import { TEXTO_ACORDANDO, TEXTO_SEM_RESPOSTA } from "@/api/mensagens";
+import { TEXTOS } from "@/conteudo/textos";
+
+// Ficam no catálogo de mensagens (Fatia 14B); reexportados para quem já importava daqui.
+export { TEXTO_ACORDANDO, TEXTO_SEM_RESPOSTA };
 
 export function EstadoDaConsulta<T>({
   consulta,
@@ -29,6 +32,6 @@ export function EstadoDaConsulta<T>({
     );
   }
   if (consulta.carregando || consulta.dados === undefined)
-    return esconderErro ? null : <p role="status">Carregando…</p>;
+    return esconderErro ? null : <p role="status">{TEXTOS.carregando}</p>;
   return <>{children(consulta.dados)}</>;
 }

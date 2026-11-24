@@ -60,7 +60,9 @@ describe("troca da senha inicial", () => {
     await user.type(screen.getByLabelText("Senha atual"), "senha-inicial-123");
     await user.type(screen.getByLabelText("Nova senha"), "uma-senha-nova-bem-longa");
     await user.click(screen.getByRole("button", { name: "Trocar senha" }));
-    expect(await screen.findByText("E-mail ou senha incorretos.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("E-mail ou senha não conferem. Confira e tente de novo; o botão Mostrar a senha ajuda."),
+    ).toBeInTheDocument();
     expect(corpos[0]).toEqual({ senhaAtual: "senha-inicial-123", novaSenha: "uma-senha-nova-bem-longa" });
 
     resposta = () => new HttpResponse(null, { status: 204 });

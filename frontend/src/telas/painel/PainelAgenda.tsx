@@ -23,6 +23,7 @@ import { Dialogo } from "@/componentes/Dialogo";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
 import { useSessao } from "@/componentes/Sessao";
+import { TEXTOS } from "@/conteudo/textos";
 import {
   almocosDoDia,
   emMinutos,
@@ -293,7 +294,7 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
           const porDia = (dia: string) => itens.filter((i) => diaNoFuso(new Date(i.inicio)) === dia);
           const comConteudo = dias.filter((d) => porDia(d).length > 0);
           if (comConteudo.length === 0)
-            return <p>{visao === "DIA" ? "Sem agendamentos neste dia." : "Sem agendamentos nesta semana."}</p>;
+            return <p>{visao === "DIA" ? TEXTOS.painelSemClientes : "Sem agendamentos nesta semana."}</p>;
           return (
             <>
               {(visao === "DIA" ? dias : comConteudo).map((dia) => (

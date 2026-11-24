@@ -44,7 +44,7 @@ describe("cadastro", () => {
     await enviar(r.user);
     const email = await screen.findByLabelText("E-mail");
     await waitFor(() => expect(email).toHaveAttribute("aria-invalid", "true"));
-    expect(email).toHaveAccessibleDescription(/Já existe uma conta com este e-mail/);
+    expect(email).toHaveAccessibleDescription(/Esse e-mail já tem conta aqui/);
     r.unmount();
 
     // errors[] nos campos
