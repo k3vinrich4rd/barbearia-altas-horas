@@ -39,7 +39,7 @@ async function reservar() {
 }
 
 describe("conflitos de reserva", () => {
-  test("A24: horário ocupado some da lista e a disponibilidade recarrega; conflito concorrente repete UMA vez; antecedência mostra a regra de 2 h", async () => {
+  test("A24: horário ocupado some da lista e a disponibilidade recarrega; conflito concorrente repete UMA vez; horário que já passou mostra o texto novo (D197)", async () => {
     // 1) HORARIO_INDISPONIVEL: volta à escolha com o horário marcado como ocupado
     servidor.use(http.post(`${BFF}/agendamentos/guest`, () => erro(409, "HORARIO_INDISPONIVEL")));
     const primeira = await reservar();
@@ -111,10 +111,10 @@ describe("conflitos de reserva", () => {
     expect(n).toBe(2);
     (await import("@testing-library/react")).cleanup();
 
-    // 3) antecedência insuficiente
+    // 3) o horário já passou (ANTECEDENCIA_INSUFICIENTE, sem antecedência mínima desde a 1.11.0)
     servidor.use(http.post(`${BFF}/agendamentos/guest`, () => erro(422, "ANTECEDENCIA_INSUFICIENTE")));
     await reservar();
-    expect(await screen.findByText(/pelo menos 2 horas de antecedência/)).toBeInTheDocument();
+    expect(await screen.findByText(/Esse horário já passou\. Escolha um horário mais para frente\./)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Escolher outro horário" })).toBeInTheDocument();
   });
 });

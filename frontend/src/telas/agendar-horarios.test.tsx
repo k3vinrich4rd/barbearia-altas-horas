@@ -38,7 +38,7 @@ const disponibilidade = (barbeiros: unknown[]) =>
   });
 
 describe("horários", () => {
-  test("A19: horários no fuso da barbearia, agrupados por barbeiro, com grupo nomeado; dia vazio avisa; seletor respeita os limites", async () => {
+  test("A19: horários no fuso da barbearia, agrupados por barbeiro, com grupo nomeado; dia vazio avisa; o seletor só tem o mínimo (hoje) e avisa o dia que já passou", async () => {
     expect(new Date("2026-11-24T10:00:00-03:00").getHours()).toBe(22); // prova de que o fuso do navegador é Tóquio
     servidor.use(
       http.get(`${BFF}/disponibilidade`, () =>
@@ -55,7 +55,7 @@ describe("horários", () => {
     renderizar(<Agendar />);
     const dia = await screen.findByLabelText(/Outro dia/);
     expect(dia).toHaveAttribute("min", "2026-11-18");
-    expect(dia).toHaveAttribute("max", "2026-12-18");
+    expect(dia).not.toHaveAttribute("max"); // D197: sem limite de dias à frente
 
     fireEvent.change(dia, { target: { value: "2026-11-24" } });
     const grupo = await screen.findByRole("group", { name: "Horários de Carlos Eduardo, terça 24/11" });
@@ -71,7 +71,7 @@ describe("horários", () => {
         .map((b) => b.textContent),
     ).toEqual(["10:30"]);
 
-    // fora do intervalo: avisa e não chama a API (handler só responde à data válida)
+    // antes de hoje: avisa e não chama a API; depois de hoje, qualquer data vale (D197)
     let chamadas = 0;
     servidor.use(
       http.get(`${BFF}/disponibilidade`, () => {
@@ -79,11 +79,12 @@ describe("horários", () => {
         return disponibilidade([]);
       }),
     );
-    fireEvent.change(dia, { target: { value: "2027-01-30" } });
-    expect(await screen.findByText(/Escolha um dia de hoje até/)).toBeInTheDocument();
     fireEvent.change(dia, { target: { value: "2026-11-10" } });
-    expect(screen.getByText(/Escolha um dia de hoje até/)).toBeInTheDocument();
+    expect(await screen.findByText(/Escolha um dia de hoje em diante/)).toBeInTheDocument();
     expect(chamadas).toBe(0);
+    fireEvent.change(dia, { target: { value: "2027-01-30" } });
+    await waitFor(() => expect(chamadas).toBe(1));
+    expect(screen.queryByText(/Escolha um dia de hoje/)).toBeNull();
 
     // dia sem horários
     fireEvent.change(dia, { target: { value: "2026-11-25" } });
@@ -91,7 +92,7 @@ describe("horários", () => {
     expect(screen.queryByRole("group", { name: /Horários de/ })).toBeNull();
   });
 
-  test("A20: 422 FORA_DO_HORIZONTE mostra a mensagem junto do campo, leva o foco a ela e limpa os horários antigos", async () => {
+  test("A20: 422 FORA_DO_HORIZONTE (deprecated, D197) mostra a mensagem junto do campo, leva o foco a ela e limpa os horários antigos", async () => {
     servidor.use(
       http.get(`${BFF}/disponibilidade`, ({ request }) =>
         new URL(request.url).searchParams.get("data") === "2026-12-10"
@@ -108,7 +109,7 @@ describe("horários", () => {
 
     fireEvent.change(dia, { target: { value: "2026-12-10" } });
     const alerta = await screen.findByRole("alert");
-    expect(alerta).toHaveTextContent("Só dá para agendar com até 30 dias de antecedência.");
+    expect(alerta).toHaveTextContent("Essa data não está disponível. Escolha outra em Outro dia.");
     await waitFor(() => expect(alerta).toHaveFocus());
     expect(screen.queryByRole("button", { name: "10:00" })).toBeNull();
     expect(dia.parentElement).toContainElement(alerta);
