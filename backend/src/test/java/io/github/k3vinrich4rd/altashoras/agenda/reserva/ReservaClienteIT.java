@@ -96,9 +96,9 @@ class ReservaClienteIT {
     }
 
     @Test
-    @DisplayName("A4: sem antecedência nem horizonte (D197): agora + 1h50 → 201 e 18/12 → 201; horário que já passou (hoje às 07:30) e ontem → 422 ANTECEDENCIA_INSUFICIENTE")
+    @DisplayName("A4: sem antecedência nem horizonte (D197): agora + 1h30 (09:30) → 201 e 18/12 → 201; horário que já passou (hoje às 07:30) e ontem → 422 ANTECEDENCIA_INSUFICIENTE")
     void soOQueJaPassouEhRecusado() throws Exception {
-        reservar(mvc, acesso, corpo(servico30, barbeiro, DadosDeTeste.em(LocalDate.of(2026, 11, 17), 9, 50)))
+        reservar(mvc, acesso, corpo(servico30, barbeiro, DadosDeTeste.em(LocalDate.of(2026, 11, 17), 9, 30)))
                 .andExpect(status().isCreated());
         reservar(mvc, acesso, corpo(servico30, barbeiro, DadosDeTeste.em(LocalDate.of(2026, 12, 18), 10, 0)))
                 .andExpect(status().isCreated());
