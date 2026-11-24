@@ -171,6 +171,25 @@ class ReservaManualIT extends PainelBase {
     }
 
     @Test
+    @DisplayName("A17b: 18:18 (dentro da jornada, mas fora da grade de 30 min) dá 422 FORA_DO_EXPEDIENTE dizendo a grade e a jornada do dia; 18:30 dá 201")
+    void horarioForaDaGradeExplicaOMotivo() throws Exception {
+        Massa m = massa();
+
+        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(18, 18), null, null))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("FORA_DO_EXPEDIENTE"))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("de 30 em 30 minutos")))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("07:00 às 12:00 e 13:00 às 20:00")));
+        // almoço: a mensagem também diz a jornada, sem falar de grade
+        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(12, 0), null, null))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("07:00 às 12:00 e 13:00 às 20:00")));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM reserva WHERE origem = 'MANUAL'", Long.class)).isZero();
+
+        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(18, 30), null, null)).andExpect(status().isCreated());
+    }
+
+    @Test
     @DisplayName("A18: a antecedência mínima de 2 h não vale para a reserva manual (10:30 com o relógio às 09:30 dá 201), mas vale para o cliente (a mesma hora dá 422 ANTECEDENCIA_INSUFICIENTE)")
     void semAntecedenciaMinima() throws Exception {
         Massa m = massa();
