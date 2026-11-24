@@ -3,7 +3,7 @@
 // Não existe campo de WhatsApp, e-mail nem CPF do cliente: a API não guarda (LGPD, R30).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, chamar } from "@/api/cliente";
 import type { ErroApi } from "@/api/erro";
 import { diaNoFuso } from "@/api/formato";
@@ -55,6 +55,16 @@ export function PainelReservaManual() {
   const [observacao, setObservacao] = useState("");
   const [faltando, setFaltando] = useState<Partial<Record<Campos, string>>>({});
   const envio = useEnvio();
+
+  // "Marcar aqui" da grade do dia (Fatia 14C): chega com barbeiro, dia e hora no endereço e já marca os três.
+  useEffect(() => {
+    const busca = new URLSearchParams(window.location.search);
+    const dia = busca.get("data");
+    const horario = busca.get("hora");
+    if (busca.get("barbeiroId")) setBarbeiroId(busca.get("barbeiroId") ?? "");
+    if (dia && /^\d{4}-\d{2}-\d{2}$/.test(dia)) setData(dia);
+    if (horario && /^\d{2}:\d{2}$/.test(horario)) setHora(horario);
+  }, []);
 
   const servicos = useConsulta(buscarServicos, []);
   // ADMIN escolhe entre os barbeiros; o BARBEIRO só enxerga o próprio (id e nome vêm de /admin/minha-jornada)

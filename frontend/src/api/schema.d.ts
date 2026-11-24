@@ -646,6 +646,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/agenda/mes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calendário do mês com a contagem de reservas por dia (1.11.0, 14C)
+         * @description Um item por dia do mês, em ordem (28 a 31). `reservas` conta CONFIRMADO, CONCLUIDO, NAO_COMPARECEU e
+         *     AGUARDANDO_PAGAMENTO ainda no prazo (inclusive a reserva manual); fora ficam EXPIRADO, CANCELADO e a aguardando
+         *     vencida (E14). O dia é o dia civil no fuso da barbearia, nunca o UTC. `folga` = alguma folga cobre parte do dia;
+         *     `expediente` = a jornada tem intervalo neste dia da semana. ADMIN vê todos os barbeiros ou o filtrado; BARBEIRO
+         *     vê só o próprio (o escopo vem do `sub` do token; `barbeiroId` só filtra o que o ADMIN pode ver). Barbeiro
+         *     inexistente, alheio ou conta BARBEIRO sem vínculo: `404` (R23). Uma consulta de reservas, uma de folgas e uma de
+         *     jornadas, qualquer que seja o número de barbeiros (E16). `Cache-Control: no-store`.
+         */
+        get: operations["agendaDoMes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/agenda/dia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Grade do dia por horário, com LIVRE, OCUPADO, ALMOCO e FOLGA (1.11.0, 14C)
+         * @description Uma coluna por barbeiro visível, na ordem do nome. `horarios` vai do primeiro início ao último fim da jornada do
+         *     barbeiro naquele dia da semana, de `granularidadeMin` em `granularidadeMin`; dia sem jornada: `horarios` vazio.
+         *     Prioridade da situação: OCUPADO > FOLGA > ALMOCO > LIVRE (E15). `agendamentos` traz as reservas que ocupam
+         *     (as mesmas do E14), inclusive uma fora da jornada. Mesmo escopo e mesmos erros de `/admin/agenda/mes`; `data`
+         *     fora do formato ISO ou inexistente (ex.: 2026-02-30) é `400`. `Cache-Control: no-store`.
+         */
+        get: operations["gradeDoDia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/agendamentos": {
         parameters: {
             query?: never;
@@ -1566,6 +1616,49 @@ export interface components {
                 whatsapp?: string | null;
             };
             cobrancaStatus?: components["schemas"]["StatusCobranca"] | null;
+        };
+        /** @description Calendário do mês do painel (1.11.0, 14C). Um item por dia, em ordem. */
+        ResumoDoMes: {
+            /** @example 2026-12 */
+            mes: string;
+            dias: {
+                /** Format: date */
+                data: string;
+                /** @description CONFIRMADO, CONCLUIDO, NAO_COMPARECEU e AGUARDANDO_PAGAMENTO ainda no prazo (E14) */
+                reservas: number;
+                /** @description alguma folga cobre parte do dia */
+                folga: boolean;
+                /** @description a jornada tem intervalo neste dia da semana */
+                expediente: boolean;
+            }[];
+        };
+        /** @description Grade do dia do painel (1.11.0, 14C). Uma coluna por barbeiro visível, na ordem do nome. */
+        GradeDoDia: {
+            /** Format: date */
+            data: string;
+            /** @example 30 */
+            granularidadeMin: number;
+            colunas: {
+                /** Format: uuid */
+                barbeiroId: string;
+                nomeExibicao: string;
+                /** @description do primeiro início ao último fim da jornada do dia, de granularidade em granularidade */
+                horarios: {
+                    /**
+                     * @description HH:mm no fuso da barbearia
+                     * @example 09:00
+                     */
+                    inicio: string;
+                    /** @enum {string} */
+                    situacao: "LIVRE" | "OCUPADO" | "ALMOCO" | "FOLGA";
+                    /**
+                     * Format: uuid
+                     * @description só em OCUPADO
+                     */
+                    agendamentoId?: string | null;
+                }[];
+                agendamentos: components["schemas"]["AgendamentoAdmin"][];
+            }[];
         };
         AgendamentoGuest: components["schemas"]["Agendamento"] & {
             /** @description mostrado uma única vez; o banco guarda só o hash. A API sempre devolve o campo; o BFF grava o token num cookie HttpOnly e o tira do corpo antes de responder ao navegador (D150) */
@@ -3021,6 +3114,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgendamentoAdmin"][];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+        };
+    };
+    agendaDoMes: {
+        parameters: {
+            query: {
+                mes: string;
+                barbeiroId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resumo do mês */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoDoMes"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+        };
+    };
+    gradeDoDia: {
+        parameters: {
+            query: {
+                data: string;
+                barbeiroId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Grade do dia */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeDoDia"];
                 };
             };
             400: components["responses"]["Erro400"];
