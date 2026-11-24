@@ -60,11 +60,20 @@ export function ServicosDaHome({ comLinkVerTodos = true }: { comLinkVerTodos?: b
   );
 }
 
-/** "De onde vêm nossos clientes" (Fatia 12, E10): o bloco SEMPRE existe. Com dados que passam no k (ADR 0014), só nomes,
- * sem número. Sem dados (lista vazia, erro ou limite), o estado vazio digno: sem botão, sem gráfico, sem "0". */
+/** "cerca de 15%" ou "menos de 5%": a faixa que a API manda, nunca um número de pessoas (A50, ADR 0014). */
+export function textoDaFaixa(faixa: string): string {
+  return faixa === "<5" ? "menos de 5%" : `cerca de ${faixa}%`;
+}
+
+/**
+ * "De onde vêm nossos clientes" (Fatia 12, E10 + Fatia 11, A50): o bloco SEMPRE existe. Com dados que passam no k (ADR 0014),
+ * os municípios; ao clicar, os bairros com a faixa de porcentagem, só o nome ou o "Outros bairros" sem faixa. NUNCA número de
+ * pessoas. Sem dados (lista vazia, erro ou limite), o estado vazio digno: sem botão, sem gráfico, sem "0".
+ */
 export function AlcanceDaHome() {
   // undefined = ainda carregando; null = sem dados (vazio ou erro)
   const [alcance, setAlcance] = useState<AlcancePublico | null | undefined>();
+  const [aberto, setAberto] = useState<string | undefined>();
   useEffect(() => {
     let vivo = true;
     chamar(api().GET("/alcance")).then(
@@ -88,14 +97,34 @@ export function AlcanceDaHome() {
         </div>
       ) : (
         <ul className="lista-regioes">
-          {alcance.regioes.map((r) => (
-            <li key={`${r.cidade}-${r.uf}`}>
-              <strong>
-                {r.cidade} - {r.uf}
-              </strong>
-              {r.bairros.length > 0 && <span className="destaque">{r.bairros.join(" · ")}</span>}
-            </li>
-          ))}
+          {alcance.regioes.map((r) => {
+            const lista = `bairros-${r.codigoIbge}`;
+            const expandido = aberto === r.codigoIbge;
+            return (
+              <li key={r.codigoIbge}>
+                <button
+                  type="button"
+                  className="botao botao-secundario"
+                  aria-expanded={expandido}
+                  aria-controls={lista}
+                  onClick={() => setAberto(expandido ? undefined : r.codigoIbge)}
+                >
+                  {r.cidade} - {r.uf}
+                </button>
+                {expandido && (
+                  <ul id={lista} className="lista-bairros" aria-label={`Bairros de ${r.cidade}`}>
+                    {r.bairrosComFaixa.length === 0 && <li>Ainda sem bairros para mostrar.</li>}
+                    {r.bairrosComFaixa.map((b) => (
+                      <li key={b.bairro}>
+                        {b.bairro}
+                        {b.faixaPercentual ? <span className="destaque"> · {textoDaFaixa(b.faixaPercentual)}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

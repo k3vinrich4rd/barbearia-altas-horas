@@ -13,7 +13,7 @@ class PoliticaPrivacidadeController {
 
     PoliticaPrivacidadeController(TextosDaPolitica textos) {
         this.resposta = new PoliticaPrivacidadeResposta(Consentimentos.VERSAO_DO_TEXTO, textos.consentimento(),
-                textos.politica(), TextosDaPolitica.ATUALIZADA_EM);
+                textos.consentimentoRegiao(), textos.politica(), TextosDaPolitica.ATUALIZADA_EM, textos.contato());
     }
 
     @GetMapping("/politica-privacidade")

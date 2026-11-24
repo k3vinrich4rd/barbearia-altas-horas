@@ -46,6 +46,9 @@ export const POLITICA_PAGAMENTO = {
 export const POLITICA_PRIVACIDADE = {
   versao: "1.0",
   textoConsentimento: "Aceito receber ofertas da barbearia pelo WhatsApp.",
+  textoConsentimentoRegiao:
+    "Autorizo usar só meu bairro e minha cidade, somados aos de outros clientes. Não guardamos o CEP.",
+  canalDeContato: "contato@exemplo.test",
   politica: "# Política\n\nTexto.\n\n- item um\n- item dois",
   atualizadaEm: "2026-11-10T12:00:00-03:00",
 };

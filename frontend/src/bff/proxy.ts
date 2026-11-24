@@ -106,7 +106,7 @@ type Modo = "publico" | "guest" | "misto" | "bearer" | "opcional";
 
 function modoDaRota(metodo: string, caminho: string): Modo {
   if (casa(PUBLICAS, metodo, caminho)) return "publico";
-  if (metodo === "GET" && caminho.startsWith("/agendamentos/guest/")) return "guest";
+  if ((metodo === "GET" || metodo === "DELETE") && caminho.startsWith("/agendamentos/guest/")) return "guest";
   if (casa(COM_GUEST, metodo, caminho)) return "misto";
   return "bearer";
 }

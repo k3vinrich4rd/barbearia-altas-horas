@@ -64,7 +64,8 @@ class SemDadoPessoalNoLogCepIT extends CepTesteBase {
 
     private static String cadastro(String cep) {
         return """
-                { "nome": "Cliente Teste", "email": "%s", "whatsapp": "(11) 90000-0001", "senha": "%s", "cep": "%s" }
+                { "nome": "Cliente Teste", "email": "%s", "whatsapp": "(11) 90000-0001", "senha": "%s", "cep": "%s",
+                  "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
                 """.formatted(emailNovo(), SENHA, cep);
     }
 }
