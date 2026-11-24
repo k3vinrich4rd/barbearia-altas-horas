@@ -1,0 +1,31 @@
+# =====================================================================================================================
+# Perfil SÓ DE BUILD (Fatia 8B, E4). Usado no `docker build` para gerar o cache AOT: sobe o contexto do Spring sem banco
+# e sem segredo e fecha sozinho (-Dspring.context.exit=onRefresh). NUNCA é ativado em runtime: a imagem final roda no
+# perfil prod (o teste A7 do scripts/testar-imagem.sh prova). Todos os valores abaixo são FALSOS.
+# =====================================================================================================================
+spring:
+  # O DataSource é de mentira (TreinoSemBancoConfig): nada aqui fala com banco.
+  flyway:
+    enabled: false
+  modulith:
+    events:
+      jdbc:
+        schema-initialization:
+          enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        boot:
+          allow_jdbc_metadata_access: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+app:
+  seguranca:
+    jwt:
+      segredo: segredo-falso-so-do-treino-de-build-0123456789
+  pagamento:
+    idempotencia-segredo: idempotencia-falsa-so-do-treino
+    webhook-token: webhook-falso-so-do-treino
+  privacidade:
+    contato: treino@exemplo.test

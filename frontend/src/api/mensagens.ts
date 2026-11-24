@@ -45,6 +45,7 @@ export const MENSAGENS: Record<string, string> = {
   GATEWAY_INDISPONIVEL:
     "Não conseguimos gerar o pagamento agora. Seu horário continua reservado até o fim do prazo; tente de novo.",
   CEP_INDISPONIVEL: "Não conseguimos buscar o endereço agora. O cadastro continua e o CEP é salvo.",
+  BANCO_INDISPONIVEL: "A agenda está acordando. Aguarde alguns segundos e tente de novo.",
   EXCLUSAO_BLOQUEADA_POR_RESERVA:
     "Você tem um agendamento em aberto. Para excluir a conta, fale com a barbearia.",
   ERRO_INTERNO: "Algo deu errado do nosso lado. Tente de novo.",

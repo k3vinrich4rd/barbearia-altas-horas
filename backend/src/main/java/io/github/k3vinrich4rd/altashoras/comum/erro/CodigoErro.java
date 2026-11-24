@@ -50,6 +50,7 @@ public enum CodigoErro {
     LIMITE_EXCEDIDO(429, "Muitas tentativas", "Aguarde um pouco e tente de novo."),
     GATEWAY_INDISPONIVEL(503, "Pagamento indisponível no momento", "Tente de novo em alguns minutos."),
     CEP_INDISPONIVEL(503, "Consulta de CEP indisponível", "Preencha o endereço manualmente."),
+    BANCO_INDISPONIVEL(503, "Agenda indisponível no momento", "A agenda está acordando. Tente de novo em instantes."),
     ERRO_INTERNO(500, "Erro interno", "Algo deu errado do nosso lado. Tente de novo.");
 
     private static final String BASE_TIPO =
