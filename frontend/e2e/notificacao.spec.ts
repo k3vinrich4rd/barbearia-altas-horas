@@ -113,7 +113,7 @@ test("A43: visitante e cliente com cadastro marcam com o Eduardo e pagam; o selo
   await page.getByRole("navigation", { name: "Painel" }).getByRole("link", { name: /Novidades/ }).click();
   await expect(page.getByRole("heading", { name: "Novidades" })).toBeVisible();
   const itens = page.getByRole("list", { name: "Horários novos" }).getByRole("listitem");
-  await expect(itens).toHaveCount(2);
+  expect(await itens.count()).toBeGreaterThanOrEqual(2); // sobra de rodadas anteriores também aparece (vale 30 dias)
   await expect(itens.first()).toContainText(/\d{2}\/\d{2} às \d{2}:\d{2}/);
   await expect(page.locator("main")).not.toContainText(/Painel E2E|Cliente de Teste|@|\b119\d{8}\b/);
   await expect(page.getByTestId("selo-novidades")).toHaveCount(0);
@@ -145,4 +145,17 @@ test("A43: visitante e cliente com cadastro marcam com o Eduardo e pagam; o selo
   const outro = await convidado.request.get(`/api/admin/notificacoes?usuarioId=${EDUARDO}&barbeiroId=${EDUARDO}`);
   expect((await outro.json()).itens).toEqual([]);
   await contextoDoConvidado.close();
+
+  // limpeza: desliga o convidado, para os outros E2E (que escolhem "o" barbeiro) não verem um segundo barbeiro ativo
+  const lista = (await (await page.request.get("/api/admin/barbeiros")).json()) as {
+    id: string;
+    usuarioId: string | null;
+    version: number;
+  }[];
+  const dele = lista.find((b) => b.id === convidadoId)!;
+  const desligado = await page.request.put(`/api/admin/barbeiros/${convidadoId}`, {
+    headers: ORIGEM,
+    data: { nomeExibicao: nomeDoConvidado, usuarioId: dele.usuarioId, ativo: false, version: dele.version },
+  });
+  expect(desligado.status()).toBe(200);
 });
