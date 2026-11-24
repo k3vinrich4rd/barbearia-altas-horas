@@ -1311,6 +1311,42 @@ caption {
   font-weight: var(--tipo-rotulo-peso);
 }
 
+/* Selo "Novidades" (Fatia 13): bloco invertido, número E palavra para leitor de tela; sem cor de destaque. */
+.selo-novidades {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-6);
+  height: var(--space-6);
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  font-size: var(--tipo-nota-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.painel-menu a[aria-current="page"] .selo-novidades {
+  background: var(--acao-texto);
+  color: var(--acao-fundo);
+}
+
+.lista-novidades {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-novidades li {
+  padding: var(--space-4);
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+}
+
 .painel-conteudo {
   display: grid;
   gap: var(--space-4);

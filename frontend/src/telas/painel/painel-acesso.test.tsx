@@ -52,7 +52,7 @@ describe("acesso ao painel", () => {
       SESSAO_BARBEIRO,
     );
     expect(screen.getByText("conteúdo do painel")).toBeInTheDocument();
-    expect(doMenu()).toEqual(["Agenda", "Reserva manual", "Alcance"]);
+    expect(doMenu()).toEqual(["Agenda", "Reserva manual", "Alcance", "Novidades", "Notificações"]);
     expect(screen.getByRole("link", { name: "Agenda" })).toHaveAttribute("aria-current", "page");
     barbeiro.unmount();
 
@@ -70,7 +70,7 @@ describe("acesso ao painel", () => {
       </PainelLayout>,
       ADMIN,
     );
-    expect(doMenu()).toEqual(["Agenda", "Reserva manual", "Pendências", "Cadastros", "Auditoria", "Alcance"]);
+    expect(doMenu()).toEqual(["Agenda", "Reserva manual", "Pendências", "Cadastros", "Auditoria", "Alcance", "Novidades", "Notificações"]);
     admin.unmount();
 
     // e o 403 da API (papel mudou depois do login) também é tratado, com texto e sem quebrar a tela
