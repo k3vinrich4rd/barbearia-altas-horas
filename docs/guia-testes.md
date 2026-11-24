@@ -1087,6 +1087,35 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 | P8 | Cadastros | editar serviço (preço `55,90`), barbeiro (WhatsApp com máscara), jornada, folga e regras | preço vira centavos; nome repetido aparece no campo; jornada sobreposta marca o dia; fuso só leitura; prazo de 3 a 60 min | Saída real: a preencher no fluxo manual |
 | P9 | Auditoria e alcance | abrir as duas telas | auditoria sem IP; alcance com "menos de 5" e sem percentual nas linhas pequenas | Saída real: a preencher no fluxo manual |
 
+### 7.5 Site mais fluido (Fatia 12) ✅
+
+**Passos à mão (visitante, no celular ou numa janela estreita):**
+
+1. Abra a home: a ordem é herói (com a faixa "Escolha · Pague · Confirmado"), **Serviços** (6 cartões, o último é **Descoloração / Platinado (química), 60 min, R$ 80,00**), **Barbeiro**, **Galeria**, **Trajetória**, "De onde vêm nossos clientes" e **Dúvidas**. ✅
+2. Em **Galeria** toque numa foto: abre inteira, com legenda; `←` e `→` trocam, `Esc` fecha e o foco volta à miniatura. ✅
+3. Abra `/#historia`: a janela vai para a **Trajetória** e o endereço vira `/#trajetoria`. ✅
+4. Role até o rodapé: a barra **Agendar horário** continua visível (só abaixo de 768 px) e não cobre o último link. Em `/agendar`, `/entrar`, `/cadastro` e `/painel` ela não existe. ✅
+5. Toque em **Agendar este serviço** no platinado: `/agendar` abre com ele marcado, o próximo dia com horário já escolhido e, com um só barbeiro, sem seletor de barbeiro. Escolha um chip de horário e toque em **Continuar** (4 toques desde a home). ✅
+6. O texto do pagamento diz "prazo curto", sem número: o prazo só aparece como cronômetro na tela de pagamento (vem de `expiraEm`). ✅
+7. Sem clientes com região consentida, o bloco "De onde vêm nossos clientes" mostra "Em breve", sem número nem botão. ✅
+
+**O que roda sozinho (saída real de 23/11/2026, Windows, Node 22, Java 25, PostgreSQL 18 isolado):**
+
+- `cd backend && ./mvnw verify`: **398 testes, 0 falhas** (entram os 4 de `V10ServicoDescoloracaoPlatinadoIT`, A21; `V8CatalogoInicialIT` e `SeedDevIT` passam a esperar 6 serviços).
+- `cd frontend && npm run lint && npx tsc --noEmit && npm run verificar:tokens`: limpos.
+- `npm run test:cobertura`: **58 arquivos, 108 testes verdes**; cobertura 87,5% das linhas de instrução (Statements) e 83,5% dos ramos.
+- `npm run build`: compila (Next 16).
+- `npx playwright test` (API real no perfil `dev`, banco isolado): **20 de 20 verdes** num banco recém-criado (num banco já usado, A63 e A55 oscilaram por disputa dos mesmos horários), com axe sem nenhuma violação (A14 e A25), 4 toques (A23) e o fluxo da home ao pagamento (A22, mais o A57 de ponta a ponta).
+- `bash scripts/conferir-spec.sh 12 --exigir`: **27 de 27 critérios com teste**.
+- **Lighthouse móvel** (`npx lighthouse@12`, CPU 4x e Slow 4G simulados, contra `next build` + `next start` local com a API real; 3 execuções cada):
+
+| Tela | Desempenho | Acessibilidade | LCP | CLS | TBT |
+|---|---|---|---|---|---|
+| `/` | 95, 97, 97 | 100 | 2,54 a 2,63 s | 0,000 a 0,003 | 55 a 143 ms |
+| `/agendar` | 94, 96, 97 | 100 | 2,46 a 2,57 s | 0,002 | 106 a 197 ms |
+
+  O **LCP** fica entre 2,46 e 2,63 s, **até 130 ms acima** do orçamento de 2,5 s em parte das execuções (o título repinta quando a fonte Playfair troca, `display: swap`, D-1 do design system). Com `display: optional` o mesmo teste deu 2,44 a 2,51 s; não foi aplicado porque muda o desenho. Antes de reservar espaço para a lista de serviços e fixar o resumo, o `/agendar` tinha CLS 0,141; hoje 0,002.
+- Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada).
 ### 7.4 Convite do barbeiro (Fatia 10)
 
 O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a senha; o convidado só mexe na própria agenda. As telas ainda **aguardam desenho** (layout neutro). Para repetir à mão: API no perfil `dev`, front em `http://localhost:3000`, o admin do `ADMIN_EMAIL`. O teste de ponta a ponta de verdade é `frontend/e2e/convite.spec.ts` (A36), que faz tudo isso contra a API real.

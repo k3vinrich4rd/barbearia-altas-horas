@@ -1,0 +1,63 @@
+import { expect, test } from "@playwright/test";
+import { emailUnico } from "./apoio";
+
+// Fluxo de agendar em poucos toques (Fatia 12C). A reserva até a confirmação, com Pix e consulta, continua provada no
+// A57 de e2e-visitante.spec.ts e nos de cliente e cartão: aqui o que a 12C mudou.
+test("A23: no celular, da home ao formulário de dados são no máximo 4 toques (Agendar horário, serviço, horário, Continuar)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  let toques = 0;
+
+  await page.locator(".barra-agendar").getByRole("link", { name: "Agendar horário" }).click();
+  toques++;
+  await expect(page).toHaveURL(/\/agendar$/);
+
+  await page.getByRole("radio").first().check();
+  toques++;
+
+  // o próximo dia livre e, com um só barbeiro, o barbeiro já vêm escolhidos: nada a tocar além do horário
+  await expect(page.getByRole("radiogroup", { name: /Barbeiro/ })).toHaveCount(0);
+  const chip = page.locator(".chip-horario:not(.chip-indisponivel)").first();
+  await expect(chip).toBeVisible();
+  await chip.click();
+  toques++;
+
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  toques++;
+  await expect(page).toHaveURL(/\/agendar\/dados\?/);
+  expect(toques).toBeLessThanOrEqual(4);
+});
+
+test("A22: da home ao pagamento, as formas de reservar e o prazo vindo do expiraEm continuam como antes", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/agendar");
+  // WhatsApp com reserva manual (6D), as contas e o visitante
+  await expect(page.getByText("Prefere combinar pelo WhatsApp?")).toBeVisible();
+  await page.getByRole("button", { name: "Menu", exact: true }).click(); // no celular o menu fica recolhido
+  await expect(page.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/cadastro");
+  await page.getByRole("button", { name: "Fechar menu" }).click();
+
+  await page.getByRole("radio").first().check();
+  const chip = page.locator(".chip-horario:not(.chip-indisponivel)").first();
+  await chip.click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  await expect(page).toHaveURL(/\/agendar\/dados\?/);
+
+  await expect(page.getByRole("link", { name: "Entrar" }).last()).toBeVisible();
+  await page.getByRole("button", { name: "Continuar sem conta" }).click();
+  await page.getByLabel("Nome").fill("Visitante Fluido");
+  await page.getByLabel("E-mail").fill(emailUnico("fluido"));
+  await page.getByLabel("WhatsApp").fill("11900000007");
+  await page.getByRole("button", { name: "Reservar" }).click();
+
+  await expect(page).toHaveURL(/\/agendar\/pagamento\//);
+  // o prazo é um cronômetro (expiraEm), com tempo restante até 60 min (D121), e não um número escrito na tela de agendar
+  const cronometro = page.getByRole("timer");
+  await expect(cronometro).toBeVisible();
+  await expect(cronometro).toHaveText(/\d{2}:\d{2}/);
+});
