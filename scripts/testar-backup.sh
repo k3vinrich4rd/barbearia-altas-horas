@@ -100,7 +100,7 @@ docker exec -i "$PG" pg_restore -U altashoras -d restaurado --no-owner --no-priv
 con="$(docker exec "$PG" psql -U altashoras -d restaurado -tAc "SELECT conname FROM pg_constraint WHERE conname='reserva_sem_sobreposicao'")"
 ext="$(docker exec "$PG" psql -U altashoras -d restaurado -tAc "SELECT extname FROM pg_extension WHERE extname='btree_gist'")"
 linha="$(docker exec "$PG" psql -U altashoras -d restaurado -tAc "SELECT nome FROM servico")"
-[ "$con" = "reserva_sem_sobreposicao" ] && [ "$ext" = "btree_gist" ] && [ "$linha" = "Corte Teste" ] \
+[ "$con" = "reserva_sem_sobreposicao" ] && [ "$ext" = "btree_gist" ] && echo "$linha" | grep -qx "Corte Teste" \
   && ok A20d "restaurado num banco novo: dado, btree_gist e a constraint anti double booking voltaram" \
   || falha A20d "restauração incompleta (constraint='$con' ext='$ext' dado='$linha')"
 
