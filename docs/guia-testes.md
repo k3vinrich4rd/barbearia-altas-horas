@@ -683,44 +683,45 @@ sh scripts/horas-render.sh --conferir            # A19 e A20: conta de horas do 
 sh scripts/verificar-no-ar.sh --local            # A26: prova o próprio script contra a imagem e um front falso
 sh scripts/verificar-no-ar.sh                    # no ar de verdade (só GET e OPTIONS, sem credencial)
 sh scripts/testar-backup.sh                      # A20 da Fatia 8 (dump sintético)
-cd backend && ./mvnw verify                      # 400 testes; os da 8B: HealthProbesIT, PoolProdIT, BancoForaIT, ArquivosDeImplantacao8bTest
+cd backend && ./mvnw verify                      # 555 testes; os da 8B: HealthProbesIT, PoolProdIT, BancoForaIT, ArquivosDeImplantacao8bTest
 sh scripts/conferir-spec.sh 8b --exigir --exceto 3-12,14,15,18-21,23,26-31   # só os critérios de teste Java (ver abaixo)
 ```
 
-### Saída real (23/11/2026, Windows 10, Docker Desktop 28.3.2 com 2 CPUs e 3 GiB)
+### Saída real (24/11/2026, depois do merge com a develop de V1 a V13; Windows 10, Docker Desktop 28.3.2 com 2 CPUs e 3 GiB)
 
 ```text
-  ✅ 8B-A5   jar extraído (-Djarmode=tools) em /app/app e cache AOT gerado no build (125 MiB), sem banco e sem segredo
-  ✅ 8B-A6   o cache AOT foi aceito e usado: 18540 de 21833 classes vieram do arquivo de cache
+  ✅ 8B-A5   jar extraído (-Djarmode=tools) em /app/app e cache AOT gerado no build (126 MiB), sem banco e sem segredo
+  ✅ 8B-A6   o cache AOT foi aceito e usado: 18650 de 22017 classes vieram do arquivo de cache
   ✅ 8B-A7a  ENV da imagem: perfil prod e nenhuma menção a treino
   ✅ 8B-A7b  o perfil treino nunca é ativado em execução (só no docker build)
   ✅ 8B-A13-liveness   /actuator/health/liveness: 200 e {"status":"UP"} (sem components, sem detalhes)
   ✅ 8B-A13-readiness  /actuator/health/readiness: 200 e {"status":"UP"} (sem components, sem detalhes)
-      memória depois de 20 requisições: 231.6MiB (limite do contêiner: 512 MiB; meta: até 400 MiB)
-  ✅ 8B-A9   contêiner com --memory=512m segue vivo e UP, com 231.6MiB em uso (≤ 400 MiB)
+      memória depois de 20 requisições: 313.3MiB (limite do contêiner: 512 MiB; meta: até 400 MiB)
+  ✅ 8B-A9   contêiner com --memory=512m segue vivo e UP, com 313.3MiB em uso (≤ 400 MiB)
   ✅ 8B-A14  PostgreSQL parado: liveness 200; health completo 503 {"groups":["liveness","readiness"],"status":"DOWN"} (sem URL nem usuário do banco)
-  ✅ 8B-A15a banco pendurado: GET /servicos = 503 em 11,0s, problem+json BANCO_INDISPONIVEL, sem dado do banco
+  ✅ 8B-A15a banco pendurado: GET /servicos = 503 em 11,2s, problem+json BANCO_INDISPONIVEL, sem dado do banco
   ✅ 8B-A15b o mesmo processo seguiu (sem reinício) e o health completo voltou a UP em 1s
   ✅ 8B-A18  SIGTERM com requisição em curso: ela terminou com HTTP 200 e o processo saiu com 143 em 5s
-  ✅ 8B-A8   cache AOT truncado (1 MB): a API subiu do mesmo jeito e ficou UP em 11s
+  ✅ 8B-A8   cache AOT truncado (1 MB): a API subiu do mesmo jeito e ficou UP em 9s
 ```
 
 ### Cold start medido (A10, A11, A12): mediana de 3 subidas
 
-Rodada completa, mesma máquina, `docker run` até o health completo `UP` (inclui Flyway e o contêiner limitado a 512 MiB):
+Rodada completa depois do merge com a develop (13 migrações), mesma máquina, do `docker run` até o health completo `UP` (inclui o Flyway e o contêiner limitado a 512 MiB):
 
 | Variante | Subidas | Mediana |
 |---|---|---|
-| **Fatia 8** (imagem antiga, sem cache, compilador completo) | 17,1 s · 15,4 s · 14,3 s | **15,4 s** |
-| 8B sem cache, compilador completo (`AOT_OPTS=` vazio) | 11,5 s · 14,1 s · 11,9 s | 11,9 s |
-| 8B **com cache**, compilador completo | 21,5 s · 7,6 s · 6,8 s | 7,6 s |
-| 8B sem cache, `TieredStopAtLevel=1` | 28,3 s · 9,4 s · 7,4 s | 9,4 s |
-| **8B como a imagem sobe** (cache + `TieredStopAtLevel=1`) | 20,3 s · 6,6 s · 5,0 s | **6,6 s** |
+| **Fatia 8** (imagem antiga, sem cache, compilador completo; reconstruída com o código atual) | 13,3 s · 11,7 s · 12,1 s | **12,1 s** |
+| 8B sem cache, compilador completo (`AOT_OPTS=` vazio, `TieredStopAtLevel=4`) | 9,9 s · 10,6 s · 10,7 s | 10,6 s |
+| 8B **com cache**, compilador completo | 7,0 s · 7,5 s · 7,6 s | 7,5 s |
+| 8B sem cache, `TieredStopAtLevel=1` | 7,9 s · 7,9 s · 7,9 s | 7,9 s |
+| **8B como a imagem sobe** (cache + `TieredStopAtLevel=1`) | 5,4 s · 5,5 s · 5,6 s | **5,5 s** |
 
-- Ganho só do cache: **35%** (meta de 25%: passou); ganho do cache + `TieredStopAtLevel=1`: 44% sobre o 8B sem nada e **57% sobre a imagem da Fatia 8** (15,4 s para 6,6 s).
-- **A variação entre rodadas é grande** (a máquina tem 2 CPUs e quase toda rodada tem uma subida atípica, a primeira costuma ser a pior): numa rodada anterior o cache sozinho deu 9% e noutra 20%, e o conjunto cache + C1 deu de 44% a 54% em todas. Por isso a imagem leva as duas coisas (D182).
-- **A11, com `--cpus=0,25`** (estimativa do Render, que tem ~0,1 CPU): 32,2 s com cache e C1 contra 51,0 s sem nenhum dos dois (em outra rodada, 28,8 s contra 60,8 s). Não entra no pass/fail.
-- **A12:** a imagem foi de 435 MB para 605 MB (**+170 MB**; o cache AOT tem **125 MiB**). A spec previa 120 MB: o limite do script passou a 200 MB (D183).
+- Ganho só do cache: **28%** (meta de 25%: passou); cache + `TieredStopAtLevel=1`: 47% sobre a 8B sem nada e **55% sobre a imagem da Fatia 8** (12,1 s para 5,5 s).
+- **A variação entre rodadas é grande quando a máquina está ocupada** (2 CPUs do Docker Desktop): em rodadas anteriores, antes do merge, o cache sozinho deu 9%, 20%, 23% e 35%, e o conjunto cache + C1 deu de 44% a 54% em todas. Por isso a imagem leva as duas coisas (D182). A rodada acima foi a mais limpa (as três subidas de cada variante ficaram a 0,3 s uma da outra).
+- **A11, com `--cpus=0,25`** (estimativa do Render, que tem ~0,1 CPU): 27,7 s com cache e C1 contra 39,4 s sem cache (os dois com C1); numa rodada anterior, 32,2 s contra 51,0 s sem cache e sem C1. Não entra no pass/fail.
+- **A12:** a imagem foi de 444 MB (Fatia 8, reconstruída) para 607 MB (**+163 MB**; o cache AOT tem **126 MiB**). A spec previa 120 MB: o limite do script passou a 200 MB (D183).
+- **A9:** 313 MiB de memória depois de 20 requisições (era ~232 MiB antes do merge: a develop trouxe mais beans). Meta de 400 MiB: passou.
 - Estes números são do Docker Desktop, não do Render: o primeiro deploy real e o painel do Render são a prova final.
 
 ### O que se confere à mão (roteiros do Kevin, depois do primeiro deploy com `checksPass`)

@@ -176,12 +176,12 @@ con="$(psql_pg "SELECT conname FROM pg_constraint WHERE conname='reserva_sem_sob
 # ---------- A9: perfil prod de verdade (sem seed, sem usuário de desenvolvimento) ----------
 docker logs "$API" 2>&1 | grep -q 'The following 1 profile is active: "prod"' && ok A9a "perfil ativo: prod" || falha A9a "perfil prod não apareceu no log"
 docker logs "$API" 2>&1 | grep -q '"treino"' && falha 8B-A7b "o perfil treino apareceu no log da execução" || ok 8B-A7b "o perfil treino nunca é ativado em execução (só no docker build)"
-# Desde a V8 (D152) o catálogo real nasce em todos os perfis: 5 serviços e 1 barbeiro. O seed dev é a migração
+# Desde a V8 (D152) o catálogo real nasce em todos os perfis: 5 serviços e 1 barbeiro (a V10 acrescenta o 6º serviço). O seed dev é a migração
 # repetível R__seed_dev.sql: se ela aparecer no histórico do Flyway, o perfil dev vazou para a imagem.
 seed_dev="$(psql_pg "SELECT count(*) FROM flyway_schema_history WHERE script LIKE 'R__%'")"
 servicos="$(psql_pg "SELECT count(*) FROM servico")"
-[ "$seed_dev" = "0" ] && [ "$servicos" = "5" ] && ok A9b "sem seed dev no banco e com o catálogo inicial da V8 (5 serviços)" \
-  || falha A9b "seed dev no histórico: $seed_dev; serviços: $servicos (esperado 0 e 5)"
+[ "$seed_dev" = "0" ] && [ "$servicos" = "6" ] && ok A9b "sem seed dev no banco e com o catálogo inicial da V8 e da V10 (6 serviços)" \
+  || falha A9b "seed dev no histórico: $seed_dev; serviços: $servicos (esperado 0 e 6)"
 
 # ---------- A10: jobs de subida (retenção) ----------
 docker logs "$API" 2>&1 | grep -q 'Retenção de dados: limpeza=' && ok A10 "a retenção de dados rodou na subida" || falha A10 "a retenção não rodou na subida"
@@ -348,8 +348,10 @@ else
   falha 8B-A10 "cache sozinho $ganho_cache%, cache + flag $ganho_total% (meta: 25%)"
 fi
 if [ "${MEDIR_ANTES:-0}" = "1" ]; then
-  docker image inspect "$IMAGEM_ANTES" >/dev/null 2>&1 || {
-    git show origin/develop:backend/Dockerfile | docker build -q -f - -t "$IMAGEM_ANTES" backend >/dev/null; }
+  # Sempre reconstrói com o código ATUAL e o Dockerfile da Fatia 8 (ANTES_REF, padrão origin/develop antes da 8B): uma imagem
+  # velha não conhece as migrações novas do banco do teste e nem subiria. Depois que a 8B entrar na develop, aponte
+  # ANTES_REF para o último commit antes dela.
+  git show "${ANTES_REF:-origin/develop}:backend/Dockerfile" | docker build -q -f - -t "$IMAGEM_ANTES" backend >/dev/null
   IMG="$IMAGEM_ANTES"
   for n in 1 2 3; do t="$(subida_ms)"; antes="$antes $t"; done
   IMG="$IMAGEM"

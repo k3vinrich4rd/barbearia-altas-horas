@@ -638,7 +638,7 @@ sh scripts/horas-render.sh --conferir   # conta de horas do ping no Render (Fati
 sh scripts/verificar-no-ar.sh  # depois de um deploy ou rollback: API, front, CORS e rota de pagamento simulado
 ```
 
-A Fatia 8B (deploy robusto) mediu, no Docker Desktop, a subida da API em **6,6 s** (mediana de 3, com cache AOT e C1) contra **15,4 s** da imagem da Fatia 8, e com `--cpus=0,25` (estimativa do Render) 32,2 s contra 51,0 s; os números e o que ainda é roteiro do Kevin estão no [guia de testes](docs/guia-testes.md#5c-deploy-robusto-fatia-8b).
+A Fatia 8B (deploy robusto) mediu, no Docker Desktop, a subida da API em **5,5 s** (mediana de 3, com cache AOT e C1) contra **12,1 s** da imagem da Fatia 8, e com `--cpus=0,25` (estimativa do Render) 27,7 s contra 39,4 s sem cache; os números e o que ainda é roteiro do Kevin estão no [guia de testes](docs/guia-testes.md#5c-deploy-robusto-fatia-8b).
 
 Está no ar em beta desde 18/11/2026: a API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)) e o front na Vercel ([site](https://barbearia-altas-horas.vercel.app)), ainda com pagamento simulado. No plano grátis, a API dorme sem uso e a primeira chamada pode passar de um minuto (em 20/11/2026 levou cerca de 90 segundos). Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
 
