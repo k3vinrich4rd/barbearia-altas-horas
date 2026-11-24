@@ -174,16 +174,15 @@ class DisponibilidadeIT {
     // ---- entrada e saída --------------------------------------------------------------------------------------------
 
     @Test
-    @DisplayName("A20: hoje + 30 dias (17/12) ainda está dentro do horizonte")
-    void limiteDoHorizonte() throws Exception {
-        assertThat(horas(servico30, LocalDate.of(2026, 12, 17))).hasSize(24);
+    @DisplayName("A20: não há horizonte (D197): qua 05/01/2028, 400 dias à frente, tem os 24 horários")
+    void semHorizonte() throws Exception {
+        assertThat(horas(servico30, LocalDate.of(2028, 1, 5))).hasSize(24);
     }
 
     @Test
-    @DisplayName("A21: hoje + 31 dias e ontem dão 422 FORA_DO_HORIZONTE")
-    void foraDoHorizonte() throws Exception {
-        erro(consultar(servico30, LocalDate.of(2026, 12, 18), barbeiro), 422, "FORA_DO_HORIZONTE");
-        erro(consultar(servico30, LocalDate.of(2026, 11, 16), barbeiro), 422, "FORA_DO_HORIZONTE");
+    @DisplayName("A21: ontem dá 422 ANTECEDENCIA_INSUFICIENTE (o horário já passou); FORA_DO_HORIZONTE não existe mais na API")
+    void soDiaPassadoEhRecusado() throws Exception {
+        erro(consultar(servico30, LocalDate.of(2026, 11, 16), barbeiro), 422, "ANTECEDENCIA_INSUFICIENTE");
     }
 
     @Test

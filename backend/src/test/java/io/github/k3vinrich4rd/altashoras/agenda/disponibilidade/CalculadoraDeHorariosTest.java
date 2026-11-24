@@ -23,8 +23,8 @@ class CalculadoraDeHorariosTest {
     private static final LocalDate TERCA = LocalDate.of(2026, 12, 1);
     private static final List<Turno> JORNADA = List.of(
             new Turno(LocalTime.of(7, 0), LocalTime.of(12, 0)), new Turno(LocalTime.of(13, 0), LocalTime.of(20, 0)));
-    /** Regras reais: sem intervalo, slots de 30 min, 2 h de antecedência. */
-    private static final Regras REGRAS = new Regras(0, 30, 120);
+    /** Regras reais: sem intervalo e slots de 30 min. Desde a Fatia 14A (D197) não há antecedência mínima: só vale o início depois de agora. */
+    private static final Regras REGRAS = new Regras(0, 30);
     private static final Instant DIAS_ANTES = em(2026, 11, 17, 8, 0);
 
     private static Instant em(int ano, int mes, int dia, int hora, int minuto) {
@@ -59,21 +59,21 @@ class CalculadoraDeHorariosTest {
     }
 
     @Test
-    @DisplayName("A9: às 09:10 do próprio dia, o primeiro horário é 11:30 (09:10 + 2 h = 11:10, próximo da grade)")
-    void antecedenciaArredondaParaAGrade() {
-        assertThat(calcular(30, as(9, 10))).startsWith("11:30", "13:00");
+    @DisplayName("A9: às 09:10 do próprio dia, o primeiro horário é 09:30 (o próximo da grade depois de agora, sem antecedência)")
+    void primeiroDaGradeDepoisDeAgora() {
+        assertThat(calcular(30, as(9, 10))).startsWith("09:30", "10:00");
     }
 
     @Test
-    @DisplayName("A10: antecedência inclusiva: às 09:00, o horário das 11:00 aparece")
-    void antecedenciaInclusiva() {
-        assertThat(calcular(30, as(9, 0))).startsWith("11:00", "11:30");
+    @DisplayName("A10: o início precisa ser depois de agora: às 09:00 em ponto o horário das 09:00 não aparece e o das 09:30 sim")
+    void inicioIgualAAgoraNaoAparece() {
+        assertThat(calcular(30, as(9, 0))).startsWith("09:30", "10:00").doesNotContain("09:00");
     }
 
     @Test
-    @DisplayName("A11: às 09:10 com serviço de 60 min, o primeiro horário é 13:00 (11:30 invadiria o almoço)")
-    void antecedenciaComServicoLongo() {
-        assertThat(calcular(60, as(9, 10))).startsWith("13:00");
+    @DisplayName("A11: às 11:10 com serviço de 60 min, o primeiro horário é 13:00 (11:30 invadiria o almoço)")
+    void servicoLongoDepoisDeAgora() {
+        assertThat(calcular(60, as(11, 10))).startsWith("13:00");
     }
 
     @Test
@@ -108,14 +108,14 @@ class CalculadoraDeHorariosTest {
     @DisplayName("Intervalo entre atendimentos conta: com 10 min, o serviço de 30 não cabe às 11:30 nem às 19:30")
     void intervaloEntreAtendimentos() {
         List<ZonedDateTime> horarios = CalculadoraDeHorarios.calcular(TERCA, FUSO, JORNADA, List.of(), 30,
-                new Regras(10, 30, 120), DIAS_ANTES);
+                new Regras(10, 30), DIAS_ANTES);
         assertThat(horas(horarios)).contains("11:00", "19:00").doesNotContain("11:30", "19:30");
     }
 
     @Test
-    @DisplayName("Dia já passado em relação a agora + antecedência: nada é oferecido")
+    @DisplayName("Dia que já acabou em relação a agora: nada é oferecido (às 20:00 o último início, 19:30, já passou)")
     void diaPassado() {
-        assertThat(calcular(30, em(2026, 12, 1, 18, 0))).isEmpty();
+        assertThat(calcular(30, em(2026, 12, 1, 20, 0))).isEmpty();
     }
 
     @Test
