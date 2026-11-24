@@ -258,6 +258,14 @@ sequenceDiagram
 
 Os `409` são `EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda. A cobrança das reservas canceladas vira `CANCELADA` pelo outbox, depois do commit. O token de acesso já emitido deixa de valer na hora (`ValidadorDeConta`, D98). Admin com a senha inicial recebe `403 TROCA_DE_SENHA_OBRIGATORIA` em `/me/dados` e `/me/consentimentos`.
 
+### 3.4 Região por consentimento e alcance por nível ✅ (Fatia 11)
+
+1. `POST /auth/cadastro` com `cep`, `autorizaRegiao: true` e `versaoTextoRegiao: "1.2"` → o CEP é consultado uma vez e descartado; ficam Centro, Osasco, SP e o código `3534401`.
+2. O cliente reserva (`POST /agendamentos`): a reserva copia a região e a versão do texto aceito.
+3. O Dono abre `GET /admin/alcance?nivel=MUNICIPIO`: com 6 pessoas em Osasco/Centro aparece `Osasco 6` e `Centro 6`; com 3 pessoas, o município sobe para "Outros municípios da região imediata de São Paulo" (`agrupadoEm: REGIAO`) ou, sozinho, para "Outros estados" com `abaixoDoLimite: true`.
+4. Um barbeiro convidado com poucos clientes vê o município ou "menos de 5", nunca um bairro pequeno; o `barbeiroId` que ele mandar é ignorado sem sinal.
+5. `PUT /me/consentimentos/regiao` com `aceito: false` apaga a localidade e a região das reservas; o alcance seguinte conta a pessoa em "sem região". Saída real conferida em `RevogarRegiaoIT`, `SubidaDeNivelIT` e `AlcancePorBarbeiroIT`.
+
 ## 4. Painel (ADMIN e BARBEIRO)
 
 Todas as rotas `/admin/**` exigem login e papel; o admin inicial precisa **trocar a senha** antes (`403 TROCA_DE_SENHA_OBRIGATORIA`).

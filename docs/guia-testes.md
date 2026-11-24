@@ -1103,6 +1103,22 @@ O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a 
 
 Para o teste de visitantes, esta seção **não** entra: o público só testa o cliente (13 passos); o convite e o desligamento são da equipe.
 
+### 7.5 Alcance por nível e consentimento de região (Fatia 11)
+
+| # | O que fazer | Esperado | Situação |
+|---|---|---|---|
+| 1 | Cadastro: abrir `/cadastro` | a caixinha de região **desmarcada**, o texto da API, o canal de contato e o link da política; nenhum campo de CEP | ⏳ roteiro manual |
+| 2 | Marcar a caixinha, digitar o CEP 06010-000 e criar a conta | `PUT /me`/cadastro com `autorizaRegiao: true`; `GET /me` traz `regiaoAutorizada: true` e `endereco.cep` nulo | ✅ `RegiaoConsentidaIT` (A1 a A3), `PerfilSemCepIT` (A7) |
+| 3 | Sem marcar a caixinha, mandar `cep` direto à API | `201`, nenhuma região gravada e nenhuma chamada ao ViaCEP | ✅ `RegiaoConsentidaIT` (A1) |
+| 4 | "Meus dados" → "Retirar minha autorização de região" | confirmação em uma linha; a região some do perfil e das reservas | ✅ `RevogarRegiaoIT` (A4, A5), `MeusDados.test.tsx` (A49) |
+| 5 | Visitante: confirmação da reserva → "Retirar minha autorização de região" | `DELETE /agendamentos/guest/{id}/regiao` → 204; token errado → 404 | ✅ `RevogarRegiaoGuestIT` (A6), `ConfirmacaoRegiao.test.tsx` (A48) |
+| 6 | Painel (Dono): Alcance, trocar Estado, Região e Município; filtrar UF, período e barbeiro | linhas e filhos; "menos de 5" em texto; lugar pequeno sobe de nível | ✅ `AlcancePorNivelIT`, `SubidaDeNivelIT`, `PainelAlcance.test.tsx` (A51) |
+| 7 | Painel (barbeiro convidado) | só os clientes dele, sem filtro de barbeiro, nunca bairro pequeno | ✅ `AlcancePorBarbeiroIT` (A37, A38), `PainelAlcance.test.tsx` (A52) |
+| 8 | Home: clicar num município | bairros em "cerca de 15%", "menos de 5%" ou só o nome; nenhum número de pessoas | ✅ `VitrineEmFaixasIT`, `HomeAlcance.test.tsx` (A50) |
+| 9 | Nenhuma subtração revela um número menor que k | 200 sementes, k = 3, 5 e 8; sem as defesas o teste falha | ✅ `AlcancePropriedadeTest` (A43, A44) |
+
+Roteiro do painel com dado real: com o banco do `docker compose`, crie 6 contas em Osasco/Centro com a caixinha e uma reserva cada (ver o fluxo ponta a ponta), entre como Dono e abra "Alcance".
+
 ## 8. Jornada completa
 
 > ⏳ Roda quando as Fatias 2 a 7 estiverem na `develop`.

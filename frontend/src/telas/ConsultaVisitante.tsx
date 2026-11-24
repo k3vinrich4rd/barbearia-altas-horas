@@ -10,6 +10,7 @@ import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
+import { RetirarRegiaoDoVisitante } from "@/componentes/RetirarRegiaoDoVisitante";
 import { LinkBotao } from "@/componentes/Botao";
 
 type Reserva = components["schemas"]["Agendamento"];
@@ -21,6 +22,8 @@ export function ConsultaVisitante() {
   const [erro, setErro] = useState<ErroApi | undefined>();
   const [buscando, setBuscando] = useState(false);
   const emCurso = useRef(false);
+  // o código fica só na memória desta tela, para o link "Retirar minha autorização de região" (nunca em URL, storage nem log)
+  const [codigoConsultado, setCodigoConsultado] = useState("");
 
   async function consultar(reservaId: string, token: string) {
     if (emCurso.current) return;
@@ -28,6 +31,7 @@ export function ConsultaVisitante() {
     setBuscando(true);
     setErro(undefined);
     setReserva(undefined);
+    setCodigoConsultado(token.trim());
     try {
       const r = await chamar(
         api().GET("/agendamentos/guest/{id}", {
@@ -104,6 +108,9 @@ export function ConsultaVisitante() {
             <br />
             Situação: <EtiquetaDeStatus status={reserva.status} />
           </p>
+          {reserva.regiaoAutorizada && (
+            <RetirarRegiaoDoVisitante reservaId={reserva.id} codigo={codigoConsultado} />
+          )}
           {reserva.status === "AGUARDANDO_PAGAMENTO" && (
             <LinkBotao href={`/agendar/pagamento/${reserva.id}`} variante="principal">
               Voltar ao pagamento
