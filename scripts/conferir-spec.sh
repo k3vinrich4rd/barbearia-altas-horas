@@ -15,6 +15,7 @@
 #      scripts/conferir-spec.sh 1 --exigir               (sai com erro se faltar algum; usado no CI)
 #      scripts/conferir-spec.sh 7 --exigir --ate 43      (só os critérios A1 a A43)
 #      scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59   (pula faixas e números; a 7A não cobre o painel)
+# A coluna "Teste" pode trazer o nome com a extensão (`pagamento-prorrogacao.test.tsx`, Fatia 14): a extensão é tirada antes de procurar o arquivo.
 # Critério trocado por outra fatia: a linha leva "substituído pela Fatia N (A<m>)" e vale se o A<m> da fatia N tem teste.
 # Só linhas "| A<n> |" contam; os critérios V# (aguarda design) ficam de fora de propósito.
 set -eu
@@ -102,7 +103,7 @@ while IFS= read -r linha; do
     fi
     continue
   fi
-  classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_.-]+`' | tr -d '`' || true)"
+  classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_.-]+`' | tr -d '`' | sed -E 's/\.(test\.tsx|test\.ts|spec\.ts)$//' || true)"
   total=$((total + 1))
   achou=""
   for classe in $classes; do

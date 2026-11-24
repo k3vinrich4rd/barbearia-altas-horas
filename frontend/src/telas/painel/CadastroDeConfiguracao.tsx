@@ -1,5 +1,6 @@
 "use client";
-// Regras da agenda (A51): o fuso é só leitura e NUNCA vai no PUT (senão 400 CAMPO_DESCONHECIDO). Limites do contrato 1.7.0.
+// Regras da agenda (A51): o fuso é só leitura e NUNCA vai no PUT (senão 400 CAMPO_DESCONHECIDO). Limites do contrato 1.11.0:
+// a antecedência mínima e o horizonte foram revogados (D197) e saíram desta tela e do PUT.
 import { useState, type FormEvent } from "react";
 import { api, chamar } from "@/api/cliente";
 import { ErroApi } from "@/api/erro";
@@ -13,21 +14,14 @@ import type { ConfiguracaoAgenda } from "./tipos";
 
 const GRANULARIDADES = [5, 10, 15, 20, 30, 60];
 
-type Campos = "antecedenciaMinimaMin" | "intervaloEntreAtendimentosMin" | "horizonteDias" | "expiracaoPagamentoMin";
+type Campos = "intervaloEntreAtendimentosMin" | "expiracaoPagamentoMin";
 const LIMITES: Record<Campos, { min: number; max: number; rotulo: string; ajuda: string }> = {
-  antecedenciaMinimaMin: {
-    min: 0,
-    max: 100000,
-    rotulo: "Antecedência mínima (minutos)",
-    ajuda: "Quanto antes do horário o cliente ainda pode reservar. 120 = 2 horas.",
-  },
   intervaloEntreAtendimentosMin: {
     min: 0,
     max: 120,
     rotulo: "Intervalo entre atendimentos (minutos)",
     ajuda: "De 0 a 120 minutos.",
   },
-  horizonteDias: { min: 1, max: 365, rotulo: "Agenda aberta até (dias)", ajuda: "De 1 a 365 dias à frente." },
   expiracaoPagamentoMin: {
     min: 3,
     max: 60,
@@ -44,9 +38,7 @@ function Formulario({
   aoSalvar: (motivo: "salvo" | "conflito") => void;
 }) {
   const [valores, setValores] = useState({
-    antecedenciaMinimaMin: String(atual.antecedenciaMinimaMin),
     intervaloEntreAtendimentosMin: String(atual.intervaloEntreAtendimentosMin),
-    horizonteDias: String(atual.horizonteDias),
     expiracaoPagamentoMin: String(atual.expiracaoPagamentoMin),
   });
   const [granularidade, setGranularidade] = useState(String(atual.granularidadeMin));
@@ -101,15 +93,6 @@ function Formulario({
         ajuda="Só leitura: o fuso da barbearia não muda por aqui."
       />
       <Campo
-        id="c-antecedencia"
-        rotulo={LIMITES.antecedenciaMinimaMin.rotulo}
-        inputMode="numeric"
-        value={valores.antecedenciaMinimaMin}
-        onChange={(e) => setValores({ ...valores, antecedenciaMinimaMin: e.target.value })}
-        erro={erros.antecedenciaMinimaMin ?? erroApi?.doCampo("antecedenciaMinimaMin")}
-        ajuda={LIMITES.antecedenciaMinimaMin.ajuda}
-      />
-      <Campo
         id="c-intervalo"
         rotulo={LIMITES.intervaloEntreAtendimentosMin.rotulo}
         inputMode="numeric"
@@ -132,15 +115,6 @@ function Formulario({
           </option>
         ))}
       </Selecao>
-      <Campo
-        id="c-horizonte"
-        rotulo={LIMITES.horizonteDias.rotulo}
-        inputMode="numeric"
-        value={valores.horizonteDias}
-        onChange={(e) => setValores({ ...valores, horizonteDias: e.target.value })}
-        erro={erros.horizonteDias ?? erroApi?.doCampo("horizonteDias")}
-        ajuda={LIMITES.horizonteDias.ajuda}
-      />
       <Campo
         id="c-prazo"
         rotulo={LIMITES.expiracaoPagamentoMin.rotulo}
