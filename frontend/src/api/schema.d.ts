@@ -1015,6 +1015,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/notificacoes/chave-publica": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A chave pública VAPID, para o navegador criar a inscrição de Web Push
+         * @description ADMIN ou BARBEIRO. O navegador usa esta chave em `pushManager.subscribe`; **não existe cópia dela no front**, então o par
+         *     nunca fica dessincronizado. Sem o par VAPID configurado (ou com o canal `webpush` desligado) responde só
+         *     `{ "disponivel": false }` e a tela mostra "notificações indisponíveis". A chave **privada** nunca sai da API. Nunca em cache.
+         */
+        get: operations["chavePublicaDeNotificacao"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/inscricao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Guarda o aparelho do barbeiro para receber o Web Push
+         * @description ADMIN ou BARBEIRO. O aparelho fica na **conta do token**: nenhum corpo escolhe a conta. Idempotente por `endpoint`. O mesmo
+         *     `endpoint` chegando por outra conta (o mesmo aparelho, outro login) **passa para a conta nova**. No máximo 10 aparelhos por
+         *     conta: o 11º substitui o mais antigo. Só endereços de serviço de push são aceitos, em https (`fcm.googleapis.com`,
+         *     `updates.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`): qualquer outro host é
+         *     `400 VALIDACAO_INVALIDA` e **nunca é chamado** (contra SSRF). Os valores enviados nunca voltam nas mensagens de erro.
+         */
+        post: operations["inscreverAparelhoDePush"];
+        /**
+         * Remove o aparelho do barbeiro
+         * @description ADMIN ou BARBEIRO. O `endpoint` vai no **corpo**, não na URL, para não cair em log de acesso. Endpoint que não é da conta, ou
+         *     que não existe, responde `204` igual e **não apaga nada** (não revela de quem é).
+         */
+        delete: operations["removerAparelhoDePush"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Novidades: os avisos de horário novo da conta de quem chama
+         * @description ADMIN ou BARBEIRO. **Sempre a conta do token**: `usuarioId` ou `barbeiroId` na URL são ignorados, sem sinal. Do aviso mais
+         *     novo ao mais antigo; `limite` de 1 a 50 (padrão 20). Duas consultas ao banco (a página e a contagem), sem polling no front.
+         *     **Sem nome nem WhatsApp do cliente**: só serviço, dia e hora; o nome o barbeiro vê abrindo a agenda. Os avisos valem 30 dias.
+         *     Nunca em cache.
+         */
+        get: operations["novidadesDoPainel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/marcar-lidas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Marca como lidos todos os avisos da conta de quem chama
+         * @description ADMIN ou BARBEIRO. Sem corpo. Só os avisos da conta do token.
+         */
+        post: operations["marcarNovidadesComoLidas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/teste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Manda um aviso de teste aos aparelhos da conta de quem chama
+         * @description ADMIN ou BARBEIRO. Entrega "Notificações ativadas neste aparelho" **só** aos aparelhos da conta do token; serve para conferir
+         *     o iPhone sem esperar um cliente real. Limite de 5 por hora por conta (`429 LIMITE_EXCEDIDO` com `Retry-After`).
+         */
+        post: operations["enviarNotificacaoDeTeste"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1754,6 +1869,64 @@ export interface components {
             /** Format: double */
             percentual: number | null;
             abaixoDoLimite: boolean;
+        };
+        ChavePublicaPush: {
+            /** @description falso quando o par VAPID não está configurado ou o canal webpush está desligado */
+            disponivel: boolean;
+            /**
+             * @description a chave pública VAPID em base64url (65 bytes); ausente quando indisponível
+             * @example BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM
+             */
+            chavePublica?: string;
+        };
+        /** @description A inscrição como o navegador a entrega (`PushSubscription.toJSON()`). Nada daqui volta em resposta nem vai para log. */
+        InscricaoPush: {
+            /**
+             * @description https, só de serviço de push (fcm.googleapis.com, updates.push.services.mozilla.com, *.push.apple.com, *.notify.windows.com)
+             * @example https://fcm.googleapis.com/fcm/send/exemplo-de-endpoint
+             */
+            endpoint: string;
+            chaves: {
+                /** @description chave pública do aparelho, base64url (65 bytes) */
+                p256dh: string;
+                /** @description segredo de autenticação, base64url (16 bytes) */
+                auth: string;
+            };
+        };
+        RemocaoDeInscricaoPush: {
+            endpoint: string;
+        };
+        Novidades: {
+            /**
+             * @description avisos da conta ainda não lidos (todos, não só os desta página)
+             * @example 2
+             */
+            naoLidas: number;
+            itens: components["schemas"]["AvisoDoPainel"][];
+        };
+        /** @description Um horário novo confirmado pelo pagamento. Sem nome, WhatsApp, e-mail, CPF nem valor do cliente. */
+        AvisoDoPainel: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uuid
+             * @description para abrir a agenda do dia
+             */
+            reservaId: string;
+            /**
+             * @description nome do serviço no momento do aviso
+             * @example Corte Degradê
+             */
+            servico: string;
+            /**
+             * Format: date-time
+             * @description o horário marcado (fuso da barbearia)
+             * @example 2026-11-27T10:00:00-03:00
+             */
+            inicio: string;
+            /** Format: date-time */
+            criadoEm: string;
+            lido: boolean;
         };
         AlcancePublico: {
             /**
@@ -3342,6 +3515,146 @@ export interface operations {
             401: components["responses"]["Erro401"];
             403: components["responses"]["Erro403"];
             404: components["responses"]["Erro404"];
+        };
+    };
+    chavePublicaDeNotificacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chave pública, ou indisponível */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChavePublicaPush"];
+                };
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    inscreverAparelhoDePush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InscricaoPush"];
+            };
+        };
+        responses: {
+            /** @description Aparelho inscrito */
+            204: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    removerAparelhoDePush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemocaoDeInscricaoPush"];
+            };
+        };
+        responses: {
+            /** @description Aparelho removido (ou nada a remover) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    novidadesDoPainel: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os avisos e quantos ainda não foram lidos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Novidades"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    marcarNovidadesComoLidas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Avisos marcados como lidos */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    enviarNotificacaoDeTeste: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aviso de teste enviado (ou nenhum aparelho inscrito) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            429: components["responses"]["Erro429"];
         };
     };
 }

@@ -103,11 +103,11 @@ class ContratoExemplosDeErroTest {
     }
 
     @Test
-    @DisplayName("A33: o contrato 1.9.0 (que mantém a 1.8.0) declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
+    @DisplayName("A33: o contrato (1.8.0 em diante) declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
     @SuppressWarnings("unchecked")
     void contratoDoConvite() throws IOException {
         Map<String, Object> c = contrato();
-        assertThat(mapa(c, "info").get("version")).isEqualTo("1.9.0");
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(8|9|1[0-9])\\.\\d+");
         assertThat(mapa(c, "paths")).containsKeys("/auth/convite", "/admin/barbeiros/{id}/convite");
         assertThat(mapa(mapa(c, "paths"), "/admin/barbeiros/{id}/convite")).containsKeys("post", "delete");
         assertThat((List<String>) mapa(mapa(mapa(c, "components"), "schemas"), "CodigoErro").get("enum")).contains("CONVITE_INVALIDO");
@@ -118,11 +118,25 @@ class ContratoExemplosDeErroTest {
     }
 
     @Test
+    @DisplayName("A50: o contrato 1.10.0 declara as 6 operações de /admin/notificacoes e os 5 schemas novos, sem código de erro novo; o resto (lint do Redocly e conferir-spec.sh 13 --exigir) roda no CI")
+    @SuppressWarnings("unchecked")
+    void contratoDaNotificacao() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(10|1[1-9])\\.\\d+");
+        Map<String, Object> paths = mapa(c, "paths");
+        assertThat(paths).containsKeys("/admin/notificacoes", "/admin/notificacoes/chave-publica", "/admin/notificacoes/inscricao",
+                "/admin/notificacoes/marcar-lidas", "/admin/notificacoes/teste");
+        assertThat(mapa(paths, "/admin/notificacoes/inscricao")).containsKeys("post", "delete");
+        assertThat(mapa(mapa(c, "components"), "schemas")).containsKeys("ChavePublicaPush", "InscricaoPush", "RemocaoDeInscricaoPush",
+                "Novidades", "AvisoDoPainel");
+    }
+
+    @Test
     @DisplayName("A45: o contrato 1.9.0 declara PUT /me, o consentimento de região, a retirada do visitante, o nível do alcance e o exemplo do painel com grupos e filhos")
     @SuppressWarnings("unchecked")
     void contratoDaFatia11() throws IOException {
         Map<String, Object> c = contrato();
-        assertThat(mapa(c, "info").get("version")).isEqualTo("1.9.0");
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(9|1[0-9])\\.\\d+");
         assertThat(mapa(c, "paths")).containsKeys("/me/consentimentos/regiao", "/agendamentos/guest/{id}/regiao", "/alcance", "/admin/alcance");
         assertThat(mapa(mapa(c, "paths"), "/me")).containsKeys("get", "put", "delete");
         Map<String, Object> esquemas = mapa(mapa(c, "components"), "schemas");
