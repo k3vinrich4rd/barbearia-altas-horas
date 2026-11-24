@@ -24,6 +24,6 @@ export default defineConfig({
     url: `http://localhost:${process.env.PORT ?? 3000}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { API_URL, NEXT_PUBLIC_PAGAMENTO_SIMULADO: "true", NEXT_PUBLIC_HORIZONTE_DIAS: "30" },
+    env: { API_URL, NEXT_PUBLIC_PAGAMENTO_SIMULADO: "true" },
   },
 });

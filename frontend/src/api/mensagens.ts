@@ -28,11 +28,14 @@ export const MENSAGENS: Record<string, string> = {
   CONFLITO_CONCORRENTE: "Muitas reservas ao mesmo tempo. Tente de novo.",
   NOME_JA_EXISTE: "Já existe um item com este nome.",
   FORA_DO_EXPEDIENTE: "A barbearia não atende neste horário. Escolha outro.",
-  ANTECEDENCIA_INSUFICIENTE: "É preciso agendar com pelo menos 2 horas de antecedência.",
-  FORA_DO_HORIZONTE: "Só dá para agendar com até 30 dias de antecedência.",
+  // D197 (Fatia 14A): não há antecedência mínima nem limite de dias; "antecedência" é só o nome do código, que significa "já passou".
+  ANTECEDENCIA_INSUFICIENTE: "Esse horário já passou. Escolha um horário mais para frente.",
+  // Deprecated na 1.11.0: a API não devolve mais; o texto fica para um front e uma API de versões diferentes durante o deploy.
+  FORA_DO_HORIZONTE: "Essa data não está disponível. Escolha outra em Outro dia.",
   ACEITE_POLITICA_OBRIGATORIO: "Para pagar, aceite a política de pagamento.",
   TRANSICAO_INVALIDA: "Essa mudança não é possível agora. Em atendimentos, só depois do horário de início.",
   MOTIVO_OBRIGATORIO: "Informe o motivo do cancelamento.",
+  PRORROGACAO_FORA_DA_JANELA: "Ainda não é hora de acrescentar tempo. O botão aparece no último minuto.",
   RESERVA_EXPIRADA: "O tempo para pagar acabou. Escolha um horário de novo.",
   COBRANCA_EM_ANDAMENTO: "Já existe um pagamento em andamento para esta reserva.",
   SERVICO_INATIVO: "Este serviço não está disponível agora. Escolha outro.",
