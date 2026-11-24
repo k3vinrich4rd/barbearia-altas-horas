@@ -35,6 +35,11 @@ public class RelogioFixoDeTeste {
             agora = agora.plus(quanto);
         }
 
+        /** Vai direto para um instante (a Fatia 14 conta os segundos do prazo do Pix). Quem usa volta com reiniciar(). */
+        public void definir(Instant instante) {
+            agora = instante;
+        }
+
         public void reiniciar() {
             agora = AGORA;
         }
