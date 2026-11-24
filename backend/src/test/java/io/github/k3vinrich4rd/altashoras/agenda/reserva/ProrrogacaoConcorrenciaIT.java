@@ -199,12 +199,15 @@ class ProrrogacaoConcorrenciaIT {
                 prorrogar.doVisitante(UUID.fromString(reserva.id()), reserva.token());
                 relogio.definir(em(10, 3, 0));
                 try {
+                    // Tudo de outro fio: o JdbcTemplate deste fio participa da transação aberta e enxergaria o que ainda não foi commitado.
                     outroFio.submit(job::executar).get(10, TimeUnit.SECONDS);
+                    assertThat(outroFio.submit(() -> status(jdbc, reserva.id())).get(10, TimeUnit.SECONDS))
+                            .as("o job pulou a linha travada").isEqualTo("AGUARDANDO_PAGAMENTO");
+                    assertThat(outroFio.submit(() -> expiraEm(jdbc, reserva.id())).get(10, TimeUnit.SECONDS))
+                            .as("o commit ainda não aconteceu").isEqualTo(em(10, 3, 0));
                 } catch (Exception falha) {
                     throw new IllegalStateException("o job não podia esperar a linha travada", falha);
                 }
-                assertThat(status(jdbc, reserva.id())).as("o job pulou a linha travada").isEqualTo("AGUARDANDO_PAGAMENTO");
-                assertThat(expiraEm(jdbc, reserva.id())).as("o commit ainda não aconteceu").isEqualTo(em(10, 3, 0));
             });
         }
 

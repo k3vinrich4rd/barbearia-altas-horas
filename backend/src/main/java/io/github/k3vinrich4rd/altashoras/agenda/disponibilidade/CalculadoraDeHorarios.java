@@ -17,7 +17,7 @@ import java.util.List;
  * Um início h é oferecido quando:
  *   1. está na grade do turno (do início do turno, de granularidade em granularidade);
  *   2. o serviço inteiro, mais o intervalo entre atendimentos, cabe no turno: [h, h + duração + intervalo);
- *   3. h >= agora + antecedência (inclusivo);
+ *   3. h > agora (desde a Fatia 14A, D197, não há antecedência mínima: só vale o início depois de agora);
  *   4. esse intervalo não sobrepõe nenhum bloqueio (folga ou reserva que ocupa horário).
  * É a mesma conta que a constraint do banco faz na reserva: a tela não oferece o que o banco recusaria.
  */
@@ -32,7 +32,7 @@ public final class CalculadoraDeHorarios {
     }
 
     /** As regras configuráveis (configuracao_agenda), em minutos. */
-    public record Regras(int intervaloEntreAtendimentosMin, int granularidadeMin, int antecedenciaMinimaMin) {
+    public record Regras(int intervaloEntreAtendimentosMin, int granularidadeMin) {
     }
 
     private CalculadoraDeHorarios() {
@@ -40,7 +40,6 @@ public final class CalculadoraDeHorarios {
 
     public static List<ZonedDateTime> calcular(LocalDate data, ZoneId fuso, List<Turno> turnos, List<Bloqueio> bloqueios,
             int duracaoMin, Regras regras, Instant agora) {
-        Instant primeiroPermitido = agora.plus(Duration.ofMinutes(regras.antecedenciaMinimaMin()));
         int ocupacaoMin = duracaoMin + regras.intervaloEntreAtendimentosMin();
         List<ZonedDateTime> livres = new ArrayList<>();
 
@@ -52,7 +51,7 @@ public final class CalculadoraDeHorarios {
                 ZonedDateTime inicio = ZonedDateTime.of(data, LocalTime.ofSecondOfDay(minuto * 60L), fuso);
                 Instant comeca = inicio.toInstant();
                 Instant termina = comeca.plus(Duration.ofMinutes(ocupacaoMin));
-                if (!comeca.isBefore(primeiroPermitido) && livre(comeca, termina, bloqueios)) {
+                if (comeca.isAfter(agora) && livre(comeca, termina, bloqueios)) {
                     livres.add(inicio);
                 }
             }

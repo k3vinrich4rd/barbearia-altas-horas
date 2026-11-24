@@ -81,6 +81,8 @@ class SegurancaConfig {
                         // Visitante sem conta (R26): reserva com limite por IP; a consulta exige o X-Guest-Token.
                         .requestMatchers(HttpMethod.POST, "/agendamentos/guest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/agendamentos/guest/*").permitAll()
+                        // Fatia 14A: "Acrescentar 1 minuto" do visitante, só POST e só com o X-Guest-Token da reserva (a API confere o dono).
+                        .requestMatchers(HttpMethod.POST, "/agendamentos/guest/*/prorrogacao").permitAll()
                         // Fatia 11: o visitante retira a autorização de região com o token da própria reserva (A6).
                         .requestMatchers(HttpMethod.DELETE, "/agendamentos/guest/*/regiao").permitAll()
                         // Pagamento (Fatia 4B): o visitante cobra com o X-Guest-Token e o gateway chama o webhook sem
