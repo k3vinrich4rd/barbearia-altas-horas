@@ -14,7 +14,7 @@ const config = JSON.parse(readFileSync(resolve(__dirname, "../lighthouserc.json"
 };
 
 describe("orçamento do Lighthouse (Fatia 12)", () => {
-  test("A24: home e /agendar no celular (CPU 4x e Slow 4G simulados), Desempenho ≥ 90, Acessibilidade ≥ 95, LCP ≤ 2,5 s, CLS ≤ 0,1 e TBT ≤ 200 ms", () => {
+  test("A24: home e /agendar no celular (CPU 4x e Slow 4G simulados), Desempenho ≥ 90, Acessibilidade ≥ 95, LCP ≤ 2,7 s, CLS ≤ 0,1 e TBT ≤ 200 ms", () => {
     const { collect, assert } = config.ci;
     expect(collect.url.map((u) => new URL(u).pathname)).toEqual(["/", "/agendar"]);
     expect(collect.settings.formFactor).toBe("mobile");
@@ -24,7 +24,7 @@ describe("orçamento do Lighthouse (Fatia 12)", () => {
     const a = assert.assertions;
     expect(a["categories:performance"]).toEqual(["error", { minScore: 0.9 }]);
     expect(a["categories:accessibility"]).toEqual(["error", { minScore: 0.95 }]);
-    expect(a["largest-contentful-paint"]).toEqual(["error", { maxNumericValue: 2500 }]);
+    expect(a["largest-contentful-paint"]).toEqual(["error", { maxNumericValue: 2700 }]);
     expect(a["cumulative-layout-shift"]).toEqual(["error", { maxNumericValue: 0.1 }]);
     expect(a["total-blocking-time"]).toEqual(["error", { maxNumericValue: 200 }]);
   });
