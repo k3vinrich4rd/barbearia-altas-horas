@@ -90,6 +90,8 @@ describe("barra fixa Agendar horário (Fatia 12, E8)", () => {
       const { container, unmount } = render(<BarraAgendar />);
       expect(container.querySelector(".barra-agendar"), caminho).not.toBeNull();
       expect(screen.getByRole("link", { name: "Agendar horário" }), caminho).toHaveAttribute("href", "/agendar");
+      // axe "region" no celular: a barra fixa precisa ser um marco (landmark) próprio.
+      expect(screen.getByRole("complementary", { name: "Agendar horário" }), caminho).toBeInTheDocument();
       unmount();
     }
   });
