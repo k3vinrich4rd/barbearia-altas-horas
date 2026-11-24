@@ -171,7 +171,7 @@ public class ReservarHorario {
 
     /**
      * Reserva manual (D124): as mesmas regras de grade, jornada, almoço, folga e disputa da reserva do cliente, mas a
-     * antecedência mínima não vale (quem trava é a barbearia) e nada é cobrado. {@code aoGravar} roda na mesma transação,
+     * quem trava é a barbearia e nada é cobrado. {@code aoGravar} roda na mesma transação,
      * depois do flush: o painel grava a auditoria ali e, se ela falhar, a reserva desfaz.
      */
     public UUID comoBarbearia(Manual manual, Consumer<UUID> aoGravar) {
@@ -310,18 +310,10 @@ public class ReservarHorario {
         Instant inicio = pedido.inicio().toInstant();
         LocalDate data = LocalDate.ofInstant(inicio, fuso);
         LocalDate hoje = LocalDate.ofInstant(agora, fuso);
-        if (data.isBefore(hoje) || data.isAfter(hoje.plusDays(config.getHorizonteDias()))) {
-            throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_HORIZONTE,
-                    "A agenda aceita datas de hoje até " + config.getHorizonteDias() + " dias à frente.");
-        }
-        if (manual) {
-            // D124: quem trava é a barbearia, então a antecedência mínima não vale; mas o horário não pode ter passado.
-            if (inicio.isBefore(agora)) {
-                throw new ExcecaoDeNegocio(CodigoErro.ANTECEDENCIA_INSUFICIENTE, "Este horário já passou.");
-            }
-        } else if (inicio.isBefore(agora.plus(Duration.ofMinutes(config.getAntecedenciaMinimaMin())))) {
-            throw new ExcecaoDeNegocio(CodigoErro.ANTECEDENCIA_INSUFICIENTE,
-                    "Reservas com pelo menos " + config.getAntecedenciaMinimaMin() / 60 + " h de antecedência.");
+        // D197 (Fatia 14A): cliente, visitante e reserva manual têm uma só regra de tempo: o início depois de agora, no fuso
+        // da barbearia. Data anterior a hoje cai aqui também. Não há antecedência mínima nem limite de dias à frente.
+        if (data.isBefore(hoje) || !inicio.isAfter(agora)) {
+            throw new ExcecaoDeNegocio(CodigoErro.ANTECEDENCIA_INSUFICIENTE, "Este horário já passou.");
         }
 
         int diaDaSemana = data.getDayOfWeek().getValue();
@@ -329,8 +321,7 @@ public class ReservarHorario {
                 .filter(j -> j.getDiaSemana() == diaDaSemana)
                 .map(j -> new Turno(j.getHoraInicio(), j.getHoraFim()))
                 .toList();
-        // Antecedência 0 aqui: ela já foi checada acima, com o código de erro próprio.
-        Regras regras = new Regras(config.getIntervaloEntreAtendimentosMin(), config.getGranularidadeMin(), 0);
+        Regras regras = new Regras(config.getIntervaloEntreAtendimentosMin(), config.getGranularidadeMin());
 
         Instant fim = inicio.plus(Duration.ofMinutes(servico.getDuracaoMin()));
         Instant fimOcupacao = fim.plus(Duration.ofMinutes(config.getIntervaloEntreAtendimentosMin()));

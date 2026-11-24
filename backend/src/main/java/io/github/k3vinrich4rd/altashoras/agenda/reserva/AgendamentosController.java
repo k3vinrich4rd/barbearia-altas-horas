@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -32,11 +33,43 @@ class AgendamentosController {
     private final ReservarHorario reservar;
     private final ConsultaAgendamentos consulta;
     private final RetirarRegiaoDoVisitante retirarRegiao;
+    private final ProrrogarPagamento prorrogar;
 
-    AgendamentosController(ReservarHorario reservar, ConsultaAgendamentos consulta, RetirarRegiaoDoVisitante retirarRegiao) {
+    AgendamentosController(ReservarHorario reservar, ConsultaAgendamentos consulta, RetirarRegiaoDoVisitante retirarRegiao,
+            ProrrogarPagamento prorrogar) {
         this.reservar = reservar;
         this.consulta = consulta;
         this.retirarRegiao = retirarRegiao;
+        this.prorrogar = prorrogar;
+    }
+
+    /**
+     * A prorrogação não tem corpo (1.11.0): {@code {}} ou nada passam, qualquer campo é 400 CAMPO_DESCONHECIDO (o Jackson
+     * recusa o que o record não declara). Ela é idempotente pela natureza, sem Idempotency-Key (E3).
+     */
+    record SemCorpo() {
+    }
+
+    /** "Acrescentar 1 minuto" do cliente logado: 201 quando soma, 200 na repetição (E3). O dono vem do token. */
+    @PostMapping("/agendamentos/{id}/prorrogacao")
+    ResponseEntity<AgendamentoResposta> prorrogarComoCliente(@AuthenticationPrincipal Jwt token, @PathVariable UUID id,
+            @RequestBody(required = false) @Nullable SemCorpo corpo) {
+        UUID cliente = UUID.fromString(token.getSubject());
+        ProrrogarPagamento.Desfecho desfecho = prorrogar.doCliente(cliente, id);
+        return ResponseEntity.status(status(desfecho)).cacheControl(SEM_CACHE).body(consulta.meuSemConciliar(cliente, id));
+    }
+
+    /** O mesmo "mais 1 minuto" do visitante, com o X-Guest-Token da reserva e sem bearer. */
+    @PostMapping("/agendamentos/guest/{id}/prorrogacao")
+    ResponseEntity<AgendamentoResposta> prorrogarComoVisitante(@PathVariable UUID id,
+            @RequestHeader(name = "X-Guest-Token", required = false) @Nullable String token,
+            @RequestBody(required = false) @Nullable SemCorpo corpo) {
+        ProrrogarPagamento.Desfecho desfecho = prorrogar.doVisitante(id, token);
+        return ResponseEntity.status(status(desfecho)).cacheControl(SEM_CACHE).body(consulta.doVisitanteSemConciliar(id));
+    }
+
+    private static HttpStatus status(ProrrogarPagamento.Desfecho desfecho) {
+        return desfecho == ProrrogarPagamento.Desfecho.PRORROGADA ? HttpStatus.CREATED : HttpStatus.OK;
     }
 
     @PostMapping("/agendamentos")

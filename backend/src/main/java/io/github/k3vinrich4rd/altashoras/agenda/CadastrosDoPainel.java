@@ -308,21 +308,19 @@ class CadastrosDoPainel {
             throw new ExcecaoDeNegocio(CodigoErro.CONFLITO_DE_VERSAO);
         }
         List<String> campos = camposAlterados(
-                mudou("antecedenciaMinimaMin", config.getAntecedenciaMinimaMin(), nova.antecedenciaMinimaMin()),
                 mudou("intervaloEntreAtendimentosMin", config.getIntervaloEntreAtendimentosMin(),
                         nova.intervaloEntreAtendimentosMin()),
                 mudou("granularidadeMin", config.getGranularidadeMin(), nova.granularidadeMin()),
-                mudou("horizonteDias", config.getHorizonteDias(), nova.horizonteDias()),
                 mudou("expiracaoPagamentoMin", config.getExpiracaoPagamentoMin(), nova.expiracaoPagamentoMin()));
-        config.alterar(nova.antecedenciaMinimaMin(), nova.intervaloEntreAtendimentosMin(), nova.granularidadeMin(),
-                nova.horizonteDias(), nova.expiracaoPagamentoMin(), alteradaPor, clock.instant());
+        config.alterar(nova.intervaloEntreAtendimentosMin(), nova.granularidadeMin(), nova.expiracaoPagamentoMin(),
+                alteradaPor, clock.instant());
         em.flush();
         return new Alterado<>(configuracaoDe(config), campos);
     }
 
     private static ConfiguracaoCadastrada configuracaoDe(ConfiguracaoAgenda c) {
-        return new ConfiguracaoCadastrada(c.getFuso(), c.getAntecedenciaMinimaMin(), c.getIntervaloEntreAtendimentosMin(),
-                c.getGranularidadeMin(), c.getHorizonteDias(), c.getExpiracaoPagamentoMin(), c.getVersion());
+        return new ConfiguracaoCadastrada(c.getFuso(), c.getIntervaloEntreAtendimentosMin(), c.getGranularidadeMin(),
+                c.getExpiracaoPagamentoMin(), c.getVersion());
     }
 
     // ---- apoio ------------------------------------------------------------------------------------------------------

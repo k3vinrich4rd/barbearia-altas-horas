@@ -44,6 +44,8 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "POST /admin/servicos",
   "POST /agendamentos",
   "POST /agendamentos/guest",
+  "POST /agendamentos/guest/{id}/prorrogacao",
+  "POST /agendamentos/{id}/prorrogacao",
   "POST /auth/cadastro",
   "POST /auth/convite",
   "POST /auth/login",
@@ -81,6 +83,7 @@ export const ROTAS_PUBLICAS: readonly string[] = [
 export const ROTAS_COM_TOKEN_GUEST: readonly string[] = [
   "DELETE /agendamentos/guest/{id}/regiao",
   "GET /agendamentos/guest/{id}",
+  "POST /agendamentos/guest/{id}/prorrogacao",
   "POST /pagamentos/cobrancas",
   "POST /pagamentos/simulacao/{cobrancaId}/confirmar",
 ];

@@ -56,7 +56,7 @@ public class PainelDaAgenda {
     public record Item(UUID id, String status, String origem, UUID servicoId, String servicoNome, int duracaoMin,
             UUID barbeiroId, String barbeiroNome, Instant inicio, Instant fim, long precoCentavos,
             @Nullable Instant expiraEm, @Nullable String motivoCancelamento, long version, @Nullable String clienteNome,
-            @Nullable String clienteWhatsapp, @Nullable String observacao) {
+            @Nullable String clienteWhatsapp, @Nullable String observacao, @Nullable Instant prorrogadaEm) {
 
         @Override
         public String toString() {
@@ -123,12 +123,12 @@ public class PainelDaAgenda {
         }
     }
 
-    public record NovaConfiguracao(int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin, int granularidadeMin,
-            int horizonteDias, int expiracaoPagamentoMin, long version) {
+    public record NovaConfiguracao(int intervaloEntreAtendimentosMin, int granularidadeMin, int expiracaoPagamentoMin,
+            long version) {
     }
 
-    public record ConfiguracaoCadastrada(String fuso, int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin,
-            int granularidadeMin, int horizonteDias, int expiracaoPagamentoMin, long version) {
+    public record ConfiguracaoCadastrada(String fuso, int intervaloEntreAtendimentosMin, int granularidadeMin,
+            int expiracaoPagamentoMin, long version) {
     }
 
     private static final int MOTIVO_MAXIMO = 300;
@@ -138,7 +138,7 @@ public class PainelDaAgenda {
                    r.barbeiro_id, b.nome_exibicao AS barbeiro_nome, r.inicio, r.fim, r.preco_centavos, r.expira_em,
                    r.motivo_cancelamento, r.version,
                    COALESCE(g.nome, u.nome, r.nome_cliente) AS cliente_nome,
-                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao
+                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao, r.prorrogada_em
             FROM reserva r
             JOIN servico s ON s.id = r.servico_id
             JOIN barbeiro b ON b.id = r.barbeiro_id
@@ -158,7 +158,9 @@ public class PainelDaAgenda {
                 rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getLong("preco_centavos"),
                 esperando && expiraEm != null ? expiraEm.toInstant() : null, rs.getString("motivo_cancelamento"),
                 rs.getLong("version"), rs.getString("cliente_nome"), rs.getString("cliente_whatsapp"),
-                rs.getString("observacao"));
+                rs.getString("observacao"),
+                rs.getObject("prorrogada_em", OffsetDateTime.class) == null ? null
+                        : rs.getObject("prorrogada_em", OffsetDateTime.class).toInstant());
     };
 
     private final JdbcClient jdbc;

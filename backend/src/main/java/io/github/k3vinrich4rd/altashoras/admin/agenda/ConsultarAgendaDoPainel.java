@@ -1,5 +1,7 @@
 package io.github.k3vinrich4rd.altashoras.admin.agenda;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -24,18 +26,23 @@ class ConsultarAgendaDoPainel {
     private final PainelDaAgenda agenda;
     private final PendenciasDePagamento pagamentos;
     private final ZoneId fuso;
+    private final Clock clock;
+    private final Duration prorrogacao;
 
     ConsultarAgendaDoPainel(PainelDaAgenda agenda, PendenciasDePagamento pagamentos,
-            @Value("${app.fuso:America/Sao_Paulo}") String fuso) {
+            @Value("${app.fuso:America/Sao_Paulo}") String fuso, Clock clock,
+            @Value("${app.agenda.prorrogacao-pagamento:PT60S}") Duration prorrogacao) {
         this.agenda = agenda;
         this.pagamentos = pagamentos;
         this.fuso = ZoneId.of(fuso);
+        this.clock = clock;
+        this.prorrogacao = prorrogacao;
     }
 
     List<AgendamentoAdmin> consultar(Ator ator, LocalDate data, PainelDaAgenda.Visao visao, @Nullable UUID barbeiroId) {
         List<PainelDaAgenda.Item> itens = agenda.agenda(new PainelDaAgenda.Escopo(ator.id(), ator.admin()), data, visao,
                 barbeiroId);
         Map<UUID, String> cobrancas = pagamentos.statusPorReserva(itens.stream().map(PainelDaAgenda.Item::id).toList());
-        return itens.stream().map(item -> AgendamentoAdmin.de(item, cobrancas.get(item.id()), fuso)).toList();
+        return itens.stream().map(item -> AgendamentoAdmin.de(item, cobrancas.get(item.id()), fuso, clock.instant(), prorrogacao)).toList();
     }
 }

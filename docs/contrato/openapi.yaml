@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.10.1
+  version: 1.11.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     API da agenda online da Barbearia Altas Horas (Jardim Bonança, Osasco, desde 1997).
@@ -117,8 +117,9 @@ paths:
       summary: Horários livres de um dia
       description: |
         Jornada menos folgas e reservas que ocupam horário (CONFIRMADO, ou AGUARDANDO_PAGAMENTO ainda no prazo),
-        em passos de granularidadeMin, a partir de agora + antecedenciaMinimaMin. `data` antes de hoje ou além
-        do horizonte: 422 FORA_DO_HORIZONTE. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
+        em passos de granularidadeMin, **depois de agora** (1.11.0, D197: não há antecedência mínima nem limite de dias à
+        frente). `data` anterior a hoje, no fuso da barbearia: `422 ANTECEDENCIA_INSUFICIENTE` ("o horário já passou");
+        qualquer data de hoje em diante é aceita. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
         inexistente (ou barbeiro inativo): 404. Resposta com Cache-Control no-store.
       security: []
       parameters:
@@ -581,6 +582,62 @@ paths:
                   summary: "Depois do pagamento: CONFIRMADO, sem prazo"
                   value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "CONFIRMADO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": null, "motivoCancelamento": null, "version": 2}
         '404': { $ref: '#/components/responses/Erro404' }
+  /agendamentos/{id}/prorrogacao:
+    post:
+      tags: [agenda]
+      operationId: prorrogarPagamento
+      summary: Acrescenta 1 minuto ao prazo do Pix, uma vez por reserva (1.11.0, D188)
+      description: |
+        Do dono da reserva (`sub` do token). **Sem corpo** (qualquer campo é `400 CAMPO_DESCONHECIDO`) e **sem**
+        `Idempotency-Key`: a prorrogação é um recurso único da reserva, então repetir devolve o que já existe.
+        Só vale no **último minuto** do prazo, `[expiraEm - 60 s, expiraEm)`, e só com a reserva `AGUARDANDO_PAGAMENTO`.
+        Soma 60 s (fixos, `prorrogacao.segundos`) ao prazo que está correndo. Primeira chamada: `201`; repetição com o
+        prazo ainda vivo: `200` com o mesmo corpo, **sem** somar. Ordem das checagens: `404` (não é dono, não existe, é
+        reserva manual) → `422 TRANSICAO_INVALIDA` (status final) → `200` (já prorrogada, no prazo) → `422 RESERVA_EXPIRADA`
+        (prazo vencido, sem carência e sem reabertura) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava.
+        O Pix já gerado **não muda**. Resposta com Cache-Control no-store.
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '201':
+          description: Prorrogada; `expiraEm` ganhou 60 s e `prorrogacao.usada` é `true`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409Agendamento' }
+        '422': { $ref: '#/components/responses/Erro422' }
+  /agendamentos/guest/{id}/prorrogacao:
+    post:
+      tags: [guest]
+      operationId: prorrogarPagamentoDoGuest
+      summary: O visitante acrescenta 1 minuto ao prazo do Pix (1.11.0, D188)
+      description: |
+        As mesmas regras de `POST /agendamentos/{id}/prorrogacao`, com o `X-Guest-Token` da reserva no lugar do bearer.
+        Token errado, ausente ou de outra reserva: o mesmo `404` de "não existe" (R23). Rota pública só para `POST`.
+      security: [ { guestToken: [] } ]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '200':
+          description: Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '201':
+          description: Prorrogada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agendamento' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '409': { $ref: '#/components/responses/Erro409Agendamento' }
+        '422': { $ref: '#/components/responses/Erro422' }
   /agendamentos/guest/{id}/regiao:
     delete:
       tags: [guest]
@@ -725,8 +782,8 @@ paths:
       description: |
         ADMIN para qualquer barbeiro; BARBEIRO só para si (barbeiro alheio, inexistente ou conta sem vínculo: 404).
         A reserva nasce `CONFIRMADO`, com `origem = MANUAL`, sem cobrança, sem aceite de política e sem prazo. Respeita
-        jornada, almoço, folga, granularidade, serviço ativo e o horizonte; a antecedência mínima **não** vale, mas um
-        horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado (inclusive por corrida): `409
+        jornada, almoço, folga, granularidade e serviço ativo; desde a 1.11.0 (D197) não há antecedência mínima nem horizonte, e um
+        horário que já passou (início até agora, inclusive) é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado (inclusive por corrida): `409
         HORARIO_INDISPONIVEL`. Grava auditoria na mesma transação. Pode ser concluída ou marcada como falta por
         `PATCH /admin/agendamentos/{id}/status`; só o ADMIN cancela (sem cobrança, nada vai para devolução). Não guarda
         WhatsApp, e-mail nem CPF do cliente; `nomeCliente` e `observacao` são anonimizados 90 dias depois do fim da
@@ -1485,9 +1542,12 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problema' }
           examples:
-            foraDoHorizonte:
-              summary: "Data além do horizonte da agenda (GET /disponibilidade)"
-              value: {"detail": "A agenda aceita datas de hoje até 30 dias à frente.", "instance": "/disponibilidade", "status": 422, "title": "Data além do permitido", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#fora_do_horizonte", "code": "FORA_DO_HORIZONTE", "traceId": "a63f7bfb96e54c42a5b75964242a0775", "errors": []}
+            horarioQueJaPassou:
+              summary: "Data ou horário que já passou (GET /disponibilidade ou POST /agendamentos): a única regra de tempo desde a 1.11.0"
+              value: {"detail": "Este horário já passou.", "instance": "/agendamentos", "status": 422, "title": "Horário já passou", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#antecedencia_insuficiente", "code": "ANTECEDENCIA_INSUFICIENTE", "traceId": "a63f7bfb96e54c42a5b75964242a0775", "errors": []}
+            foraDaJanelaDeProrrogacao:
+              summary: "Pediu mais 1 minuto antes do último minuto (POST /agendamentos/{id}/prorrogacao)"
+              value: {"detail": "Só dá para acrescentar tempo no último minuto.", "instance": "/agendamentos/0baf3fc1-4b92-458e-baed-c07646d94692/prorrogacao", "status": 422, "title": "Fora da janela de prorrogação", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#prorrogacao_fora_da_janela", "code": "PRORROGACAO_FORA_DA_JANELA", "traceId": "7c1e0d52b4a94f6c8e2f31a9d05b6c18", "errors": []}
             conviteInvalido:
               summary: "Convite que não vale (POST /auth/convite): inexistente, vencido, usado, revogado ou e-mail que não serve; o corpo é o mesmo nos seis casos"
               value: {"detail": "Este convite não vale mais ou não pode ser usado aqui.", "instance": "/auth/convite", "status": 422, "title": "Convite inválido", "type": "https://github.com/k3vinrich4rd/barbearia-altas-horas/blob/main/docs/contrato/contrato-api.md#convite_invalido", "code": "CONVITE_INVALIDO", "traceId": "0f6c1d2e9a4b4c58b7d3a1e5c9f20b64", "errors": []}
@@ -1532,13 +1592,16 @@ components:
         errors: []
     CodigoErro:
       type: string
+      description: |
+        `FORA_DO_HORIZONTE` está **deprecated** desde a 1.11.0 (D197): a API não o devolve mais, e o nome fica no enum para o front
+        antigo e o texto genérico dele não quebrarem. `ANTECEDENCIA_INSUFICIENTE` continua, agora só para "o horário já passou".
       enum: [VALIDACAO_INVALIDA, JSON_MALFORMADO, CAMPO_DESCONHECIDO, CEP_INVALIDO, CPF_INVALIDO,
              IDEMPOTENCY_KEY_AUSENTE, NAO_AUTENTICADO, CREDENCIAIS_INVALIDAS, REFRESH_INVALIDO,
              REFRESH_REUTILIZADO, WEBHOOK_NAO_AUTENTICADO, ACESSO_NEGADO, RECURSO_NAO_ENCONTRADO,
              TROCA_DE_SENHA_OBRIGATORIA, CEP_NAO_ENCONTRADO, FUNCIONALIDADE_DESLIGADA, METODO_NAO_PERMITIDO, MIDIA_NAO_SUPORTADA, EMAIL_JA_CADASTRADO, HORARIO_INDISPONIVEL,
              CONFLITO_DE_VERSAO, CONFLITO_CONCORRENTE, NOME_JA_EXISTE, FORA_DO_EXPEDIENTE, ANTECEDENCIA_INSUFICIENTE,
              FORA_DO_HORIZONTE, ACEITE_POLITICA_OBRIGATORIO, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
-             RESERVA_EXPIRADA, COBRANCA_EM_ANDAMENTO, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
+             PRORROGACAO_FORA_DA_JANELA, RESERVA_EXPIRADA, COBRANCA_EM_ANDAMENTO, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
              FOLGA_COM_RESERVAS, USUARIO_JA_VINCULADO, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL,
              BANCO_INDISPONIVEL, EXCLUSAO_BLOQUEADA_POR_RESERVA, CONVITE_INVALIDO, ERRO_INTERNO]
     StatusReserva:
@@ -1837,6 +1900,19 @@ components:
         motivoCancelamento: { type: [string, 'null'], description: 'só em cancelamento pela barbearia' }
         version: { type: integer, format: int64 }
         regiaoAutorizada: { type: boolean, description: 'só nas respostas do visitante (1.9.0): a reserva guarda a região com a prova do aceite; vira false depois de `DELETE /agendamentos/guest/{id}/regiao`' }
+        prorrogacao:
+          description: |
+            Acrescentar tempo para pagar (1.11.0, D188). Nulo quando não se aplica: reserva manual ou reserva que não
+            está AGUARDANDO_PAGAMENTO dentro do prazo.
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [usada, segundos, abreEm, fechaEm]
+              properties:
+                usada: { type: boolean, description: 'true depois da única prorrogação permitida' }
+                segundos: { type: integer, example: 60, description: 'quanto tempo a prorrogação acrescenta (fixo em 60 na aplicação, D190)' }
+                abreEm: { type: string, format: date-time, description: 'início do último minuto (expiraEm - 60 s)' }
+                fechaEm: { type: string, format: date-time, description: 'fim da janela, exclusivo: o próprio expiraEm' }
     AgendamentoAdmin:
       description: |
         O Agendamento visto pelo painel: mais o contato de quem vem (nome e WhatsApp, nunca e-mail nem CPF) e o status
@@ -2029,14 +2105,16 @@ components:
     ConfiguracaoAgenda:
       type: object
       additionalProperties: false
-      required: [antecedenciaMinimaMin, intervaloEntreAtendimentosMin, granularidadeMin, horizonteDias,
-                 expiracaoPagamentoMin, version]
+      description: |
+        1.11.0 (D197): a antecedência mínima e o horizonte foram revogados e **saem da resposta**. No `PUT` os dois ficam
+        opcionais, `deprecated` e **ignorados** (um front antigo que ainda os envia não recebe `400` durante o deploy).
+      required: [intervaloEntreAtendimentosMin, granularidadeMin, expiracaoPagamentoMin, version]
       properties:
         fuso: { type: string, readOnly: true, example: America/Sao_Paulo, description: 'só leitura: mandar o campo no PUT é 400 CAMPO_DESCONHECIDO' }
-        antecedenciaMinimaMin: { type: integer, minimum: 0, example: 120, description: 'H5: 2 horas' }
+        antecedenciaMinimaMin: { type: integer, minimum: 0, deprecated: true, writeOnly: true, description: 'REVOGADA na 1.11.0 (H5, D197): ignorado no PUT e ausente da resposta' }
         intervaloEntreAtendimentosMin: { type: integer, minimum: 0, maximum: 120, example: 0, description: 'H4: sem intervalo' }
         granularidadeMin: { type: integer, enum: [5, 10, 15, 20, 30, 60], example: 30, description: 'H11: 30 min' }
-        horizonteDias: { type: integer, minimum: 1, maximum: 365, example: 30, description: 'H12: 30 dias' }
+        horizonteDias: { type: integer, minimum: 1, maximum: 365, deprecated: true, writeOnly: true, description: 'REVOGADO na 1.11.0 (H12, D197): ignorado no PUT e ausente da resposta' }
         expiracaoPagamentoMin: { type: integer, minimum: 3, maximum: 60, example: 3 }
         version: { type: integer, format: int64 }
     Consentimento:

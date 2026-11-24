@@ -68,6 +68,13 @@ public class Reserva {
     @Column(name = "motivo_cancelamento")
     private @Nullable String motivoCancelamento;
 
+    /**
+     * Quando o cliente acrescentou 1 minuto ao prazo do Pix (Fatia 14A, E2). Só leitura aqui: quem grava é o caso de uso
+     * ProrrogarPagamento, por SQL com a trava da linha, e nunca volta a nulo.
+     */
+    @Column(name = "prorrogada_em", insertable = false, updatable = false)
+    private @Nullable Instant prorrogadaEm;
+
     @Column(name = "cancelado_por")
     private @Nullable UUID canceladoPor;
 

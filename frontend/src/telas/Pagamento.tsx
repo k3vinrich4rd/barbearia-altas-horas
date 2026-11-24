@@ -14,7 +14,7 @@ import { Botao, LinkBotao } from "@/componentes/Botao";
 import { Icone } from "@/componentes/Icone";
 import { Campo } from "@/componentes/Campo";
 import { CopiarTexto } from "@/componentes/CopiarTexto";
-import { Cronometro } from "@/componentes/Cronometro";
+import { Cronometro, descreverTempo } from "@/componentes/Cronometro";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { QrPix } from "@/componentes/QrPix";
 import { useSessao } from "@/componentes/Sessao";
@@ -55,9 +55,15 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
   const envio = useEnvio();
   const chaveRef = useRef<string | null>(null);
   const aceiteRef = useRef<HTMLInputElement>(null);
+  // "Acrescentar 1 minuto" (Fatia 14A): um envio por vez, a mensagem que recebe o foco e o que a API respondeu de errado.
+  const prorrogacaoEnvio = useEnvio();
+  const [prorrogado, setProrrogado] = useState<number | undefined>();
+  const [foraDaJanela, setForaDaJanela] = useState(false);
+  const [expiradoPelaApi, setExpiradoPelaApi] = useState(false);
+  const prorrogadoRef = useRef<HTMLParagraphElement>(null);
 
   const status = reserva?.status;
-  const expirada = status === "EXPIRADO" || status === "CANCELADO";
+  const expirada = status === "EXPIRADO" || status === "CANCELADO" || expiradoPelaApi;
 
   const atualizarStatus = useCallback(async () => {
     try {
@@ -140,6 +146,44 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
     if (c === "ACEITE_POLITICA_OBRIGATORIO") aceiteRef.current?.focus();
   }, [envio.erro]);
 
+  /**
+   * "Acrescentar 1 minuto": a rota é idempotente pela natureza (repetir devolve o que já existe), então não precisa de chave.
+   * Depois do sucesso o contador soma o minuto ao que está correndo e o Pix na tela continua o mesmo.
+   */
+  async function acrescentar() {
+    const feita = await prorrogacaoEnvio.executar(() =>
+      chamar(
+        sessao.autenticado
+          ? api().POST("/agendamentos/{id}/prorrogacao", { params: { path: { id: reservaId } } })
+          : api().POST("/agendamentos/guest/{id}/prorrogacao", { params: { path: { id: reservaId } } }),
+      ),
+    );
+    if (feita) {
+      setAtual(feita);
+      setProrrogado(feita.prorrogacao?.segundos ?? 60);
+    }
+  }
+
+  // O foco vai para a mensagem de sucesso (quem usa leitor de tela ouve o tempo novo, que o contador também anuncia).
+  useEffect(() => {
+    if (prorrogado !== undefined) prorrogadoRef.current?.focus();
+  }, [prorrogado]);
+
+  // Quem decide é a API: 422 RESERVA_EXPIRADA encerra a tela; 422 PRORROGACAO_FORA_DA_JANELA (relógio do aparelho adiantado)
+  // esconde o botão por um instante e a janela da API volta a valer.
+  useEffect(() => {
+    const c = prorrogacaoEnvio.erro?.code;
+    if (c === "RESERVA_EXPIRADA") {
+      setExpiradoPelaApi(true);
+      void atualizarStatus();
+    }
+    if (c === "PRORROGACAO_FORA_DA_JANELA") {
+      setForaDaJanela(true);
+      const t = setTimeout(() => setForaDaJanela(false), 10_000);
+      return () => clearTimeout(t);
+    }
+  }, [prorrogacaoEnvio.erro, atualizarStatus]);
+
   async function simular() {
     if (!cobranca) return;
     try {
@@ -168,8 +212,25 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
             <>
               <aside aria-labelledby="resumo-pagamento" className="resumo">
                 {!expirada && res.expiraEm && (
-                  <Cronometro expiraEm={res.expiraEm} aoZerar={() => void atualizarStatus()} />
+                  <Cronometro
+                    expiraEm={res.expiraEm}
+                    aoZerar={() => void atualizarStatus()}
+                    prorrogacao={foraDaJanela ? null : res.prorrogacao}
+                    acrescentando={prorrogacaoEnvio.enviando}
+                    aoAcrescentar={() => void acrescentar()}
+                  />
                 )}
+                {!expirada && prorrogado !== undefined && (
+                  <p role="status" tabIndex={-1} ref={prorrogadoRef} className="nota">
+                    Pronto, mais {descreverTempo(prorrogado)} no contador.
+                  </p>
+                )}
+                {!expirada &&
+                  prorrogacaoEnvio.erro &&
+                  prorrogacaoEnvio.erro.code !== "PRORROGACAO_FORA_DA_JANELA" &&
+                  prorrogacaoEnvio.erro.code !== "RESERVA_EXPIRADA" && (
+                    <AvisoDeErro erro={prorrogacaoEnvio.erro} focar={false} />
+                  )}
                 <h2 id="resumo-pagamento">Seu horário</h2>
                 <dl>
                   <dt>Serviço</dt>

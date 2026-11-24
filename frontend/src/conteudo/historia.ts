@@ -71,7 +71,8 @@ export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
   },
   {
     pergunta: "Com quanta antecedência posso agendar?",
-    resposta: "Com pelo menos 2 horas de antecedência e até 30 dias à frente.",
+    resposta:
+      "Quando quiser: para hoje mesmo, desde que o horário ainda não tenha passado, ou para qualquer data futura. Pagou, o horário é seu.",
   },
 ];
 

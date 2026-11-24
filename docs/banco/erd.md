@@ -71,11 +71,9 @@ erDiagram
     configuracao_agenda {
         smallint id PK "sempre 1"
         varchar fuso
-        int antecedencia_minima_min "H5"
         int janela_cancelamento_min "H6"
         int intervalo_entre_atendimentos_min "H4"
         int granularidade_min "H11"
-        int horizonte_dias "H12"
         int expiracao_guest_min "15"
         int percentual_sinal "50"
         varchar politica_sinal "H7"
