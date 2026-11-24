@@ -54,6 +54,19 @@ public class TransicoesDeCobranca {
                 .param("reserva", reservaId).param("agora", OffsetDateTime.ofInstant(agora, ZoneOffset.UTC)).update();
     }
 
+    /**
+     * O prazo da reserva ganhou 1 minuto (Fatia 14A, E6): a cobrança PENDENTE acompanha. Só o {@code expira_em}; o Pix, o id
+     * no gateway e o valor não mudam. Valor absoluto, então o evento reentregue é inofensivo.
+     */
+    public void acompanharPrazo(UUID reservaId, Instant expiraEmNovo, Instant agora) {
+        jdbc.sql("""
+                UPDATE cobranca SET expira_em = :novo, atualizado_em = :agora, version = version + 1
+                WHERE reserva_id = :reserva AND status = 'PENDENTE' AND (expira_em IS NULL OR expira_em < :novo)
+                """)
+                .param("novo", OffsetDateTime.ofInstant(expiraEmNovo, ZoneOffset.UTC))
+                .param("agora", OffsetDateTime.ofInstant(agora, ZoneOffset.UTC)).param("reserva", reservaId).update();
+    }
+
     /** Devolução registrada à mão (E13). Zero linhas = não existe, ou já não está devolvível. */
     public int devolver(UUID id, UUID por, Instant agora) {
         OffsetDateTime quando = OffsetDateTime.ofInstant(agora, ZoneOffset.UTC);

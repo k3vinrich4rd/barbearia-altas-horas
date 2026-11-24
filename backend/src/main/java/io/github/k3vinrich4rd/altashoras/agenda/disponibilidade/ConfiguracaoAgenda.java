@@ -12,7 +12,8 @@ import jakarta.persistence.Version;
 import org.jspecify.annotations.Nullable;
 
 /**
- * As regras que a barbearia muda sem deploy (linha única, id = 1). Nenhuma delas é fixa no código (D15).
+ * As regras que a barbearia muda sem deploy (linha única, id = 1). Nenhuma delas é fixa no código (D15). Desde a V14
+ * (Fatia 14A, D197) a agenda não tem antecedência mínima nem horizonte: as duas colunas deixaram de existir.
  * {@code @Version}: duas telas salvando a configuração ao mesmo tempo não se sobrescrevem (409 CONFLITO_DE_VERSAO).
  */
 @Entity
@@ -27,17 +28,11 @@ public class ConfiguracaoAgenda {
     @Column(nullable = false)
     private String fuso;
 
-    @Column(name = "antecedencia_minima_min", nullable = false)
-    private int antecedenciaMinimaMin;
-
     @Column(name = "intervalo_entre_atendimentos_min", nullable = false)
     private int intervaloEntreAtendimentosMin;
 
     @Column(name = "granularidade_min", nullable = false)
     private int granularidadeMin;
-
-    @Column(name = "horizonte_dias", nullable = false)
-    private int horizonteDias;
 
     @Column(name = "expiracao_pagamento_min", nullable = false)
     private int expiracaoPagamentoMin;
@@ -55,12 +50,10 @@ public class ConfiguracaoAgenda {
     }
 
     /** O fuso não muda pelo painel (só leitura, E22). Valores já validados pelo chamador. */
-    public void alterar(int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin, int granularidadeMin,
-            int horizonteDias, int expiracaoPagamentoMin, UUID atualizadoPor, Instant agora) {
-        this.antecedenciaMinimaMin = antecedenciaMinimaMin;
+    public void alterar(int intervaloEntreAtendimentosMin, int granularidadeMin, int expiracaoPagamentoMin,
+            UUID atualizadoPor, Instant agora) {
         this.intervaloEntreAtendimentosMin = intervaloEntreAtendimentosMin;
         this.granularidadeMin = granularidadeMin;
-        this.horizonteDias = horizonteDias;
         this.expiracaoPagamentoMin = expiracaoPagamentoMin;
         this.atualizadoPor = atualizadoPor;
         this.atualizadoEm = agora;
@@ -68,10 +61,6 @@ public class ConfiguracaoAgenda {
 
     public String getFuso() {
         return fuso;
-    }
-
-    public int getAntecedenciaMinimaMin() {
-        return antecedenciaMinimaMin;
     }
 
     public int getIntervaloEntreAtendimentosMin() {
@@ -84,10 +73,6 @@ public class ConfiguracaoAgenda {
 
     public int getExpiracaoPagamentoMin() {
         return expiracaoPagamentoMin;
-    }
-
-    public int getHorizonteDias() {
-        return horizonteDias;
     }
 
     public long getVersion() {
