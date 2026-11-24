@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.10.0
+# 📑 Contrato da API · v1.10.1
 
 | | |
 |---|---|
@@ -441,6 +441,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 429 | <a id="limite_excedido"></a>`LIMITE_EXCEDIDO` | limite de tentativas (H14), com `Retry-After` | Muitas tentativas |
 | 503 | <a id="gateway_indisponivel"></a>`GATEWAY_INDISPONIVEL` | gateway fora ou lento | Pagamento indisponível no momento |
 | 503 | <a id="cep_indisponivel"></a>`CEP_INDISPONIVEL` | ViaCEP e BrasilAPI fora | Consulta de CEP indisponível |
+| 503 | <a id="banco_indisponivel"></a>`BANCO_INDISPONIVEL` | banco de dados fora ou lento (Fatia 8B, E10); com `Retry-After`, sem dado do banco no corpo | Agenda indisponível no momento |
 | 500 | <a id="erro_interno"></a>`ERRO_INTERNO` | erro não previsto (sem detalhe técnico na resposta) | Erro interno |
 
 ## 6. Propostas (atrás de flag ou pós-beta)
@@ -460,6 +461,7 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.10.1 | 2026-11-24 | Fatia 8B: código de erro novo `503 BANCO_INDISPONIVEL` (banco fora ou lento, com `Retry-After`, sem dado do banco); as rotas `/actuator/health/liveness` e `/readiness` são de operação e ficam fora do contrato | não (um código novo no enum; o front trata como 503 genérico) |
 | 1.10.0 | 2026-11-24 | Fatia 13 (notificação ao barbeiro): `GET /admin/notificacoes/chave-publica`, `POST` e `DELETE /admin/notificacoes/inscricao`, `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` e `POST /admin/notificacoes/teste` (todas 🛠, só da conta do token); schemas `ChavePublicaPush`, `InscricaoPush`, `RemocaoDeInscricaoPush`, `Novidades` e `AvisoDoPainel`. Nenhum campo novo nos schemas existentes e nenhum código de erro novo. A versão `1.9.0` é da Fatia 11 (alcance por nível) | não (só acrescenta) |
 | 1.9.0 | 2026-11-23 | Fatia 11 (alcance por nível, ADR 0014): `PUT /me` e `PUT /me/consentimentos/regiao` (consentimento `REGIAO_ALCANCE`, revogar apaga a região), `DELETE /agendamentos/guest/{id}/regiao` (o visitante retira a autorização), `autorizaRegiao` e `versaoTextoRegiao` em `POST /auth/cadastro` e `POST /agendamentos/guest` (o `cep` só vale com a caixinha e nunca é guardado), `regiaoAutorizada` no `Perfil`, na exportação e nas respostas do visitante, `municipioIbge` em `Endereco`, `textoConsentimentoRegiao` e a política **1.2**; `GET /alcance` em **faixas** (`faixaPercentual`, `bairrosComFaixa`, `codigoIbge`, `comFaixas`; `bairros` fica `deprecated`) e contando pessoas; `GET /admin/alcance` com `nivel`, `uf`, `periodo`, `k`, `totalVisivel`, `grupos` e `filhos` (`total` e `cidades` ficam `deprecated`). `endereco.cep` fica `deprecated` e sempre nulo. **Exceção à regra de só acrescentar:** `AlcancePainel.semRegiao` passou de número a objeto `{ clientes, abaixoDoLimite }` | sim, só o painel de alcance (atualizado na mesma entrega); o resto só acrescenta |
 | 1.8.0 | 2026-11-23 | Fatia 10B (convite do barbeiro): `POST` e `DELETE /admin/barbeiros/{id}/convite` (só ADMIN), `POST /auth/convite` (pública, com limite por IP), código de erro `422 CONVITE_INVALIDO`, `BarbeiroAdmin.acesso` e `conviteExpiraEm` (só leitura); `DELETE /me` de cliente que também é barbeiro ativo responde `409 USUARIO_JA_VINCULADO`. Só acréscimos; os papéis, as rotas e as telas atuais continuam valendo | não (só acrescenta) |

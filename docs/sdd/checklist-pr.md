@@ -15,6 +15,7 @@ Ordem obrigatória: **spec → contrato → teste → código → docs**. Nenhum
 - [ ] Nenhum dado pessoal (CPF, telefone, CEP) em log
 - [ ] ArchUnit e Spring Modulith `verify()` verdes
 - [ ] Valores de regra vêm do banco/config, nunca fixos (D15)
+- [ ] Migração nova é compatível com o código anterior (expandir → migrar → contrair, em releases separadas): o rollback do Render depende disso ([rollback](../planejamento/ativar-deploy.md#como-voltar-atrás-rollback-fatia-8b))
 
 ## Fechamento
 - [ ] CI verde (build, testes, CodeQL, gitleaks)

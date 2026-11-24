@@ -13,8 +13,11 @@ services:
     branch: main                    # só a main é implantada; a develop nunca vai para o ar sozinha
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /actuator/health
-    autoDeploy: false               # beta: o Kevin aperta "Manual Deploy"; ligar depois é decisão registrada (D-3)
+    healthCheckPath: /actuator/health/liveness   # só "o processo está vivo": banco fora não faz o Render reiniciar a API (E7)
+    # Fatia 8B (E1): publica a main só depois que os checks do GitHub (Backend CI e Frontend CI) passam.
+    # Chave conferida em https://render.com/docs/blueprint-spec em 23/11/2026: autoDeployTrigger (commit | checksPass | off);
+    # substitui o autoDeploy, que está obsoleto. O Manual Deploy continua existindo no painel (deploy de emergência).
+    autoDeployTrigger: checksPass
     envVars:
       # --- valores não secretos, fixos ---
       - key: SPRING_PROFILES_ACTIVE
