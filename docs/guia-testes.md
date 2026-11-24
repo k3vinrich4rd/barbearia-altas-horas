@@ -1132,6 +1132,24 @@ O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a 
 
 Para o teste de visitantes, esta seção **não** entra: o público só testa o cliente (13 passos); o convite e o desligamento são da equipe.
 
+### 7.6 Notificação ao barbeiro (Fatia 13) ✅
+
+Quando o **pagamento confirma** uma reserva (de cliente com cadastro ou de visitante), o barbeiro daquela reserva ganha um aviso em **Painel → Novidades** e, se tiver o aparelho ativado, uma notificação no celular: *"Novo horário: Corte Degradê, sex 27/11 às 10:00"* (a spec escreveu "qui" no exemplo, mas 27/11/2026 é sexta). O aviso **não leva o nome do cliente**. Reserva que expira, cancelada ou manual não avisa. As telas **aguardam desenho** (layout neutro, D148). Só a equipe testa: o público não entra aqui.
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| N1 | Painel → Notificações | como barbeiro, abrir a tela num celular Android ou no computador e tocar em **Ativar notificações** | o navegador pede a permissão **só depois do toque**; a tela passa a "Ativo" com "Enviar um teste" e "Desativar" | a preencher no teste manual (depende do aparelho) |
+| N2 | Enviar um teste | tocar em **Enviar um teste** | chega "Notificações ativadas neste aparelho"; o 6º em uma hora responde `429` | a preencher no teste manual |
+| N3 | iPhone | abrir pelo Safari, sem a Tela de Início | a tela mostra "No iPhone, toque em Compartilhar, depois em Adicionar à Tela de Início…"; com iOS menor que 16.4: "Atualize o iPhone…" | a preencher no iPhone real (não dá para provar em teste automático) |
+| N4 | Cliente marca e paga | com a API no perfil `dev`, o cliente (ou visitante) marca com o Eduardo e confirma o pagamento simulado | o selo **Novidades** do Eduardo mostra o número; abrir a lista zera o selo e destaca os itens "Novo"; o barbeiro convidado não vê nada | `frontend/e2e/notificacao.spec.ts` (A43) |
+| N5 | Voltar à aba | deixar o painel aberto, pagar uma reserva em outra aba e voltar | o selo atualiza ao voltar o foco (e na hora, se o push chegar), **sem polling** | `NovidadesDoPainel.test.tsx` (A42) |
+
+**Ligar de verdade:** o par de chaves VAPID e o deploy estão em [ativar-deploy.md](planejamento/ativar-deploy.md#passo-2b--notificação-ao-barbeiro-chave-vapid-fatia-13). Sem as chaves a tela mostra "indisponíveis" e o aviso do painel funciona igual. O e-mail está pronto e desligado: [notificacao-por-email.md](planejamento/notificacao-por-email.md).
+
+**Como ativar no Android e no iPhone (guia curto):** *Android (Chrome):* abra o painel, vá em Notificações, toque em Ativar e em Permitir; confira com "Enviar um teste". *iPhone (iOS 16.4 ou mais novo):* no Safari, toque em Compartilhar, depois em **Adicionar à Tela de Início**; abra o Altas Horas pelo **ícone novo** (não pelo Safari), entre no painel, Notificações, Ativar. Se negou por engano: Ajustes do aparelho, Notificações, Altas Horas.
+
+**Saída real da Fatia 13 (24/11/2026)** está no fim desta seção, em "Números".
+
 ## 8. Jornada completa
 
 > ⏳ Roda quando as Fatias 2 a 7 estiverem na `develop`.

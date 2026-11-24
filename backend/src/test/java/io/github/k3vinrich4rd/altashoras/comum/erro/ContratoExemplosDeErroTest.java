@@ -103,11 +103,11 @@ class ContratoExemplosDeErroTest {
     }
 
     @Test
-    @DisplayName("A33: o contrato 1.8.0 declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
+    @DisplayName("A33: o contrato (1.8.0 em diante) declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
     @SuppressWarnings("unchecked")
     void contratoDoConvite() throws IOException {
         Map<String, Object> c = contrato();
-        assertThat(mapa(c, "info").get("version")).isEqualTo("1.8.0");
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(8|9|1[0-9])\\.\\d+");
         assertThat(mapa(c, "paths")).containsKeys("/auth/convite", "/admin/barbeiros/{id}/convite");
         assertThat(mapa(mapa(c, "paths"), "/admin/barbeiros/{id}/convite")).containsKeys("post", "delete");
         assertThat((List<String>) mapa(mapa(mapa(c, "components"), "schemas"), "CodigoErro").get("enum")).contains("CONVITE_INVALIDO");

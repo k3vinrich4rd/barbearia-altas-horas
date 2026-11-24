@@ -220,4 +220,18 @@ class ArquiteturaTest {
         org.assertj.core.api.Assertions.assertThat(seguranca.split("\"/auth/convite\"", -1)).hasSize(2);
         org.assertj.core.api.Assertions.assertThat(seguranca).doesNotContain("\"/auth/**\"").doesNotContain("\"/admin/barbeiros/*/convite\"");
     }
+
+    @Test
+    @DisplayName("A47: agenda não depende de admin; admin.notificacao não abre BarbeiroRepository nem usa tipo interno da agenda; nenhuma classe usa biblioteca de Web Push nem BouncyCastle (a criptografia é do JDK, D172); só a porta e o Despachante conhecem os canais")
+    void notificacaoRespeitaAsFronteiras() {
+        noClasses().that().resideInAPackage("io.github.k3vinrich4rd.altashoras.agenda..").should().dependOnClassesThat().resideInAPackage("io.github.k3vinrich4rd.altashoras.admin..")
+                .because("a agenda publica o evento e não conhece o painel (ADR 0002)").check(CLASSES);
+        noClasses().that().resideInAPackage("..admin.notificacao..").should().dependOnClassesThat()
+                .resideInAnyPackage("..agenda.catalogo..", "..agenda.reserva..", "..agenda.disponibilidade..", "..conta.usuario..")
+                .because("o painel só usa a API pública da agenda e da conta").check(CLASSES);
+        noClasses().should().dependOnClassesThat().resideInAnyPackage("nl.martijndwars..", "org.bouncycastle..")
+                .because("o Web Push usa só o JDK: sem BouncyCastle nem segundo cliente HTTP na memória pequena").check(CLASSES);
+        noClasses().that().resideOutsideOfPackage("..admin.notificacao..").should().dependOnClassesThat()
+                .resideInAPackage("..admin.notificacao.canal..").because("os canais são detalhe do painel").check(CLASSES);
+    }
 }
