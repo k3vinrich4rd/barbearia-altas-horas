@@ -308,6 +308,20 @@ Quem pode o quê: só o **ADMIN** (Dono/Admin) adiciona um barbeiro, gera o conv
 | Desligar ✅ (10B) | `PUT /admin/barbeiros/{id}` com `ativo: false` | `CadastroDeBarbeiros.alterar` → `Contas.revogarConvite` e `Contas.desligarContaDeEquipe` (tira o papel, anonimiza a conta só de equipe); `ContaEmUso` barra o token antigo; histórico mantido (D153) |
 | Retenção | job `RetencaoDeDados` | `RetencaoDeBarbeiroDesligado`: pseudônimo no `nome_exibicao` 5 anos depois da última reserva |
 
+### 4.2 Aviso ao barbeiro quando o cliente paga (Fatia 13)
+
+O pagamento confirma a reserva, e o **barbeiro daquela reserva** (só ele) sabe na hora. Cliente com cadastro e visitante seguem o mesmo caminho: `Reservas.confirmarPagamento` é o ponto único (webhook, conciliação e simulação passam por ele).
+
+| Passo | Onde | Classes |
+|---|---|---|
+| Pagamento confirma ✅ | webhook ou `POST /pagamentos/simulacao/{id}/confirmar` | `Reservas.confirmarPagamento` muda para `CONFIRMADO` e, **só na mudança**, publica `ReservaConfirmada` (ids e instante, sem dado pessoal) pelo outbox (`event_publication`), na mesma transação. Chamada repetida e `HORARIO_OCUPADO` não publicam |
+| Ouvir o evento ✅ | `admin.notificacao` | `AvisaBarbeiroDaReserva` (`@ApplicationModuleListener`): acha a conta do barbeiro **ativo** (`Reservas.contaDoBarbeiroAtivo`), grava `aviso_barbeiro` (um por reserva e conta) e lê os aparelhos, tudo numa transação curta |
+| Entregar ✅ | fora de transação | `Despachante` chama os canais de `app.notificacao.canais`: `WebPushCanal` (RFC 8291 e VAPID com o JDK, `HttpClient` único, 5 s, só hosts de serviço de push) e, se ligado, `EmailCanal` (stub). Falha passageira deixa o evento pendente; `ReenvioDeAvisosPendentes` republica |
+| Marcar ✅ | transação curta | `push_enviado_em`, `ultimo_envio_ok`; inscrição morta (`404`/`410`) é apagada na hora |
+| Ver no painel ✅ | `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` | `AvisosDoPainel` (2 consultas); o front: `NovidadesProvider` (selo sem polling: foco da aba e `postMessage` do `sw.js`) e `PainelNovidades` |
+| Ativar o aparelho ✅ | `GET .../chave-publica`, `POST` e `DELETE .../inscricao`, `POST .../teste` | `AparelhosDoBarbeiro` (conta do token, limite de 10 aparelhos, 5 testes por hora); o front: `PainelNotificacoes`, `push.ts`, `public/sw.js`, `manifest.ts` |
+| Retenção ✅ | job das 3h | `LimpezaDeNotificacoes` (30 dias de aviso, 90 de aparelho sem envio); desligar o barbeiro e excluir a conta chamam `ApagaNotificacoesDaConta` |
+
 ## 5. Por baixo: o que sustenta tudo
 
 **Eventos e outbox.** Os módulos conversam por API pública (`Reservas`, `PainelDaAgenda`, `CepApi`, `Contas`, `PendenciasDePagamento`) e por eventos (`ReservaExpirada`, `ReservaCancelada`). O Spring Modulith grava cada evento na tabela `event_publication` (migração `V3__eventos.sql`) **na mesma transação** da mudança; o listener (`@ApplicationModuleListener`) completa depois. Se a API cair no meio, o evento não se perde. As fronteiras são conferidas por `ModulithTest` (por exemplo, `agendaEPagamentoSoPelaApiPublica`: a agenda não depende do pagamento).
