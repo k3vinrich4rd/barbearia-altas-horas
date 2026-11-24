@@ -2,16 +2,16 @@
 
 | | |
 |---|---|
-| **Status** | ⏸ **aguarda aprovação do Kevin** (escrita em 24/11/2026). Nenhuma linha de código de produção antes do OK |
+| **Status** | ✅ **APROVADA em 24/11/2026** pelo Kevin, com as respostas da seção 10 (mais 1 minuto só no último minuto, tempo extra fixo, e agenda sem antecedência mínima nem horizonte) |
 | **Origem** | pedidos do Kevin em 24/11/2026: (1) **mais 1 minuto no Pix**, uma vez por reserva · (2) **olhinho** em todo campo de senha · (3) **mensagens** no padrão de uma barbearia de excelência · (4) **história do Eduardo** reescrita só com fatos do repositório · (5) site **mais fluido e interativo** (no máximo 8 melhorias) · (6) **agenda do painel nova**, com a grade do dia e o calendário do mês, no lugar do filtro "Dia anterior · Hoje · Próximo dia · Dia · Semana" |
-| **Não muda** | as 3 formas de agendar (com cadastro, sem cadastro e WhatsApp com reserva manual, R33) · o pagamento 100% antecipado (R6 a R8) · o prazo vindo do `expiraEm` (D121, 3 a 60 min) · a paleta, a tipografia e os tokens (`frontend/design/tokens.json`) · as regras de fechar e cancelar atendimento (R21, R22) · o isolamento por barbeiro (D151, D155, R23) |
-| **Entrega em quatro PRs** (proposta, D-10) | **14A** · mais 1 minuto no Pix (API e tela de pagamento) · **14B** · olhinho, mensagens e Trajetória (só front) · **14C** · agenda nova do painel (2 rotas de leitura e telas) · **14D** · fluidez do site (as melhorias que o Kevin aprovar, depois do desenho) |
+| **Não muda** | as 3 formas de agendar (com cadastro, sem cadastro e WhatsApp com reserva manual, R33) · o pagamento 100% antecipado (R6 a R8) · o prazo vindo do `expiraEm` (D121, 3 a 60 min) · o horário confirmado não é cancelado pelo cliente · a paleta, a tipografia e os tokens (`frontend/design/tokens.json`) · as regras de fechar e cancelar atendimento (R21, R22) · o isolamento por barbeiro (D151, D155, R23) |
+| **Entrega em quatro PRs** | **14A** · mais 1 minuto no Pix e agenda sem antecedência nem horizonte (API e telas) · **14B** · olhinho, mensagens e Trajetória (só front) · **14C** · agenda nova do painel (2 rotas de leitura e telas) · **14D** · fluidez do site (as melhorias que o Kevin aprovar, depois do desenho) |
 | **Regras** | R7 (prazo do pagamento), R13 e R14 (pagamento confirma; pagamento tardio), R15 a R17 (expiração), R18 (sem cancelar nem remarcar), R21 e R22 (fechar e cancelar), R23 (alheio = `404`), R30 (nada pessoal em log), R33 (reserva manual), D121 (prazo configurável), D148 (visual pelo canvas, comportamento pela spec) |
 | **ADRs** | [0002](../adr/0002-comunicacao-entre-modulos.md) (eventos e outbox), [0003](../adr/0003-anti-double-booking-no-banco.md) (constraint e expiração preguiçosa), [0005](../adr/0005-erros-rfc-9457.md) (erros RFC 9457, texto só no front), [0013](../adr/0013-varios-barbeiros-dono-e-convite.md) (vários barbeiros) |
-| **Depende de** | [Fatia 4](fatia-4-agendamento-e-pagamento.md) (reserva, expiração, cobrança, R14) · [Fatia 7](fatia-7-telas.md) (tela de pagamento, painel) · [Fatia 10](fatia-10-convite-do-barbeiro.md) (barbeiro convidado, isolamento) · [Fatia 12](fatia-12-site-fluido.md) (home, `/agendar` em chips, resumo fixo) · [Fatia 13](fatia-13-notificacao-ao-barbeiro.md) (**em implementação**: disputa número de migração e versão do contrato, ver E19) |
-| **Contrato** | `1.10.1 → 1.11.0`, **só acréscimos**: 2 rotas da prorrogação, 2 rotas de leitura da agenda, 1 código de erro, 1 campo no `Agendamento` e 1 campo na configuração (**conferir na implementação**: se a Fatia 13 subir a versão antes, esta leva a seguinte) |
-| **Migração** | a **próxima livre**, planejada como `V14__prorrogacao_do_pagamento.sql` (hoje a `develop` termina na `V13__notificacao_ao_barbeiro.sql`; **conferir na implementação**) |
-| **Decisões** | **D188 a D196**, registradas em [`decisoes.md`](../planejamento/decisoes.md) como **propostas** (viram "aceita" com o OK) |
+| **Depende de** | [Fatia 4](fatia-4-agendamento-e-pagamento.md) (reserva, expiração, cobrança, R14) · [Fatia 7](fatia-7-telas.md) (tela de pagamento, painel) · [Fatia 10](fatia-10-convite-do-barbeiro.md) (barbeiro convidado, isolamento) · [Fatia 12](fatia-12-site-fluido.md) (home, `/agendar` em chips, resumo fixo) · [Fatia 13](fatia-13-notificacao-ao-barbeiro.md) (já na `main`, com a 8B: V13 e contrato 1.10.1) |
+| **Contrato** | `1.10.1 → 1.11.0`, **só acréscimos**: 2 rotas da prorrogação, 2 rotas de leitura da agenda, 1 código de erro e 1 campo no `Agendamento`; e a revogação da antecedência e do horizonte (`FORA_DO_HORIZONTE`, `antecedenciaMinimaMin` e `horizonteDias` ficam `deprecated`, seção 2.1) |
+| **Migração** | `V14__prorrogacao_e_agenda_sem_limites.sql` (a `develop` termina na `V13__notificacao_ao_barbeiro.sql`) |
+| **Decisões** | **D188 a D197**, aceitas em 24/11/2026 em [`decisoes.md`](../planejamento/decisoes.md); a D197 revoga a antecedência mínima (H5) e o horizonte (H12) |
 | **Custo** | **zero**: nenhuma conta, serviço ou biblioteca nova. O `.ics` e o link do WhatsApp são gerados no navegador |
 | **Não cobre** | cancelar ou remarcar pelo cliente (R18 continua) · lembrete automático ao cliente · avaliações com nota · arrastar e soltar reservas na grade do painel · mudar a paleta ou o design system · tradução |
 
@@ -23,36 +23,41 @@ O cliente sente que está sendo **atendido**, não processado: se o Pix demora, 
 
 `openapi.yaml` e `contrato-api.md` na mesma PR do código (`redocly lint` com 0 erros). Só acréscimos.
 
-### 2.1 Mais 1 minuto no Pix (14A)
+### 2.1 Acrescentar 1 minuto no Pix e agenda sem limite de antecedência nem de dias (14A)
 
 | Método | Rota | Quem | Sucesso | Erros |
 |---|---|---|---|---|
-| `POST` | `/agendamentos/{id}/prorrogacao` | cliente logado, dono da reserva (`sub` do token) | `201` com o `Agendamento` (novo `expiraEm`); **`200` na repetição**, com o mesmo corpo e **sem** somar tempo | `401` · `404` (inexistente, alheia, manual) · `404 FUNCIONALIDADE_DESLIGADA` (prorrogação desligada na configuração) · `409 HORARIO_INDISPONIVEL` · `409 CONFLITO_CONCORRENTE` · `422 PRORROGACAO_FORA_DA_JANELA` (**novo**) · `422 RESERVA_EXPIRADA` · `422 TRANSICAO_INVALIDA` |
+| `POST` | `/agendamentos/{id}/prorrogacao` | cliente logado, dono da reserva (`sub` do token) | `201` com o `Agendamento` (novo `expiraEm`); **`200` na repetição**, com o mesmo corpo e **sem** somar tempo | `401` · `404` (inexistente, alheia, manual) · `409 CONFLITO_CONCORRENTE` · `422 PRORROGACAO_FORA_DA_JANELA` (**novo**) · `422 RESERVA_EXPIRADA` · `422 TRANSICAO_INVALIDA` |
 | `POST` | `/agendamentos/guest/{id}/prorrogacao` | visitante, com `X-Guest-Token` | igual | igual, sem `401`; token errado ou ausente = `404` (R23) |
 
 - **Sem corpo.** Corpo com qualquer campo é `400 CAMPO_DESCONHECIDO` (padrão do projeto). Nada de `Idempotency-Key`: a rota é **idempotente pela natureza** (a prorrogação é um recurso único da reserva; repetir devolve o que já existe, E3).
 - A rota do visitante entra na lista pública do `SegurancaConfig` **só para `POST`** (como `POST /agendamentos/guest`).
-- **Código novo** `PRORROGACAO_FORA_DA_JANELA` (`422`, "Fora da janela de prorrogação", "Ainda não dá para pedir mais tempo."): o pedido chegou **antes** da janela abrir. Linha nova na tabela de erros do `contrato-api.md`.
+- **Código novo** `PRORROGACAO_FORA_DA_JANELA` (`422`, "Fora da janela de prorrogação", "Só dá para acrescentar tempo no último minuto."): o pedido chegou **antes** do último minuto. Linha nova na tabela de erros do `contrato-api.md`.
 
 **Campo novo em `Agendamento`** (vale também para `AgendamentoGuest` e `AgendamentoAdmin`, que estendem o schema):
 
 ```yaml
 prorrogacao:
   description: |
-    Mais tempo para pagar (1.11.0, D188). Nulo quando não se aplica: reserva manual, reserva que não está
-    AGUARDANDO_PAGAMENTO nem EXPIRADO dentro da carência, ou prorrogação desligada na configuração.
+    Acrescentar tempo para pagar (1.11.0, D188). Nulo quando não se aplica: reserva manual ou reserva que não
+    está AGUARDANDO_PAGAMENTO dentro do prazo.
   oneOf:
     - type: 'null'
     - type: object
       required: [usada, segundos, abreEm, fechaEm]
       properties:
         usada:   { type: boolean, description: 'true depois da única prorrogação permitida' }
-        segundos: { type: integer, minimum: 1, maximum: 300, example: 60, description: 'quanto tempo a prorrogação dá (configuração)' }
-        abreEm:  { type: string, format: date-time, description: 'a partir de quando dá para pedir (expiraEm - segundos)' }
-        fechaEm: { type: string, format: date-time, description: 'até quando dá para pedir, exclusivo (expiraEm + segundos, a carência)' }
+        segundos: { type: integer, example: 60, description: 'quanto tempo a prorrogação acrescenta (fixo em 60 na aplicação, D190)' }
+        abreEm:  { type: string, format: date-time, description: 'início do último minuto (expiraEm - 60 s)' }
+        fechaEm: { type: string, format: date-time, description: 'fim da janela, exclusivo: o próprio expiraEm' }
 ```
 
-**Campo novo em `ConfiguracaoAgenda`** (`GET` e `PUT /admin/configuracao`): `prorrogacaoPagamentoSeg` (inteiro, `0` a `300`, padrão `60`; `0` desliga). No `PUT` ele é **opcional**: ausente mantém o valor (a tela atual de configuração continua funcionando sem mudar).
+**Agenda sem limites (D197, revoga a antecedência mínima e o horizonte):** "pagou, a agenda é sua e não pode cancelar, então o barbeiro não perde nunca". A **única** regra de tempo para reservar é **o início depois de agora**, no fuso `America/Sao_Paulo`: dá para marcar para daqui a 5 minutos, para hoje mais tarde ou para qualquer data futura. No contrato 1.11.0:
+
+- `GET /disponibilidade` e `POST /agendamentos`, `/agendamentos/guest` e `/admin/agendamentos` aceitam **qualquer data de hoje em diante**. Data **anterior a hoje** ou início que **já passou** é `422 ANTECEDENCIA_INSUFICIENTE` (descrição nova: "o horário já passou"; o nome do código **não muda**, para não quebrar o front).
+- `FORA_DO_HORIZONTE` fica no enum como **`deprecated`** (a API deixa de usar; o front mantém um texto genérico para ele).
+- `ConfiguracaoAgenda` **deixa de ter** `antecedenciaMinimaMin` e `horizonteDias` na resposta; no `PUT /admin/configuracao` os dois ficam **opcionais, `deprecated` e ignorados** (um front antigo que ainda os envia não recebe `400` durante o deploy).
+- A dúvida da home, a mensagem de erro e a nota de `/agendar` mudam (seção 5 e A37).
 
 ### 2.2 Agenda nova do painel (14C)
 
@@ -111,55 +116,53 @@ GradeDoDia:
 
 Nenhuma rota de senha, mensagem, Trajetória ou fluidez (14B e 14D): é só front. Os textos de erro continuam **no front, por `code`** (ADR 0005): a API não muda `title` nem `detail` por causa da voz nova.
 
-## 3. Mais 1 minuto no Pix: a regra
+## 3. Acrescentar 1 minuto: a regra (aprovada em 24/11/2026)
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 stateDiagram-v2
     [*] --> AGUARDANDO_PAGAMENTO
-    AGUARDANDO_PAGAMENTO --> AGUARDANDO_PAGAMENTO: prorrogação (1x, na janela)
+    AGUARDANDO_PAGAMENTO --> AGUARDANDO_PAGAMENTO: acrescentar 1 minuto (1x, só no último minuto)
     AGUARDANDO_PAGAMENTO --> EXPIRADO: prazo vence (job ou preguiçosa)
-    EXPIRADO --> AGUARDANDO_PAGAMENTO: prorrogação na carência, horário livre e sem pagamento registrado
     AGUARDANDO_PAGAMENTO --> CONFIRMADO: pagamento
     EXPIRADO --> CONFIRMADO: pagamento tardio (R14)
 ```
 
-Exemplo com o padrão (`expiracaoPagamentoMin = 3`, `prorrogacaoPagamentoSeg = 60`): reserva criada às **10:00:00**, `expiraEm` **10:03:00**.
+Exemplo com o padrão (`expiracaoPagamentoMin = 3`, tempo extra fixo de 60 s): reserva criada às **10:00:00**, `expiraEm` **10:03:00**.
 
 | Momento | O que acontece |
 |---|---|
 | antes de 10:02:00 | `422 PRORROGACAO_FORA_DA_JANELA`; o botão nem aparece |
-| 10:02:00 a 10:02:59 (prazo acabando) | prorroga: `expiraEm` = **10:03:00 + 60 s = 10:04:00** |
-| 10:03:00 a 10:03:59 (acabou há pouco), ainda `AGUARDANDO_PAGAMENTO` (o job não passou) | prorroga: `expiraEm` = **agora + 60 s** (ex.: 10:03:30 → 10:04:30) |
-| 10:03:00 a 10:03:59, já `EXPIRADO` | **reabre** para `AGUARDANDO_PAGAMENTO` com `expiraEm` = agora + 60 s, **se** o horário continua livre e não há pagamento registrado; senão `409` ou `422` |
-| a partir de 10:04:00 | `422 RESERVA_EXPIRADA` (a carência é exclusiva) |
-| depois de prorrogar uma vez | repetir devolve `200` com o mesmo `expiraEm`; quando esse prazo vencer, `422 RESERVA_EXPIRADA` |
+| 10:02:00 a 10:02:59 (último minuto do contador) | acrescenta: `expiraEm` = **10:03:00 + 60 s = 10:04:00**. Exemplo do Kevin: com o contador em 0:30, o toque leva para **1:30** |
+| a partir de 10:03:00 (o prazo acabou), com a reserva ainda `AGUARDANDO_PAGAMENTO` ou já `EXPIRADO` | `422 RESERVA_EXPIRADA`. **Não existe** pedido de mais tempo nem reabertura depois do fim |
+| depois de acrescentar uma vez | repetir devolve `200` com o mesmo `expiraEm`; quando esse prazo vencer, `422 RESERVA_EXPIRADA` |
 
-**Fórmula:** janela = `[expiraEm − s, expiraEm + s)`; novo prazo = `max(expiraEm, agora) + s`, com `s = prorrogacaoPagamentoSeg`. O cliente sempre ganha **o minuto inteiro** a partir do clique ou do fim do prazo, o que vier depois.
+**Fórmula:** janela = `[expiraEm − 60 s, expiraEm)`; novo prazo = `expiraEm + 60 s`. O tempo extra **soma ao que está correndo**.
 
 ## 4. Decisões de desenho
 
 | # | Pergunta | Decisão | Por quê |
 |---|---|---|---|
 | E1 | Onde mora a regra? | No módulo **`agenda`**: caso de uso `ProrrogarPagamento` (pacote `agenda.reserva`), chamado pelo `AgendamentosController` nas duas rotas. O dono é conferido como hoje (`sub` do token ou `X-Guest-Token` com hash), **antes** de qualquer outra checagem | a reserva e o `expiraEm` são da agenda; a cobrança só acompanha (E6) |
-| E2 | Como garantir "uma única vez"? | Coluna nova `reserva.prorrogada_em timestamptz NULL` (V14). O `UPDATE` só acontece `WHERE prorrogada_em IS NULL`; depois de preenchida, nunca volta a nulo. CHECK `reserva_prorrogacao_ck`: `prorrogada_em IS NULL OR origem <> 'MANUAL'` | o banco é a última linha de defesa, como a constraint EXCLUDE |
-| E3 | Idempotência | A rota é **idempotente sem chave**: a prorrogação é um recurso único da reserva. A 1ª chamada que prorroga devolve `201`; qualquer repetição com `prorrogada_em` preenchida e a reserva ainda `AGUARDANDO_PAGAMENTO` devolve `200` com o estado atual, **sem somar tempo**. Duplo clique, reenvio do navegador e nova tentativa depois de queda de rede dão o mesmo resultado | é o mesmo padrão `201`/`200` da cobrança; o front pode repetir com segurança (D139) |
-| E4 | Concorrência | Uma transação: `SELECT ... FOR UPDATE` na linha da reserva, decide pelo status e grava. O **job** de expiração usa `SKIP LOCKED` e pula a linha travada; depois do commit o prazo já é futuro, então ele não expira. A **expiração preguiçosa** de outro cliente (`vencidasNoHorario`, `FOR UPDATE` sem `SKIP`) espera o commit, vê o prazo novo e bate na constraint (`409` para ele). Duas prorrogações simultâneas: a segunda espera o lock e cai no `200` do E3. Deadlock (`40P01`) repete como o `ReservarHorario` (E4 da Fatia 4) e, esgotado, vira `409 CONFLITO_CONCORRENTE` | mesma estratégia já provada na Fatia 4 (ADR 0003) |
-| E5 | Reabrir uma reserva `EXPIRADO` | Só **dentro da carência** e **sem** prorrogação anterior. É um `UPDATE` de `EXPIRADO` para `AGUARDANDO_PAGAMENTO`, que passa pela constraint `reserva_sem_sobreposicao`: se o horário já é de outro cliente (`23P01`), desfaz e devolve **`409 HORARIO_INDISPONIVEL`**; a reserva continua `EXPIRADO` e a do outro fica intacta. A máquina de estados ganha a transição `EXPIRADO → AGUARDANDO_PAGAMENTO`, **só** por este caso de uso (o `modelo-de-dominio.md` é atualizado) | atende "acabou há pouco" sem tirar o horário de ninguém |
-| E6 | E a cobrança? | A agenda publica `PrazoDaReservaProrrogado(reservaId, expiraEmAnterior, expiraEmNovo, reaberta)` no **outbox**, na mesma transação. O `pagamento` ouve (`AcompanhaPrazoProrrogado`, `@ApplicationModuleListener`) e atualiza `cobranca.expira_em` da cobrança `PENDENTE`; se `reaberta`, a cobrança que o `ReservaExpirada` deixou `CANCELADA` volta a `PENDENTE`. O **gateway não é chamado**: o Pix já gerado continua o mesmo (no Asaas o `dueDate` é por **dia**, e o simulado não tem prazo) | a agenda não conhece o pagamento (ADR 0002); o cliente não precisa gerar outro Pix |
-| E7 | "Respeita a cobrança" | (1) Pagamento **nunca se perde**: o `ProcessarPagamento` já aceita cobrança `PENDENTE` **e** `CANCELADA` (R14), então um Pix que cai no meio da prorrogação confirma a reserva normalmente. (2) **Não reabre** reserva que já tem pagamento registrado (`PAGA`, `PAGA_APOS_EXPIRACAO`, `DEVOLUCAO_PENDENTE` ou `DEVOLVIDA`): `422 RESERVA_EXPIRADA`, e o caso segue pela lista de devoluções do painel. A agenda pergunta isso por uma porta nova na própria agenda, `PagamentoDaReserva.temPagamentoRegistrado(reservaId)`, implementada pelo `pagamento` (mesma inversão do `ConciliadorDePagamento`). (3) `CONFIRMADO`, `CONCLUIDO`, `NAO_COMPARECEU` e `CANCELADO`: `422 TRANSICAO_INVALIDA`, sem mudar nada | sem isso, uma reserva com dinheiro já recebido poderia voltar a "aguardando" |
-| E8 | Ordem das checagens | `404` (dono) → `404 FUNCIONALIDADE_DESLIGADA` (`s = 0`) → `422 TRANSICAO_INVALIDA` (status final) → `200` (já prorrogada e aguardando) → `422 RESERVA_EXPIRADA` (fora da carência, já prorrogada e vencida, ou com pagamento registrado) → `422 PRORROGACAO_FORA_DA_JANELA` (cedo demais) → grava (`201`) ou `409 HORARIO_INDISPONIVEL` | ordem fixa = teste determinístico e nenhum vazamento de existência (R23) |
-| E9 | Tempo | Só pelo `Clock` injetado. A janela é calculada no servidor e devolvida pronta (`abreEm`, `fechaEm`), no fuso da barbearia com offset, como o `expiraEm`. O front **nunca** escreve "1 minuto" fixo: o texto vem de `segundos` (D121, A19 da Fatia 12) | a configuração pode mudar; o relógio do celular pode estar errado (o botão só aparece; quem decide é a API) |
-| E10 | Configuração | `configuracao_agenda.prorrogacao_pagamento_seg integer NOT NULL DEFAULT 60`, CHECK `BETWEEN 0 AND 300`, na V14. `0` desliga (rotas devolvem `404 FUNCIONALIDADE_DESLIGADA`, campo `prorrogacao` nulo). O **limite de 1 vez** não é configurável | regra configurável vem do banco (CLAUDE.md); "uma vez" é a regra de negócio pedida pelo Kevin |
-| E11 | Auditoria | A `auditoria_admin` é do painel (exige `ator_id` de conta) e o visitante não tem conta, então a trilha é: (1) `reserva.prorrogada_em` (quando); (2) o evento `PrazoDaReservaProrrogado` no `event_publication` (prazo anterior e novo, se reabriu); (3) uma linha de log técnica `reserva.prorrogada id=<uuid> reaberta=<bool>`, **sem** nome, e-mail, WhatsApp, CPF ou token (R30). O `AgendamentoAdmin` mostra `prorrogacao.usada` para o Eduardo entender um pagamento que chegou "depois do prazo" | rastreável sem dado pessoal e sem tabela nova |
-| E12 | Disponibilidade | Nada muda no `GET /disponibilidade`: ela já trata como ocupada a `AGUARDANDO_PAGAMENTO` com `expira_em > agora` (R15). Com o prazo novo, o horário volta a aparecer ocupado na hora | uma regra só para ocupação |
-| E13 | Tela de pagamento | O `Cronometro` continua (o Kevin gostou). Na janela e com `usada = false`, aparece o botão **"Mais {n} minuto(s)"** (de `segundos`). Depois do sucesso: o contador passa a contar do `expiraEm` novo, o botão some, uma mensagem `role="status"` diz "Pronto, mais 1 minuto para pagar." e o foco vai para ela. O Pix na tela **não muda**. Na tela de expirado, dentro da carência: "O tempo acabou, mas ainda dá para pedir mais 1 minuto." com o botão. Repetir depois de queda de rede é seguro (E3) | o cliente não precisa sair da tela nem gerar outro Pix |
+| E2 | Como garantir "uma única vez"? | Coluna nova `reserva.prorrogada_em timestamptz NULL` (V14). O `UPDATE` só acontece `WHERE prorrogada_em IS NULL AND status = 'AGUARDANDO_PAGAMENTO' AND expira_em > :agora`; depois de preenchida, nunca volta a nulo. CHECK `reserva_prorrogacao_ck`: `prorrogada_em IS NULL OR origem <> 'MANUAL'` | o banco é a última linha de defesa, como a constraint EXCLUDE |
+| E3 | Idempotência | A rota é **idempotente sem chave**: a prorrogação é um recurso único da reserva. A 1ª chamada que acrescenta devolve `201`; qualquer repetição com `prorrogada_em` preenchida e a reserva ainda `AGUARDANDO_PAGAMENTO` no prazo devolve `200` com o estado atual, **sem somar tempo**. Duplo clique, reenvio do navegador e nova tentativa depois de queda de rede dão o mesmo resultado | é o mesmo padrão `201`/`200` da cobrança; o front pode repetir com segurança (D139) |
+| E4 | Concorrência | Uma transação: `SELECT ... FOR UPDATE` na linha da reserva, decide e grava. Como só se acrescenta **antes** de `expiraEm`, o **job** de expiração (que pega só `expira_em <= agora`, com `SKIP LOCKED`) não disputa uma reserva no prazo; na fronteira (pedido às 10:02:59, job às 10:03:00) ele pula a linha travada e, depois do commit, o prazo já é 10:04:00. A **expiração preguiçosa** de outro cliente (`FOR UPDATE` sem `SKIP`) espera o commit e vê o prazo novo. Duas prorrogações simultâneas: a segunda espera o lock e cai no `200` do E3. Deadlock (`40P01`) repete como o `ReservarHorario` (E4 da Fatia 4) e, esgotado, vira `409 CONFLITO_CONCORRENTE` | mesma estratégia já provada na Fatia 4 (ADR 0003) |
+| E5 | E depois que o prazo acaba? | **Nada**: não há carência nem reabertura (decisão do Kevin, 24/11/2026). Reserva `EXPIRADO`, ou `AGUARDANDO_PAGAMENTO` com `expira_em <= agora` que o job ainda não passou, recebe `422 RESERVA_EXPIRADA`. A máquina de estados **não muda** | regra simples; quem perdeu o prazo escolhe de novo |
+| E6 | E a cobrança? | A agenda publica `PrazoDaReservaProrrogado(reservaId, expiraEmAnterior, expiraEmNovo)` no **outbox**, na mesma transação. O `pagamento` ouve (`AcompanhaPrazoProrrogado`, `@ApplicationModuleListener`) e atualiza `cobranca.expira_em` da cobrança `PENDENTE` da reserva. O **gateway não é chamado**: o Pix já gerado continua o mesmo (no Asaas o `dueDate` é por **dia**, e o simulado não tem prazo) | a agenda não conhece o pagamento (ADR 0002); o cliente não precisa gerar outro Pix |
+| E7 | "Respeita a cobrança" | (1) Pagamento **nunca se perde**: o `ProcessarPagamento` já aceita cobrança `PENDENTE` e `CANCELADA` (R14), então um Pix que cai no meio da prorrogação confirma a reserva normalmente. (2) Só reserva `AGUARDANDO_PAGAMENTO` no prazo pode ganhar tempo; `CONFIRMADO`, `CONCLUIDO`, `NAO_COMPARECEU` e `CANCELADO` dão `422 TRANSICAO_INVALIDA` sem mudar nada. Sem reabertura, **não há porta nova** entre agenda e pagamento | o estado da cobrança nunca contradiz o da reserva |
+| E8 | Ordem das checagens | `404` (dono) → `422 TRANSICAO_INVALIDA` (status final) → `200` (já prorrogada e no prazo) → `422 RESERVA_EXPIRADA` (`EXPIRADO`, ou prazo vencido) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava (`201`) | ordem fixa = teste determinístico e nenhum vazamento de existência (R23) |
+| E9 | Tempo | Só pelo `Clock` injetado. A janela é calculada no servidor e devolvida pronta (`abreEm`, `fechaEm`), no fuso da barbearia com offset, como o `expiraEm`. O front mostra o botão pelo relógio local, mas **quem decide é a API** (um `422` faz o botão sumir) | o relógio do celular pode estar errado |
+| E10 | Tempo extra fixo | **60 s fixos** (decisão do Kevin): propriedade `app.agenda.prorrogacao-pagamento: PT60S` no `application.yml` (lida como `Duration`), **sem** coluna em `configuracao_agenda` e sem campo no painel. O limite de **1 vez** também é fixo. O front lê o número de `prorrogacao.segundos` para não duplicar a constante | é regra de produto, não ajuste do dia a dia; a propriedade deixa o teste trocar o valor sem mexer no código |
+| E11 | Auditoria | A `auditoria_admin` é do painel (exige `ator_id` de conta) e o visitante não tem conta, então a trilha é: (1) `reserva.prorrogada_em` (quando); (2) o evento `PrazoDaReservaProrrogado` no `event_publication` (prazo anterior e novo); (3) uma linha de log técnica `reserva.prorrogada id=<uuid>`, **sem** nome, e-mail, WhatsApp, CPF ou token (R30). O `AgendamentoAdmin` mostra `prorrogacao.usada` para o Eduardo entender um pagamento que chegou perto do fim | rastreável sem dado pessoal e sem tabela nova |
+| E12 | Disponibilidade | A prorrogação não muda nada no `GET /disponibilidade`: ela já trata como ocupada a `AGUARDANDO_PAGAMENTO` com `expira_em > agora` (R15), e o prazo estendido continua ocupando sem intervalo | uma regra só para ocupação |
+| E13 | Tela de pagamento | O `Cronometro` continua (o Kevin gostou). No **último minuto** e com `usada = false`, aparece o botão **"Acrescentar 1 minuto"** (número de `segundos`). Depois do sucesso: o contador soma o minuto ao que está correndo (0:30 vira 1:30), o botão some, uma mensagem `role="status"` diz "Pronto, mais 1 minuto no contador." e o foco vai para ela. O Pix na tela **não muda**. Quando o contador zera, o botão some e a tela segue o fluxo de hoje (consulta o status uma vez) | o cliente não precisa sair da tela nem gerar outro Pix |
+| E13b | **Agenda sem antecedência mínima e sem horizonte** (D197, mudança de regra pedida pelo Kevin) | **Tirar as duas regras**, não só zerar números: (1) a `V14` faz `ALTER TABLE configuracao_agenda DROP COLUMN antecedencia_minima_min, DROP COLUMN horizonte_dias` (só configuração, nenhum dado pessoal; o código deixa de ler); (2) `ReservarHorario` (cliente, visitante **e** manual) recusa só `inicio <= agora` com `422 ANTECEDENCIA_INSUFICIENTE`; data anterior a hoje também cai aqui; não há limite de data futura; (3) `ConsultaDisponibilidade` recusa só data anterior a hoje (`422 ANTECEDENCIA_INSUFICIENTE`) e aceita qualquer data futura; a `CalculadoraDeHorarios` usa `primeiroPermitido = agora` e só mostra inícios **depois** de agora; (4) contrato como na seção 2.1 (`FORA_DO_HORIZONTE` e os dois campos `deprecated`); (5) front: some `NEXT_PUBLIC_HORIZONTE_DIAS` (código e Vercel), o seletor "Outro dia" tem só `min` = hoje (sem `max`), saem os textos "até {data}" e "dias à frente", e os dois campos saem da tela de configuração; (6) "Ver o próximo dia com horário" continua procurando **30 dias por vez** (limite da **busca**, não regra): sem horário nesse trecho, mostra "Procurar mais 30 dias" e "Escolher em Outro dia"; (7) `docs/contexto.md`: R5 reescrita e H5 e H12 marcadas como revogadas | só zerar deixaria o admin religar uma regra que o dono revogou; "agenda fácil e prática" |
 | E14 | O que conta como "reserva" no calendário do mês | `CONFIRMADO`, `CONCLUIDO`, `NAO_COMPARECEU` e `AGUARDANDO_PAGAMENTO` **ainda no prazo**. Fora: `EXPIRADO`, `CANCELADO` e aguardando vencida. A reserva manual conta (é cliente na cadeira). O dia é o **dia civil no fuso da barbearia**, nunca o UTC | é o que ocupa a cadeira; uma reserva às 23:30 do dia 31 não pode cair no dia 1º |
 | E15 | Como montar a grade do dia | `horarios` vai do primeiro início ao último fim da jornada do barbeiro **naquele dia da semana**, de `granularidadeMin` em `granularidadeMin`. Cada início é `OCUPADO` se cai dentro de `[inicio, fimOcupacao)` de uma reserva que ocupa (E14); `FOLGA` se cai numa folga; `ALMOCO` se cai no vão entre dois intervalos da jornada; senão `LIVRE`. Prioridade: `OCUPADO` > `FOLGA` > `ALMOCO` > `LIVRE` (uma reserva manual dentro de uma folga continua visível). Dia sem jornada: `horarios` vazio. Uma reserva fora da jornada (jornada mudou depois) continua em `agendamentos` | "livre" independe do serviço; é o que o Eduardo enxerga de relance |
 | E16 | Isolamento e N+1 | As duas rotas usam o mesmo `Escopo` do `PainelDaAgenda` (ADMIN vê todos; BARBEIRO só o barbeiro da própria conta; `barbeiroId` alheio, inexistente ou conta sem vínculo = `404`, R23). O mês é **uma** consulta `GROUP BY` do dia no fuso, mais uma de folgas e uma de jornadas; o dia é uma consulta de reservas, uma de folgas e uma de jornadas, **qualquer que seja o número de barbeiros** | o convidado nunca vê a agenda do Eduardo; o tempo não cresce com a equipe |
 | E17 | E a rota antiga? | `GET /admin/agenda` (`DIA`/`SEMANA`) **fica** (testes e compatibilidade). O front deixa de usar a visão `SEMANA` e os botões "Dia anterior", "Próximo dia", "Dia" e "Semana". Remover a rota é outra fatia, se um dia fizer sentido | nada quebra; o contrato só cresce |
 | E18 | Painel no celular | Calendário do mês em cima (ou recolhido em "Ver o mês"), grade do dia embaixo; com "Todos" os barbeiros, **uma coluna por vez** com seletor no celular e colunas lado a lado a partir de 1024 px. A URL guarda o estado (`/painel?data=2026-12-01&barbeiro=<id>`) para o botão Voltar e para compartilhar entre abas | o Eduardo usa o painel no celular, entre um cliente e outro |
-| E19 | Número de migração e de contrato | Planejado `V14` e `1.11.0`. A Fatia 13 está em implementação: **conferir** `ls backend/src/main/resources/db/migration` e o `info.version` antes de criar; nunca editar migração mergeada | evita colisão entre PRs em paralelo |
+| E19 | Número de migração e de contrato | A Fatia 13 já está na `main` (com a 8B): a `develop` termina na `V13` e no contrato `1.10.1`. Esta fatia usa **`V14__prorrogacao_e_agenda_sem_limites.sql`** e **`1.11.0`**; nunca editar migração mergeada | números definidos, sem disputa |
 | E20 | Senha visível: um componente | `CampoSenha` (em `componentes/`), extraído do que o `Convite.tsx` já faz: envolve o `Campo`, com um botão `type="button"`, `aria-pressed`, `aria-controls` apontando o `id` do campo, rótulo "Mostrar a senha"/"Esconder a senha" que muda junto. Clicar **mantém o foco no botão** e o valor do campo. `autoComplete` (`current-password` ou `new-password`) **não muda** com o estado. Ao enviar o formulário, o campo volta a escondido **antes** do envio (o gerenciador de senhas reconhece o campo, e a senha não fica exposta se a tela mostrar um erro). Cada campo tem o seu botão (inclusive "Repita a senha" no convite e "Senha atual" e "Nova senha" na troca) | um padrão só no site todo; é o padrão de campo de senha de sistemas de design públicos (ex.: o do governo britânico) |
 | E21 | Voz das mensagens | Regras: (1) calorosa e direta, como o Eduardo no balcão, **sem gíria forçada**; (2) **nunca** as palavras "servidor", "sessão", "requisição", "token", "API", "erro interno", "inválido" e "falha"; (3) **sempre** o próximo passo (um verbo de ação: escolha, toque, confira, entre, espere, chame...); (4) não culpa quem usa ("não foi você" quando é nosso); (5) **nenhum número de regra configurável** fixo no texto (antecedência, horizonte, prazo): o número vem da API ou some; (6) sem emoji e sem exclamação em erro; (7) textos de tela de leitor (`role="status"`, `role="timer"`) curtos | é o pedido do Kevin; a regra (5) corrige dois textos de hoje que fixam "2 horas" e "30 dias" |
 | E22 | História do Eduardo | Reescrita **só com os fatos da seção 6.1**, cada um com a fonte no repositório. O que for suposição vira pergunta (seção 10) e **não entra** até o Kevin confirmar | o pedido diz "não invente fatos" |
@@ -177,8 +180,8 @@ Exemplo com o padrão (`expiracaoPagamentoMin = 3`, `prorrogacaoPagamentoSeg = 6
 | 4 | consulta sem resposta (`TEXTO_SEM_RESPOSTA`) | O servidor não respondeu. Tente de novo em instantes. | A agenda não respondeu desta vez. Toque em Tentar de novo; se continuar, chame a gente no WhatsApp. |
 | 5 | horário pego (`HORARIO_INDISPONIVEL`) | Esse horário acabou de ser reservado por outra pessoa. Escolha outro. | Alguém pegou esse horário agorinha. Escolha outro logo abaixo. |
 | 6 | dia cheio (`/agendar`) | Sem horários neste dia. | Esse dia já está cheio. Veja o próximo dia com horário. |
-| 7 | antecedência (`ANTECEDENCIA_INSUFICIENTE`) | É preciso agendar com pelo menos 2 horas de antecedência. | Esse horário está muito em cima da hora. Escolha um mais para frente. |
-| 8 | horizonte (`FORA_DO_HORIZONTE`) | Só dá para agendar com até 30 dias de antecedência. | Esse dia ainda não abriu na agenda. Escolha uma data mais próxima. |
+| 7 | horário que já passou (`ANTECEDENCIA_INSUFICIENTE`, D197) | É preciso agendar com pelo menos 2 horas de antecedência. | Esse horário já passou. Escolha um horário mais para frente. |
+| 8 | nota de `/agendar` e `FORA_DO_HORIZONTE` (agora `deprecated`) | Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até {HORIZONTE} dias à frente. · Só dá para agendar com até 30 dias de antecedência. | Só aparecem os horários livres. Pode marcar para hoje ou para qualquer data futura. · Essa data não está disponível. Escolha outra em Outro dia. |
 | 9 | campos (`VALIDACAO_INVALIDA`) | Confira os campos marcados. | Falta ajustar os campos marcados. Confira e envie de novo. |
 | 10 | e-mail repetido (`EMAIL_JA_CADASTRADO`) | Já existe uma conta com este e-mail. Entre ou use outro. | Esse e-mail já tem conta aqui. Entre com ele, ou use outro e-mail. |
 | 11 | login (`CREDENCIAIS_INVALIDAS`) | E-mail ou senha incorretos. | E-mail ou senha não conferem. Confira e tente de novo; o botão Mostrar a senha ajuda. |
@@ -186,13 +189,13 @@ Exemplo com o padrão (`expiracaoPagamentoMin = 3`, `prorrogacaoPagamentoSeg = 6
 | 13 | CPF (`CPF_INVALIDO`) | CPF inválido. Confira os números. | Esse CPF não confere. Confira os 11 números. |
 | 14 | pagamento fora (`GATEWAY_INDISPONIVEL`) | Não conseguimos gerar o pagamento agora. Seu horário continua reservado até o fim do prazo; tente de novo. | Não conseguimos gerar o pagamento agora. Seu horário continua separado até o fim do contador: toque em Pagar de novo. |
 | 15 | esperando o Pix (`Pagamento`) | Aguardando a confirmação do pagamento… | Assim que o pagamento cair, a gente confirma aqui. Pode deixar esta tela aberta. |
-| 16 | último minuto (`Cronometro`) | Falta menos de 1 minuto. | Menos de 1 minuto. Se precisar, peça mais {n} minuto. *(só com a prorrogação disponível; sem ela: "Menos de 1 minuto para pagar.")* |
+| 16 | último minuto (`Cronometro`) | Falta menos de 1 minuto. | Menos de 1 minuto. Se precisar, toque em Acrescentar 1 minuto. *(só com a prorrogação disponível; sem ela: "Menos de 1 minuto para pagar.")* |
 | 17 | prazo zerado (`Cronometro`) | Conferindo o prazo com o servidor. | Conferindo se o pagamento chegou… |
-| 18 | tempo acabou (`Pagamento`, `RESERVA_EXPIRADA`) | O tempo acabou e o horário voltou para a agenda. Nada foi cobrado. | O tempo para pagar acabou e o horário voltou para a agenda. Nada foi cobrado. Escolha um horário de novo. *(na carência: "O tempo acabou, mas ainda dá para pedir mais {n} minuto.")* |
+| 18 | tempo acabou (`Pagamento`, `RESERVA_EXPIRADA`) | O tempo acabou e o horário voltou para a agenda. Nada foi cobrado. | O tempo para pagar acabou e o horário voltou para a agenda. Nada foi cobrado. Escolha um horário de novo. |
 | 19 | rede caiu na reserva (`ReservaDados`) | Não sabemos se a reserva foi criada. Confira… | A conexão caiu no meio do caminho e não sabemos se a reserva entrou. Confira em Meus agendamentos antes de tentar de novo. |
 | 20 | erro nosso (`ERRO_INTERNO` e genérica) | Algo deu errado do nosso lado. Tente de novo. · Algo deu errado. Tente de novo. | Deu um problema do nosso lado, não foi você. Tente de novo; se continuar, chame a gente no WhatsApp. |
 
-**Também revistos (fora do top 20, mesma regra):** `ACESSO_NEGADO` → "Esta área é só da equipe da barbearia. Volte para o início." · `NAO_AUTENTICADO` → "Entre na sua conta para continuar." (mantém) · confirmação "Horário confirmado" → "Fechado! Seu horário está garantido." (único ponto de exclamação: é sucesso, não erro) · painel "Sem agendamentos neste dia." → "Nenhum cliente marcado neste dia ainda." · `PRORROGACAO_FORA_DA_JANELA` (novo) → "Ainda não é hora de pedir mais tempo. O botão aparece no último minuto." · `CONFLITO_CONCORRENTE` → "Muita gente marcando ao mesmo tempo. Toque de novo em um instante."
+**Também revistos (fora do top 20, mesma regra):** `ACESSO_NEGADO` → "Esta área é só da equipe da barbearia. Volte para o início." · `NAO_AUTENTICADO` → "Entre na sua conta para continuar." (mantém) · confirmação "Horário confirmado" → "Fechado! Seu horário está garantido." (único ponto de exclamação: é sucesso, não erro) · painel "Sem agendamentos neste dia." → "Nenhum cliente marcado neste dia ainda." · `PRORROGACAO_FORA_DA_JANELA` (novo) → "Ainda não é hora de acrescentar tempo. O botão aparece no último minuto." · `CONFLITO_CONCORRENTE` → "Muita gente marcando ao mesmo tempo. Toque de novo em um instante." · dúvida da home "Com quanta antecedência posso agendar?" (hoje: "Com pelo menos 2 horas de antecedência e até 30 dias à frente.") → "Quando quiser: para hoje mesmo, desde que o horário ainda não tenha passado, ou para qualquer data futura. Pagou, o horário é seu." (D197) · busca sem horário (hoje: "Não há horários livres nos próximos {HORIZONTE} dias. Tente mais tarde.") → "Não achamos horário livre nos próximos 30 dias. Procure mais 30 dias ou escolha em Outro dia."
 
 Os testes antigos que conferem o texto exato mudam **só de valor** (como na D129): nenhuma asserção sai.
 
@@ -212,7 +215,7 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 | **Instrutor formado pela Ibel Formação**; ensina na **Altas Horas Barbearia Academy** | `README.md`, `historia.ts` |
 | A agenda era **caderno e WhatsApp**; o dia é dividido entre **clientes e alunos** | `README.md` |
 | Endereço: R. São Judas Tadeu, 313 · Jd. Bonança · Osasco/SP | `README.md` |
-| É **pai do Kevin**, que fez a agenda | `README.md` ("meu pai") — **no site só com OK (P-7)** |
+| É **pai do Kevin**, que fez a agenda | `README.md` ("meu pai"); o Kevin autorizou citar no site (P-7, 24/11/2026) |
 
 ### 6.2 Texto proposto
 
@@ -222,7 +225,7 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 >
 > Do corte social clássico ao degradê navalhado, passando pelo platinado e pelo corte das crianças, o trabalho fala por ele. Em 2017 veio o reconhecimento em dobro: o Prêmio Barbeiros do Brasil, que ele fez questão de trazer para Osasco, e o Prêmio Master Barber · Êxito Profissional. Ao receber o primeiro, resumiu tudo numa frase: "Amor na ponta da tesoura!".
 >
-> Instrutor formado pela Ibel Formação, hoje ele também ensina o ofício na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e do WhatsApp e veio para cá: você escolhe, paga e o horário é seu.
+> Instrutor formado pela Ibel Formação, hoje ele também ensina o ofício na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e do WhatsApp e veio para cá, feita pelo filho dele, o Kevin: você escolhe, paga e o horário é seu.
 
 **Texto do barbeiro** (`BarbeiroDaHome`, hoje "Barbeiro e professor, na cadeira desde 1995."):
 
@@ -230,7 +233,7 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 **Marco "Hoje"** (linha do tempo): "Barbeiro na cadeira e professor na Altas Horas Barbearia Academy. A agenda sai do caderno e vem para a internet." (só troca "vai" por "vem", ponto de vista do site).
 
-**Nada novo entra** sem resposta da seção 10 (nome do mestre, ano da Academy, número de alunos, especialidade preferida, menção ao filho).
+**Nada novo entra** sem resposta da seção 10.1 (nome do mestre, ano da Academy, número de alunos, corte preferido): melhoria futura, sem bloquear.
 
 ## 7. Site mais fluido: 8 melhorias propostas (14D)
 
@@ -264,44 +267,44 @@ Acessibilidade: o calendário segue o padrão de grade de datas do WAI-ARIA (set
 
 Back: IT com PostgreSQL real (`PostgresTestcontainers`) e `Clock` fixo, `@DisplayName("A<n>: ...")`. Front: Vitest com Testing Library (`it("A<n>: ...")`), Playwright e axe nos E2E. Para o `conferir-spec.sh` não contar critérios de outras fatias (D129, D186), **todos os testes desta fatia ficam em classes e arquivos novos**. Datas conferidas com código: ter **01/12/2026**, qua 02/12, dom 06/12, seg 07/12, qui 31/12. Configuração padrão nos critérios: prazo 3 min, prorrogação 60 s, granularidade 30 min, jornada do Eduardo ter a sáb 07:00–12:00 e 13:00–20:00.
 
-### 14A · Mais 1 minuto no Pix (API)
+### 14A · Acrescentar 1 minuto no Pix e agenda sem limites (API)
 
 Reserva de cliente criada às **10:00:00** de ter 01/12/2026 (horário 15:00), `expiraEm` **10:03:00**, cobrança Pix `PENDENTE`.
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A1 | relógio 10:02:15 | `POST /agendamentos/{id}/prorrogacao` | `201`; `expiraEm` **10:04:00**; `prorrogacao.usada = true`; no banco `prorrogada_em = 10:02:15` e `version + 1` | `ProrrogacaoDoPagamentoIT` |
-| A2 | relógio 10:01:59 (janela abre 10:02:00) | prorrogar | `422 PRORROGACAO_FORA_DA_JANELA`; `expiraEm` continua 10:03:00 e `prorrogada_em` nulo | `ProrrogacaoDoPagamentoIT` |
-| A3 | a reserva do A1 | prorrogar de novo às 10:02:40 | `200` com o mesmo corpo; `expiraEm` continua **10:04:00** (não 10:05:00); nenhum evento novo | `ProrrogacaoDoPagamentoIT` |
+| A1 | relógio 10:02:30 (contador em 0:30) | `POST /agendamentos/{id}/prorrogacao` | `201`; `expiraEm` **10:04:00** (o contador vai a 1:30); `prorrogacao.usada = true`; no banco `prorrogada_em = 10:02:30` e `version + 1` | `ProrrogacaoDoPagamentoIT` |
+| A2 | relógio 10:01:59 (o último minuto começa às 10:02:00) | acrescentar | `422 PRORROGACAO_FORA_DA_JANELA`; `expiraEm` continua 10:03:00 e `prorrogada_em` nulo | `ProrrogacaoDoPagamentoIT` |
+| A3 | a reserva do A1 | acrescentar de novo às 10:02:40 | `200` com o mesmo corpo; `expiraEm` continua **10:04:00** (não 10:05:00); nenhum evento novo | `ProrrogacaoDoPagamentoIT` |
 | A4 | relógio 10:02:30 | **duas** chamadas ao mesmo tempo (duas threads, `CountDownLatch`) | uma `201` e uma `200`; `expiraEm` 10:04:00; **um** `PrazoDaReservaProrrogado` no outbox | `ProrrogacaoConcorrenciaIT` |
-| A5 | relógio 10:03:30, ainda `AGUARDANDO_PAGAMENTO` (o job não rodou) | prorrogar | `201`; `expiraEm` **10:04:30** (agora + 60 s) | `ProrrogacaoDoPagamentoIT` |
-| A6 | o job expirou a reserva (`EXPIRADO`) e o listener deixou a cobrança `CANCELADA`; horário livre; relógio 10:03:40 | prorrogar | `201`; status **`AGUARDANDO_PAGAMENTO`**; `expiraEm` **10:04:40**; o evento sai com `reaberta = true`; depois do listener, a cobrança volta a **`PENDENTE`** com `expira_em` 10:04:40 e o **mesmo** `pix_copia_e_cola` | `ProrrogacaoReabreIT` |
-| A7 | reserva `EXPIRADO` e **outro cliente** reservou o mesmo horário às 10:03:20; relógio 10:03:40 | prorrogar | **`409 HORARIO_INDISPONIVEL`**; a reserva continua `EXPIRADO`, `prorrogada_em` nulo; a do outro cliente intacta | `ProrrogacaoReabreIT` |
-| A8 | reserva `EXPIRADO`; relógio **10:04:00** (fim da carência, exclusivo) | prorrogar | `422 RESERVA_EXPIRADA`; nada muda | `ProrrogacaoReabreIT` |
-| A9 | reserva prorrogada (prazo 10:04:00) que expirou de novo; relógio 10:04:20 | prorrogar | `422 RESERVA_EXPIRADA`; nada muda (não há segunda vez) | `ProrrogacaoDoPagamentoIT` |
-| A10 | reserva `CONFIRMADO` · `CANCELADO` · `CONCLUIDO` | prorrogar | `422 TRANSICAO_INVALIDA` nas três; nada muda | `ProrrogacaoDoPagamentoIT` |
-| A11 | reserva de **outro** cliente · id inexistente · reserva **manual** · visitante com `X-Guest-Token` **errado** · sem token na rota do cliente | prorrogar | `404` · `404` · `404` · `404` · `401` | `ProrrogacaoDoPagamentoIT` |
+| A5 | relógio **10:03:00** com a reserva ainda `AGUARDANDO_PAGAMENTO` (o job não passou) · reserva já `EXPIRADO`, relógio 10:03:30 | acrescentar | `422 RESERVA_EXPIRADA` nos dois; nada muda (sem carência, sem reabertura) | `ProrrogacaoDoPagamentoIT` |
+| A6 | a prorrogação do A1 | o listener do pagamento processa o evento | a cobrança continua `PENDENTE`, com `expira_em` **10:04:00** e o **mesmo** `pix_copia_e_cola`; o gateway **não** é chamado | `ProrrogacaoCobrancaIT` |
+| A7 | **sem antecedência e sem horizonte**: relógio 09:55 de ter 01/12/2026, Eduardo com jornada ter a sáb | `GET /disponibilidade` de hoje · reservar 10:00 de hoje como cliente · reservar 10:30 de hoje como visitante · `GET /disponibilidade` e reservar qua **05/01/2028** às 10:00 (**400 dias** à frente) | 10:00 aparece livre · `201` · `201` · 10:00 livre e `201` | `AgendaSemLimitesIT` |
+| A8 | relógio **10:05** de ter 01/12/2026 | `GET /disponibilidade` de **ontem** (seg 30/11) · reservar ontem às 10:00 · reservar **hoje às 10:00** (já passou) · reservar hoje às **10:00** com o relógio em **10:00:00** exato | `422 ANTECEDENCIA_INSUFICIENTE` nos quatro (o início precisa ser **depois** de agora, no fuso de São Paulo); e o `GET /disponibilidade` de hoje às 10:05 **não** mostra 10:00 | `AgendaSemLimitesIT` |
+| A9 | reserva prorrogada (prazo 10:04:00) que expirou; relógio 10:04:20 | acrescentar | `422 RESERVA_EXPIRADA`; nada muda (não há segunda vez) | `ProrrogacaoDoPagamentoIT` |
+| A10 | reserva `CONFIRMADO` · `CANCELADO` · `CONCLUIDO` | acrescentar | `422 TRANSICAO_INVALIDA` nas três; nada muda | `ProrrogacaoDoPagamentoIT` |
+| A11 | reserva de **outro** cliente · id inexistente · reserva **manual** · visitante com `X-Guest-Token` **errado** · sem token na rota do cliente | acrescentar | `404` · `404` · `404` · `404` · `401` | `ProrrogacaoDoPagamentoIT` |
 | A12 | reserva de **visitante**, relógio 10:02:15 | `POST /agendamentos/guest/{id}/prorrogacao` com o token certo e **sem** bearer | `201`, `expiraEm` 10:04:00, `prorrogacao.usada = true` | `ProrrogacaoDoVisitanteIT` |
-| A13 | reserva `EXPIRADO` cuja cobrança já está `PAGA_APOS_EXPIRACAO`, horário agora livre; relógio 10:03:40 | prorrogar | `422 RESERVA_EXPIRADA`; reserva e cobrança sem mudança | `ProrrogacaoReabreIT` |
+| A13 | a migração nova (configuração como hoje: antecedência 120, horizonte 30) | sobe a API | `configuracao_agenda` **não** tem mais `antecedencia_minima_min` nem `horizonte_dias` e as demais colunas mantêm os valores; `reserva.prorrogada_em` existe; `reserva_prorrogacao_ck` recusa prorrogação em reserva `MANUAL`; **não** existe coluna de prorrogação na configuração | `V14MigracaoIT` |
 | A14 | reserva prorrogada (prazo 10:04:00) | o webhook do Pix chega às 10:03:30 | reserva `CONFIRMADO`, cobrança `PAGA`, **um** `ReservaConfirmada` (Fatia 13) | `ProrrogacaoConcorrenciaIT` |
 | A15 | prorrogação e webhook **ao mesmo tempo** (latch), relógio 10:02:30 | rodar os dois | estado final `CONFIRMADO` em qualquer ordem; nunca `AGUARDANDO_PAGAMENTO` depois de pago; a prorrogação devolve `201` (veio antes) ou `422 TRANSICAO_INVALIDA` (veio depois) | `ProrrogacaoConcorrenciaIT` |
-| A16 | a prorrogação segura o lock da linha; relógio 10:03:10 | o job de expiração roda nesse momento | o job **pula** a linha (`SKIP LOCKED`); depois do commit a reserva continua `AGUARDANDO_PAGAMENTO` até 10:04:10 e o job só a expira a partir daí | `ProrrogacaoConcorrenciaIT` |
-| A17 | `GET /agendamentos/{id}` às 10:01:00 · da reserva manual · com `prorrogacaoPagamentoSeg = 0` | ler | `prorrogacao = {usada: false, segundos: 60, abreEm: 10:02:00, fechaEm: 10:04:00}` · `null` · `null`, e o `POST` dá `404 FUNCIONALIDADE_DESLIGADA` | `ProrrogacaoDoPagamentoIT` |
-| A18 | a migração nova | sobe a API | `configuracao_agenda.prorrogacao_pagamento_seg = 60`; CHECK recusa `-1` e `301`; `reserva.prorrogada_em` existe; `reserva_prorrogacao_ck` recusa prorrogação em reserva `MANUAL` | `V14ProrrogacaoMigracaoIT` |
-| A19 | `PUT /admin/configuracao` | com `prorrogacaoPagamentoSeg: 120` · com `301` · **sem** o campo | `200` e vale `120` · `400 VALIDACAO_INVALIDA` · `200` e mantém o valor anterior | `ConfiguracaoProrrogacaoIT` |
-| A20 | o fluxo do A1 e do A6 | ler o outbox e o log | `PrazoDaReservaProrrogado` com `reservaId`, `expiraEmAnterior`, `expiraEmNovo` e `reaberta`; a linha `reserva.prorrogada` com o id; **nenhum** nome, e-mail, WhatsApp, CPF ou token no JSON nem no log (R30) | `ProrrogacaoSemDadoPessoalIT` |
-| A21 | módulos e contrato | `./mvnw verify` e `redocly lint` | `ModulithTest` e `ArquiteturaTest` verdes (agenda não depende de pagamento; a porta `PagamentoDaReserva` mora na agenda); 0 erros no lint; `PRORROGACAO_FORA_DA_JANELA` existe no `CodigoErro` e na tabela do `contrato-api.md` | `ProrrogacaoModulosTest` |
+| A16 | a prorrogação segura o lock da linha às 10:02:59; o relógio chega a 10:03:00 | o job de expiração roda nesse momento | o job **pula** a linha (`SKIP LOCKED`); depois do commit a reserva continua `AGUARDANDO_PAGAMENTO` até 10:04:00 e o job só a expira a partir daí | `ProrrogacaoConcorrenciaIT` |
+| A17 | `GET /agendamentos/{id}` às 10:01:00 · da reserva manual · da reserva `EXPIRADO` | ler | `prorrogacao = {usada: false, segundos: 60, abreEm: 10:02:00, fechaEm: 10:03:00}` · `null` · `null` | `ProrrogacaoDoPagamentoIT` |
+| A18 | `GET` e `PUT /admin/configuracao` | ler · enviar com `antecedenciaMinimaMin: 120` e `horizonteDias: 30` (front antigo) | a resposta **não** tem os dois campos · `200`, os dois são ignorados e o A7 continua valendo | `ConfiguracaoSemLimitesIT` |
+| A19 | reserva manual (R33), relógio 09:55 de ter 01/12/2026 | `POST /admin/agendamentos` para 10:00 de hoje · para qua 05/01/2028 às 10:00 · para 09:30 de hoje (já passou) | `201` · `201` · `422 ANTECEDENCIA_INSUFICIENTE` | `AgendaSemLimitesIT` |
+| A20 | o fluxo do A1 | ler o outbox e o log | `PrazoDaReservaProrrogado` com `reservaId`, `expiraEmAnterior` e `expiraEmNovo`; a linha `reserva.prorrogada` com o id; **nenhum** nome, e-mail, WhatsApp, CPF ou token no JSON nem no log (R30) | `ProrrogacaoSemDadoPessoalIT` |
+| A21 | módulos e contrato | `./mvnw verify` e `redocly lint` | `ModulithTest` e `ArquiteturaTest` verdes (agenda não depende de pagamento); 0 erros no lint; `PRORROGACAO_FORA_DA_JANELA` existe no `CodigoErro` e na tabela do `contrato-api.md`; `FORA_DO_HORIZONTE`, `antecedenciaMinimaMin` e `horizonteDias` marcados `deprecated` | `ProrrogacaoModulosTest` |
 
-### 14A · Tela de pagamento
+### 14A · Telas (pagamento e agendar)
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A22 | reserva com `prorrogacao` (`abreEm` 10:02:00) e relógio 10:01:30 · 10:02:10 · `usada: true` | abro o pagamento | botão "Mais 1 minuto" **não** aparece · **aparece** · não aparece | `pagamento-prorrogacao.test.tsx` |
-| A23 | botão visível | toco "Mais 1 minuto" | **um** `POST` (botão desabilitado enquanto envia); o contador passa a contar do `expiraEm` novo; mensagem `role="status"` "Pronto, mais 1 minuto para pagar." recebe o foco; o botão some; o QR e o copia e cola do Pix **não mudam** | `pagamento-prorrogacao.test.tsx` |
-| A24 | `prorrogacao.segundos = 120` | abro na janela | o botão diz "Mais 2 minutos" e o aviso de sucesso "mais 2 minutos": nenhum número fixo no código | `pagamento-prorrogacao.test.tsx` |
-| A25 | a reserva expirou e ainda está na carência | a tela mostra o fim do prazo | texto "O tempo acabou, mas ainda dá para pedir mais 1 minuto." com o botão; resposta `409` mostra o texto de horário pego e "Escolher outro horário"; `422 RESERVA_EXPIRADA` mostra o texto de expirado | `pagamento-prorrogacao.test.tsx` |
-| A26 | a rede cai no primeiro toque | toco de novo | a segunda chamada (`200`) é tratada como sucesso, igual ao `201` | `pagamento-prorrogacao.test.tsx` |
-| A27 | o fluxo inteiro com a API real | reservar como visitante, gerar Pix, esperar a janela, pedir mais 1 minuto e simular o pagamento | confirmação aberta; a reserva `CONFIRMADO` | `prorrogacao-pix.spec.ts` (E2E) |
+| A22 | reserva com `prorrogacao` (`abreEm` 10:02:00, `fechaEm` 10:03:00) e relógio 10:01:30 · 10:02:10 · 10:03:00 · `usada: true` | abro o pagamento | o botão "Acrescentar 1 minuto" **não** aparece · **aparece** · não aparece · não aparece | `pagamento-prorrogacao.test.tsx` |
+| A23 | botão visível | toco "Acrescentar 1 minuto" | **um** `POST` (botão desabilitado enquanto envia); mensagem `role="status"` "Pronto, mais 1 minuto no contador." recebe o foco; o botão some; o QR e o copia e cola do Pix **não mudam** | `pagamento-prorrogacao.test.tsx` |
+| A24 | contador em **0:30** (`expiraEm` 10:03:00, relógio 10:02:30) | toco o botão e a API devolve `expiraEm` 10:04:00 | o contador mostra **1:30** e continua correndo | `pagamento-prorrogacao.test.tsx` |
+| A25 | toque no último instante e a API responde `422 RESERVA_EXPIRADA` · `422 PRORROGACAO_FORA_DA_JANELA` | a resposta chega | o botão some e aparece o texto de expirado com "Escolher outro horário" · o botão some até o último minuto | `pagamento-prorrogacao.test.tsx` |
+| A26 | `/agendar`, hoje ter 01/12/2026 | abro "Outro dia" e leio a página | o seletor tem `min="2026-12-01"` e **nenhum** `max`; escolher 05/01/2028 busca a disponibilidade dessa data; **não** aparece "dias à frente", "até {data}" nem "antecedência"; o código não lê `NEXT_PUBLIC_HORIZONTE_DIAS` | `agendar-sem-limites.test.tsx` |
+| A27 | o fluxo inteiro com a API real | reservar como visitante, gerar Pix, esperar o último minuto, acrescentar 1 minuto e simular o pagamento | confirmação aberta; a reserva `CONFIRMADO` | `prorrogacao-pix.spec.ts` (E2E) |
 
 ### 14B · Olhinho na senha
 
@@ -362,27 +365,30 @@ Eduardo (ADMIN e BARBEIRO) e Bruno (BARBEIRO convidado, Fatia 10, mesma jornada)
 
 **Conta do A44:** jornada 07:00–12:00 (10 inícios) + 13:00–20:00 (14 inícios) + almoço 12:00 e 12:30 (2) = **26**. Ocupados: 09:00 e 09:30 (Corte 60 min), 10:00 e 10:30 (concluído, 60 min), 15:00 e 15:30 (aguardando no prazo) = 6. Livres: 26 − 6 − 2 = **18**.
 
-## 10. Perguntas para o Kevin
+## 10. Respostas do Kevin (24/11/2026)
 
-| # | Pergunta | Proposta |
+| # | Pergunta | Resposta e o que mudou |
 |---|---|---|
-| P-1 | **Carência depois do fim**: o cliente pode pedir mais 1 minuto até **1 minuto depois** de o tempo acabar (reabrindo a reserva se o horário ainda estiver livre). Está bom, ou só **antes** de acabar? | até 1 minuto depois (é o "acabou há pouco" do pedido) |
-| P-2 | **Quando o botão aparece**: só no **último minuto** (janela = o próprio minuto da prorrogação) ou desde o começo do contador? | só no último minuto: é quando a pessoa precisa, e evita "esticar" o prazo de todo mundo |
-| P-3 | **Mais 1 minuto configurável** no painel (0 a 300 s, 0 desliga) ou fixo em 60 s? | configurável no banco agora; o campo na tela de configuração entra junto, sem desenho novo (é um número a mais no formulário) |
-| P-4 | **Rótulo que muda + `aria-pressed`**: com os dois, o leitor de tela lê "Esconder a senha, botão, pressionado", o que pode soar como dupla negação. Manter como você pediu (o convite já é assim e passa no axe) ou usar rótulo **fixo** "Mostrar a senha" com `aria-pressed`? | manter como você pediu; se alguém da banca ou um usuário de leitor estranhar, troca-se só o rótulo |
-| P-5 | **Os 20 textos** da seção 5: algum soa forçado ou "não é o jeito do Eduardo falar"? A palavra "a gente" está ok? | aprovar com os ajustes que você marcar; o teste A37 congela a versão aprovada |
-| P-6 | **História do Eduardo**: quem foi o **primeiro mestre** (nome e lugar)? **Desde quando** existe a Academy e quantos alunos já passaram? Em que ano ele se formou instrutor na **Ibel**? Qual é o corte de que ele **mais se orgulha**? | só entra o que você confirmar; sem resposta, fica o texto da 6.2 |
-| P-7 | **Menção ao filho**: o site pode dizer que a agenda foi feita pelo filho dele (você)? Hoje isso está só no README | não mencionar no site; o README já conta |
-| P-8 | **Melhorias da seção 7**: aprova as 8? Alguma fica para depois? M6 (.ics) e M7 (WhatsApp) não precisam de desenho e podem ir antes | aprovar as 8; M6 e M7 primeiro, as 🎨 depois do canvas |
-| P-9 | **Agenda do painel**: "Marcar aqui" no horário livre (abre a reserva manual já preenchida) entra, ou o livre só mostra "Livre"? E o calendário fica **sempre aberto** ou recolhido em "Ver o mês" no celular? | "Marcar aqui" entra; no celular o mês fica recolhido e abre com um toque |
-| P-10 | **Entrega**: quatro PRs (14A, 14B, 14C, 14D) nessa ordem? A 14A mexe em dinheiro e tem pressa? | sim, nessa ordem; 14A e 14B não dependem de desenho |
-| P-11 | **Textos com número fixo** fora do catálogo: a dúvida "Com quanta antecedência posso agendar?" diz "2 horas" e "30 dias", que são configuráveis. Tirar o número ("com algumas horas de antecedência e algumas semanas à frente") ou manter e lembrar de mudar junto? | manter os números na dúvida (é texto informativo e você muda junto), mas tirar das mensagens de erro (A36) |
+| P-1 e P-2 | Carência depois do fim? Quando o botão aparece? | Botão **"Acrescentar 1 minuto"** só no **último minuto do contador, antes de o prazo acabar**; soma 1 minuto ao tempo que está correndo (0:30 vira 1:30). Depois de expirar, **nada**: sem carência e sem reabertura (E5). Uma vez por reserva. Saíram a reabertura de `EXPIRADO`, a porta `PagamentoDaReserva` e o `409 HORARIO_INDISPONIVEL` da rota |
+| P-3 | Configurável? | **Fixo em 60 s**, como propriedade da aplicação (E10); sem coluna `prorrogacao_pagamento_seg` |
+| P-4 | Rótulo do olhinho | sem resposta: fica a proposta (rótulo que muda + `aria-pressed`) |
+| P-5 | Voz das mensagens | sem objeção: fica a proposta (seção 5) |
+| P-6 | Fatos do Eduardo (mestre, Academy, Ibel, corte preferido) | o Kevin não tem as respostas agora: o texto usa **só** os fatos da 6.1; as perguntas ficam como **melhoria futura** (seção 10.1), sem bloquear |
+| P-7 | Mencionar o filho? | **Sim**: a Trajetória diz que a agenda foi feita pelo filho dele (6.2) |
+| P-8 | As 8 melhorias | **aprovadas** (M1 a M8) |
+| P-9 | "Marcar aqui" e mês recolhido no celular | sem resposta: ficam as propostas |
+| P-10 | Quatro PRs | sem resposta: fica a proposta (14A, 14B, 14C, 14D) |
+| P-11 | Antecedência na dúvida da home | **mudança de regra (com a correção do Kevin):** não existe antecedência mínima **nem** limite de dias à frente. "Pagou, a agenda é sua e não pode cancelar, então o barbeiro não perde nunca." A única regra é não agendar no passado (E13b, D197, A7, A8, A13, A18, A19, A26). Mudam a dúvida da home, as mensagens, a nota de `/agendar`, a tela de configuração e o contrato |
+
+### 10.1 Melhoria futura (não bloqueia)
+
+Quando o Kevin tiver as respostas, a Trajetória pode ganhar: o nome e o lugar do **primeiro mestre**; **desde quando** existe a Academy e quantos alunos passaram; o **ano** da formação de instrutor na Ibel; o corte de que o Eduardo **mais se orgulha**. Cada fato novo entra com a fonte na tabela 6.1 e no teste A39.
 
 ## 11. Telas para a sessão de design (o Kevin repassa)
 
 Em **390 × 844** e **1280 × 800**, temas escuro e claro, alto contraste e "Sem animação", **sempre com estados**:
 
-1. **Pagamento** com o botão "Mais 1 minuto" (no último minuto), depois do uso ("Pronto, mais 1 minuto") e no "acabou, mas ainda dá" (carência).
+1. **Pagamento** com o botão "Acrescentar 1 minuto" (só no último minuto do contador) e depois do uso ("Pronto, mais 1 minuto no contador"); **`/agendar`** com o "Outro dia" sem limite de data e a busca "Procurar mais 30 dias".
 2. **`CampoSenha`**: escondido, visível, com erro, com foco no botão (o ícone de olho é **novo** no `Icone`: precisa do desenho, D131).
 3. **Agenda do painel**: barra (Hoje, data, barbeiro), calendário do mês (dia com reservas, folga, fechado, hoje, selecionado, foco), grade do dia (livre, ocupado por status, almoço, folga, "Marcar aqui"), com 1 e com 2 barbeiros, e o celular com o mês recolhido.
 4. **`/agendar`**: chips por período (M1), "Próximo livre" (M2) e resumo em `/agendar/dados` (M3).
@@ -393,27 +399,26 @@ Em **390 × 844** e **1280 × 800**, temas escuro e claro, alto contraste e "Sem
 
 | PR | Módulo | O que entra |
 |---|---|---|
-| **14A** | `agenda` | `ProrrogarPagamento`, rotas no `AgendamentosController`, `PrazoDaReservaProrrogado`, porta `PagamentoDaReserva`, `prorrogacao` no `AgendamentoResposta`, transição `EXPIRADO → AGUARDANDO_PAGAMENTO` (só por este caso de uso) |
-| | `pagamento` | `AcompanhaPrazoProrrogado` (listener), implementação de `PagamentoDaReserva` |
-| | `admin` | `prorrogacaoPagamentoSeg` na configuração |
-| | banco e contrato | `V14__prorrogacao_do_pagamento.sql`, `PRORROGACAO_FORA_DA_JANELA`, `openapi.yaml` e `contrato-api.md` 1.11.0, `SegurancaConfig` (rota do visitante) |
-| | front | botão no `Cronometro`/`Pagamento`, `schema.d.ts` regenerado |
+| **14A** | `agenda` | `ProrrogarPagamento`, rotas no `AgendamentosController`, `PrazoDaReservaProrrogado`, `prorrogacao` no `AgendamentoResposta`, propriedade `app.agenda.prorrogacao-pagamento`; `ReservarHorario`, `ConsultaDisponibilidade` e `CalculadoraDeHorarios` sem antecedência nem horizonte (E13b) |
+| | `pagamento` | `AcompanhaPrazoProrrogado` (listener) |
+| | `admin` | `ConfiguracaoAdmin` e `ConfiguracaoRequest` sem os dois campos (o request os aceita `deprecated` e ignora) |
+| | banco e contrato | `V14__prorrogacao_e_agenda_sem_limites.sql`, `PRORROGACAO_FORA_DA_JANELA`, `deprecated` em `FORA_DO_HORIZONTE`, `openapi.yaml` e `contrato-api.md` 1.11.0, `SegurancaConfig` (rota do visitante) |
+| | front | botão no `Cronometro`/`Pagamento`; `/agendar` sem `HORIZONTE` (seletor só com `min`, nota e busca novas); configuração sem os dois campos; `schema.d.ts` regenerado. **O Kevin apaga `NEXT_PUBLIC_HORIZONTE_DIAS` no Vercel** depois do deploy |
 | **14B** | front | `CampoSenha` nas 4 telas, catálogo de mensagens revisto, `historia.ts` e `BarbeiroDaHome` |
 | **14C** | `admin` + `agenda` | `GET /admin/agenda/mes` e `/admin/agenda/dia` (`PainelDaAgenda` ganha as duas consultas) |
 | | front | `PainelAgenda` refeito: calendário do mês, grade do dia, URL com estado |
 | **14D** | front | as melhorias aprovadas (M1 a M8), depois do desenho |
-| todas | docs | `decisoes.md` (D188 a D196 viram "aceita"), `modelo-de-dominio.md` (nova transição), `guia-testes.md`, `como-foi-construido.md`, README do SDD |
+| todas | docs | `decisoes.md` (D188 a D197), `docs/contexto.md` (R5 reescrita, H5 e H12 revogadas), FAQ da home, `guia-testes.md`, `como-foi-construido.md`, README do SDD |
 
 ## 13. Riscos e cuidados
 
 | Risco | Cuidado |
 |---|---|
-| Reabrir reserva com dinheiro já recebido | E7: porta `PagamentoDaReserva`; A13 |
-| Tirar o horário de outro cliente | E5: a constraint decide; A7 |
+| Reserva para muito longe (ex.: 400 dias) | aceito de propósito (D197): o cliente pagou e não cancela; o painel do mês mostra qualquer data (14C) |
+| Horário no passado por fuso errado | E13b: sempre `Clock` e `America/Sao_Paulo`; A8 com o relógio exato |
 | O job expira no meio da prorrogação | E4: `FOR UPDATE` contra `SKIP LOCKED`; A16 |
 | Pagamento chega no meio da prorrogação | E7: cobrança `PENDENTE` e `CANCELADA` recebem pagamento; A14 e A15 |
 | Relógio do celular errado | E9: o botão só aparece pelo relógio local; quem decide é a API (`422` volta o botão a sumir) |
-| Colisão de migração e versão com a Fatia 13 | E19: conferir na implementação |
 | Texto "premium" que vira gíria forçada ou promessa falsa | E21; P-5; A37 congela a versão aprovada |
 | Inventar fato sobre o Eduardo | E22; seção 6.1 com fonte; P-6 |
 | Grade lenta com vários barbeiros | E16; A46 |
@@ -423,9 +428,9 @@ Em **390 × 844** e **1280 × 800**, temas escuro e claro, alto contraste e "Sem
 
 ## 14. Pronto quando
 
-- [ ] o Kevin aprovou a spec (e respondeu as perguntas P-1 a P-11)
+- [x] o Kevin aprovou a spec em 24/11/2026 (respostas na seção 10)
 - [ ] todos os critérios A1 a A62 das PRs entregues com teste verde (IT, Vitest, Playwright, axe, Lighthouse)
 - [ ] `scripts/conferir-spec.sh 14 --exigir` passa (com `--ate` ou `--exceto` enquanto 14C e 14D não chegam)
 - [ ] `redocly lint` com 0 erros no 1.11.0; `ModulithTest` e `ArquiteturaTest` verdes
-- [ ] decisões D188 a D196 como "aceita" em `decisoes.md`; transição nova no `modelo-de-dominio.md`
+- [ ] decisões D188 a D197 aceitas em `decisoes.md`; R5, H5 e H12 atualizadas no `contexto.md`; `NEXT_PUBLIC_HORIZONTE_DIAS` apagada no Vercel
 - [ ] [checklist da PR](checklist-pr.md) completo; `docs/sdd/README.md` atualizado
