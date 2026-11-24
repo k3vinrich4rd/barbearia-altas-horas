@@ -43,10 +43,11 @@ describe("escolha de serviço", () => {
 
     await user.click(within(grupo).getByRole("radio", { name: /Visagismo/ }));
     expect(opcoes[2]).toBeChecked();
-    fireEvent.change(screen.getByLabelText("Dia"), { target: { value: "2026-11-24" } });
+    fireEvent.change(screen.getByLabelText(/Outro dia/), { target: { value: "2026-11-24" } });
     await waitFor(() => expect(consulta?.get("servicoId")).toBe(CINCO_SERVICOS[2].id));
 
     await user.click(await screen.findByRole("button", { name: "10:00" }));
+    await user.click(screen.getByRole("button", { name: "Continuar" })); // o chip só escolhe; o resumo fixo continua
     const destino = new URL(roteador.push.mock.calls[0][0], "http://x");
     expect(destino.pathname).toBe("/agendar/dados");
     expect(destino.searchParams.get("servicoId")).toBe(CINCO_SERVICOS[2].id);

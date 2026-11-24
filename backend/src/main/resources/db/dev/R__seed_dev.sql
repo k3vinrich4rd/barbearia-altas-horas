@@ -17,7 +17,8 @@ INSERT INTO servico (id, nome, duracao_min, preco_centavos) VALUES
     ('6f1c2a8e-0000-4000-8000-000000000002', 'Corte Degradê / Fade / Navalhado',    60, 5500),
     ('6f1c2a8e-0000-4000-8000-000000000003', 'Corte Moderno / Visagismo (tesoura)', 60, 6000),
     ('6f1c2a8e-0000-4000-8000-000000000004', 'Barba Completa / Desenhada',          60, 3000),
-    ('6f1c2a8e-0000-4000-8000-000000000005', 'Acabamento (pezinho) / Sobrancelha',  60, 2000)
+    ('6f1c2a8e-0000-4000-8000-000000000005', 'Acabamento (pezinho) / Sobrancelha',  60, 2000),
+    ('6f1c2a8e-0000-4000-8000-000000000006', 'Descoloração / Platinado (química)',  60, 8000)
 ON CONFLICT (id) DO UPDATE
     SET duracao_min = EXCLUDED.duracao_min,
         version = servico.version + 1,

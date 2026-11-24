@@ -8,7 +8,7 @@ export default function Servicos() {
   return (
     <>
       <h1>Serviços</h1>
-      <ServicosDaHome />
+      <ServicosDaHome comLinkVerTodos={false} />
       <p>
         <LinkBotao href="/agendar" variante="principal">
           Agendar horário
