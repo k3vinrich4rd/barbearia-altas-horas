@@ -3,6 +3,7 @@
 export const ROTAS_PERMITIDAS: readonly string[] = [
   "DELETE /admin/barbeiros/{id}/convite",
   "DELETE /admin/barbeiros/{id}/folgas/{folgaId}",
+  "DELETE /agendamentos/guest/{id}/regiao",
   "DELETE /me",
   "GET /admin/agenda",
   "GET /admin/alcance",
@@ -48,7 +49,9 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "PUT /admin/barbeiros/{id}/jornada",
   "PUT /admin/configuracao",
   "PUT /admin/servicos/{id}",
+  "PUT /me",
   "PUT /me/consentimentos/marketing",
+  "PUT /me/consentimentos/regiao",
   "PUT /me/senha",
 ];
 
@@ -70,6 +73,7 @@ export const ROTAS_PUBLICAS: readonly string[] = [
 
 // Rotas que aceitam X-Guest-Token (visitante).
 export const ROTAS_COM_TOKEN_GUEST: readonly string[] = [
+  "DELETE /agendamentos/guest/{id}/regiao",
   "GET /agendamentos/guest/{id}",
   "POST /pagamentos/cobrancas",
   "POST /pagamentos/simulacao/{cobrancaId}/confirmar",

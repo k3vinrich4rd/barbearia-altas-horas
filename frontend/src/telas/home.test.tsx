@@ -17,7 +17,16 @@ describe("home", () => {
           atualizadoEm: "2026-11-18T00:00:00Z",
           totalCidades: 1,
           totalBairros: 1,
-          regioes: [{ cidade: "Osasco", uf: "SP", bairros: ["Centro"] }],
+          regioes: [
+            {
+              cidade: "Osasco",
+              uf: "SP",
+              codigoIbge: "3534401",
+              comFaixas: true,
+              bairros: ["Centro"],
+              bairrosComFaixa: [{ bairro: "Centro", faixaPercentual: "65", outros: false }],
+            },
+          ],
         }),
       ),
     );
@@ -36,8 +45,7 @@ describe("home", () => {
 
     const bloco = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;
     expect(bloco).toHaveTextContent("Osasco - SP");
-    expect(bloco).toHaveTextContent("Centro");
-    expect(bloco.textContent).not.toMatch(/\d/);
+    expect(bloco.textContent).not.toMatch(/\d/); // o município aparece sem número; os bairros só ao clicar (HomeAlcance.test)
 
     const principais = screen.getAllByRole("link", { name: "Agendar horário" });
     expect(principais).toHaveLength(1);
