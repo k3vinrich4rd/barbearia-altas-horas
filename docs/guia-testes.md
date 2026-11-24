@@ -926,6 +926,8 @@ Saída real (17/11/2026, 17h13), resumida:
 
 ### AL1 ✅ Alcance por região (Fatia 6C)
 
+> ⚠️ **Histórico (Fatia 6C).** Desde a Fatia 11 (ADR 0014, V12) o CEP **não é mais guardado**: a coluna `reserva_guest.cep` não existe, a região só é gravada com a caixinha de consentimento (`autorizaRegiao` + `versaoTextoRegiao`) e o alcance usa k = 5 com subida de nível. A consulta SQL e a saída abaixo valem só como registro do comportamento antigo; o roteiro atual é o da Fatia 11.
+
 Os critérios A62 a A75 já têm teste automatizado (`AlcanceDaReservaIT`, `AlcancePainelIT`, `AlcancePublicoIT`, `RetencaoJobIT` e `SemDadoPessoalNoLogIT`). Este roteiro mostra o mesmo à mão, no perfil `dev`. Precisa do ADMIN com a senha já trocada (AD3) e do ViaCEP de verdade (internet) para o CEP ser resolvido.
 
 ```bash

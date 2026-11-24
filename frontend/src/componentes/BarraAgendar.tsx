@@ -12,10 +12,10 @@ export function BarraAgendar() {
   const caminho = usePathname();
   if (!mostraBarraDeAgendar(caminho)) return null;
   return (
-    <div className="barra-agendar">
+    <aside className="barra-agendar" aria-label="Agendar horário">
       <Link href="/agendar" className="botao botao-principal">
         Agendar horário
       </Link>
-    </div>
+    </aside>
   );
 }
