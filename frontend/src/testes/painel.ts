@@ -80,10 +80,8 @@ export const cobrancaAdmin = (extra: Record<string, unknown> = {}) => ({
 
 export const configuracaoAdmin = (extra: Record<string, unknown> = {}) => ({
   fuso: "America/Sao_Paulo",
-  antecedenciaMinimaMin: 120,
   intervaloEntreAtendimentosMin: 0,
   granularidadeMin: 30,
-  horizonteDias: 30,
   expiracaoPagamentoMin: 3,
   version: 2,
   ...extra,
