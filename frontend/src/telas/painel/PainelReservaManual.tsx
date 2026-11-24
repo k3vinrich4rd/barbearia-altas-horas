@@ -26,7 +26,14 @@ function erroDoCampo(erro: ErroApi): { campo: Campos; texto: string } | null {
     case "HORARIO_INDISPONIVEL":
       return { campo: "hora", texto: "Este horário já está ocupado para esse barbeiro. Escolha outro." };
     case "FORA_DO_EXPEDIENTE":
-      return { campo: "hora", texto: "O barbeiro não atende neste horário (fora da jornada, no almoço ou de folga)." };
+      // a API diz a jornada do dia e, se for o caso, o passo da grade; o texto fixo é só o plano B
+      return {
+        campo: "hora",
+        texto:
+          erro.detalhe && /jornada|grade/i.test(erro.detalhe)
+            ? erro.detalhe
+            : "O barbeiro não atende neste horário (fora da jornada, no almoço ou de folga).",
+      };
     case "ANTECEDENCIA_INSUFICIENTE":
       return { campo: "hora", texto: "Este horário já passou. Escolha um horário a partir de agora." };
     case "FORA_DO_HORIZONTE":
@@ -157,7 +164,7 @@ export function PainelReservaManual() {
               value={hora}
               onChange={(e) => setHora(e.target.value)}
               erro={texto("hora")}
-              ajuda="Hora de início, no horário da barbearia. A antecedência mínima não vale aqui, mas o horário não pode ter passado."
+              ajuda="Hora de início, no horário da barbearia, em horas cheias ou meias (ex.: 18:00, 18:30). A antecedência mínima não vale aqui, mas o horário não pode ter passado."
             />
             <Campo
               id="m-nome"

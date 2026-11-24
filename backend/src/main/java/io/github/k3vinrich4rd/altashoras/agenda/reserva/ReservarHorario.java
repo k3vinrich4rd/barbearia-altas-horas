@@ -5,12 +5,16 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 import jakarta.persistence.EntityManager;
@@ -353,8 +357,32 @@ public class ReservarHorario {
                 servico.getDuracaoMin(), previa.regras(), agora)
                 .stream().anyMatch(livre -> livre.toInstant().equals(horario.inicio()));
         if (!naGrade) {
-            throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_EXPEDIENTE);
+            throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_EXPEDIENTE, explicarForaDaGrade(previa));
         }
+    }
+
+    /**
+     * O motivo sem dado pessoal: a jornada do barbeiro naquele dia e, se o horário caiu entre dois passos da grade, o
+     * passo (configurável) a partir do início do turno. Quem trava na mão costuma digitar um horário "redondo" qualquer.
+     */
+    private static String explicarForaDaGrade(Previa previa) {
+        DateTimeFormatter hhmm = DateTimeFormatter.ofPattern("HH:mm");
+        String jornada = previa.turnos().isEmpty()
+                ? "O barbeiro não trabalha neste dia da semana."
+                : "Jornada do barbeiro neste dia: " + previa.turnos().stream()
+                        .sorted(Comparator.comparing(Turno::inicio))
+                        .map(t -> t.inicio().format(hhmm) + " às " + t.fim().format(hhmm))
+                        .collect(Collectors.joining(" e ")) + ".";
+        LocalTime local = previa.horario().inicio().atZone(previa.fuso()).toLocalTime();
+        int passo = previa.regras().granularidadeMin();
+        boolean entrePassos = previa.turnos().stream().anyMatch(t -> {
+            int desde = local.toSecondOfDay() / 60 - t.inicio().toSecondOfDay() / 60;
+            return desde >= 0 && local.isBefore(t.fim()) && desde % passo != 0;
+        });
+        return entrePassos
+                ? "Este horário não está na grade: os inícios são de " + passo + " em " + passo
+                        + " minutos a partir do começo de cada turno. " + jornada
+                : "O barbeiro não atende neste horário (fora da jornada, no almoço ou de folga). " + jornada;
     }
 
     private static @Nullable String sqlState(Throwable erro) {
