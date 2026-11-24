@@ -132,3 +132,21 @@ export async function desativarNoAparelho(): Promise<string | null> {
   await sub.unsubscribe();
   return endpoint;
 }
+
+/**
+ * Sair da conta tira o aparelho dela (a inscrição é da conta: o próximo login no mesmo aparelho é de outra pessoa, E11):
+ * cancela a inscrição no navegador e manda o DELETE enquanto a sessão ainda vale. Nunca trava nem derruba o logout: qualquer
+ * falha ou demora (mais de 3 s) é ignorada, e a API passa o aparelho para a conta nova de qualquer jeito.
+ */
+export async function tirarAparelhoNoLogout(
+  desativar: () => Promise<string | null>,
+  remover: (endpoint: string) => Promise<void>,
+  esperaMaximaEmMs = 3000,
+): Promise<void> {
+  const tarefa = (async () => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const endpoint = await desativar();
+    if (endpoint) await remover(endpoint);
+  })().catch(() => undefined);
+  await Promise.race([tarefa, new Promise<void>((r) => setTimeout(r, esperaMaximaEmMs))]);
+}
