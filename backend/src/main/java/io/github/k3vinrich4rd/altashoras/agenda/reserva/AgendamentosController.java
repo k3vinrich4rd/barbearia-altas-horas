@@ -11,6 +11,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,10 +31,12 @@ class AgendamentosController {
 
     private final ReservarHorario reservar;
     private final ConsultaAgendamentos consulta;
+    private final RetirarRegiaoDoVisitante retirarRegiao;
 
-    AgendamentosController(ReservarHorario reservar, ConsultaAgendamentos consulta) {
+    AgendamentosController(ReservarHorario reservar, ConsultaAgendamentos consulta, RetirarRegiaoDoVisitante retirarRegiao) {
         this.reservar = reservar;
         this.consulta = consulta;
+        this.retirarRegiao = retirarRegiao;
     }
 
     @PostMapping("/agendamentos")
@@ -69,5 +72,13 @@ class AgendamentosController {
     ResponseEntity<AgendamentoResposta> doVisitante(@PathVariable UUID id,
             @RequestHeader(name = "X-Guest-Token", required = false) @Nullable String token) {
         return ResponseEntity.ok().cacheControl(SEM_CACHE).body(consulta.doVisitante(id, token));
+    }
+
+    /** O visitante retira a autorização de região da própria reserva (Fatia 11, A6): 204 idempotente; token errado é 404. */
+    @DeleteMapping("/agendamentos/guest/{id}/regiao")
+    ResponseEntity<Void> retirarRegiaoDoVisitante(@PathVariable UUID id,
+            @RequestHeader(name = "X-Guest-Token", required = false) @Nullable String token, HttpServletRequest request) {
+        retirarRegiao.retirar(id, token, request.getRemoteAddr());
+        return ResponseEntity.noContent().cacheControl(SEM_CACHE).build();
     }
 }

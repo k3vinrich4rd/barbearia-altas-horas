@@ -19,7 +19,9 @@ public record CadastroRequest(
         @NotBlank(message = "obrigatório") @TelefoneBr String whatsapp,
         @NotNull(message = "obrigatória") @Senha String senha,
         @CepBr String cep,
-        Boolean aceitaMarketing) {
+        Boolean aceitaMarketing,
+        Boolean autorizaRegiao,
+        @Size(max = 20, message = "deve ter no máximo 20 caracteres") String versaoTextoRegiao) {
 
     /** Nunca imprime os dados: um log descuidado do request não vaza nada. */
     @Override

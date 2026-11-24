@@ -103,11 +103,11 @@ class ContratoExemplosDeErroTest {
     }
 
     @Test
-    @DisplayName("A33: o contrato 1.8.0 declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
+    @DisplayName("A33: o contrato 1.9.0 (que mantém a 1.8.0) declara as rotas do convite, o erro CONVITE_INVALIDO (com exemplo real) e BarbeiroAdmin.acesso")
     @SuppressWarnings("unchecked")
     void contratoDoConvite() throws IOException {
         Map<String, Object> c = contrato();
-        assertThat(mapa(c, "info").get("version")).isEqualTo("1.8.0");
+        assertThat(mapa(c, "info").get("version")).isEqualTo("1.9.0");
         assertThat(mapa(c, "paths")).containsKeys("/auth/convite", "/admin/barbeiros/{id}/convite");
         assertThat(mapa(mapa(c, "paths"), "/admin/barbeiros/{id}/convite")).containsKeys("post", "delete");
         assertThat((List<String>) mapa(mapa(mapa(c, "components"), "schemas"), "CodigoErro").get("enum")).contains("CONVITE_INVALIDO");
@@ -115,5 +115,18 @@ class ContratoExemplosDeErroTest {
         assertThat(CodigoErro.CONVITE_INVALIDO.status()).isEqualTo(422);
         assertThat(mapa(mapa(mapa(mapa(c, "components"), "schemas"), "BarbeiroAdmin").get("allOf") instanceof List<?> l ? (Map<String, Object>) l.get(1) : Map.of(), "properties"))
                 .containsKeys("acesso", "conviteExpiraEm");
+    }
+
+    @Test
+    @DisplayName("A45: o contrato 1.9.0 declara PUT /me, o consentimento de região, a retirada do visitante, o nível do alcance e o exemplo do painel com grupos e filhos")
+    @SuppressWarnings("unchecked")
+    void contratoDaFatia11() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(mapa(c, "info").get("version")).isEqualTo("1.9.0");
+        assertThat(mapa(c, "paths")).containsKeys("/me/consentimentos/regiao", "/agendamentos/guest/{id}/regiao", "/alcance", "/admin/alcance");
+        assertThat(mapa(mapa(c, "paths"), "/me")).containsKeys("get", "put", "delete");
+        Map<String, Object> esquemas = mapa(mapa(c, "components"), "schemas");
+        assertThat(esquemas).containsKeys("AlcancePainel", "AlcanceGrupo", "AlcanceFilho", "NivelDoAlcance", "AtualizarPerfilRequest");
+        assertThat(mapa(mapa(esquemas, "AlcancePainel"), "properties")).containsKeys("grupos", "totalVisivel", "semRegiao", "k");
     }
 }

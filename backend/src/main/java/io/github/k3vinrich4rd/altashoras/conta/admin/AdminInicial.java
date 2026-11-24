@@ -69,7 +69,7 @@ public class AdminInicial implements ApplicationRunner {
         // Admin e barbeiro: na Altas Horas é a mesma pessoa (D36). A senha veio de uma variável que quem
         // configurou o servidor conhece, por isso a troca é obrigatória no primeiro acesso (E24).
         Usuario admin = usuarios.saveAndFlush(new Usuario(nome, Email.de(emailDoAdmin).valor(), null,
-                codificador.encode(senhaDoAdmin), null, Set.of(Usuario.ADMIN, Usuario.BARBEIRO), true));
+                codificador.encode(senhaDoAdmin), Set.of(Usuario.ADMIN, Usuario.BARBEIRO), true));
         eventos.publishEvent(new AdminInicialCriado(admin.getId()));
         LOG.info("Primeiro admin criado (id {}). A troca de senha é obrigatória no primeiro acesso.", admin.getId());
         return true;
