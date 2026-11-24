@@ -208,4 +208,25 @@ class WebPushCanalTest {
         assertThat(CriptografiaWebPush.ehChavePublicaValida(ponto)).isFalse();
         assertThat(CriptografiaWebPush.ehChavePublicaValida(new byte[65])).isFalse();
     }
+
+    @Test
+    @DisplayName("A21: só 404 e 410 apagam a inscrição (RFC 8030); 400, 401, 403 e 413 são RECUSADO: a inscrição é mantida e o aviso conta tentativa")
+    void soQuatrocentosEQuatroEDezApagam() {
+        var parametros = new io.github.k3vinrich4rd.altashoras.admin.notificacao.ParametrosDeNotificacao("webpush", "", "",
+                "https://site.exemplo.test", "localhost", false, 30, 90, 5, Duration.ofHours(1));
+        var despachante = new io.github.k3vinrich4rd.altashoras.admin.notificacao.Despachante(List.of(canal), parametros);
+        for (int recusado : new int[] {400, 401, 403, 413}) {
+            status.set(recusado);
+            assertThat(canal.enviar(aviso(), destino())).as("status %s", recusado).isEqualTo(ResultadoDoEnvio.RECUSADO);
+            var relatorio = despachante.entregar(aviso(), UUID.randomUUID(), List.of(destino().aparelho()), () -> null);
+            assertThat(relatorio.invalidos()).as("inscrição mantida com %s", recusado).isEmpty();
+            assertThat(relatorio.pendente()).isTrue();
+        }
+        for (int morto : new int[] {404, 410}) {
+            status.set(morto);
+            var relatorio = despachante.entregar(aviso(), UUID.randomUUID(), List.of(destino().aparelho()), () -> null);
+            assertThat(relatorio.invalidos()).as("inscrição removida com %s", morto).hasSize(1);
+            assertThat(relatorio.pendente()).isFalse();
+        }
+    }
 }

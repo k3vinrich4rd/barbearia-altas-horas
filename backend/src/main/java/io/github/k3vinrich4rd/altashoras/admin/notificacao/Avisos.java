@@ -47,6 +47,12 @@ class Avisos {
                 .query((rs, n) -> new Gravado(rs.getObject("id", UUID.class), rs.getBoolean("entregue"))).single();
     }
 
+    /** Soma uma tentativa falha de entrega e devolve o total (D178). */
+    int registrarTentativa(UUID id) {
+        return jdbc.sql("UPDATE aviso_barbeiro SET tentativas = tentativas + 1 WHERE id = :id RETURNING tentativas")
+                .param("id", id).query(Integer.class).single();
+    }
+
     void marcarEntregue(UUID id, Instant agora) {
         jdbc.sql("UPDATE aviso_barbeiro SET push_enviado_em = :agora WHERE id = :id AND push_enviado_em IS NULL")
                 .param("agora", utc(agora)).param("id", id).update();
