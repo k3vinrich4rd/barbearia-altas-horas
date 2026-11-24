@@ -49,11 +49,10 @@ class V1MigracaoIT {
     }
 
     @Test
-    @DisplayName("Configuração inicial = regras reais: slots de 30 min e 3 min para pagar (a V1 nasceu com 15; a V7 trocou para 3, D121; a V14 tirou a antecedência e o horizonte, D197)")
+    @DisplayName("Configuração inicial = regras reais: slots de 30 min e 3 min para pagar (a V1 nasceu com 15; a V7 trocou para 3, D121; a V14 deixou a antecedência e o horizonte sem uso, D197 e D199)")
     void configuracaoReal() {
         var cfg = jdbc.queryForMap("SELECT * FROM configuracao_agenda WHERE id = 1");
-        assertThat(cfg).doesNotContainKeys("antecedencia_minima_min", "horizonte_dias")
-                .containsEntry("intervalo_entre_atendimentos_min", 0)
+        assertThat(cfg).containsEntry("intervalo_entre_atendimentos_min", 0)
                 .containsEntry("granularidade_min", 30)
                 .containsEntry("expiracao_pagamento_min", 3)
                 .containsEntry("fuso", "America/Sao_Paulo");
