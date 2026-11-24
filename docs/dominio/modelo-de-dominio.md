@@ -106,11 +106,9 @@ classDiagram
             Instant anonimizadoEm
         }
         class ConfiguracaoAgenda {
-            int antecedenciaMinimaMin  "HIPÓTESE H5"
             int janelaCancelamentoMin  "HIPÓTESE H6"
             int intervaloEntreAtendimentosMin  "HIPÓTESE H4"
             int granularidadeMin  "HIPÓTESE H11"
-            int horizonteDias  "HIPÓTESE H12"
             int expiracaoGuestMin  "15"
             int expiracaoPagamentoMin  "15"
         }
@@ -228,8 +226,8 @@ stateDiagram-v2
 
 | De | Para | Quem dispara | Condição | Efeito colateral |
 |---|---|---|---|---|
-| — | `AGUARDANDO_PAGAMENTO` | cliente logado (`POST /agendamentos`) ou guest (`POST /agendamentos/guest`, com limite por IP, R26) | horário livre (R1), dentro da jornada (R4), antecedência e horizonte (R5) | `expira_em = agora + 3 min` (R7); preço congelado (R8); `ReservaCriada` |
-| — | `CONFIRMADO` | **reserva manual** do painel (`POST /admin/agendamentos`, 6D): ADMIN ou BARBEIRO (só para si) | horário livre (R1), dentro da jornada (R4); sem antecedência mínima | `origem = MANUAL`, sem cobrança, sem aceite; nome e observação apagados em 90 dias (R33) |
+| — | `AGUARDANDO_PAGAMENTO` | cliente logado (`POST /agendamentos`) ou guest (`POST /agendamentos/guest`, com limite por IP, R26) | horário livre (R1), dentro da jornada (R4), início depois de agora (R5, D197: sem antecedência nem horizonte) | `expira_em = agora + 3 min` (R7); o cliente pode **acrescentar 1 minuto uma vez**, só no último minuto (`prorrogada_em`, D188); preço congelado (R8); `ReservaCriada` |
+| — | `CONFIRMADO` | **reserva manual** do painel (`POST /admin/agendamentos`, 6D): ADMIN ou BARBEIRO (só para si) | horário livre (R1), dentro da jornada (R4), início depois de agora (R5) | `origem = MANUAL`, sem cobrança, sem aceite; nome e observação apagados em 90 dias (R33) |
 | `AGUARDANDO_PAGAMENTO` | `CONFIRMADO` | sistema: listener de `PagamentoConfirmado` | `agora < expira_em` | — |
 | `AGUARDANDO_PAGAMENTO` | `EXPIRADO` | sistema: job com ShedLock ou expiração preguiçosa na inserção | `expira_em <= agora` | `ReservaExpirada` → pagamento cancela a cobrança pendente |
 | `AGUARDANDO_PAGAMENTO` | `CANCELADO` | admin | motivo obrigatório | `ReservaCancelada` → pagamento cancela a cobrança |

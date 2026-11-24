@@ -16,12 +16,13 @@
 | Parte | O que você testa | Hoje |
 |---|---|:-:|
 | [0. Subir](#0-subir-o-projeto) | banco, API e health | ✅ |
-| [1. Testes automatizados](#1-testes-automatizados) | 387 testes com PostgreSQL real | ✅ |
+| [1. Testes automatizados](#1-testes-automatizados) | 581 testes com PostgreSQL real | ✅ |
 | [2. O banco na mão](#2-o-banco-na-mão-as-regras-que-o-postgresql-garante) | double booking, aceite da política, método de pagamento | ✅ |
 | [3. Erros padronizados](#3-erros-padronizados-rfc-9457) | `problem+json`, `traceId` | ✅ |
 | [4. Cenário do visitante](#4-cenário-do-visitante-sem-conta) | ver serviços e horários, reservar sem conta, pagar (simulado) | ✅ V1 a V9 · ⏳ Fatia 5 |
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) · ⏳ AL1 (alcance por região, Fatia 6C: saída real a preencher no fluxo manual) |
+| [5d. Mais 1 minuto no Pix e agenda sem limites](#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-) | botão "Acrescentar 1 minuto" no último minuto, uma vez, e agenda sem antecedência nem horizonte | ✅ Fatia 14A |
 | [5b. Deploy grátis](#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-) | imagem Docker no perfil prod, IP real, CORS, hibernação, backup e restauração | ✅ A1 a A22 (ativação: só com o OK do Kevin) |
 | [6D. WhatsApp, reserva manual e prazo de 3 min](#d1--fatia-6d-whatsapp-reserva-manual-e-prazo-de-3-min) | WhatsApp do barbeiro, reserva manual pelo painel e expiração em 3 min | ✅ D1 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
@@ -66,7 +67,9 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real mais recente (Linux + Docker, 20/11/2026): **387 testes, 0 falhas, 0 pulados** (322 em classes `*IT` e 65 de unidade; os 385 anteriores, todos mantidos, + 2 do `ContratoExemplosDeErroTest`, que confere se cada exemplo de erro do `openapi.yaml` usa um `code` do `CodigoErro` com o mesmo status e título, e se o enum do contrato é igual ao do Java), `BUILD SUCCESS`.
+✅ Resultado real mais recente (Windows + Docker Desktop, 24/11/2026, Fatia 14A): **581 testes, 0 falhas, 0 erros, 0 pulados** (ver [5d](#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-)), `BUILD SUCCESS`.
+
+Resultado anterior (Linux + Docker, 20/11/2026): **387 testes, 0 falhas, 0 pulados** (322 em classes `*IT` e 65 de unidade; os 385 anteriores, todos mantidos, + 2 do `ContratoExemplosDeErroTest`, que confere se cada exemplo de erro do `openapi.yaml` usa um `code` do `CodigoErro` com o mesmo status e título, e se o enum do contrato é igual ao do Java), `BUILD SUCCESS`.
 
 Resultado anterior (Windows + Docker Desktop): **384 testes, 0 falhas, 0 pulados** (18/11/2026, com a 6D: 356 anteriores (349 mais 7 da Fatia 8), todos mantidos, + 28 novos; os que dependiam do prazo de 15 minutos mudaram só de valor, ver D129), `BUILD SUCCESS` em cerca de 2 min. A cobertura de instruções medida pelo JaCoCo foi de **96,6%**; o relatório (`backend/target/site/jacoco/index.html`) é regerado a cada `verify`. O relatório abre em `backend/target/site/jacoco/index.html`.
 
@@ -78,8 +81,8 @@ Resultado anterior (Windows + Docker Desktop): **384 testes, 0 falhas, 0 pulados
 | `SobreposicaoConstraintIT` | 6 | mesmo horário e sobreposição parcial dão `23P01`; encostadas `[)` passam; `CANCELADO` e `EXPIRADO` não ocupam |
 | `ConcorrenciaReservaIT` | 3 | 12 conexões disputando o mesmo horário: **exatamente 1 vence** (repetido 3 vezes) |
 | `SeedDevIT` | 5 | perfil `dev` com o Carlos, os 5 serviços, a jornada com almoço e 22 horários pela API |
-| `CalculadoraDeHorariosTest` | 12 | a regra dos horários, pura: almoço, serviço de 60 min, antecedência inclusiva, folga, intervalo meio aberto |
-| `DisponibilidadeIT` | 19 | a rota inteira no banco real: o que ocupa, pendente vencida, horizonte, erros 400/404/422, formato e **sem N+1** |
+| `CalculadoraDeHorariosTest` | 12 | a regra dos horários, pura: almoço, serviço de 60 min, início depois de agora (sem antecedência, D197), folga, intervalo meio aberto |
+| `DisponibilidadeIT` | 19 | a rota inteira no banco real: o que ocupa, pendente vencida, sem horizonte (D197), erros 400/404/422, formato e **sem N+1** |
 | `CatalogoIT` · `PoliticaPagamentoIT` · `PrecoFormatadoTest` | 3 · 1 · 6 | só ativos, só os campos do contrato, cache, política vigente, `R$ 1.234,56` |
 | `CadastroIT` · `LoginIT` · `MeIT` | 9 · 5 · 2 | conta criada com senha só em hash, campo a mais recusado, mesma resposta para e-mail inexistente, token vencido pelo relógio |
 | `RefreshRotativoIT` · `LogoutIT` · `TrocaDeSenhaIT` | 5 · 1 · 2 | rotação, reuso derruba a família, 8 renovações simultâneas com no máximo uma vencedora, troca de senha encerra as sessões |
@@ -742,6 +745,78 @@ O modo `--real` foi ensaiado aqui com um dump **sintético** (as migrações do 
 
 O script só reconhece um critério se a coluna "Teste" da spec citar **uma classe Java** com o `A<n>:` no `@DisplayName`. Os critérios provados por script (`scripts/testar-imagem.sh`, `horas-render.sh`, `verificar-no-ar.sh`) e por roteiro manual não têm classe, então precisam do `--exceto`. Com `--exceto 3-12,14,15,18-21,23,26-31` os 10 critérios de teste Java passam (A1, A2, A13, A16, A17, A22, A24, A25, A32, A33). Os demais estão na saída real acima.
 
+## 5d. Mais 1 minuto no Pix e agenda sem limites (Fatia 14A) ✅
+
+**O que muda para quem usa:** (1) no **último minuto** do contador do Pix aparece o botão **"Acrescentar 1 minuto"**; ele soma 60 s ao prazo que está correndo, **uma vez por reserva**, vale para o cliente e para o visitante e não gera Pix novo. (2) A agenda **não tem mais antecedência mínima nem limite de dias à frente** (D197): a única regra é o início ser depois de agora, no fuso de São Paulo.
+
+### Testes automatizados da 14A
+
+| Classe | Testes | O que prova |
+|---|---:|---|
+| `ProrrogacaoDoPagamentoIT` | 9 | A1 (0:30 vira 1:30, `version + 1`), A2 (10:01:59 é cedo), A3 (repetir é `200` e não soma), A5 e A9 (sem carência nem segunda vez), A10 (só aguardando pagamento), A11 (alheio, inexistente, manual e token errado são `404`; sem token é `401`), A17 (a janela vem pronta na leitura) e o corpo com campo (`400`) |
+| `ProrrogacaoConcorrenciaIT` | 4 | A4 (duas ao mesmo tempo: uma `201` e uma `200`), A14 (webhook dentro do prazo novo), A15 (prorrogação contra webhook, em 4 rodadas) e A16 (o job de expiração **pula** a linha travada: `SKIP LOCKED`) |
+| `ProrrogacaoDoVisitanteIT` | 1 | A12: só com o `X-Guest-Token`, sem bearer |
+| `ProrrogacaoCobrancaIT` | 1 | A6: a cobrança `PENDENTE` ganha o prazo novo, o Pix é o mesmo e o gateway não é chamado |
+| `ProrrogacaoSemDadoPessoalIT` | 1 | A20: evento no outbox e linha de log só com o id (R30) |
+| `ProrrogacaoModulosTest` | 3 | A21: a agenda não depende do pagamento; código novo no enum e no contrato; itens `deprecated` |
+| `AgendaSemLimitesIT` | 3 | A7 (daqui a 5 minutos e 400 dias à frente), A8 (só o que já passou é recusado, com o relógio em 10:00:00 exato) e A19 (reserva manual) |
+| `V14MigracaoIT` | 2 | A13: as duas colunas somem, as outras mantêm os valores (partindo da V13), `prorrogada_em` existe e o CHECK recusa reserva manual prorrogada |
+| `ConfiguracaoSemLimitesIT` | 1 | A18: a resposta não traz os dois campos; o `PUT` de um front antigo dá `200` e eles são ignorados |
+| front: `pagamento-prorrogacao.test.tsx` | 4 | A22 a A25: o botão só no último minuto, um só `POST`, foco na mensagem, 0:30 vira 1:30, `422` some com o botão |
+| front: `agendar-sem-limites.test.tsx` | 3 | A26: `min` e nenhum `max` no "Outro dia", nenhum texto de antecedência ou "dias à frente", o código sem a variável de horizonte, "Procurar mais 30 dias" |
+| E2E: `prorrogacao-pix.spec.ts` | 1 | A27: o fluxo inteiro com a API real (espera o último minuto de verdade, uns 2 min) |
+
+Os testes antigos que conferiam a antecedência de 2 h e o horizonte de 30 dias **mudaram de valor** (a regra foi revogada): `CalculadoraDeHorariosTest`, `DisponibilidadeIT` (A20, A21), `ReservaClienteIT` (A4), `ReservaManualIT` (A17, A18), `ConfiguracaoAdminIT` (A64, A65, A67, A68), `AuditoriaCadastrosIT`, `V1MigracaoIT` e, no front, `agendar-horarios`, `reserva-conflitos` e `painel-configuracao`.
+
+**Números reais (24/11/2026, Windows 10, Docker Desktop, Java 25, Node 22.16, PostgreSQL 18):**
+
+- `cd backend && ./mvnw verify`: **581 testes, 0 falhas, 0 erros, 0 pulados**, `BUILD SUCCESS` em 6 min 9 s. Cobertura do JaCoCo: **95,7% das instruções, 80,8% dos ramos, 94,6% das linhas**. `ModulithTest`, `ArquiteturaTest` e `ContratoExemplosDeErroTest` verdes (556 da develop + os 25 novos; nenhum teste saiu, só mudaram de valor os que citavam a regra revogada).
+- `npm ci` (0 vulnerabilidades), `npm run gerar:tipos` e `gerar:rotas`, `tsc --noEmit` e `eslint` sem erro, `vitest`: **75 arquivos, 181 testes verdes** (os 7 novos falhavam contra o front antigo e passam agora), `npm run build` ok.
+- `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml`: **0 erros e 0 avisos** (6 exceções explícitas, a nova é a do caminho `/agendamentos/{id}/prorrogacao` × `/agendamentos/guest/{id}`).
+- `sh scripts/conferir-spec.sh 14 --exigir --exceto 28-62`: **27 de 27 critérios com teste** (`--ate 27` no `frontend-ci.yml`).
+
+### Roteiro: o "Acrescentar 1 minuto" de ponta a ponta ✅
+
+Saída real contra a API no perfil `dev` (PostgreSQL 18 isolado), 24/11/2026. Reserva de visitante para as 18:00 **de hoje**, feita às 17:41 (antes da 14A isso era `422` por falta de 2 h de antecedência):
+
+```text
+17:41:31  200  GET /disponibilidade de hoje  3 horários; primeiro 18:00, último 19:00 (agora são 17:41:31)
+17:41:31  200  GET /disponibilidade de 05/01/2028 (400 dias à frente)  22 horários
+17:41:31  422  GET /disponibilidade de ontem  code=ANTECEDENCIA_INSUFICIENTE detail="Este horário já passou."
+17:41:32  201  POST /agendamentos/guest (hoje às 18:00, agora 17:41:32)  status=AGUARDANDO_PAGAMENTO expiraEm=17:44:32 prorrogacao={"usada":false,"segundos":60,"abreEm":"17:43:32","fechaEm":"17:44:32"}
+17:41:32  422  POST /agendamentos/guest/{id}/prorrogacao logo depois de reservar  code=PRORROGACAO_FORA_DA_JANELA detail="Só dá para acrescentar tempo no último minuto."
+17:41:32  404  POST com token errado  code=RECURSO_NAO_ENCONTRADO
+17:41:32  400  POST com corpo { segundos: 600 }  code=CAMPO_DESCONHECIDO
+17:41:32  201  POST /pagamentos/cobrancas (Pix)  status=PENDENTE pix=SIMULADO-5ef46d58-… expiraEm=17:44:32
+17:41:32  ..  esperando o último minuto (abre às 17:43:32)
+17:43:33  201  POST /agendamentos/guest/{id}/prorrogacao no último minuto  status=AGUARDANDO_PAGAMENTO expiraEm=17:45:32 prorrogacao={"usada":true,"segundos":60,"abreEm":"17:44:32","fechaEm":"17:45:32"}
+17:43:33  200  POST de novo (repetição)  status=AGUARDANDO_PAGAMENTO expiraEm=17:45:32 prorrogacao={"usada":true,"segundos":60,"abreEm":"17:44:32","fechaEm":"17:45:32"}
+17:43:33  200  GET /agendamentos/guest/{id}  status=AGUARDANDO_PAGAMENTO expiraEm=17:45:32 prorrogacao={"usada":true,"segundos":60,"abreEm":"17:44:32","fechaEm":"17:45:32"}
+17:43:33  ..  esperando o fim do prazo novo (17:45:32)
+17:45:33  422  POST depois do fim do prazo  code=RESERVA_EXPIRADA
+17:45:33  200  POST /auth/login (admin do roteiro)  troca de senha obrigatória: true
+```
+
+**O que prova:** o último minuto é decidido pelo servidor (`abreEm` e `fechaEm` vêm prontos); pedir cedo é `422 PRORROGACAO_FORA_DA_JANELA`; no último minuto soma 60 s (17:44:32 vira 17:45:32) e repetir devolve `200` com o mesmo corpo, **sem** somar; a cobrança Pix continua a mesma; depois do fim do prazo novo não há segunda chance (`422 RESERVA_EXPIRADA`). O corpo com campo é `400 CAMPO_DESCONHECIDO` e o token errado é o mesmo `404` de "não existe".
+
+### Roteiro: configuração e reserva manual sem antecedência ✅
+
+```text
+17:45:38  204  PUT /me/senha (troca obrigatória do admin do roteiro)
+17:45:38  200  POST /auth/login com a senha nova  papeis=["ADMIN","BARBEIRO"]
+17:45:38  200  GET /admin/configuracao  {"fuso":"America/Sao_Paulo","intervaloEntreAtendimentosMin":0,"granularidadeMin":30,"expiracaoPagamentoMin":3,"version":1}
+17:45:38  200  PUT com os dois campos antigos (front antigo)  {"fuso":"America/Sao_Paulo","intervaloEntreAtendimentosMin":0,"granularidadeMin":30,"expiracaoPagamentoMin":3,"version":2}
+17:45:38  200  PUT só com os campos que sobraram  {"fuso":"America/Sao_Paulo","intervaloEntreAtendimentosMin":0,"granularidadeMin":30,"expiracaoPagamentoMin":3,"version":3}
+17:45:38  200  GET /disponibilidade de hoje depois do PUT antigo  3 horários: 18:00, 18:30, 19:00
+17:45:38  201  POST /admin/agendamentos (reserva manual daqui a minutos)  status=CONFIRMADO origem=MANUAL prorrogacao=null
+17:45:38  422  POST /admin/agendamentos de um horário que já passou (07:00)  code=ANTECEDENCIA_INSUFICIENTE
+17:45:38  200  GET /admin/agenda de hoje  CONFIRMADO/MANUAL/prorrogacao=null
+```
+
+**O que prova:** a resposta de `/admin/configuracao` não tem mais `antecedenciaMinimaMin` nem `horizonteDias`; o `PUT` de um front antigo (com os dois) dá `200` e os dois são ignorados (a disponibilidade de hoje continua mostrando os horários de daqui a minutos); a reserva manual daqui a minutos vale e o horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. A `prorrogacao` de uma reserva manual é `null`.
+
+**Para o Kevin conferir à mão (celular):** com a API e o front no ar, reserve um horário, gere o Pix e espere o contador chegar a 1:00: o botão **Acrescentar 1 minuto** aparece, o contador vai de 0:30 para 1:30 e a mensagem "Pronto, mais 1 minuto no contador." recebe o foco. Com o leitor de tela ligado, o tempo novo é anunciado ("Faltam 2 minutos para pagar."). Com "Sem animação" ligado nada se move (o botão não tem animação). **Depois do deploy, apague `NEXT_PUBLIC_HORIZONTE_DIAS` no Vercel** (o código não a lê mais).
+
 ## 6. Cenário do admin (o barbeiro)
 
 O admin **não** existe no repositório: ele nasce na subida a partir de duas variáveis que você define, só quando ainda não há nenhum admin.
@@ -960,31 +1035,14 @@ Saída real (17/11/2026, 17h13), resumida:
 
 **O que prova:** a folga tira os horários na hora, sem reiniciar nada, e o Eduardo não consegue apagar um horário que já tem cliente: antes ele cancela (com motivo) e devolve. Remover a folga devolve os horários.
 
-### AD13 ✅ Configuração: mudar a antecedência com efeito imediato
+### AD13 ✅ Configuração: regras que mudam sem deploy (sem antecedência nem horizonte desde a 14A)
 
 ```bash
 curl -s localhost:8080/admin/configuracao -H "Authorization: Bearer $ADMIN"
-curl -s -i -X PUT localhost:8080/admin/configuracao -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"antecedenciaMinimaMin":180,"intervaloEntreAtendimentosMin":0,"granularidadeMin":30,"horizonteDias":30,"expiracaoPagamentoMin":15,"version":0}'
-curl -s "localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&barbeiroId=b0000000-0000-4000-8000-000000000001&data=<hoje>"
-curl -s "localhost:8080/admin/auditoria?tamanho=10" -H "Authorization: Bearer $ADMIN"
+curl -s -i -X PUT localhost:8080/admin/configuracao -H "Authorization: Bearer $ADMIN" -H "Content-Type: application/json" -d '{"intervaloEntreAtendimentosMin":0,"granularidadeMin":30,"expiracaoPagamentoMin":3,"version":0}'
 ```
 
-Saída real (17/11/2026, 17h13), resumida:
-
-```text
-200  antecedência 120, intervalo 0, granularidade 30, horizonte 30, expiração 15, fuso America/Sao_Paulo, version 0
-     hoje (17h13): 1 horário (19:30)
-200  PUT antecedência 180: version 1; hoje: 0 horários, sem reiniciar a API
-409  CONFLITO_DE_VERSAO   (PUT com version 0 de novo)
-400  CAMPO_DESCONHECIDO   (fuso no corpo)
-200  PUT de volta a 120: version 2; hoje: 1 horário (19:30)
-200  auditoria: SERVICO_CRIADO, SERVICO_ALTERADO x2, FOLGA_CRIADA, FOLGA_REMOVIDA, CONFIGURACAO_ALTERADA x2
-     detalhe só com nomes de campos e ids ({"campos":"antecedenciaMinimaMin"}), sem nome nem motivo
-403  ACESSO_NEGADO   (cliente em /admin/servicos, /admin/barbeiros e /admin/configuracao)
-401  NAO_AUTENTICADO (sem token)
-```
-
-**O que prova:** a regra de negócio é dado: mudou de 120 para 180 minutos e a disponibilidade de hoje mudou na mesma hora. Cada cadastro deixa uma linha na auditoria, e o papel `BARBEIRO` sem `ADMIN` recebe `403` (A70, `AcessoAdminIT`; o seed `dev` não tem conta só com esse papel). O roteiro completo fica na área interna da equipe, fora do repositório. Depois de rodar, `grep` por e-mails `@exemplo.test`, WhatsApp e `g1_` no log da API deu **0**.
+Saída real em [5d](#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-) (24/11/2026). Os campos `antecedenciaMinimaMin` e `horizonteDias` foram **revogados** (D197): a resposta não os traz e o `PUT` antigo que ainda os envia dá `200` e os ignora. O que continua valendo e mudando na hora: intervalo entre atendimentos, grade de horários (5 a 60 min) e prazo de pagamento (3 a 60 min), com `version` (`409 CONFLITO_DE_VERSAO`), `fuso` só leitura (`400 CAMPO_DESCONHECIDO`), auditoria só com nomes de campos (`ConfiguracaoAdminIT` A64 a A68, `AuditoriaCadastrosIT`) e `403` para quem não é ADMIN (A70).
 
 ### AD14 ✅ Pagamento tardio (modo simulado)
 

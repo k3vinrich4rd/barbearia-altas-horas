@@ -46,9 +46,9 @@ Uma barbearia de bairro que atende por caderno e WhatsApp ganhou uma **agenda on
 
 | 🌐 No ar | 💳 Pagamento | ⏱ Prazo | 🔒 Conflito de horário | 🧪 Testes |
 |:-:|:-:|:-:|:-:|:-:|
-| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (simulado no beta) | 3 min para pagar | impossível, garantido pelo banco | **387** no backend, 0 falhas |
+| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (simulado no beta) | 3 min para pagar | impossível, garantido pelo banco | **581** no backend, 0 falhas |
 
-<sub>Os 387 testes vêm do [guia de testes](docs/guia-testes.md#1-testes-automatizados) (20/11/2026, PostgreSQL real) e do [CI da `develop`](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/runs/44760774211). Nenhum número desta página é estimativa.</sub>
+<sub>Os 581 testes vêm do [guia de testes](docs/guia-testes.md#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-) (24/11/2026, `./mvnw verify` com PostgreSQL real, na PR da Fatia 14A). Nenhum número desta página é estimativa.</sub>
 
 ## 🗓 As 3 formas de agendar
 
@@ -203,7 +203,7 @@ timeline
 
 Um barbeiro só, que faz todos os serviços. É para esse ritmo que a agenda foi pensada:
 
-<img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h e exemplos de horários confirmados e aguardando pagamento; horários de 30 em 30 minutos, 2 horas de antecedência e até 30 dias à frente"/>
+<img src="docs/assets/agenda-semana.svg" width="100%" alt="Página da agenda: terça a sábado, das 7h às 20h, com a faixa do almoço das 12h às 13h e exemplos de horários confirmados e aguardando pagamento; horários de 30 em 30 minutos"/>
 
 <sub>Os horários marcados na imagem são ilustrativos: mostram como o dia aparece para o Eduardo, com o que está pago e o que ainda aguarda pagamento.</sub>
 
@@ -321,7 +321,7 @@ O pagamento com cartão acontece na página do próprio meio de pagamento. A API
 
 <br/>
 
-Serviços, preços, jornada, almoço, antecedência mínima e prazo de pagamento são dados no banco. O Eduardo muda o horário de almoço no painel e a agenda acompanha, sem depender de uma nova versão do sistema.
+Serviços, preços, jornada, almoço e prazo de pagamento são dados no banco (a antecedência mínima e o limite de dias à frente deixaram de existir em 24/11/2026: a agenda só recusa o horário que já passou). O Eduardo muda o horário de almoço no painel e a agenda acompanha, sem depender de uma nova versão do sistema.
 
 </details>
 
@@ -554,7 +554,7 @@ flowchart LR
 | Gerenciar serviços e preços | nome, duração e preço, sem deploy |
 | Editar jornada e folgas | inclusive a pausa de almoço |
 | Acompanhar pagamentos | pendentes, confirmados e **pendências de pagamento tardio** |
-| Ajustar regras | antecedência, horizonte, prazo de pagamento, texto da política |
+| Ajustar regras | intervalo entre atendimentos, grade de horários, prazo de pagamento, texto da política |
 
 ## 🧪 Rodar e testar
 
@@ -573,7 +573,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 387 testes com PostgreSQL real via Testcontainers (CI da develop, 20/11/2026)
+cd backend && ./mvnw verify      # 581 testes com PostgreSQL real via Testcontainers (24/11/2026, Fatia 14A)
 ```
 
 O contrato da API ([`docs/contrato/openapi.yaml`](docs/contrato/openapi.yaml)) descreve cada rota, com os erros em pt-BR no formato RFC 9457. Para validar:
