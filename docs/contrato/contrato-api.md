@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.9.0
+# 📑 Contrato da API · v1.10.0
 
 | | |
 |---|---|
@@ -97,6 +97,11 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` `PUT` | `/admin/configuracao` | regras configuráveis da agenda (`fuso` só leitura) | 🛠 | `200` | `400`, `401`, `403`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/auditoria` | ações do painel (paginado, sem IP) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/alcance` | de onde vêm os **clientes** (pessoas diferentes) por estado, região ou município, com `nivel`, `uf` e `periodo`, k = 5 e subida de nível (**1.9.0**, 11D). ADMIN vê tudo (filtro `barbeiroId`); BARBEIRO só os clientes dele | 🛠 | `200` | `400`, `401`, `403`, `404` | [4.6](#46-guest) |
+| `GET` | `/admin/notificacoes/chave-publica` | a chave pública VAPID para o navegador criar a inscrição; `{ disponivel: false }` sem VAPID (**novo na 1.10.0**, Fatia 13) | 🛠 | `200` | `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
+| `POST` `DELETE` | `/admin/notificacoes/inscricao` | guarda e remove o aparelho do barbeiro na **conta do token**; o `endpoint` do remover vai no corpo (**novo na 1.10.0**) | 🛠 | `204` | `400 VALIDACAO_INVALIDA`, `400 CAMPO_DESCONHECIDO`, `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
+| `GET` | `/admin/notificacoes` | "Novidades": os avisos da conta de quem chama, sem dado do cliente (**novo na 1.10.0**) | 🛠 | `200` | `400`, `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
+| `POST` | `/admin/notificacoes/marcar-lidas` | marca como lidos os avisos da conta (**novo na 1.10.0**) | 🛠 | `204` | `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
+| `POST` | `/admin/notificacoes/teste` | aviso de teste aos aparelhos da própria conta, 5 por hora (**novo na 1.10.0**) | 🛠 | `204` | `401`, `403`, `429 LIMITE_EXCEDIDO` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
 
 ## 3. Requisitos por endpoint
 
@@ -349,6 +354,30 @@ O `codigo` (43 caracteres base64url, 32 bytes de `SecureRandom`) aparece **uma v
 
 **Desligar** é `PUT /admin/barbeiros/{id}` com `ativo: false`: tira o acesso e **mantém o histórico**, não apaga. O token antigo para de valer na hora, o convite pendente é revogado e o WhatsApp comercial some. Conta também de cliente (ou do dono) continua ativa; conta só de equipe é desativada e anonimizada (nome e e-mail viram lápide). Reativar sozinho não devolve o acesso: só um convite novo. `BarbeiroAdmin.acesso` (só leitura): `SEM_CONTA`, `CONVITE_PENDENTE` (com `conviteExpiraEm`), `ATIVO` ou `DESLIGADO`; o e-mail do barbeiro nunca volta.
 
+### 4.13 Notificações do barbeiro (1.10, Fatia 13)
+
+**O que acontece.** Quando o **pagamento confirma** a reserva (de cliente com cadastro ou de visitante), o **barbeiro daquela reserva** ganha um aviso no painel e, se tiver aparelho inscrito, uma notificação Web Push: *"Novo horário: Corte Degradê, sex 27/11 às 10:00"*. Reserva que expira sem pagar, reserva cancelada e reserva manual (R33) **não avisam**. O dono (ADMIN) **não** recebe o aviso das reservas do barbeiro convidado; ele vê tudo na agenda. O push e a lista **não levam o nome do cliente** (D173).
+
+**Escopo.** Todas as rotas são 🛠 (ADMIN ou BARBEIRO; CLIENTE recebe `403 ACESSO_NEGADO`) e valem **só para a conta do token**: nenhuma rota recebe `usuarioId` nem `barbeiroId`, e um parâmetro desses na URL é ignorado sem sinal. Nunca em cache.
+
+`GET /admin/notificacoes/chave-publica`
+```json
+{ "disponivel": true, "chavePublica": "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM" }
+```
+Sem o par VAPID configurado: `{ "disponivel": false }`. A chave privada nunca sai da API.
+
+`POST /admin/notificacoes/inscricao` → `204` (idempotente por `endpoint`)
+```json
+{ "endpoint": "https://fcm.googleapis.com/fcm/send/exemplo", "chaves": { "p256dh": "BCVx...", "auth": "BTBZ..." } }
+```
+Só hosts de serviço de push, em https (`fcm.googleapis.com`, `updates.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`); outro host é `400 VALIDACAO_INVALIDA` e **nunca é chamado** (contra SSRF). O mesmo `endpoint` vindo de **outra conta** passa para ela (o aparelho é de quem entrou por último). No máximo 10 aparelhos por conta: o 11º substitui o mais antigo. `DELETE` leva `{ "endpoint": "..." }` no corpo; endpoint de outra conta ou inexistente responde `204` igual e não apaga nada.
+
+`GET /admin/notificacoes?limite=20` (1 a 50)
+```json
+{ "naoLidas": 2, "itens": [ { "id": "…", "reservaId": "…", "servico": "Corte Degradê", "inicio": "2026-11-27T10:00:00-03:00", "criadoEm": "2026-11-24T09:12:03-03:00", "lido": false } ] }
+```
+`POST /admin/notificacoes/marcar-lidas` → `204`. `POST /admin/notificacoes/teste` → `204`; o 6º em uma hora é `429 LIMITE_EXCEDIDO` com `Retry-After`. Os avisos valem 30 dias. **Nenhum código de erro novo.**
+
 ### 4.10 Regras de negócio citadas
 
 As regras R1 a R34 ficam no [dossiê, seção 3](../contexto.md#3-regras-de-negócio), para não duplicar. Testes e PRs citam o número.
@@ -431,6 +460,7 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.10.0 | 2026-11-24 | Fatia 13 (notificação ao barbeiro): `GET /admin/notificacoes/chave-publica`, `POST` e `DELETE /admin/notificacoes/inscricao`, `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` e `POST /admin/notificacoes/teste` (todas 🛠, só da conta do token); schemas `ChavePublicaPush`, `InscricaoPush`, `RemocaoDeInscricaoPush`, `Novidades` e `AvisoDoPainel`. Nenhum campo novo nos schemas existentes e nenhum código de erro novo. A versão `1.9.0` é da Fatia 11 (alcance por nível) | não (só acrescenta) |
 | 1.9.0 | 2026-11-23 | Fatia 11 (alcance por nível, ADR 0014): `PUT /me` e `PUT /me/consentimentos/regiao` (consentimento `REGIAO_ALCANCE`, revogar apaga a região), `DELETE /agendamentos/guest/{id}/regiao` (o visitante retira a autorização), `autorizaRegiao` e `versaoTextoRegiao` em `POST /auth/cadastro` e `POST /agendamentos/guest` (o `cep` só vale com a caixinha e nunca é guardado), `regiaoAutorizada` no `Perfil`, na exportação e nas respostas do visitante, `municipioIbge` em `Endereco`, `textoConsentimentoRegiao` e a política **1.2**; `GET /alcance` em **faixas** (`faixaPercentual`, `bairrosComFaixa`, `codigoIbge`, `comFaixas`; `bairros` fica `deprecated`) e contando pessoas; `GET /admin/alcance` com `nivel`, `uf`, `periodo`, `k`, `totalVisivel`, `grupos` e `filhos` (`total` e `cidades` ficam `deprecated`). `endereco.cep` fica `deprecated` e sempre nulo. **Exceção à regra de só acrescentar:** `AlcancePainel.semRegiao` passou de número a objeto `{ clientes, abaixoDoLimite }` | sim, só o painel de alcance (atualizado na mesma entrega); o resto só acrescenta |
 | 1.8.0 | 2026-11-23 | Fatia 10B (convite do barbeiro): `POST` e `DELETE /admin/barbeiros/{id}/convite` (só ADMIN), `POST /auth/convite` (pública, com limite por IP), código de erro `422 CONVITE_INVALIDO`, `BarbeiroAdmin.acesso` e `conviteExpiraEm` (só leitura); `DELETE /me` de cliente que também é barbeiro ativo responde `409 USUARIO_JA_VINCULADO`. Só acréscimos; os papéis, as rotas e as telas atuais continuam valendo | não (só acrescenta) |
 | 1.7.1 | 2026-11-20 | Só documentação: descrição de cada tag, servidor do beta publicado, exemplos **reais** (perfil `dev`) nas respostas do fluxo principal e nos erros `400`, `401`, `403`, `404`, `409`, `422` (o `404` com a mensagem de cada rota: serviço, reserva, cobrança; o `409 COBRANCA_EM_ANDAMENTO` com exemplo); a descrição do `201` do visitante diz que o BFF tira o `tokenGuest` do corpo (D150); `400` documentado em `POST /auth/logout`; lint do Redocly com 0 avisos (exceções justificadas em `.redocly.lint-ignore.yaml`) e rodando no CI | não (nenhuma rota, campo ou status de sucesso mudou) |

@@ -212,6 +212,10 @@ public class Reserva {
         return barbeiroId;
     }
 
+    public Instant getInicio() {
+        return inicio;
+    }
+
     public long getVersion() {
         return version == null ? 0 : version;
     }

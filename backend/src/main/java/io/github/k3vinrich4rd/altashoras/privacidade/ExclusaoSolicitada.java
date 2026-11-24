@@ -17,6 +17,9 @@ public record ExclusaoSolicitada(UUID usuarioId) {
     /** O pagamento confere devolução pendente ANTES de qualquer coisa mudar (ordem menor que a da agenda). */
     public static final int ORDEM_DO_PAGAMENTO = 5;
 
+    /** O painel apaga os aparelhos e os avisos de notificação da conta (Fatia 13), depois da agenda e antes da conta. */
+    public static final int ORDEM_DAS_NOTIFICACOES = 15;
+
     /** A conta anonimiza e derruba as sessões, depois que a agenda liberou. */
     public static final int ORDEM_DA_CONTA = 20;
 }
