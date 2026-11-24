@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.k3vinrich4rd.altashoras.conta.usuario.Usuario;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.UsuarioRepository;
+import io.github.k3vinrich4rd.altashoras.privacidade.Consentimentos;
 import io.github.k3vinrich4rd.altashoras.privacidade.FonteDeDadosDoTitular;
 
 /**
@@ -19,9 +20,11 @@ import io.github.k3vinrich4rd.altashoras.privacidade.FonteDeDadosDoTitular;
 class DadosDaContaDoTitular implements FonteDeDadosDoTitular {
 
     private final UsuarioRepository usuarios;
+    private final Consentimentos consentimentos;
 
-    DadosDaContaDoTitular(UsuarioRepository usuarios) {
+    DadosDaContaDoTitular(UsuarioRepository usuarios, Consentimentos consentimentos) {
         this.usuarios = usuarios;
+        this.consentimentos = consentimentos;
     }
 
     @Override
@@ -34,18 +37,21 @@ class DadosDaContaDoTitular implements FonteDeDadosDoTitular {
     public Map<String, Object> exportar(UUID usuarioId) {
         Usuario usuario = usuarios.findById(usuarioId).orElseThrow();
         Map<String, Object> endereco = null;
-        if (usuario.getCep() != null) {
+        if (usuario.getCidade() != null || usuario.getBairro() != null) {
             endereco = new LinkedHashMap<>();
-            endereco.put("cep", usuario.getCep());
+            // O CEP não é guardado desde a Fatia 11: a chave continua na exportação (deprecated), sempre nula.
+            endereco.put("cep", null);
             endereco.put("bairro", usuario.getBairro());
             endereco.put("cidade", usuario.getCidade());
             endereco.put("uf", usuario.getUf());
+            endereco.put("municipioIbge", usuario.getRegiaoMunicipioIbge());
         }
         Map<String, Object> conta = new LinkedHashMap<>();
         conta.put("nome", usuario.getNome());
         conta.put("email", usuario.getEmail());
         conta.put("whatsapp", usuario.getWhatsapp());
         conta.put("endereco", endereco);
+        conta.put("regiaoAutorizada", consentimentos.regiaoAutorizada(usuarioId));
         return Map.of("conta", conta);
     }
 }

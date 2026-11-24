@@ -77,7 +77,7 @@ class ExclusaoAtomicaIT extends PrivacidadeBase {
         delete("/me", cliente.acesso()).andExpect(status().isInternalServerError());
 
         conferirIntacta(cliente, consentimentos, refresh);
-        Map<String, Object> linha = jdbc.queryForMap("SELECT cep, senha_hash IS NOT NULL AS tem_senha FROM usuario WHERE id = ?",
+        Map<String, Object> linha = jdbc.queryForMap("SELECT senha_hash IS NOT NULL AS tem_senha FROM usuario WHERE id = ?",
                 cliente.id());
         assertThat(linha).containsEntry("tem_senha", true);
     }

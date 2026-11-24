@@ -38,6 +38,7 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeLimite;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 import io.github.k3vinrich4rd.altashoras.comum.valor.Cep;
+import io.github.k3vinrich4rd.altashoras.privacidade.Consentimentos;
 import io.github.k3vinrich4rd.altashoras.comum.valor.Email;
 import io.github.k3vinrich4rd.altashoras.comum.valor.Telefone;
 import io.github.k3vinrich4rd.altashoras.conta.Contas;
@@ -112,7 +113,8 @@ public class ReservarHorario {
         RegiaoDaReserva regiao = null;
         try {
             regiao = contas.regiaoDoCliente(clienteId)
-                    .map(r -> new RegiaoDaReserva(r.bairro(), r.cidade(), r.uf())).orElse(null);
+                    .map(r -> new RegiaoDaReserva(r.bairro(), r.cidade(), r.uf(), r.municipioIbge(), r.versaoConsentimento()))
+                    .orElse(null);
         } catch (RuntimeException falha) {
             // R31: a região nunca derruba a reserva. Do erro sobe só a classe (a mensagem pode trazer dado da conta, R30).
             LOG.warn("reserva de cliente sem região ({})", falha.getClass().getSimpleName());
@@ -128,6 +130,12 @@ public class ReservarHorario {
     ReservaDoVisitante comoVisitante(Pedidos.ReservaGuest pedido, String ip) {
         // O formato do CEP opcional é conferido antes de qualquer limite ou chamada externa (A64, E2).
         Cep cep = pedido.cep() == null ? null : cepValido(pedido.cep());
+        // Fatia 11 (E1, E2): sem a caixinha de região o CEP é ignorado (nem consultado, nem guardado); com ela, o texto precisa ser o vigente.
+        if (Boolean.TRUE.equals(pedido.autorizaRegiao()) && !Consentimentos.VERSAO_DO_TEXTO.equals(pedido.versaoTextoRegiao())) {
+            throw ExcecaoDeNegocio.campoInvalido("versaoTextoRegiao",
+                    "Informe a versão vigente do texto de autorização de região (" + Consentimentos.VERSAO_DO_TEXTO + ").");
+        }
+        boolean autorizou = cep != null && Boolean.TRUE.equals(pedido.autorizaRegiao());
         String chave = "guest|" + ip;
         long bloqueado = limitador.segundosBloqueado(chave, limiteGuest, janelaGuest);
         if (bloqueado > 0) {
@@ -135,14 +143,13 @@ public class ReservarHorario {
         }
 
         // Fora da transação da reserva (E30): nunca se segura conexão do banco esperando a rede, e o CEP nunca a impede (R31).
-        Optional<RegiaoDaReserva> regiao = cep == null ? Optional.empty() : resolverRegiao(cep, ip);
-        if (cep != null) {
+        Optional<RegiaoDaReserva> regiao = autorizou ? resolverRegiao(cep, ip, pedido.versaoTextoRegiao()) : Optional.empty();
+        if (autorizou) {
             LOG.info("Reserva de visitante: região resolvida: {}", regiao.isPresent() ? "sim" : "não");
         }
         String token = TokenGuest.novo();
         Contato contato = new Contato(pedido.nome().strip(), Email.de(pedido.email()).valor(),
-                Telefone.de(pedido.whatsapp()).digitos(), TokenGuest.hash(token),
-                regiao.isPresent() ? cep.digitos() : null);
+                Telefone.de(pedido.whatsapp()).digitos(), TokenGuest.hash(token));
         UUID id = reservar(pedido.horario(), null, contato, regiao.orElse(null), null, null).getId();
         limitador.registrar(chave, janelaGuest);
         return new ReservaDoVisitante(id, token);
@@ -180,7 +187,7 @@ public class ReservarHorario {
      * a reserva segue (R31). A consulta gasta a mesma cota de {@code GET /cep} do IP (H21): sem isso, um robô usaria a
      * reserva para martelar o ViaCEP. Do erro sobe só a classe, porque a mensagem de um cliente HTTP pode trazer o CEP (R30).
      */
-    private Optional<RegiaoDaReserva> resolverRegiao(Cep cep, String ip) {
+    private Optional<RegiaoDaReserva> resolverRegiao(Cep cep, String ip, String versao) {
         String chaveDoCep = "cep|" + ip;
         if (limitador.segundosBloqueado(chaveDoCep, limiteCep, janelaCep) > 0) {
             return Optional.empty();
@@ -189,7 +196,7 @@ public class ReservarHorario {
         try {
             return cepApi.buscar(cep)
                     .filter(e -> e.cidade() != null && e.uf() != null)
-                    .map(e -> new RegiaoDaReserva(e.bairro(), e.cidade(), e.uf()));
+                    .map(e -> new RegiaoDaReserva(e.bairro(), e.cidade(), e.uf(), e.municipioIbge(), versao));
         } catch (RuntimeException falha) {
             LOG.warn("reserva de visitante sem região ({})", falha.getClass().getSimpleName());
             return Optional.empty();
@@ -204,7 +211,7 @@ public class ReservarHorario {
         }
     }
 
-    private record Contato(String nome, String email, String whatsapp, String tokenHash, @Nullable String cep) {
+    private record Contato(String nome, String email, String whatsapp, String tokenHash) {
 
         @Override
         public String toString() {
@@ -243,7 +250,7 @@ public class ReservarHorario {
                     em.persist(reserva);
                     if (contato != null) {
                         em.persist(new ReservaGuest(reserva.getId(), contato.nome(), contato.email(), contato.whatsapp(),
-                                contato.tokenHash(), contato.cep(), agora));
+                                contato.tokenHash(), agora));
                     }
                     em.flush();
                     if (aoGravar != null) {

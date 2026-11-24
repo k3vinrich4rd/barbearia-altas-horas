@@ -97,13 +97,13 @@ class ArquiteturaTest {
     }
 
     @Test
-    @DisplayName("A21: o módulo cep só expõe CepApi, Endereco e CepIndisponivel; os clientes dos provedores, o controller e o cache não são acessíveis de fora")
+    @DisplayName("A21: o módulo cep só expõe CepApi, Endereco, CepIndisponivel e a tabela do IBGE; os clientes dos provedores, o controller e o cache não são acessíveis de fora")
     void cepSoExpoeAPortaEOsTiposDela() {
         var publicas = CLASSES.stream().filter(c -> c.getPackageName().equals("io.github.k3vinrich4rd.altashoras.cep"))
                 .filter(c -> !c.getSimpleName().equals("package-info"))
                 .map(c -> c.getSimpleName()).toList();
         org.assertj.core.api.Assertions.assertThat(publicas)
-                .containsExactlyInAnyOrder("CepApi", "Endereco", "Fonte", "CepIndisponivel");
+                .containsExactlyInAnyOrder("CepApi", "Endereco", "Fonte", "CepIndisponivel", "TabelaIbge", "Municipio");
         noClasses().that().resideOutsideOfPackage("..cep.consulta..")
                 .should().dependOnClassesThat().resideInAPackage("..cep.consulta..")
                 .because("os clientes ViaCEP e BrasilAPI, o cache e o controller são detalhes do módulo cep (ADR 0002)")
@@ -112,6 +112,25 @@ class ArquiteturaTest {
                 .should().dependOnClassesThat().resideInAnyPackage("..conta..", "..agenda..", "..pagamento..",
                         "..privacidade..", "..admin..")
                 .because("o cep não conhece quem o usa")
+                .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("A25: a tabela do IBGE, a tradução de região e o alcance não têm cliente HTTP (RestClient, HttpClient, WebClient, URL): nenhuma chamada de rede traduz região em tempo de execução")
+    void traducaoDeRegiaoSemRede() {
+        noClasses().that().haveSimpleName("TabelaIbge").or().haveSimpleName("ResolverRegiao")
+                .or().resideInAPackage("..agenda.alcance..").or().haveSimpleName("AlcanceDaAgenda")
+                .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.client.RestClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("java.net.http.HttpClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.reactive.function.client.WebClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.client.RestTemplate")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("java.net.URL")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("java.net.HttpURLConnection")
+                .because("a tabela do IBGE é um arquivo do jar, gerado por scripts/gerar-tabela-ibge.sh (E16)")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("..agenda.alcance..")
+                .should().dependOnClassesThat().resideInAPackage("..cep.consulta..")
+                .because("o alcance usa só a tabela pública do módulo cep, nunca os clientes dos provedores")
                 .check(CLASSES);
     }
 
