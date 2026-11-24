@@ -7,14 +7,17 @@ export const servico = (n: number, extra: Record<string, unknown> = {}) => ({
     "Corte Moderno / Visagismo (Tesoura)",
     "Barba Completa / Desenhada",
     "Acabamento (Pezinho) / Sobrancelha",
+    "Descoloração / Platinado (química)",
   ][n - 1],
   duracaoMin: 60,
-  precoCentavos: [4500, 5500, 6000, 3000, 2000][n - 1],
-  precoFormatado: ["R$ 45,00", "R$ 55,00", "R$ 60,00", "R$ 30,00", "R$ 20,00"][n - 1],
+  precoCentavos: [4500, 5500, 6000, 3000, 2000, 8000][n - 1],
+  precoFormatado: ["R$ 45,00", "R$ 55,00", "R$ 60,00", "R$ 30,00", "R$ 20,00", "R$ 80,00"][n - 1],
   ...extra,
 });
 
 export const CINCO_SERVICOS = [1, 2, 3, 4, 5].map((n) => servico(n));
+/** O catálogo depois da V10 (Fatia 12): os 5 da V8 mais a Descoloração / Platinado (química). */
+export const SEIS_SERVICOS = [1, 2, 3, 4, 5, 6].map((n) => servico(n));
 
 export const BARBEIRO = { id: "b0000000-0000-4000-8000-000000000001", nomeExibicao: "Carlos Eduardo" };
 
@@ -43,6 +46,9 @@ export const POLITICA_PAGAMENTO = {
 export const POLITICA_PRIVACIDADE = {
   versao: "1.0",
   textoConsentimento: "Aceito receber ofertas da barbearia pelo WhatsApp.",
+  textoConsentimentoRegiao:
+    "Autorizo usar só meu bairro e minha cidade, somados aos de outros clientes. Não guardamos o CEP.",
+  canalDeContato: "contato@exemplo.test",
   politica: "# Política\n\nTexto.\n\n- item um\n- item dois",
   atualizadaEm: "2026-11-10T12:00:00-03:00",
 };

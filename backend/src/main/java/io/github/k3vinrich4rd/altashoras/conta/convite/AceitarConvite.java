@@ -126,7 +126,7 @@ public class AceitarConvite {
                 // Antes de consumir: o convite continua valendo e o mesmo código aceita uma senha boa (A15).
                 throw ExcecaoDeNegocio.campoInvalido("senha", "obrigatório");
             }
-            Usuario nova = new Usuario(convite.nome(), email, null, codificador.encode(senha), null,
+            Usuario nova = new Usuario(convite.nome(), email, null, codificador.encode(senha),
                     Set.of(Usuario.BARBEIRO), false);
             usuarios.saveAndFlush(nova);
             usuarioId = nova.getId();

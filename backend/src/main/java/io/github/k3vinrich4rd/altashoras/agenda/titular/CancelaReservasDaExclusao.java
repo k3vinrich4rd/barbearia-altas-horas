@@ -50,6 +50,12 @@ class CancelaReservasDaExclusao {
     @Order(ExclusaoSolicitada.ORDEM_DA_AGENDA)
     void aoSolicitarExclusao(ExclusaoSolicitada evento) {
         OffsetDateTime agora = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+        // Excluir a conta também retira a autorização de região (Fatia 11, E3): a localidade das reservas dela some.
+        jdbc.sql("""
+                UPDATE reserva SET regiao_bairro = NULL, regiao_cidade = NULL, regiao_uf = NULL,
+                                   regiao_municipio_ibge = NULL, regiao_consentimento_versao = NULL
+                WHERE cliente_id = :cliente AND (regiao_cidade IS NOT NULL OR regiao_uf IS NOT NULL)
+                """).param("cliente", evento.usuarioId()).update();
         List<Futura> futuras = jdbc.sql("""
                 SELECT id, status FROM reserva
                 WHERE cliente_id = :cliente AND inicio > :agora AND status IN ('CONFIRMADO', 'AGUARDANDO_PAGAMENTO')

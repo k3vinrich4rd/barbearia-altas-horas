@@ -78,7 +78,7 @@ describe("conflitos de reserva", () => {
     expect(
       screen.getByText(/Esse horário acabou de ser reservado por outra pessoa. Escolha outro./),
     ).toBeInTheDocument();
-    expect(leituras).toBe(1);
+    expect(leituras).toBeGreaterThanOrEqual(1); // o dia escolhido e a tira de 7 dias (Fatia 12C) consultam a disponibilidade
     (await import("@testing-library/react")).cleanup();
 
     // 2) CONFLITO_CONCORRENTE duas vezes: a MESMA requisição, uma segunda vez, e então "tente de novo"

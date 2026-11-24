@@ -80,7 +80,7 @@ A numeração é própria desta fatia (A1 a A28). Os testes antigos que dependia
 | A24 | cliente logado e visitante | ler e pagar a reserva manual | `404` (R23); fora de "Meus agendamentos" | `ReservaManualIT` |
 | A25 | manual com fim há 90 dias exatos | job de retenção | nome e observação `NULL`; reserva, status, preço e `version` iguais; segunda rodada não muda nada | `ReservaManualRetencaoIT` |
 | A26 | manual com fim um minuto antes dos 90 dias | job | nome e observação intactos | `ReservaManualRetencaoIT` |
-| A27 | 5 atendimentos em Osasco e 3 manuais | `GET /admin/alcance` | total 5, `semRegiao` 0 | `ReservaManualAlcanceIT` |
+| A27 | 5 atendimentos em Osasco e 3 manuais | `GET /admin/alcance` | total 5, `semRegiao` 0 | `ReservaManualAlcanceIT` · substituído pela Fatia 11 (A27), D162 a D170 |
 | A28 | roteiro com sucesso e erros, e cadastro do WhatsApp do barbeiro | ler o log | nenhum nome, observação, WhatsApp nem token | `SemDadoPessoalNoLogReservaManualIT` |
 
 ## 5. Entregas

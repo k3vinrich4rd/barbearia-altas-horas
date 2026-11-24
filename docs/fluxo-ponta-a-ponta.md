@@ -60,6 +60,26 @@ O navegador **só fala com o Next** (`/api/**`, o BFF). O BFF confere a rota con
 | confirmar | `/agendar/confirmacao/{id}` | resumo, aviso sem cancelamento, **código da reserva** com Copiar e link `…/reserva#id=…&codigo=…` (o `#` não vai ao servidor) | `GET /agendamentos/guest/{id}` · `GET /api/visitante` (rota só do BFF) |
 | consultar | `/reserva` | lê o fragmento, **apaga o `#`** do endereço e consulta; código errado e reserva inexistente mostram o mesmo texto | `GET /agendamentos/guest/{id}` com `X-Guest-Token` |
 
+### 2.0b O caminho até o formulário em poucos toques (Fatia 12) ✅
+
+Só a primeira parte do fluxo mudou de cara; as rotas, a lógica e o pagamento são os mesmos.
+
+```mermaid
+flowchart LR
+  H["Home<br/>serviços, barbeiro, galeria"] -->|"Agendar horário<br/>(topo, herói ou barra fixa)"| A["/agendar"]
+  H -->|"Agendar este serviço"| A
+  A -->|"1 serviço"| D["próximo dia livre<br/>já escolhido"]
+  D -->|"2 horário (chip)"| R["resumo fixo"]
+  R -->|"3 Continuar"| F["/agendar/dados"]
+  F --> P["pagamento<br/>(prazo = expiraEm)"]
+  P --> C["confirmação"]
+```
+
+- Da home ao formulário de dados: **no máximo 4 toques** (Agendar horário, serviço, horário, Continuar). Com um só barbeiro ativo, o seletor de barbeiro some; com mais de um, volta como opções.
+- O dia vem da tira de 7 dias (o primeiro com horário já selecionado); "Outro dia" cobre até 30 dias; um dia sem horário oferece "Ver o próximo dia com horário".
+- Horário indisponível aparece em cinza, com borda tracejada, riscado e a palavra "indisponível" para quem usa leitor de tela.
+- A home não promete prazo em minutos: o prazo (3 a 60 min, D121) só aparece no cronômetro da tela de pagamento. Antes de reservar o texto é "prazo curto".
+
 ### 2.1 Reservar e pagar ✅
 
 ```mermaid
@@ -257,6 +277,14 @@ sequenceDiagram
 ```
 
 Os `409` são `EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda. A cobrança das reservas canceladas vira `CANCELADA` pelo outbox, depois do commit. O token de acesso já emitido deixa de valer na hora (`ValidadorDeConta`, D98). Admin com a senha inicial recebe `403 TROCA_DE_SENHA_OBRIGATORIA` em `/me/dados` e `/me/consentimentos`.
+
+### 3.4 Região por consentimento e alcance por nível ✅ (Fatia 11)
+
+1. `POST /auth/cadastro` com `cep`, `autorizaRegiao: true` e `versaoTextoRegiao: "1.2"` → o CEP é consultado uma vez e descartado; ficam Centro, Osasco, SP e o código `3534401`.
+2. O cliente reserva (`POST /agendamentos`): a reserva copia a região e a versão do texto aceito.
+3. O Dono abre `GET /admin/alcance?nivel=MUNICIPIO`: com 6 pessoas em Osasco/Centro aparece `Osasco 6` e `Centro 6`; com 3 pessoas, o município sobe para "Outros municípios da região imediata de São Paulo" (`agrupadoEm: REGIAO`) ou, sozinho, para "Outros estados" com `abaixoDoLimite: true`.
+4. Um barbeiro convidado com poucos clientes vê o município ou "menos de 5", nunca um bairro pequeno; o `barbeiroId` que ele mandar é ignorado sem sinal.
+5. `PUT /me/consentimentos/regiao` com `aceito: false` apaga a localidade e a região das reservas; o alcance seguinte conta a pessoa em "sem região". Saída real conferida em `RevogarRegiaoIT`, `SubidaDeNivelIT` e `AlcancePorBarbeiroIT`.
 
 ## 4. Painel (ADMIN e BARBEIRO)
 

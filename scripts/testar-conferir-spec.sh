@@ -44,6 +44,11 @@ printf 'const texto = "A15: so uma string";
 ' > "$t/frontend/src/numero-em-string-solta.test.ts"
 printf 'test("A10: ignorado", () => {});\n' > "$t/frontend/node_modules/x/so-no-node-modules.test.ts"
 
+# critério substituído por outra fatia: vale se o critério da outra fatia tem teste
+printf '| A1 | x | y | z | `bff-sessao` |\n| A2 | x | y | z | `inexistente` |\n' > "$t/docs/sdd/fatia-8-nova.md"
+printf '| A1 | x | y | z | `antigo` · substituído pela Fatia 8 (A1) |\n' > "$t/docs/sdd/fatia-6-troca.md"
+printf '| A1 | x | y | z | `antigo` · substituído pela Fatia 8 (A2) |\n' > "$t/docs/sdd/fatia-5-troca.md"
+
 falhas=0
 confere() { # descricao, codigo-esperado, comando...
   desc="$1"; esperado="$2"; shift 2
@@ -60,5 +65,7 @@ confere "título na linha de baixo e it( contam (A13 e A14)" 0 $c --exigir --exc
 confere "número em string solta, fora de test( e DisplayName, não conta (A15)" 1 $c --exigir --exceto 1-14
 confere "--exceto pula faixa e número" 0 $c --exigir --exceto 10-15
 grep -q "Critérios: 3 · com teste: 3" "$t/saida.txt" || { echo "  FALHOU contagem do --exceto"; falhas=$((falhas + 1)); }
+confere "substituído por critério da outra fatia COM teste passa" 0 sh "$t/scripts/conferir-spec.sh" 6 --exigir
+confere "substituído por critério da outra fatia SEM teste derruba" 1 sh "$t/scripts/conferir-spec.sh" 5 --exigir
 confere "opção desconhecida é erro de uso" 2 $c --nada
 [ "$falhas" -eq 0 ] && echo "testar-conferir-spec: tudo certo" || { echo "testar-conferir-spec: $falhas falha(s)"; exit 1; }

@@ -63,11 +63,11 @@ class V8CatalogoInicialIT {
     }
 
     @Test
-    @DisplayName("A1: depois da V8, GET /servicos devolve os 5 serviços da tabela oficial, todos com 60 min, com nome e valor")
+    @DisplayName("A1: depois da V8, GET /servicos devolve os 5 serviços da tabela oficial (mais o da V10, Fatia 12), todos com 60 min, com nome e valor")
     void servicosPublicos() throws Exception {
         mvc.perform(get("/servicos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$.length()").value(6))
                 .andExpect(jsonPath("$[?(@.duracaoMin != 60)]").isEmpty())
                 .andExpect(jsonPath("$[?(@.nome=='Corte Clássico / Social')].precoCentavos").value(4500))
                 .andExpect(jsonPath("$[?(@.nome=='Corte Degradê / Fade / Navalhado')].precoCentavos").value(5500))
@@ -113,7 +113,7 @@ class V8CatalogoInicialIT {
     void idempotente() {
         rodarV8DeNovo();
         rodarV8DeNovo();
-        assertThat(contar("servico")).isEqualTo(5);
+        assertThat(contar("servico")).isEqualTo(6); // 5 da V8 + 1 da V10
         assertThat(contar("barbeiro")).isEqualTo(1);
         assertThat(contar("jornada")).isEqualTo(10);
     }
@@ -134,7 +134,7 @@ class V8CatalogoInicialIT {
         assertThat(jdbc.queryForObject("SELECT ativo FROM servico WHERE nome = 'Barba Completa / Desenhada'",
                 Boolean.class)).isFalse();
         assertThat(jdbc.queryForList("SELECT nome_exibicao FROM barbeiro", String.class)).containsExactly("Eduardo");
-        assertThat(contar("servico")).isEqualTo(5);
+        assertThat(contar("servico")).isEqualTo(6); // 5 da V8 + 1 da V10
         assertThat(contar("jornada")).isEqualTo(8);
     }
 

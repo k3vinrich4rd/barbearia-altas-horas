@@ -40,10 +40,6 @@ public class Usuario {
     @Column(name = "senha_hash")
     private String senhaHash;
 
-    @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(length = 8)
-    private String cep;
-
     private String bairro;
 
     private String cidade;
@@ -51,6 +47,11 @@ public class Usuario {
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(length = 2)
     private String uf;
+
+    /** Código IBGE do município (Fatia 11); nulo quando a região não se resolveu ou não foi autorizada. */
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "regiao_municipio_ibge", length = 7)
+    private String regiaoMunicipioIbge;
 
     @Column(nullable = false)
     private boolean ativo;
@@ -72,25 +73,36 @@ public class Usuario {
     protected Usuario() {
     }
 
-    public Usuario(String nome, String email, String whatsapp, String senhaHash, String cep, Set<String> papeis,
+    public Usuario(String nome, String email, String whatsapp, String senhaHash, Set<String> papeis,
             boolean deveTrocarSenha) {
         this.id = UUID.randomUUID();
         this.nome = nome;
         this.email = email;
         this.whatsapp = whatsapp;
         this.senhaHash = senhaHash;
-        this.cep = cep;
         this.ativo = true;
         this.versaoCredencial = 0;
         this.deveTrocarSenha = deveTrocarSenha;
         this.papeis = new TreeSet<>(papeis);
     }
 
-    /** Endereço que o CEP resolveu (Fatia 6A, R31): só é chamado quando o provedor respondeu. */
-    public void resolverEndereco(String bairro, String cidade, String uf) {
+    /**
+     * A localidade que o CEP resolveu, SÓ com a caixinha de região marcada (Fatia 11, E2). O CEP em si nunca é guardado.
+     * Cidade e uf sempre vêm; o bairro e o município do IBGE podem faltar (R31).
+     */
+    public void resolverEndereco(String bairro, String cidade, String uf, String municipioIbge) {
         this.bairro = bairro;
         this.cidade = cidade;
         this.uf = uf;
+        this.regiaoMunicipioIbge = municipioIbge;
+    }
+
+    /** Retirar a autorização de região (E3): some a localidade inteira do perfil. */
+    public void apagarRegiao() {
+        this.bairro = null;
+        this.cidade = null;
+        this.uf = null;
+        this.regiaoMunicipioIbge = null;
     }
 
     /**
@@ -113,10 +125,7 @@ public class Usuario {
         this.email = "excluido-" + id + "@anonimo.invalid";
         this.whatsapp = null;
         this.senhaHash = null;
-        this.cep = null;
-        this.bairro = null;
-        this.cidade = null;
-        this.uf = null;
+        apagarRegiao();
         this.ativo = false;
         this.deveTrocarSenha = false;
         this.versaoCredencial++;
@@ -157,8 +166,8 @@ public class Usuario {
         return senhaHash;
     }
 
-    public String getCep() {
-        return cep;
+    public String getRegiaoMunicipioIbge() {
+        return regiaoMunicipioIbge;
     }
 
     public String getBairro() {

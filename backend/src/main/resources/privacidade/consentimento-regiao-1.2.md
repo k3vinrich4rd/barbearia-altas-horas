@@ -1,0 +1,1 @@
+Autorizo usar só meu bairro e minha cidade, somados aos de outros clientes, para mostrar no site de onde vêm os clientes da barbearia. Não guardamos o CEP. Posso retirar esta autorização quando quiser.

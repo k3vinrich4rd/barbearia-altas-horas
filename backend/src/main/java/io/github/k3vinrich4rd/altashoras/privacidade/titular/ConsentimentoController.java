@@ -45,4 +45,18 @@ class ConsentimentoController {
         return ConsentimentoResposta.de(
                 consentimentos.registrar(UUID.fromString(token.getSubject()), pedido.aceito(), pedido.versaoTexto()), fuso);
     }
+
+    /**
+     * O consentimento de região (Fatia 11, A4): no molde do de marketing. Revogar apaga a localidade do perfil e a região de
+     * todas as reservas da conta (evento síncrono, na mesma transação).
+     */
+    @PutMapping("/me/consentimentos/regiao")
+    ConsentimentoResposta registrarRegiao(@AuthenticationPrincipal Jwt token, @Valid @RequestBody ConsentimentoRequest pedido) {
+        if (!Consentimentos.VERSAO_DO_TEXTO.equals(pedido.versaoTexto())) {
+            throw ExcecaoDeNegocio.campoInvalido("versaoTexto",
+                    "Esta versão do texto não é a vigente. Recarregue a política e tente de novo.");
+        }
+        return ConsentimentoResposta.de(consentimentos.registrarRegiao(UUID.fromString(token.getSubject()), pedido.aceito(),
+                pedido.versaoTexto()), fuso);
+    }
 }

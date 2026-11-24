@@ -750,14 +750,176 @@ dd {
   list-style: none;
   padding: 0;
   margin: var(--space-6) 0 0;
-  display: grid;
-  gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
 }
 
 .fatos li {
   display: grid;
   border-inline-start: var(--traco-3) solid var(--texto);
   padding-inline-start: var(--space-3);
+}
+
+/* Faixa "Como funciona" do herói (Fatia 12): três passos de uma linha, sob o herói */
+.faixa-passos {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+}
+
+.faixa-passos li {
+  display: grid;
+}
+
+/* Bloco do barbeiro */
+.grade-barbeiros {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-6);
+}
+
+.cartao-barbeiro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.cartao-barbeiro:hover {
+  transform: none;
+}
+
+.foto-barbeiro {
+  display: block;
+  width: var(--space-16);
+  height: var(--space-16);
+  flex: none;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: var(--fundo);
+}
+
+.cartao-barbeiro-texto {
+  flex: 1;
+  min-width: var(--medida-coluna-minima);
+}
+
+.cartao-barbeiro-texto h3 {
+  margin: 0;
+}
+
+/* Estado vazio do alcance: ícone e palavra, tracejado (a forma diz "ainda não há"), sem botão nem número */
+.estado-vazio {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: var(--traco-1) dashed var(--borda-forte);
+  border-radius: var(--radius-md);
+  max-width: var(--medida-leitura);
+}
+
+.estado-vazio p {
+  margin: 0 0 var(--space-2);
+}
+
+.estado-vazio p:last-child {
+  margin-bottom: 0;
+}
+
+/* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
+.dias-tira {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.dia-chip {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  min-width: var(--space-16);
+  min-height: var(--space-12);
+  padding: var(--space-2) var(--space-3);
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
+  color: var(--texto);
+  font-family: var(--tipo-corpo-familia);
+  cursor: pointer;
+}
+
+.dia-chip[aria-pressed="true"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+}
+
+.dia-chip[data-livre="nao"] {
+  border-style: dashed;
+  color: var(--texto-apagado);
+}
+
+.dia-chip-nota {
+  font-size: var(--tipo-legenda-tamanho);
+}
+
+.chip-horario[aria-pressed="true"] {
+  background: var(--acao-fundo);
+  color: var(--acao-texto);
+  border-color: var(--acao-fundo);
+}
+
+.chip-indisponivel {
+  border-style: dashed;
+  color: var(--texto-apagado);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* Reserva de espaço no celular: o resumo é fixo na base da tela e a lista de serviços ocupa o lugar antes de chegar,
+ * para nada pular quando a API responde (CLS). A partir de 48rem o resumo volta a ser sticky e a reserva some. */
+.reserva-servicos {
+  min-height: calc(var(--space-16) * 7);
+}
+
+.resumo-fixo-espaco {
+  height: calc(var(--space-16) * 4);
+}
+
+.resumo-fixo {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 5;
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  border-top: var(--traco-2) solid var(--borda-forte);
+  background: var(--fundo);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.resumo-fixo dl {
+  gap: var(--space-1) var(--space-4);
+}
+
+.resumo-fixo .nota {
+  margin: 0;
+}
+
+.resumo-fixo .botao {
+  min-height: var(--space-12);
+  justify-content: center;
 }
 
 .duas-colunas {
@@ -829,8 +991,7 @@ blockquote footer {
   color: var(--texto-suave);
 }
 
-.linha-do-tempo,
-.miniaturas {
+.linha-do-tempo {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
@@ -860,23 +1021,52 @@ blockquote footer {
   font-size: var(--tipo-subtitulo-tamanho);
 }
 
-.miniatura {
+/* Galeria (Fatia 12, E4): grade de miniaturas com a foto inteira (contain, sem corte) sobre o cinza do token */
+.galeria-grade {
+  list-style: none;
+  margin: var(--space-6) 0 0;
   padding: 0;
-  border: var(--traco-2) solid transparent;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.galeria-miniatura {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: var(--traco-1) solid var(--borda);
   border-radius: var(--radius-sm);
   background: var(--superficie);
   cursor: pointer;
+  overflow: hidden;
 }
 
-.miniatura[aria-pressed="true"] {
-  border-color: var(--texto);
+.galeria-miniatura:hover {
+  border-color: var(--borda-forte);
 }
 
-.miniatura img {
+.galeria-foto {
   display: block;
-  width: var(--space-16);
-  height: var(--space-16);
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+}
+
+.galeria-ampliada {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  background: var(--superficie);
+}
+
+.galeria-ampliada .galeria-foto {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--medida-lista-alta);
 }
 
 .duvida {
@@ -951,6 +1141,7 @@ ul {
   place-items: center;
   padding: var(--space-4);
   background: var(--fundo);
+  overflow-y: auto;
   z-index: 20;
 }
 
@@ -1016,7 +1207,30 @@ caption {
 }
 
 /* Telas largas: duas colunas onde o desenho pede */
+@media (min-width: 48rem) {
+  .reserva-servicos {
+    min-height: 0;
+  }
+
+  .resumo-fixo-espaco {
+    display: none;
+  }
+
+  .resumo-fixo {
+    position: sticky;
+    inset-inline: auto;
+  }
+
+  .faixa-passos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (min-width: 60rem) {
+  .galeria-grade {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .heroi {
     grid-template-columns: 1.2fr 1fr;
   }
@@ -1248,4 +1462,24 @@ select[aria-invalid="true"] {
 .dialogo .qr {
   display: block;
   margin: var(--space-4) auto;
+}
+
+/* Fatia 11: alcance da home (municípios clicáveis) e caixinha de região. Só tokens. */
+.lista-bairros {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0 0 0 var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.regiao-consentimento {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+}
+
+.regiao-retirar {
+  display: grid;
+  gap: var(--space-2);
 }

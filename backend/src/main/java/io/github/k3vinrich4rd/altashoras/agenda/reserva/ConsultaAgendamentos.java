@@ -77,7 +77,12 @@ class ConsultaAgendamentos {
             conciliar(id);
             linha = reservas.doVisitante(id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
         }
-        return AgendamentoResposta.de(linha, fuso);
+        return AgendamentoResposta.de(linha, fuso).comRegiaoAutorizada(regiaoAutorizada(id));
+    }
+
+    /** A reserva guarda hoje a região com a prova do aceite? Some quando o visitante retira a autorização. */
+    private boolean regiaoAutorizada(UUID id) {
+        return reservas.findById(id).map(r -> r.getRegiaoConsentimentoVersao() != null).orElse(false);
     }
 
     private static boolean esperandoPagamento(LinhaAgendamento linha) {
@@ -90,7 +95,8 @@ class ConsultaAgendamentos {
     }
 
     AgendamentoResposta criadaPeloVisitante(UUID id, String token) {
-        return reservas.doVisitante(id).map(linha -> AgendamentoResposta.de(linha, fuso, token)).orElseThrow();
+        return reservas.doVisitante(id).map(linha -> AgendamentoResposta.de(linha, fuso, token)
+                .comRegiaoAutorizada(regiaoAutorizada(id))).orElseThrow();
     }
 
     private static ExcecaoDeNegocio naoEncontrado() {

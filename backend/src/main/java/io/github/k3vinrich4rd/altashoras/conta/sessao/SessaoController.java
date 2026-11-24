@@ -18,16 +18,19 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.PerfilResposta;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.UsuarioRepository;
+import io.github.k3vinrich4rd.altashoras.privacidade.Consentimentos;
 
 @RestController
 class SessaoController {
 
     private final Sessoes sessoes;
     private final UsuarioRepository usuarios;
+    private final Consentimentos consentimentos;
 
-    SessaoController(Sessoes sessoes, UsuarioRepository usuarios) {
+    SessaoController(Sessoes sessoes, UsuarioRepository usuarios, Consentimentos consentimentos) {
         this.sessoes = sessoes;
         this.usuarios = usuarios;
+        this.consentimentos = consentimentos;
     }
 
     @PostMapping("/auth/login")
@@ -49,8 +52,9 @@ class SessaoController {
     /** O id vem do token (claim sub), nunca de um parâmetro: ninguém pede o perfil de outra pessoa. */
     @GetMapping("/me")
     PerfilResposta meuPerfil(@AuthenticationPrincipal Jwt token) {
-        return usuarios.findById(UUID.fromString(token.getSubject()))
-                .map(PerfilResposta::de)
+        UUID id = UUID.fromString(token.getSubject());
+        return usuarios.findById(id)
+                .map(usuario -> PerfilResposta.de(usuario, consentimentos.regiaoAutorizada(id)))
                 .orElseThrow(() -> new ExcecaoDeNegocio(CodigoErro.NAO_AUTENTICADO));
     }
 

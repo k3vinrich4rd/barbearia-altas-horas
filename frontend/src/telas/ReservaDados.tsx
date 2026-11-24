@@ -11,6 +11,7 @@ import { mensagemDoErro } from "@/api/mensagens";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao, LinkBotao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
+import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { useSessao } from "@/componentes/Sessao";
@@ -28,6 +29,8 @@ export function ReservaDados() {
 
   const [semConta, setSemConta] = useState(false);
   const [valores, setValores] = useState({ nome: "", email: "", whatsapp: "", cep: "" });
+  const [regiao, setRegiao] = useState(false);
+  const politica = useConsulta(() => chamar(api().GET("/politica-privacidade")), [], semConta);
   const envio = useEnvio();
 
   const servicos = useConsulta(buscarServicos, [], Boolean(servicoId));
@@ -72,7 +75,10 @@ export function ReservaDados() {
                 nome: valores.nome,
                 email: valores.email,
                 whatsapp: valores.whatsapp,
-                ...(valores.cep.trim() ? { cep: valores.cep } : {}),
+                // O CEP só vai com a caixinha de região marcada, junto com a versão do texto que a pessoa viu (A47)
+                ...(regiao && valores.cep.trim() && politica.dados
+                  ? { cep: valores.cep, autorizaRegiao: true, versaoTextoRegiao: politica.dados.versao }
+                  : {}),
               },
             }),
           );
@@ -194,16 +200,18 @@ export function ReservaDados() {
               onChange={(e) => setValores({ ...valores, whatsapp: e.target.value })}
               erro={camposComErro.whatsapp}
             />
-            <Campo
-              id="cep"
-              rotulo="CEP (opcional)"
-              inputMode="numeric"
-              autoComplete="postal-code"
-              ajuda="Ajuda a barbearia a saber de onde vêm os clientes. Pode deixar em branco."
-              value={valores.cep}
-              onChange={(e) => setValores({ ...valores, cep: e.target.value })}
-              erro={camposComErro.cep}
-            />
+            <ConsentimentoDeRegiao id="autoriza-regiao" marcado={regiao} aoMudar={setRegiao} politica={politica.dados}>
+              <Campo
+                id="cep"
+                rotulo="CEP"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                ajuda="Só o bairro e a cidade são usados; o CEP não é guardado."
+                value={valores.cep}
+                onChange={(e) => setValores({ ...valores, cep: e.target.value })}
+                erro={camposComErro.cep}
+              />
+            </ConsentimentoDeRegiao>
             {botao}
           </form>
         )

@@ -1,6 +1,5 @@
 package io.github.k3vinrich4rd.altashoras.cep;
 
-import static io.github.k3vinrich4rd.altashoras.ContaDeTeste.corpoDeCadastro;
 import static io.github.k3vinrich4rd.altashoras.ContaDeTeste.emailNovo;
 import static io.github.k3vinrich4rd.altashoras.ContaDeTeste.json;
 import static io.github.k3vinrich4rd.altashoras.cep.ProvedoresFalsos.CEP_SE;
@@ -39,7 +38,7 @@ class CepDegradacaoIT extends CepTesteBase {
     }
 
     @Test
-    @DisplayName("A16: cadastro com cep e os dois provedores fora: 201, só o cep no banco (bairro, cidade e uf nulos), completo=false e menos de 3,5 s")
+    @DisplayName("A16: cadastro com a caixinha de região e os dois provedores fora: 201, nada de endereço no banco (bairro, cidade e uf nulos) e menos de 3,5 s")
     void cadastroSobreviveAosProvedoresForaDoAr() throws Exception {
         provedores.osDoisFora(CEP_SE);
         String email = emailNovo();
@@ -47,14 +46,11 @@ class CepDegradacaoIT extends CepTesteBase {
         long inicio = System.nanoTime();
         mvcCadastro(email)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.endereco.cep").value(CEP_SE))
-                .andExpect(jsonPath("$.endereco.completo").value(false))
-                .andExpect(jsonPath("$.endereco.bairro").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.endereco.cidade").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(jsonPath("$.endereco").doesNotExist())
+                .andExpect(jsonPath("$.regiaoAutorizada").value(true));
         Duration gasto = Duration.ofNanos(System.nanoTime() - inicio);
 
-        Map<String, Object> linha = jdbc.queryForMap("SELECT cep, bairro, cidade, uf FROM usuario WHERE email = ?", email);
-        assertThat(linha.get("cep")).isEqualTo(CEP_SE);
+        Map<String, Object> linha = jdbc.queryForMap("SELECT bairro, cidade, uf FROM usuario WHERE email = ?", email);
         assertThat(linha.get("bairro")).isNull();
         assertThat(linha.get("cidade")).isNull();
         assertThat(linha.get("uf")).isNull();
@@ -63,6 +59,9 @@ class CepDegradacaoIT extends CepTesteBase {
     }
 
     private org.springframework.test.web.servlet.ResultActions mvcCadastro(String email) throws Exception {
-        return mvc.perform(json(post("/auth/cadastro"), corpoDeCadastro(email, ContaDeTeste.SENHA)));
+        return mvc.perform(json(post("/auth/cadastro"), """
+                { "nome": "Cliente Teste", "email": "%s", "whatsapp": "(11) 90000-0001", "senha": "%s", "cep": "01001-000",
+                  "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
+                """.formatted(email, ContaDeTeste.SENHA)));
     }
 }
