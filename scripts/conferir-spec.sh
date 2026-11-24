@@ -15,6 +15,7 @@
 #      scripts/conferir-spec.sh 1 --exigir               (sai com erro se faltar algum; usado no CI)
 #      scripts/conferir-spec.sh 7 --exigir --ate 43      (só os critérios A1 a A43)
 #      scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59   (pula faixas e números; a 7A não cobre o painel)
+# Critério trocado por outra fatia: a linha leva "substituído pela Fatia N (A<m>)" e vale se o A<m> da fatia N tem teste.
 # Só linhas "| A<n> |" contam; os critérios V# (aguarda design) ficam de fora de propósito.
 set -eu
 
@@ -76,7 +77,8 @@ tem_criterio() {
 total=0
 faltando=0
 tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
+cache="$(mktemp -d)"
+trap 'rm -rf "$tmp" "$cache"' EXIT
 echo "Spec: $spec"
 # Linhas de critério: | A7 | dado | quando | então | `nome-do-teste` |
 grep -E '^\| A[0-9]+ \|' "$spec" > "$tmp" || true
@@ -85,6 +87,21 @@ while IFS= read -r linha; do
   numero="${id#A}"
   if [ -n "$ate" ] && [ "$numero" -gt "$ate" ]; then continue; fi
   if excluido "$numero"; then continue; fi
+  # Critério trocado por outra fatia: a marca "substituído pela Fatia N (A<m>)" na linha vale se o A<m> da fatia N tem teste.
+  subst="$(printf '%s' "$linha" | sed -nE 's/.*substituído pela Fatia ([0-9]+) \((A[0-9]+)\).*/\1 \2/p')"
+  if [ -n "$subst" ]; then
+    total=$((total + 1))
+    set -- $subst
+    # a fatia que substitui é conferida uma vez só por execução (resultado guardado numa pasta temporária)
+    [ -f "$cache/f$1" ] || sh "$raiz/scripts/conferir-spec.sh" "$1" > "$cache/f$1" 2>/dev/null || true
+    if grep -q "✅ $2 " "$cache/f$1"; then
+      echo "  ↪ $id  substituído pela Fatia $1 ($2, com teste)"
+    else
+      echo "  ❌ $id  marcado como substituído pela Fatia $1 ($2), mas o $2 dela não tem teste"
+      faltando=$((faltando + 1))
+    fi
+    continue
+  fi
   classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_.-]+`' | tr -d '`' || true)"
   total=$((total + 1))
   achou=""

@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class Consentimentos {
 
-    public static final String VERSAO_DO_TEXTO = "1.1";
+    /** Versão vigente dos textos (política, caixinha de marketing e caixinha de região): a 1.2 chegou com a Fatia 11 (ADR 0014). */
+    public static final String VERSAO_DO_TEXTO = "1.2";
     public static final String MARKETING = "MARKETING_CEP";
+    /** A região derivada do CEP para o alcance (Fatia 11, ADR 0014): consentimento próprio, revogável. */
+    public static final String REGIAO = "REGIAO_ALCANCE";
 
     /** Uma linha do histórico de consentimento. */
     public record Registro(String finalidade, boolean aceito, String versaoTexto, Instant registradoEm) {
@@ -28,14 +32,21 @@ public class Consentimentos {
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final ApplicationEventPublisher eventos;
 
-    Consentimentos(JdbcClient jdbc, Clock clock) {
+    Consentimentos(JdbcClient jdbc, Clock clock, ApplicationEventPublisher eventos) {
         this.jdbc = jdbc;
         this.clock = clock;
+        this.eventos = eventos;
     }
 
     public void registrarInicial(UUID usuarioId, boolean aceitaMarketing) {
-        inserir(usuarioId, aceitaMarketing, VERSAO_DO_TEXTO);
+        inserir(usuarioId, MARKETING, aceitaMarketing, VERSAO_DO_TEXTO);
+    }
+
+    /** O aceite de região no cadastro (só quando a caixinha foi marcada): uma linha REGIAO_ALCANCE, com a versão do texto. */
+    public void registrarAceiteDeRegiao(UUID usuarioId, String versaoTexto) {
+        inserir(usuarioId, REGIAO, true, versaoTexto);
     }
 
     /** O estado atual de cada finalidade (a linha mais recente). Conta sem nenhum registro devolve lista vazia. */
@@ -71,32 +82,72 @@ public class Consentimentos {
      */
     @Transactional
     public Registro registrar(UUID usuarioId, boolean aceito, String versaoTexto) {
+        return registrar(usuarioId, MARKETING, aceito, versaoTexto);
+    }
+
+    /**
+     * O mesmo para qualquer finalidade (a de região também). Quem revoga a região precisa apagar a localidade: isso é
+     * avisado pelo evento {@link RegiaoRevogada}, que o módulo da conta e o da agenda escutam, na mesma transação.
+     */
+    @Transactional
+    public Registro registrar(UUID usuarioId, String finalidade, boolean aceito, String versaoTexto) {
         trancarDaConta(usuarioId);
-        List<Registro> atual = atuais(usuarioId);
-        if (!atual.isEmpty() && atual.getFirst().aceito() == aceito && atual.getFirst().versaoTexto().equals(versaoTexto)) {
-            return atual.getFirst();
+        Registro atual = atuais(usuarioId).stream().filter(r -> r.finalidade().equals(finalidade)).findFirst().orElse(null);
+        if (atual != null && atual.aceito() == aceito && atual.versaoTexto().equals(versaoTexto)) {
+            return atual;
         }
-        return inserir(usuarioId, aceito, versaoTexto);
+        return inserir(usuarioId, finalidade, aceito, versaoTexto);
+    }
+
+    /**
+     * Aceita ou revoga a região (E17). Revogar, mesmo sem aceite anterior, publica {@link RegiaoRevogada} na mesma transação:
+     * a conta e a agenda apagam a localidade (E3). Idempotente.
+     */
+    @Transactional
+    public Registro registrarRegiao(UUID usuarioId, boolean aceito, String versaoTexto) {
+        Registro registro = registrar(usuarioId, REGIAO, aceito, versaoTexto);
+        if (!aceito) {
+            eventos.publishEvent(new RegiaoRevogada(usuarioId));
+        }
+        return registro;
+    }
+
+    /** A conta autoriza hoje o uso da região dela no alcance? (a linha mais recente de REGIAO_ALCANCE é um aceite) */
+    @Transactional(readOnly = true)
+    public boolean regiaoAutorizada(UUID usuarioId) {
+        return atuais(usuarioId).stream().anyMatch(r -> r.finalidade().equals(REGIAO) && r.aceito());
+    }
+
+    /** A versão do texto de região que a conta aceitou (e ainda vale), ou vazio. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<String> versaoDaRegiaoAceita(UUID usuarioId) {
+        return atuais(usuarioId).stream().filter(r -> r.finalidade().equals(REGIAO) && r.aceito()).map(Registro::versaoTexto)
+                .findFirst();
     }
 
     /** A última linha da exclusão da conta (E15): o histórico fica e termina em "não aceito". */
     @Transactional
     public void registrarRevogacaoFinal(UUID usuarioId) {
-        inserir(usuarioId, false, VERSAO_DO_TEXTO);
+        inserir(usuarioId, MARKETING, false, VERSAO_DO_TEXTO);
+        // A região segue o mesmo caminho: a exclusão encerra o histórico dela também (só se a conta chegou a aceitar).
+        if (regiaoAutorizada(usuarioId)) {
+            inserir(usuarioId, REGIAO, false, VERSAO_DO_TEXTO);
+        }
     }
 
-    private Registro inserir(UUID usuarioId, boolean aceito, String versaoTexto) {
+    private Registro inserir(UUID usuarioId, String finalidade, boolean aceito, String versaoTexto) {
         Instant agora = clock.instant();
         jdbc.sql("""
                 INSERT INTO consentimento (usuario_id, finalidade, versao_texto, aceito, registrado_em)
-                VALUES (:usuario, 'MARKETING_CEP', :versao, :aceito, :agora)
+                VALUES (:usuario, :finalidade, :versao, :aceito, :agora)
                 """)
                 .param("usuario", usuarioId)
+                .param("finalidade", finalidade)
                 .param("versao", versaoTexto)
                 .param("aceito", aceito)
                 .param("agora", OffsetDateTime.ofInstant(agora, ZoneOffset.UTC))
                 .update();
-        return new Registro(MARKETING, aceito, versaoTexto, agora);
+        return new Registro(finalidade, aceito, versaoTexto, agora);
     }
 
     private void trancarDaConta(UUID usuarioId) {

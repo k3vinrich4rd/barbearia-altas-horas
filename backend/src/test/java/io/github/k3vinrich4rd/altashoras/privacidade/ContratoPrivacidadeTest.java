@@ -67,7 +67,7 @@ class ContratoPrivacidadeTest extends PrivacidadeBase {
         assertThat(operacao(rota(openapi, "/me/consentimentos"), "get")).contains("'401'").contains("estado atual");
         assertThat(operacao(rota(openapi, "/me/consentimentos/marketing"), "put")).contains("'400'").contains("'401'");
 
-        assertThat(openapi).contains("    PoliticaPrivacidade:").contains("required: [versao, textoConsentimento, politica, atualizadaEm]")
+        assertThat(openapi).contains("    PoliticaPrivacidade:").contains("required: [versao, textoConsentimento, textoConsentimentoRegiao, politica, atualizadaEm]")
                 .contains("required: [id, inicio, fim, status, servico, precoCentavos, motivoCancelamento]")
                 .contains("required: [nome, email, whatsapp, endereco]");
     }

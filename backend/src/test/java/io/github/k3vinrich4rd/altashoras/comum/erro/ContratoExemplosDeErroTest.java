@@ -130,4 +130,17 @@ class ContratoExemplosDeErroTest {
         assertThat(mapa(mapa(c, "components"), "schemas")).containsKeys("ChavePublicaPush", "InscricaoPush", "RemocaoDeInscricaoPush",
                 "Novidades", "AvisoDoPainel");
     }
+
+    @Test
+    @DisplayName("A45: o contrato 1.9.0 declara PUT /me, o consentimento de região, a retirada do visitante, o nível do alcance e o exemplo do painel com grupos e filhos")
+    @SuppressWarnings("unchecked")
+    void contratoDaFatia11() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(9|1[0-9])\\.\\d+");
+        assertThat(mapa(c, "paths")).containsKeys("/me/consentimentos/regiao", "/agendamentos/guest/{id}/regiao", "/alcance", "/admin/alcance");
+        assertThat(mapa(mapa(c, "paths"), "/me")).containsKeys("get", "put", "delete");
+        Map<String, Object> esquemas = mapa(mapa(c, "components"), "schemas");
+        assertThat(esquemas).containsKeys("AlcancePainel", "AlcanceGrupo", "AlcanceFilho", "NivelDoAlcance", "AtualizarPerfilRequest");
+        assertThat(mapa(mapa(esquemas, "AlcancePainel"), "properties")).containsKeys("grupos", "totalVisivel", "semRegiao", "k");
+    }
 }

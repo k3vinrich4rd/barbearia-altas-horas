@@ -24,9 +24,11 @@ class TextosDaPolitica {
             + "(ainda não configurado nesta instalação)";
 
     /** A data em que o texto da versão vigente foi escrito (muda junto com a versão). */
-    static final String ATUALIZADA_EM = "2026-11-18T00:00:00-03:00";
+    static final String ATUALIZADA_EM = "2026-11-23T00:00:00-03:00";
 
     private final String consentimento;
+    private final String consentimentoRegiao;
+    private final String contato;
     private final String politica;
 
     TextosDaPolitica(@Value("${app.privacidade.contato:}") String contato,
@@ -34,7 +36,9 @@ class TextosDaPolitica {
             @Value("${app.privacidade.retencao-ip-dias:365}") int retencaoIpDias,
             @Value("${app.privacidade.retencao-webhook-dias:365}") int retencaoWebhookDias) {
         String versao = Consentimentos.VERSAO_DO_TEXTO;
+        this.contato = contato == null || contato.isBlank() ? SEM_CONTATO : contato.strip();
         this.consentimento = ler("privacidade/consentimento-" + versao + ".md").strip();
+        this.consentimentoRegiao = ler("privacidade/consentimento-regiao-" + versao + ".md").strip();
         this.politica = ler("privacidade/politica-" + versao + ".md").strip()
                 .replace("{{contato}}", contato == null || contato.isBlank() ? SEM_CONTATO : contato.strip())
                 .replace("{{retencaoGuestDias}}", Integer.toString(retencaoGuestDias))
@@ -44,6 +48,15 @@ class TextosDaPolitica {
 
     String consentimento() {
         return consentimento;
+    }
+
+    /** O canal de contato configurado (ou o texto de "ainda não configurado"), para ficar ao lado da caixinha de região. */
+    String contato() {
+        return contato;
+    }
+
+    String consentimentoRegiao() {
+        return consentimentoRegiao;
     }
 
     String politica() {

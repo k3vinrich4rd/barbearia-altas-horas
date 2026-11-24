@@ -33,6 +33,13 @@ info:
     Exceção (1.6.0, Fatia 6D): a barbearia pode travar pelo painel um horário combinado por
     WhatsApp, fora do app (`POST /admin/agendamentos`). Essa reserva nasce `CONFIRMADO`, com
     origem `MANUAL`, sem cobrança e sem pagamento no sistema.
+
+    Versão 1.9.0 (Fatia 11, ADR 0014): a região do cliente (bairro, município, UF) só existe com a **caixinha de consentimento**
+    (`autorizaRegiao`) e o CEP nunca é guardado (`endereco.cep` fica `deprecated` e sempre nulo). O alcance conta **pessoas
+    diferentes** (não atendimentos) com k = 5, sobe de nível (bairro, município, região imediata do IBGE, UF, "Outros estados")
+    em vez de sumir, e a vitrine pública mostra só **faixas de porcentagem**, nunca número. O painel ganha o seletor de nível
+    (`nivel`), a UF e o período. Só acréscimos e `deprecated`: nenhuma remoção (exceção documentada: `AlcancePainel.semRegiao`
+    passou de número a objeto; o painel foi atualizado junto).
   license:
     name: Uso de portfólio (todos os direitos reservados)
     url: https://github.com/k3vinrich4rd/barbearia-altas-horas#-autor
@@ -55,9 +62,9 @@ tags:
   - name: pagamento
     description: "Cobrança de 100% do serviço por Pix ou cartão, idempotente; no beta o gateway é simulado."
   - name: privacidade
-    description: "LGPD: consentimento de marketing, política de privacidade, exportar e excluir os próprios dados."
+    description: "LGPD: consentimentos de marketing e de região, política de privacidade, exportar e excluir os próprios dados."
   - name: alcance
-    description: "De onde vêm os clientes, por cidade e bairro, sempre agrupado (nenhum grupo com menos de 5)."
+    description: "De onde vêm os clientes (pessoas diferentes), por estado, região, município e bairro; nenhum lugar com menos de 5 aparece com número, ele sobe de nível."
   - name: admin
     description: "Painel do barbeiro e do administrador: agenda do dia, reserva manual, cadastros, pagamentos e auditoria."
 security:
@@ -270,12 +277,38 @@ paths:
       tags: [conta]
       operationId: meuPerfil
       summary: Meu perfil
+      description: |
+        `endereco.cep` é `deprecated` e sempre nulo desde a 1.9.0 (o CEP não é guardado); `regiaoAutorizada` diz se a conta
+        autoriza o uso de bairro e cidade no alcance. Sem região, `endereco` não aparece.
       responses:
         '200':
           description: Perfil
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Perfil' }
+        '401': { $ref: '#/components/responses/Erro401' }
+    put:
+      tags: [conta]
+      operationId: atualizarMinhaRegiao
+      summary: Autoriza ou retira o uso da minha região (1.9.0)
+      description: |
+        Com `autorizaRegiao = true`, o CEP e a `versaoTextoRegiao` vigente (a de `GET /politica-privacidade`): consulta o CEP,
+        grava bairro, cidade, UF e o município do IBGE e registra o consentimento `REGIAO_ALCANCE`. **O CEP não é guardado.**
+        Sem `autorizaRegiao = true`, ou sem CEP, é **revogação**: a localidade do perfil e a região de todas as reservas da conta
+        são apagadas e a conta sai do alcance; a linha de revogação fica no histórico. Versão diferente da vigente: `400
+        VALIDACAO_INVALIDA` em `versaoTextoRegiao`. CEP inexistente ou provedor fora **nunca** derrubam a chamada (R31).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AtualizarPerfilRequest' }
+      responses:
+        '200':
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Perfil' }
+        '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
     delete:
       tags: [privacidade]
@@ -369,6 +402,28 @@ paths:
               schema: { $ref: '#/components/schemas/Consentimento' }
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
+  /me/consentimentos/regiao:
+    put:
+      tags: [privacidade]
+      operationId: registrarConsentimentoRegiao
+      summary: Aceita ou revoga o consentimento de região (1.9.0)
+      description: |
+        No molde do de marketing (finalidade `REGIAO_ALCANCE`). `versaoTexto` precisa ser a vigente (`400 VALIDACAO_INVALIDA`).
+        **Revogar apaga** a localidade do perfil e a região de todas as reservas da conta (ela passa a "sem região" no alcance).
+        Cada mudança de estado é uma linha nova (R28). Aceitar por aqui só registra o aceite: a localidade vem de `PUT /me`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsentimentoRequest' }
+      responses:
+        '200':
+          description: Consentimento registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Consentimento' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
   /politica-pagamento:
     get:
       tags: [catalogo]
@@ -404,13 +459,16 @@ paths:
     get:
       tags: [alcance]
       operationId: alcancePublico
-      summary: Cidades e bairros que a barbearia atende (só nomes, sem números)
+      summary: Municípios e bairros que a barbearia atende (só nomes e faixas de porcentagem, nunca número)
       description: |
-        Rota pública (sem token), vitrine para quem vai agendar (E35). Cobre os atendimentos (`CONFIRMADO` e `CONCLUIDO`)
-        dos últimos 12 meses e lista só as cidades e os bairros com 5 ou mais atendimentos no recorte (k-anonimato, ADR 0009),
-        ordenados por volume, **sem contagens**. Nada de "Outras cidades" nem "Outros bairros" aqui. O resultado fica em cache
-        no servidor por 1 hora (`atualizadoEm` diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou,
-        `429` com `Retry-After`.
+        Rota pública (sem token), vitrine para quem vai agendar (E35, Fatia 11). Conta **pessoas diferentes** (não atendimentos)
+        dos últimos 12 meses, com `CONFIRMADO` e `CONCLUIDO`, e lista só os **municípios** com 5 ou mais pessoas e, dentro deles,
+        os bairros com 5 ou mais, por volume. Em município com **20 pessoas ou mais** cada bairro traz `faixaPercentual`: a
+        porcentagem sobre o município **arredondada para baixo em múltiplos de 5** (`"15"`), ou `"<5"`. Em município com menos
+        de 20, só os nomes (`comFaixas = false`). O "Outros bairros" só aparece com 5 ou mais, **sem faixa**. **Nunca** número,
+        total ou contagem de pessoas (`totalCidades` e `totalBairros` contam nomes, e `totalBairros` só os que passam no k).
+        `bairros` (só nomes) é o formato antigo, `deprecated` até a próxima major. Cache no servidor de 1 hora (`atualizadoEm`
+        diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou, `429` com `Retry-After`.
       security: []
       responses:
         '200':
@@ -523,6 +581,21 @@ paths:
                   summary: "Depois do pagamento: CONFIRMADO, sem prazo"
                   value: {"id": "0baf3fc1-4b92-458e-baed-c07646d94692", "status": "CONFIRMADO", "origem": "GUEST", "servico": {"id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte Clássico / Social", "duracaoMin": 60}, "barbeiro": {"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido"}, "inicio": "2026-11-24T10:00:00-03:00", "fim": "2026-11-24T11:00:00-03:00", "precoCentavos": 4500, "expiraEm": null, "motivoCancelamento": null, "version": 2}
         '404': { $ref: '#/components/responses/Erro404' }
+  /agendamentos/guest/{id}/regiao:
+    delete:
+      tags: [guest]
+      operationId: retirarRegiaoDoGuest
+      summary: O visitante retira a autorização de região da reserva (1.9.0, LGPD art. 8º, § 5º)
+      description: |
+        Com o `X-Guest-Token` da própria reserva. Apaga a região da reserva **na hora**; a reserva em si não muda. Idempotente:
+        retirar de novo também é `204`. Token errado, ausente ou de outra reserva: o mesmo `404` de "não existe" (R23), com o mesmo
+        corpo. Limite de 30 pedidos por minuto por IP (`429`).
+      security: [ { guestToken: [] } ]
+      parameters: [ { $ref: '#/components/parameters/Id' } ]
+      responses:
+        '204': { description: Região apagada }
+        '404': { $ref: '#/components/responses/Erro404' }
+        '429': { $ref: '#/components/responses/Erro429' }
   /pagamentos/cobrancas:
     post:
       tags: [pagamento]
@@ -1118,24 +1191,45 @@ paths:
     get:
       tags: [admin]
       operationId: alcanceAdmin
-      summary: De onde vêm os atendimentos (cidades e bairros, com contagem e percentual)
+      summary: De onde vêm os clientes, por estado, região ou município (pessoas diferentes, com k = 5)
       description: |
-        ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os próprios** atendimentos (o
-        `barbeiroId` da query é trocado pelo dele, E36). Conta só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no
-        período (E31); reserva sem região entra em `semRegiao`. Período em dias civis no fuso da barbearia, inclusive nas
-        duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. K-anonimato (E32): bairro
-        com menos de 5 atendimentos na cidade vira "Outros bairros"; cidade com menos de 5 vira "Outras cidades" (`uf`
-        nula). O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
+        ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os clientes dele** (o `barbeiroId` da
+        query é trocado pelo dele e **nada no corpo denuncia isso**, E15). Conta **pessoas diferentes** (uma pessoa com 5
+        atendimentos é 1 cliente) com reserva `CONFIRMADO` ou `CONCLUIDO` no período; a pessoa entra no lugar da reserva mais
+        recente com região. A reserva manual não conta (D127). Sem região: `semRegiao`.
+
+        **Nível** (`nivel`, padrão `MUNICIPIO`) escolhe o que aparece nas linhas: `ESTADO` (UF, com as regiões imediatas embaixo),
+        `REGIAO` (região imediata do IBGE, com os municípios embaixo) ou `MUNICIPIO` (com os bairros embaixo). **k = 5**
+        (`app.alcance.k`, nunca abaixo de 3) vale em cada recorte (barbeiro × período × nível): lugar com menos de 5 pessoas
+        **sobe de nível** (bairro → município → região imediata → UF → "Outros estados") em vez de sumir, e o "Outros" que
+        também ficar abaixo de 5 sobe junto. Nenhum valor entre 1 e k - 1 aparece como número, percentual, zero ou nulo com
+        sentido de contagem: abaixo de k só como `abaixoDoLimite = true` com `clientes` e `percentual` nulos.
+
+        **Contra a subtração**: em cada grupo, o que sobra depois dos filhos nomeados é 0 ou pelo menos k (o menor filho nomeado é
+        rebaixado para dentro do "Outros" se preciso); o total só aparece (`totalVisivel`) se o que ficou escondido no topo é 0
+        ou pelo menos k; e uma célula de um recorte menor (um barbeiro; uma janela padrão menor) só é publicada se a diferença
+        para a mesma célula do recorte maior é 0 ou pelo menos k, senão ela sobe de nível. `de` e `ate` seguem aceitos (D108) mas
+        **não têm essa proteção entre janelas**: valem só para quem já os usa (risco residual aceito para o dono autenticado, D-4).
+        `percentual` = `clientes` do grupo sobre o total do recorte, 1 casa decimal. Nunca em cache (`Cache-Control: no-store`).
       parameters:
-        - { name: de, in: query, required: false, schema: { type: string, format: date }, description: 'primeiro dia do período (padrão: 29 dias antes de `ate`)' }
-        - { name: ate, in: query, required: false, schema: { type: string, format: date }, description: 'último dia do período (padrão: hoje)' }
+        - { name: nivel, in: query, required: false, schema: { $ref: '#/components/schemas/NivelDoAlcance' }, description: 'o nível das linhas (padrão MUNICIPIO)' }
+        - { name: uf, in: query, required: false, schema: { type: string, pattern: '^[A-Za-z]{2}$' }, description: 'restringe a uma UF (sigla)' }
+        - { name: periodo, in: query, required: false, schema: { type: string, enum: [ULTIMOS_30_DIAS, ULTIMOS_90_DIAS, ULTIMOS_12_MESES], default: ULTIMOS_30_DIAS }, description: 'as três janelas padrão, que a proteção entre janelas cobre' }
+        - { name: de, in: query, required: false, schema: { type: string, format: date }, description: 'primeiro dia de uma janela livre (substitui `periodo`; sem a proteção entre janelas)' }
+        - { name: ate, in: query, required: false, schema: { type: string, format: date }, description: 'último dia de uma janela livre (padrão: hoje)' }
         - { name: barbeiroId, in: query, required: false, schema: { type: string, format: uuid }, description: 'só para ADMIN; BARBEIRO é sempre o próprio' }
       responses:
         '200':
           description: Alcance do período
+          headers:
+            Cache-Control: { schema: { type: string }, example: no-store }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AlcancePainel' }
+              examples:
+                municipio:
+                  summary: "nivel = MUNICIPIO: Osasco com bairros embaixo e o resto subido para a região (exemplo fictício no formato real da resposta)"
+                  value: {"periodo": {"de": "2026-10-25", "ate": "2026-11-23"}, "nivel": "MUNICIPIO", "k": 5, "totalVisivel": true, "clientes": 27, "semRegiao": {"clientes": 0, "abaixoDoLimite": false}, "grupos": [{"tipo": "MUNICIPIO", "codigo": "3534401", "nome": "Osasco", "uf": "SP", "clientes": 18, "percentual": 66.7, "abaixoDoLimite": false, "agrupadoEm": null, "filhos": [{"tipo": "BAIRRO", "codigo": "3534401", "nome": "Centro", "clientes": 12, "percentual": 44.4, "abaixoDoLimite": false}, {"tipo": "OUTROS", "codigo": "3534401", "nome": "Outros bairros", "clientes": 6, "percentual": 22.2, "abaixoDoLimite": false}]}, {"tipo": "OUTROS", "codigo": "350001", "nome": "Outros municípios da região imediata de São Paulo", "uf": "SP", "clientes": 9, "percentual": 33.3, "abaixoDoLimite": false, "agrupadoEm": "REGIAO", "filhos": []}], "total": 27, "cidades": []}
         '400': { $ref: '#/components/responses/Erro400' }
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
@@ -1614,6 +1708,7 @@ components:
         bairro: { type: [string, 'null'] }
         cidade: { type: [string, 'null'] }
         uf: { type: [string, 'null'] }
+        municipioIbge: { type: [string, 'null'], pattern: '^[0-9]{7}$', description: 'código IBGE do município (1.9.0): do provedor ou, sem ele, da tabela embutida pelo nome e UF; nulo quando não se resolve (R31)' }
         fonte: { type: string, enum: [VIACEP, BRASILAPI, CACHE], description: 'quem respondeu; CACHE quando veio da memória da API (7 dias se encontrado, 1 hora se inexistente)' }
     CadastroRequest:
       type: object
@@ -1624,8 +1719,17 @@ components:
         email: { type: string, format: email, maxLength: 254 }
         whatsapp: { type: string, description: 'aceita máscara; 10 a 13 dígitos depois de sanitizar', example: '(11) 90000-0001' }
         senha: { type: string, minLength: 10, maxLength: 72, writeOnly: true }
-        cep: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$' }
+        cep: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$', description: 'desde a 1.9.0 só vale com `autorizaRegiao = true`; sem isso é ignorado (nem consultado, nem guardado). Nunca é guardado' }
         aceitaMarketing: { type: boolean, default: false }
+        autorizaRegiao: { type: boolean, description: 'padrão false: a caixinha de consentimento de região (nasce desmarcada). Com `true`, `versaoTextoRegiao` precisa ser a vigente' }
+        versaoTextoRegiao: { type: string, maxLength: 20, description: 'a versão do texto da caixinha que a pessoa viu (a de `GET /politica-privacidade`); outra versão: `400 VALIDACAO_INVALIDA`' }
+    AtualizarPerfilRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        cep: { type: string, pattern: '^[0-9]{5}-?[0-9]{3}$', description: 'só vale com `autorizaRegiao = true`; nunca é guardado' }
+        autorizaRegiao: { type: boolean, description: 'false ou ausente (ou sem CEP) = retirar a autorização' }
+        versaoTextoRegiao: { type: string, maxLength: 20 }
     Perfil:
       type: object
       required: [id, nome, email, papeis]
@@ -1639,11 +1743,12 @@ components:
         endereco:
           type: object
           properties:
-            cep: { type: [string, 'null'] }
+            cep: { type: [string, 'null'], deprecated: true, description: 'sempre nulo desde a 1.9.0 (o CEP não é guardado); sai na próxima major' }
             bairro: { type: [string, 'null'] }
             cidade: { type: [string, 'null'] }
             uf: { type: [string, 'null'] }
             completo: { type: boolean }
+        regiaoAutorizada: { type: boolean, description: 'a conta autoriza o uso do bairro e da cidade no alcance (1.9.0)' }
         deveTrocarSenha: { type: boolean, description: 'true enquanto o admin usa a senha inicial; o front leva para a troca' }
     TrocaDeSenhaRequest:
       type: object
@@ -1705,9 +1810,12 @@ components:
               pattern: '^[0-9]{5}-?[0-9]{3}$'
               example: '01001-000'
               description: |
-                Opcional (Fatia 6C). Formato errado: `400 CEP_INVALIDO`, nada é criado. CEP inexistente ou provedor de CEP
-                fora **nunca** impedem a reserva (R31): ela nasce sem região. Guardado só para a estatística de alcance e
-                apagado na anonimização do visitante (90 dias).
+                Opcional. Formato errado: `400 CEP_INVALIDO`, nada é criado. Desde a 1.9.0 só vale com `autorizaRegiao = true`:
+                sem isso é ignorado (nem consultado, nem guardado). CEP inexistente ou provedor de CEP fora **nunca** impedem a
+                reserva (R31): ela nasce sem região. **O CEP nunca é guardado**: ficam bairro, município, UF e o código IBGE, e
+                a região some junto com o contato do visitante (90 dias) ou antes, se ele a retirar.
+            autorizaRegiao: { type: [boolean, 'null'], description: 'padrão false: a caixinha de consentimento de região (1.9.0), desmarcada por padrão' }
+            versaoTextoRegiao: { type: [string, 'null'], maxLength: 20, description: 'obrigatória e vigente com `autorizaRegiao = true` (`400 VALIDACAO_INVALIDA`)' }
     Agendamento:
       type: object
       required: [id, status, origem, inicio, fim, precoCentavos]
@@ -1728,6 +1836,7 @@ components:
         expiraEm: { type: [string, 'null'], format: date-time, description: 'prazo do pagamento (3 min por padrão, R7); nulo depois de CONFIRMADO' }
         motivoCancelamento: { type: [string, 'null'], description: 'só em cancelamento pela barbearia' }
         version: { type: integer, format: int64 }
+        regiaoAutorizada: { type: boolean, description: 'só nas respostas do visitante (1.9.0): a reserva guarda a região com a prova do aceite; vira false depois de `DELETE /agendamentos/guest/{id}/regiao`' }
     AgendamentoAdmin:
       description: |
         O Agendamento visto pelo painel: mais o contato de quem vem (nome e WhatsApp, nunca e-mail nem CPF) e o status
@@ -1934,7 +2043,7 @@ components:
       type: object
       required: [finalidade, aceito, versaoTexto, registradoEm]
       properties:
-        finalidade: { type: string, enum: [MARKETING_CEP] }
+        finalidade: { type: string, enum: [MARKETING_CEP, REGIAO_ALCANCE] }
         aceito: { type: boolean }
         versaoTexto: { type: string }
         registradoEm: { type: string, format: date-time }
@@ -1957,10 +2066,12 @@ components:
             nome: { type: string }
             email: { type: string, format: email }
             whatsapp: { type: [string, 'null'] }
+            regiaoAutorizada: { type: boolean, description: 'a conta autoriza o uso da região no alcance (1.9.0)' }
             endereco:
               type: [object, 'null']
               properties:
-                cep: { type: string }
+                cep: { type: [string, 'null'], deprecated: true, description: 'sempre nulo desde a 1.9.0' }
+                municipioIbge: { type: [string, 'null'] }
                 bairro: { type: [string, 'null'] }
                 cidade: { type: [string, 'null'] }
                 uf: { type: [string, 'null'] }
@@ -1984,15 +2095,21 @@ components:
               motivoCancelamento: { type: [string, 'null'] }
     PoliticaPrivacidade:
       type: object
-      required: [versao, textoConsentimento, politica, atualizadaEm]
+      required: [versao, textoConsentimento, textoConsentimentoRegiao, politica, atualizadaEm]
       properties:
-        versao: { type: string, example: '1.1' }
+        versao: { type: string, example: '1.2' }
         textoConsentimento: { type: string, description: 'o texto da caixa de marketing do cadastro' }
+        textoConsentimentoRegiao: { type: string, description: 'o texto da caixinha de região, desmarcada (1.9.0): cadastro, perfil e checkout do visitante' }
         politica: { type: string, description: 'texto corrido em Markdown (rascunho técnico, não é parecer jurídico)' }
         atualizadaEm: { type: string, format: date-time }
+        canalDeContato: { type: string, description: 'o canal de contato sobre os dados (APP_PRIVACIDADE_CONTATO), que aparece ao lado da caixinha de região (1.9.0)' }
+    NivelDoAlcance:
+      type: string
+      enum: [ESTADO, REGIAO, MUNICIPIO]
+      description: 'o nível das linhas do painel; cada linha traz o nível de baixo em `filhos`'
     AlcancePainel:
       type: object
-      required: [periodo, total, semRegiao, cidades]
+      required: [periodo, nivel, k, totalVisivel, clientes, semRegiao, grupos]
       properties:
         periodo:
           type: object
@@ -2000,31 +2117,73 @@ components:
           properties:
             de: { type: string, format: date }
             ate: { type: string, format: date }
-        total: { type: integer, description: 'atendimentos CONFIRMADO e CONCLUIDO no período (inclui os sem região)' }
-        semRegiao: { type: integer, description: 'atendimentos cuja região não se conhece' }
+        nivel: { $ref: '#/components/schemas/NivelDoAlcance' }
+        k: { type: integer, minimum: 3, example: 5, description: 'o limite de pessoas (app.alcance.k); lugar abaixo dele sobe de nível' }
+        totalVisivel:
+          type: boolean
+          description: 'falso quando a conta fecharia um número menor que k: aí `clientes` (total) e todos os `percentual` vêm nulos'
+        clientes: { type: [integer, 'null'], description: 'pessoas diferentes no recorte (inclui as sem região); nulo quando `totalVisivel = false`' }
+        semRegiao:
+          type: object
+          description: 'quem não tem região (não autorizou, revogou ou o CEP não resolveu). Era um número até a 1.8.0; agora é objeto (única exceção da 1.9.0)'
+          required: [clientes, abaixoDoLimite]
+          properties:
+            clientes: { type: [integer, 'null'], description: 'nulo quando `abaixoDoLimite`' }
+            abaixoDoLimite: { type: boolean, description: 'verdadeiro quando o número não é publicado (menos de k); a tela escreve "menos de k"' }
+        grupos:
+          type: array
+          description: 'as linhas do nível pedido, por volume; as de tipo `OUTROS` são o que subiu de nível; "Outros estados" por último'
+          items: { $ref: '#/components/schemas/AlcanceGrupo' }
+        total: { type: [integer, 'null'], deprecated: true, description: 'o mesmo que `clientes`; sai na próxima major' }
         cidades:
           type: array
-          description: 'por volume; "Outras cidades" (uf nula) por último'
+          deprecated: true
+          description: 'o formato antigo (cidade e bairros), só preenchido com `nivel = MUNICIPIO`; sai na próxima major'
           items:
             type: object
             required: [cidade, uf, atendimentos, percentual, abaixoDoLimite, bairros]
             properties:
               cidade: { type: string, example: Osasco }
               uf: { type: [string, 'null'], example: SP }
-              atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
-              percentual: { type: [number, 'null'], format: double, description: 'sobre o total do período, 1 casa decimal; nulo quando abaixoDoLimite', example: 66.7 }
-              abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outras cidades" com menos de 5 atendimentos (D114)' }
+              atendimentos: { type: [integer, 'null'], description: 'agora conta clientes; nulo quando abaixoDoLimite' }
+              percentual: { type: [number, 'null'], format: double }
+              abaixoDoLimite: { type: boolean }
               bairros:
                 type: array
-                description: 'por volume; "Outros bairros" por último; vazio em "Outras cidades"'
                 items:
                   type: object
                   required: [bairro, atendimentos, percentual, abaixoDoLimite]
                   properties:
                     bairro: { type: string, example: Centro }
-                    atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
-                    percentual: { type: [number, 'null'], format: double, example: 66.7 }
-                    abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outros bairros" com menos de 5 atendimentos (D114)' }
+                    atendimentos: { type: [integer, 'null'] }
+                    percentual: { type: [number, 'null'], format: double }
+                    abaixoDoLimite: { type: boolean }
+    AlcanceGrupo:
+      type: object
+      required: [tipo, nome, clientes, percentual, abaixoDoLimite, filhos]
+      properties:
+        tipo: { type: string, enum: [UF, REGIAO, MUNICIPIO, OUTROS], description: 'o nível da linha, ou OUTROS (o que subiu)' }
+        codigo: { type: [string, 'null'], description: 'sigla da UF, código da região imediata ou do município; em OUTROS, o do pai ("Outros bairros" traz o código do município)', example: '3534401' }
+        nome: { type: string, example: Osasco }
+        uf: { type: [string, 'null'], example: SP }
+        clientes: { type: [integer, 'null'], description: 'pessoas diferentes; nulo quando `abaixoDoLimite` (nunca um número entre 1 e k - 1)' }
+        percentual: { type: [number, 'null'], format: double, description: 'sobre o total do recorte, 1 casa decimal; nulo quando `abaixoDoLimite` ou `totalVisivel = false`', example: 66.7 }
+        abaixoDoLimite: { type: boolean }
+        agrupadoEm: { type: [string, 'null'], enum: [REGIAO, UF, PAIS, null], description: 'até que nível um OUTROS subiu; nulo quando ficou no nível pedido' }
+        filhos:
+          type: array
+          description: 'o nível de baixo (UF → regiões, região → municípios, município → bairros), mais um OUTROS com o resto; vazio em OUTROS'
+          items: { $ref: '#/components/schemas/AlcanceFilho' }
+    AlcanceFilho:
+      type: object
+      required: [tipo, nome, clientes, percentual, abaixoDoLimite]
+      properties:
+        tipo: { type: string, enum: [REGIAO, MUNICIPIO, BAIRRO, OUTROS] }
+        codigo: { type: [string, 'null'] }
+        nome: { type: string, example: Centro }
+        clientes: { type: [integer, 'null'] }
+        percentual: { type: [number, 'null'], format: double }
+        abaixoDoLimite: { type: boolean }
     ChavePublicaPush:
       type: object
       required: [disponivel]
@@ -2072,20 +2231,33 @@ components:
       required: [atualizadoEm, totalCidades, totalBairros, regioes]
       properties:
         atualizadoEm: { type: string, format: date-time, description: 'quando o resultado em cache foi calculado' }
-        totalCidades: { type: integer }
-        totalBairros: { type: integer }
+        totalCidades: { type: integer, description: 'quantos municípios aparecem (conta nomes, não pessoas)' }
+        totalBairros: { type: integer, description: 'quantos bairros passam no k (conta nomes, não pessoas)' }
         regioes:
           type: array
-          description: 'por volume, sem os números'
+          description: 'municípios por volume, sem números de pessoas'
           items:
             type: object
-            required: [cidade, uf, bairros]
+            required: [cidade, uf, codigoIbge, comFaixas, bairros, bairrosComFaixa]
             properties:
               cidade: { type: string, example: Osasco }
               uf: { type: string, example: SP }
+              codigoIbge: { type: string, example: '3534401' }
+              comFaixas: { type: boolean, description: 'falso em município com menos de 20 pessoas (só nomes)' }
               bairros:
                 type: array
+                deprecated: true
+                description: 'só os nomes (o formato antigo); sai na próxima major'
                 items: { type: string, example: Centro }
+              bairrosComFaixa:
+                type: array
+                items:
+                  type: object
+                  required: [bairro, outros]
+                  properties:
+                    bairro: { type: string, example: Centro }
+                    faixaPercentual: { type: [string, 'null'], example: '15', description: 'a porcentagem sobre o município arredondada para baixo em múltiplos de 5 ("15"), ou "<5"; nulo em município com menos de 20 pessoas e no "Outros bairros"' }
+                    outros: { type: boolean, description: 'verdadeiro no "Outros bairros" (só aparece com 5 ou mais, sem faixa)' }
     PaginaAuditoria:
       type: object
       required: [itens, pagina, tamanho, total]

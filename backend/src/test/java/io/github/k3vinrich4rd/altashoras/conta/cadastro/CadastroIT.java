@@ -63,17 +63,17 @@ class CadastroIT {
     }
 
     @Test
-    @DisplayName("A1: cadastro válido responde 201 com Location /me, papel CLIENTE, endereço incompleto e nenhuma senha")
+    @DisplayName("A1: cadastro válido responde 201 com Location /me, papel CLIENTE, sem endereço (o CEP só vale com a caixinha de região) e nenhuma senha")
     void cadastroValido() throws Exception {
         String corpo = mvc.perform(json(post("/auth/cadastro"), corpoDeCadastro(ContaDeTeste.emailNovo(), ContaDeTeste.SENHA)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/me"))
                 .andExpect(jsonPath("$.papeis[0]").value("CLIENTE"))
-                .andExpect(jsonPath("$.endereco.cep").value("01001000"))
-                .andExpect(jsonPath("$.endereco.completo").value(false))
+                .andExpect(jsonPath("$.endereco").doesNotExist())
+                .andExpect(jsonPath("$.regiaoAutorizada").value(false))
                 .andReturn().getResponse().getContentAsString();
         Map<String, Object> campos = JsonPath.read(corpo, "$");
-        assertThat(campos).containsOnlyKeys("id", "nome", "email", "papeis", "endereco", "deveTrocarSenha");
+        assertThat(campos).containsOnlyKeys("id", "nome", "email", "papeis", "endereco", "regiaoAutorizada", "deveTrocarSenha");
         assertThat(corpo).doesNotContain("senha\"").doesNotContain(ContaDeTeste.SENHA).doesNotContain("$2");
     }
 
@@ -150,7 +150,7 @@ class CadastroIT {
         String sql = "SELECT c.aceito FROM consentimento c JOIN usuario u ON u.id = c.usuario_id WHERE u.email = ?";
         assertThat(jdbc.queryForList(sql, Boolean.class, aceitou)).containsExactly(true);
         assertThat(jdbc.queryForList(sql, Boolean.class, semCampo.email())).containsExactly(false);
-        assertThat(jdbc.queryForObject("SELECT DISTINCT versao_texto FROM consentimento", String.class)).isEqualTo("1.1");
+        assertThat(jdbc.queryForObject("SELECT DISTINCT versao_texto FROM consentimento", String.class)).isEqualTo("1.2");
     }
 
     @Test

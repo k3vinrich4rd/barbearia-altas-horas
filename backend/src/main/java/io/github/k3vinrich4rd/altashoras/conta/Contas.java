@@ -18,6 +18,7 @@ import io.github.k3vinrich4rd.altashoras.conta.convite.ParametrosDoConvite;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.RefreshTokenRepository;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.Usuario;
 import io.github.k3vinrich4rd.altashoras.conta.usuario.UsuarioRepository;
+import io.github.k3vinrich4rd.altashoras.privacidade.Consentimentos;
 
 /**
  * API pública da conta para os outros módulos (ADR 0002, D74): "esta conta existe e tem o papel X?". O painel
@@ -31,10 +32,12 @@ public class Contas {
     private final RefreshTokenRepository refreshTokens;
     private final ConvitesDeConta convites;
     private final ParametrosDoConvite parametros;
+    private final Consentimentos consentimentos;
     private final Clock clock;
 
     Contas(UsuarioRepository usuarios, RefreshTokenRepository refreshTokens, ConvitesDeConta convites,
-            ParametrosDoConvite parametros, Clock clock) {
+            ParametrosDoConvite parametros, Consentimentos consentimentos, Clock clock) {
+        this.consentimentos = consentimentos;
         this.usuarios = usuarios;
         this.refreshTokens = refreshTokens;
         this.convites = convites;
@@ -43,10 +46,12 @@ public class Contas {
     }
 
     /**
-     * Onde mora o cliente, só bairro, cidade e uf (Fatia 6C, E30): a reserva copia isto no momento em que nasce. O CEP, o
-     * nome e o contato não saem. O bairro pode faltar (CEP "geral"); sem cidade ou uf a região não se conhece.
+     * Onde mora o cliente, só bairro, cidade, uf e município do IBGE (Fatia 11, E30): a reserva copia isto no momento em que
+     * nasce, junto com a versão do texto de autorização que a conta aceitou (a prova, art. 8º, § 2º). O CEP nunca existe aqui
+     * (não é guardado), e nome e contato não saem. O bairro e o município podem faltar; sem cidade ou uf a região não se conhece.
      */
-    public record Regiao(@Nullable String bairro, String cidade, String uf) {
+    public record Regiao(@Nullable String bairro, String cidade, String uf, @Nullable String municipioIbge,
+            String versaoConsentimento) {
 
         @Override
         public String toString() {
@@ -54,12 +59,47 @@ public class Contas {
         }
     }
 
-    /** A região da conta, ou vazio quando o endereço não foi resolvido (R31) ou a conta foi excluída. */
+    /**
+     * A região da conta, ou vazio quando o endereço não foi resolvido (R31), a conta foi excluída ou, principalmente, quando a
+     * conta NÃO autoriza o uso (a linha mais recente de REGIAO_ALCANCE não é um aceite): sem consentimento a região não sai.
+     */
     @Transactional(readOnly = true)
     public Optional<Regiao> regiaoDoCliente(UUID usuarioId) {
+        Optional<String> versao = consentimentos.versaoDaRegiaoAceita(usuarioId);
+        if (versao.isEmpty()) {
+            return Optional.empty();
+        }
         return usuarios.findById(usuarioId)
                 .filter(u -> u.getCidade() != null && u.getUf() != null)
-                .map(u -> new Regiao(u.getBairro(), u.getCidade(), u.getUf()));
+                .map(u -> new Regiao(u.getBairro(), u.getCidade(), u.getUf(), u.getRegiaoMunicipioIbge(), versao.get()));
+    }
+
+    /**
+     * Os identificadores que o alcance usa para saber quando uma conta e um visitante são a MESMA pessoa (Fatia 11, E4): o
+     * WhatsApp só com dígitos e o e-mail em minúsculas. Só de contas ativas; a exclusão já tirou os dois da conta anonimizada.
+     * Saem apenas para a consulta agregada, que os mistura com uma chave que só vive na memória e nunca os guarda nem loga.
+     */
+    public record IdentificadoresDePessoa(@Nullable String whatsapp, @Nullable String email) {
+
+        @Override
+        public String toString() {
+            return "IdentificadoresDePessoa[omitidos]";
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, IdentificadoresDePessoa> identificadoresDePessoa(Collection<UUID> usuarioIds) {
+        if (usuarioIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, IdentificadoresDePessoa> resultado = new java.util.HashMap<>();
+        for (Usuario u : usuarios.findAllById(usuarioIds)) {
+            if (u.isAtivo()) {
+                resultado.put(u.getId(), new IdentificadoresDePessoa(u.getWhatsapp(),
+                        u.getEmail() == null ? null : u.getEmail().toLowerCase(java.util.Locale.ROOT)));
+            }
+        }
+        return resultado;
     }
 
     /** Das contas pedidas, as ativas com o papel: uma consulta só, para a lista de barbeiros do painel. */

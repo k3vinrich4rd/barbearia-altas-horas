@@ -9,6 +9,7 @@ import { useConsulta } from "@/api/hooks";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { CopiarTexto } from "@/componentes/CopiarTexto";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
+import { RetirarRegiaoDoVisitante } from "@/componentes/RetirarRegiaoDoVisitante";
 import { useSessao } from "@/componentes/Sessao";
 import { LinkBotao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
@@ -107,6 +108,12 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
                 ) : (
                   <p>O código só aparece neste navegador, logo depois da reserva.</p>
                 )}
+              </section>
+            )}
+            {!sessao.autenticado && r.regiaoAutorizada && (
+              <section aria-labelledby="regiao-reserva">
+                <h2 id="regiao-reserva">Sua região</h2>
+                <RetirarRegiaoDoVisitante reservaId={r.id} />
               </section>
             )}
             {!sessao.autenticado && (

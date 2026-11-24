@@ -23,13 +23,13 @@ class ExclusaoContaIT extends PrivacidadeBase {
 
     private Map<String, Object> linhaDoUsuario(UUID id) {
         return jdbc.queryForMap("""
-                SELECT nome, email, whatsapp, senha_hash, cep, bairro, cidade, uf, ativo, anonimizado_em, versao_credencial
+                SELECT nome, email, whatsapp, senha_hash, bairro, cidade, uf, ativo, anonimizado_em, versao_credencial
                 FROM usuario WHERE id = ?
                 """, id);
     }
 
     private void comEnderecoCompleto(UUID id) {
-        jdbc.update("UPDATE usuario SET cep = '01001000', bairro = 'Sé', cidade = 'São Paulo', uf = 'SP' WHERE id = ?", id);
+        jdbc.update("UPDATE usuario SET bairro = 'Sé', cidade = 'São Paulo', uf = 'SP' WHERE id = ?", id);
     }
 
     @Test
@@ -62,7 +62,6 @@ class ExclusaoContaIT extends PrivacidadeBase {
                 .containsEntry("ativo", false).containsEntry("versao_credencial", versaoAntes + 1);
         assertThat(linha.get("whatsapp")).isNull();
         assertThat(linha.get("senha_hash")).isNull();
-        assertThat(linha.get("cep")).isNull();
         assertThat(linha.get("bairro")).isNull();
         assertThat(linha.get("cidade")).isNull();
         assertThat(linha.get("uf")).isNull();
@@ -86,7 +85,7 @@ class ExclusaoContaIT extends PrivacidadeBase {
         var historico = consentimentosNoBanco(cliente.id());
         assertThat(historico).hasSize(4);
         assertThat(historico.get(2)).containsEntry("aceito", true);
-        assertThat(historico.get(3)).containsEntry("aceito", false).containsEntry("versao_texto", "1.1");
+        assertThat(historico.get(3)).containsEntry("aceito", false).containsEntry("versao_texto", "1.2");
         assertThat(instante(historico.get(3).get("registrado_em"))).isEqualTo(relogio.instant());
         var pedidos = jdbc.queryForList("SELECT tipo, concluida_em FROM solicitacao_titular WHERE usuario_id = ?", cliente.id());
         assertThat(pedidos).hasSize(1);

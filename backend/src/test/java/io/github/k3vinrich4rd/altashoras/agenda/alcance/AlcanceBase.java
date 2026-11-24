@@ -88,66 +88,114 @@ public abstract class AlcanceBase extends PainelBase {
         return new Catalogo(DadosDeTeste.barbeiro(jdbc, true), DadosDeTeste.servico(jdbc, 30));
     }
 
-    /**
-     * Um atendimento direto no banco, num horário novo (30 minutos depois do anterior) do barbeiro, com a região
-     * copiada (nula = sem região). É do visitante: o alcance não depende de quem foi atendido.
-     */
-    protected UUID atendimento(UUID barbeiro, UUID servico, String status, String bairro, String cidade, String uf) {
-        return atendimentoEm(barbeiro, servico, DIA_DO_ATENDIMENTO, status, bairro, cidade, uf);
+    // ---- onde moram as pessoas (a tabela do IBGE de verdade traz estes códigos) -------------------------------------------
+
+    protected static final String OSASCO = "3534401";
+    protected static final String CARAPICUIBA = "3510609";
+    protected static final String SAO_PAULO = "3550308";
+    protected static final String CAMPINAS = "3509502";
+    protected static final String RIO = "3304557";
+
+    /** Onde uma pessoa mora, do jeito que a reserva guarda (bairro, município IBGE, cidade e uf). */
+    protected record Onde(String bairro, String ibge, String cidade, String uf) {
     }
 
-    protected UUID atendimentoEm(UUID barbeiro, UUID servico, LocalDate dia, String status, String bairro, String cidade,
-            String uf) {
+    protected static final Onde CENTRO = new Onde("Centro", OSASCO, "Osasco", "SP");
+    protected static final Onde ALTINO = new Onde("Presidente Altino", OSASCO, "Osasco", "SP");
+    protected static final Onde CARAPICUIBA_CENTRO = new Onde("Centro", CARAPICUIBA, "Carapicuíba", "SP");
+    protected static final Onde SE = new Onde("Sé", SAO_PAULO, "São Paulo", "SP");
+    protected static final Onde CAMPINAS_CENTRO = new Onde("Centro", CAMPINAS, "Campinas", "SP");
+    protected static final Onde COPACABANA = new Onde("Copacabana", RIO, "Rio de Janeiro", "RJ");
+
+    private static final java.util.concurrent.atomic.AtomicLong CONTATOS = new java.util.concurrent.atomic.AtomicLong(1_000_000);
+
+    /** O contato de um visitante: o que decide se duas reservas são da mesma pessoa (E4). */
+    protected record Contato(String whatsapp, String email) {
+
+        protected static Contato novo() {
+            long n = CONTATOS.incrementAndGet();
+            return new Contato("119" + String.format("%08d", n), "visitante." + n + "@exemplo.test");
+        }
+    }
+
+    /** Um atendimento de uma PESSOA NOVA (contato único) num horário novo (30 minutos depois do anterior), na região dada. */
+    protected UUID atendimento(UUID barbeiro, UUID servico, String status, Onde onde) {
+        return atendimentoEm(barbeiro, servico, DIA_DO_ATENDIMENTO, status, onde);
+    }
+
+    protected UUID atendimentoEm(UUID barbeiro, UUID servico, LocalDate dia, String status, Onde onde) {
+        return atendimentoDe(Contato.novo(), barbeiro, servico, dia, status, onde);
+    }
+
+    /** O atendimento de um visitante com o contato dado (a mesma pessoa pode ter várias reservas). {@code onde} nulo = sem região. */
+    protected UUID atendimentoDe(Contato contato, UUID barbeiro, UUID servico, LocalDate dia, String status, Onde onde) {
         OffsetDateTime inicio = DadosDeTeste.em(dia, 7, 0).plusMinutes(30L * proximoHorario++);
         UUID id = reserva(barbeiro, servico, inicio, status, null, null, "Visitante Fictício");
-        jdbc.update("UPDATE reserva SET regiao_bairro = ?, regiao_cidade = ?, regiao_uf = ? WHERE id = ?", bairro, cidade, uf,
-                id);
+        jdbc.update("UPDATE reserva_guest SET whatsapp = ?, email = ? WHERE reserva_id = ?", contato.whatsapp(), contato.email(), id);
+        if (onde != null) {
+            jdbc.update("""
+                    UPDATE reserva SET regiao_bairro = ?, regiao_municipio_ibge = ?, regiao_cidade = ?, regiao_uf = ?,
+                                       regiao_consentimento_versao = '1.2' WHERE id = ?
+                    """, onde.bairro(), onde.ibge(), onde.cidade(), onde.uf(), id);
+        }
         return id;
     }
 
-    /** {@code quantos} atendimentos CONCLUIDO na mesma região (o horário anda 30 minutos a cada um). */
-    protected void atendimentos(int quantos, UUID barbeiro, UUID servico, String bairro, String cidade, String uf) {
-        atendimentosEm(quantos, barbeiro, servico, DIA_DO_ATENDIMENTO, bairro, cidade, uf);
+    /** {@code quantas} PESSOAS DIFERENTES atendidas (CONCLUIDO) na mesma região, no dia padrão. */
+    protected void pessoas(int quantas, UUID barbeiro, UUID servico, Onde onde) {
+        pessoasEm(quantas, barbeiro, servico, DIA_DO_ATENDIMENTO, onde);
     }
 
-    protected void atendimentosEm(int quantos, UUID barbeiro, UUID servico, LocalDate dia, String bairro, String cidade,
-            String uf) {
-        for (int i = 0; i < quantos; i++) {
-            atendimentoEm(barbeiro, servico, dia, "CONCLUIDO", bairro, cidade, uf);
+    protected void pessoasEm(int quantas, UUID barbeiro, UUID servico, LocalDate dia, Onde onde) {
+        for (int i = 0; i < quantas; i++) {
+            atendimentoEm(barbeiro, servico, dia, "CONCLUIDO", onde);
         }
     }
 
-    /**
-     * O cenário do A67: 6 atendimentos CONCLUIDO em Centro/Osasco, 2 em Sé/São Paulo, 1 EXPIRADO em Centro (fora) e 1
-     * CONFIRMADO sem região.
-     */
-    protected void cenarioDoA67() {
-        Catalogo c = catalogo();
-        for (int i = 0; i < 6; i++) {
-            atendimento(c.barbeiro(), c.servico(), "CONCLUIDO", "Centro", "Osasco", "SP");
-        }
-        for (int i = 0; i < 2; i++) {
-            atendimento(c.barbeiro(), c.servico(), "CONCLUIDO", "Sé", "São Paulo", "SP");
-        }
-        atendimento(c.barbeiro(), c.servico(), "EXPIRADO", "Centro", "Osasco", "SP");
-        atendimento(c.barbeiro(), c.servico(), "CONFIRMADO", null, null, null);
+    /** Uma conta de cliente que AUTORIZOU a região (a linha de consentimento aceita) e mora em {@code onde}. */
+    protected UUID clienteComRegiao(Onde onde) {
+        UUID id = cliente("Cliente Fictício", "119" + String.format("%08d", CONTATOS.incrementAndGet()));
+        jdbc.update("""
+                UPDATE usuario SET bairro = ?, regiao_municipio_ibge = ?, cidade = ?, uf = ? WHERE id = ?
+                """, onde.bairro(), onde.ibge(), onde.cidade(), onde.uf(), id);
+        jdbc.update("INSERT INTO consentimento (usuario_id, finalidade, versao_texto, aceito, registrado_em) VALUES (?, 'REGIAO_ALCANCE', '1.2', true, timestamptz '2026-11-01 00:00+00')", id);
+        return id;
+    }
+
+    /** O atendimento de uma conta, com a região copiada da conta (como a reserva real faz). */
+    protected UUID atendimentoDaConta(UUID clienteId, UUID barbeiro, UUID servico, LocalDate dia, String status) {
+        OffsetDateTime inicio = DadosDeTeste.em(dia, 7, 0).plusMinutes(30L * proximoHorario++);
+        UUID id = reserva(barbeiro, servico, inicio, status, null, clienteId, null);
+        jdbc.update("""
+                UPDATE reserva r SET regiao_bairro = u.bairro, regiao_municipio_ibge = u.regiao_municipio_ibge,
+                       regiao_cidade = u.cidade, regiao_uf = u.uf, regiao_consentimento_versao = '1.2'
+                FROM usuario u WHERE u.id = ? AND r.id = ? AND u.cidade IS NOT NULL
+                """, clienteId, id);
+        return id;
     }
 
     // ---- HTTP -------------------------------------------------------------------------------------------------------
 
-    protected static String corpoGuest(Catalogo c, String hora, String cep) {
+    protected static String corpoGuest(Catalogo c, String hora, String cep, boolean autoriza) {
         String campoCep = cep == null ? "" : ", \"cep\": \"%s\"".formatted(cep);
+        String consentimento = autoriza ? ", \"autorizaRegiao\": true, \"versaoTextoRegiao\": \"1.2\"" : "";
         return """
                 { "servicoId": "%s", "barbeiroId": "%s", "inicio": "%s",
-                  "nome": "Visitante Teste", "email": "visitante@exemplo.test", "whatsapp": "(11) 90000-0002"%s }
+                  "nome": "Visitante Teste", "email": "visitante@exemplo.test", "whatsapp": "(11) 90000-0002"%s%s }
                 """.formatted(c.servico(), c.barbeiro(), DadosDeTeste.em(TERCA_DA_RESERVA, Integer.parseInt(hora.substring(0, 2)),
-                Integer.parseInt(hora.substring(3))), campoCep);
+                Integer.parseInt(hora.substring(3))), campoCep, consentimento);
     }
 
-    /** Reserva do visitante pela API, de um IP novo (o limite de um teste não atrapalha o outro). */
+    /** Reserva do visitante pela API, de um IP novo, SEM marcar a caixinha de região (o CEP, se vier, é ignorado). */
     protected ResultActions reservarComoVisitante(Catalogo c, String hora, String cep) throws Exception {
         return mvc.perform(MockMvcRequestBuilders.post("/agendamentos/guest").contentType(MediaType.APPLICATION_JSON)
-                .content(corpoGuest(c, hora, cep)).with(ip(ipNovo())));
+                .content(corpoGuest(c, hora, cep, false)).with(ip(ipNovo())));
+    }
+
+    /** Reserva do visitante marcando a caixinha de região com a versão vigente (1.2). */
+    protected ResultActions reservarAutorizando(Catalogo c, String hora, String cep) throws Exception {
+        return mvc.perform(MockMvcRequestBuilders.post("/agendamentos/guest").contentType(MediaType.APPLICATION_JSON)
+                .content(corpoGuest(c, hora, cep, true)).with(ip(ipNovo())));
     }
 
     protected String tokenDeCliente(UUID clienteId) {
@@ -160,5 +208,54 @@ public abstract class AlcanceBase extends PainelBase {
                         { "servicoId": "%s", "barbeiroId": "%s", "inicio": "%s" }
                         """.formatted(c.servico(), c.barbeiro(), DadosDeTeste.em(TERCA_DA_RESERVA,
                         Integer.parseInt(hora.substring(0, 2)), Integer.parseInt(hora.substring(3))))));
+    }
+
+    // ---- contas e painel pela API -------------------------------------------------------------------------------------
+
+    protected static final String CEP_OSASCO = io.github.k3vinrich4rd.altashoras.cep.ProvedoresFalsos.CEP_OSASCO;
+
+    /** Cadastro de cliente pela API; {@code campos} são os campos extras do JSON (já com a vírgula na frente) ou vazio. */
+    protected ResultActions cadastrar(String email, String campos) throws Exception {
+        return mvc.perform(MockMvcRequestBuilders.post("/auth/cadastro").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        { "nome": "Cliente Teste", "email": "%s", "whatsapp": "(11) 90000-0001", "senha": "Senha-de-teste-123"%s }
+                        """.formatted(email, campos)).with(ip(ipNovo())));
+    }
+
+    protected static final String REGIAO_OSASCO = ", \"cep\": \"06010-000\", \"autorizaRegiao\": true, \"versaoTextoRegiao\": \"1.2\"";
+
+    protected ResultActions comoCliente(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder pedido,
+            UUID clienteId, String corpo) throws Exception {
+        if (corpo != null) {
+            pedido = pedido.contentType(MediaType.APPLICATION_JSON).content(corpo);
+        }
+        return mvc.perform(pedido.header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenDeCliente(clienteId)).with(ip(ipNovo())));
+    }
+
+    /** O token de uma conta de equipe (ADMIN ou BARBEIRO), emitido com o relógio atual. */
+    protected String tokenDeEquipe(UUID contaId, String... papeis) {
+        return emissor.emitir(contaId, List.of(papeis), 0, false).valor();
+    }
+
+    protected ResultActions alcanceDoAdmin(String consulta) throws Exception {
+        Conta admin = conta("ADMIN", "BARBEIRO");
+        return mvc.perform(MockMvcRequestBuilders.get("/admin/alcance" + consulta)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin.token()).with(ip(ipNovo())));
+    }
+
+    protected ResultActions alcanceDoBarbeiro(Conta barbeiro, String consulta) throws Exception {
+        return mvc.perform(MockMvcRequestBuilders.get("/admin/alcance" + consulta)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + barbeiro.token()).with(ip(ipNovo())));
+    }
+
+    /** Lê um valor do corpo JSON (um caminho de JsonPath). */
+    protected static <T> T ler(String corpo, String caminho) {
+        return com.jayway.jsonpath.JsonPath.read(corpo, caminho);
+    }
+
+    /** O corpo da resposta do painel do ADMIN (todos os barbeiros), com o código 200 conferido. */
+    protected String painel(String consulta) throws Exception {
+        return alcanceDoAdmin(consulta).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andReturn().getResponse().getContentAsString();
     }
 }
