@@ -53,3 +53,11 @@ services:
         sync: false
       - key: APP_PRIVACIDADE_CONTATO
         sync: false
+
+      # --- notificação ao barbeiro (Fatia 13, D175): Web Push com chave VAPID ---
+      # O par é gerado UMA vez pelo Kevin (comando em docs/planejamento/ativar-deploy.md). generateValue NÃO serve:
+      # a chave é de curva elíptica P-256, não texto aleatório. Trocar o par invalida todas as inscrições.
+      - key: APP_NOTIFICACAO_VAPID_PUBLICA
+        sync: false
+      - key: APP_NOTIFICACAO_VAPID_PRIVADA
+        sync: false
