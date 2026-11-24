@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.8.0
+  version: 1.10.0
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     API da agenda online da Barbearia Altas Horas (Jardim Bonança, Osasco, desde 1997).
@@ -1140,6 +1140,108 @@ paths:
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
+  /admin/notificacoes/chave-publica:
+    get:
+      tags: [admin]
+      operationId: chavePublicaDeNotificacao
+      summary: A chave pública VAPID, para o navegador criar a inscrição de Web Push
+      description: |
+        ADMIN ou BARBEIRO. O navegador usa esta chave em `pushManager.subscribe`; **não existe cópia dela no front**, então o par
+        nunca fica dessincronizado. Sem o par VAPID configurado (ou com o canal `webpush` desligado) responde só
+        `{ "disponivel": false }` e a tela mostra "notificações indisponíveis". A chave **privada** nunca sai da API. Nunca em cache.
+      responses:
+        '200':
+          description: Chave pública, ou indisponível
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChavePublicaPush' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/notificacoes/inscricao:
+    post:
+      tags: [admin]
+      operationId: inscreverAparelhoDePush
+      summary: Guarda o aparelho do barbeiro para receber o Web Push
+      description: |
+        ADMIN ou BARBEIRO. O aparelho fica na **conta do token**: nenhum corpo escolhe a conta. Idempotente por `endpoint`. O mesmo
+        `endpoint` chegando por outra conta (o mesmo aparelho, outro login) **passa para a conta nova**. No máximo 10 aparelhos por
+        conta: o 11º substitui o mais antigo. Só endereços de serviço de push são aceitos, em https (`fcm.googleapis.com`,
+        `updates.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`): qualquer outro host é
+        `400 VALIDACAO_INVALIDA` e **nunca é chamado** (contra SSRF). Os valores enviados nunca voltam nas mensagens de erro.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InscricaoPush' }
+      responses:
+        '204':
+          description: Aparelho inscrito
+          headers:
+            Cache-Control: { schema: { type: string }, example: no-store }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+    delete:
+      tags: [admin]
+      operationId: removerAparelhoDePush
+      summary: Remove o aparelho do barbeiro
+      description: |
+        ADMIN ou BARBEIRO. O `endpoint` vai no **corpo**, não na URL, para não cair em log de acesso. Endpoint que não é da conta, ou
+        que não existe, responde `204` igual e **não apaga nada** (não revela de quem é).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RemocaoDeInscricaoPush' }
+      responses:
+        '204': { description: Aparelho removido (ou nada a remover) }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/notificacoes:
+    get:
+      tags: [admin]
+      operationId: novidadesDoPainel
+      summary: 'Novidades: os avisos de horário novo da conta de quem chama'
+      description: |
+        ADMIN ou BARBEIRO. **Sempre a conta do token**: `usuarioId` ou `barbeiroId` na URL são ignorados, sem sinal. Do aviso mais
+        novo ao mais antigo; `limite` de 1 a 50 (padrão 20). Duas consultas ao banco (a página e a contagem), sem polling no front.
+        **Sem nome nem WhatsApp do cliente**: só serviço, dia e hora; o nome o barbeiro vê abrindo a agenda. Os avisos valem 30 dias.
+        Nunca em cache.
+      parameters:
+        - { name: limite, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Os avisos e quantos ainda não foram lidos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Novidades' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/notificacoes/marcar-lidas:
+    post:
+      tags: [admin]
+      operationId: marcarNovidadesComoLidas
+      summary: Marca como lidos todos os avisos da conta de quem chama
+      description: ADMIN ou BARBEIRO. Sem corpo. Só os avisos da conta do token.
+      responses:
+        '204': { description: Avisos marcados como lidos }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+  /admin/notificacoes/teste:
+    post:
+      tags: [admin]
+      operationId: enviarNotificacaoDeTeste
+      summary: Manda um aviso de teste aos aparelhos da conta de quem chama
+      description: |
+        ADMIN ou BARBEIRO. Entrega "Notificações ativadas neste aparelho" **só** aos aparelhos da conta do token; serve para conferir
+        o iPhone sem esperar um cliente real. Limite de 5 por hora por conta (`429 LIMITE_EXCEDIDO` com `Retry-After`).
+      responses:
+        '204': { description: Aviso de teste enviado (ou nenhum aparelho inscrito) }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '429': { $ref: '#/components/responses/Erro429' }
 components:
   securitySchemes:
     bearer:
@@ -1923,6 +2025,48 @@ components:
                     atendimentos: { type: [integer, 'null'], description: 'nulo quando abaixoDoLimite' }
                     percentual: { type: [number, 'null'], format: double, example: 66.7 }
                     abaixoDoLimite: { type: boolean, description: 'verdadeiro só em "Outros bairros" com menos de 5 atendimentos (D114)' }
+    ChavePublicaPush:
+      type: object
+      required: [disponivel]
+      properties:
+        disponivel: { type: boolean, description: 'falso quando o par VAPID não está configurado ou o canal webpush está desligado' }
+        chavePublica: { type: string, description: 'a chave pública VAPID em base64url (65 bytes); ausente quando indisponível', example: BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM }
+    InscricaoPush:
+      type: object
+      description: 'A inscrição como o navegador a entrega (`PushSubscription.toJSON()`). Nada daqui volta em resposta nem vai para log.'
+      required: [endpoint, chaves]
+      properties:
+        endpoint: { type: string, maxLength: 600, description: 'https, só de serviço de push (fcm.googleapis.com, updates.push.services.mozilla.com, *.push.apple.com, *.notify.windows.com)', example: 'https://fcm.googleapis.com/fcm/send/exemplo-de-endpoint' }
+        chaves:
+          type: object
+          required: [p256dh, auth]
+          properties:
+            p256dh: { type: string, maxLength: 200, description: 'chave pública do aparelho, base64url (65 bytes)' }
+            auth: { type: string, maxLength: 100, description: 'segredo de autenticação, base64url (16 bytes)' }
+    RemocaoDeInscricaoPush:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint: { type: string, maxLength: 600 }
+    Novidades:
+      type: object
+      required: [naoLidas, itens]
+      properties:
+        naoLidas: { type: integer, description: 'avisos da conta ainda não lidos (todos, não só os desta página)', example: 2 }
+        itens:
+          type: array
+          items: { $ref: '#/components/schemas/AvisoDoPainel' }
+    AvisoDoPainel:
+      type: object
+      description: 'Um horário novo confirmado pelo pagamento. Sem nome, WhatsApp, e-mail, CPF nem valor do cliente.'
+      required: [id, reservaId, servico, inicio, criadoEm, lido]
+      properties:
+        id: { type: string, format: uuid }
+        reservaId: { type: string, format: uuid, description: 'para abrir a agenda do dia' }
+        servico: { type: string, description: 'nome do serviço no momento do aviso', example: Corte Degradê }
+        inicio: { type: string, format: date-time, description: 'o horário marcado (fuso da barbearia)', example: '2026-11-27T10:00:00-03:00' }
+        criadoEm: { type: string, format: date-time }
+        lido: { type: boolean }
     AlcancePublico:
       type: object
       required: [atualizadoEm, totalCidades, totalBairros, regioes]

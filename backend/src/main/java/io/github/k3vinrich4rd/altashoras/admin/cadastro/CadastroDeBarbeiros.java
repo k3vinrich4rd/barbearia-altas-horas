@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import io.github.k3vinrich4rd.altashoras.admin.Ator;
 import io.github.k3vinrich4rd.altashoras.admin.FormatoDeData;
 import io.github.k3vinrich4rd.altashoras.admin.auditoria.Auditor;
+import io.github.k3vinrich4rd.altashoras.admin.notificacao.ApagaNotificacoesDaConta;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.AlteracaoDeBarbeiro;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.BarbeiroCadastrado;
@@ -41,13 +42,15 @@ class CadastroDeBarbeiros {
     private final PainelDaAgenda agenda;
     private final Contas contas;
     private final Auditor auditor;
+    private final ApagaNotificacoesDaConta notificacoes;
     private final ZoneId fuso;
 
-    CadastroDeBarbeiros(PainelDaAgenda agenda, Contas contas, Auditor auditor,
+    CadastroDeBarbeiros(PainelDaAgenda agenda, Contas contas, Auditor auditor, ApagaNotificacoesDaConta notificacoes,
             @Value("${app.fuso:America/Sao_Paulo}") String fuso) {
         this.agenda = agenda;
         this.contas = contas;
         this.auditor = auditor;
+        this.notificacoes = notificacoes;
         this.fuso = ZoneId.of(fuso);
     }
 
@@ -95,6 +98,7 @@ class CadastroDeBarbeiros {
             contas.revogarConvite(id);
             if (anterior.usuarioId() != null) {
                 contas.desligarContaDeEquipe(anterior.usuarioId());
+                notificacoes.apagar(anterior.usuarioId());
             }
             auditor.registrar(ator, "BARBEIRO_DESLIGADO", "barbeiro", id,
                     Map.of("campos", String.join(",", alterado.campos())));

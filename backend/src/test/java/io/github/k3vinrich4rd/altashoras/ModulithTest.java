@@ -49,7 +49,7 @@ class ModulithTest {
     @DisplayName("A40: o admin só depende de agenda, pagamento, conta e privacidade (pelas APIs públicas); ninguém depende do admin; a agenda não conhece o pagamento")
     void adminSoPelasApisPublicas() {
         modulos.verify();
-        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "privacidade", "comum").contains("agenda", "pagamento");
+        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "privacidade", "plataforma", "comum").contains("agenda", "pagamento");
         for (String modulo : List.of("comum", "plataforma", "conta", "cep", "agenda", "pagamento", "privacidade")) {
             assertThat(dependenciasDe(modulo)).as("dependências de " + modulo).doesNotContain("admin");
         }
@@ -61,7 +61,7 @@ class ModulithTest {
     void cadastrosDoAdminSoPelasApisPublicas() {
         modulos.verify();
         assertThat(dependenciasDe("admin")).contains("agenda", "pagamento", "conta")
-                .isSubsetOf("agenda", "pagamento", "conta", "privacidade", "comum");
+                .isSubsetOf("agenda", "pagamento", "conta", "privacidade", "plataforma", "comum");
         // Nos módulos agenda e conta só o pacote raiz é API pública (ADR 0002): o Modulith recusa qualquer outra classe.
         var tiposDaAgendaUsadosPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
                 .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("agenda"))
