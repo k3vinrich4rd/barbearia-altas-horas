@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 // A home conta a história da barbearia (1995, 1997, 2017, hoje) com interações que precisam funcionar no navegador
-// de verdade e só com o teclado: linha do tempo, dúvidas em <details>, galeria e o painel de acessibilidade.
+// de verdade e só com o teclado: linha do tempo, dúvidas em <details>, galeria (visualizador) e o painel de acessibilidade.
 test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no navegador de verdade", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Seu horário com o Eduardo, garantido.");
@@ -23,11 +23,19 @@ test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no nave
   await page.keyboard.press("Enter");
   await expect(duvida).toHaveAttribute("open", "");
 
-  // galeria: a próxima foto troca a legenda anunciada
+  // galeria: a miniatura abre a foto inteira, a seta troca, Esc fecha e o foco volta
   const galeria = page.locator("#galeria");
-  await expect(galeria.getByText(/^Foto 1 de \d+$/)).toBeVisible();
-  await galeria.getByRole("button", { name: "Próxima foto" }).click();
-  await expect(galeria.getByText(/^Foto 2 de \d+$/)).toBeVisible();
+  await expect(galeria.getByRole("button", { name: /^Ampliar foto:/ })).toHaveCount(18);
+  const primeira = galeria.getByRole("button", { name: /^Ampliar foto:/ }).first();
+  await primeira.focus();
+  await page.keyboard.press("Enter");
+  const visualizador = page.getByRole("dialog");
+  await expect(visualizador.getByText("Foto 1 de 18")).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(visualizador.getByText("Foto 2 de 18")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(visualizador).toBeHidden();
+  await expect(galeria.getByRole("button", { name: /^Ampliar foto:/ }).nth(1)).toBeFocused();
 
   // painel de acessibilidade: tema claro e sem animação mudam o <html> e marcam o botão
   const painel = page.getByRole("region", { name: "Recursos de acessibilidade" });

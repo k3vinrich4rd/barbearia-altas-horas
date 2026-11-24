@@ -5,7 +5,8 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  images: { unoptimized: true },
+  // Fotos pelo otimizador do next/image (Fatia 12, A12 e A26): WebP, tamanhos por `sizes`, carregamento preguiçoso.
+  images: { formats: ["image/webp"] },
 };
 
 export default config;

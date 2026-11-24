@@ -60,6 +60,26 @@ O navegador **só fala com o Next** (`/api/**`, o BFF). O BFF confere a rota con
 | confirmar | `/agendar/confirmacao/{id}` | resumo, aviso sem cancelamento, **código da reserva** com Copiar e link `…/reserva#id=…&codigo=…` (o `#` não vai ao servidor) | `GET /agendamentos/guest/{id}` · `GET /api/visitante` (rota só do BFF) |
 | consultar | `/reserva` | lê o fragmento, **apaga o `#`** do endereço e consulta; código errado e reserva inexistente mostram o mesmo texto | `GET /agendamentos/guest/{id}` com `X-Guest-Token` |
 
+### 2.0b O caminho até o formulário em poucos toques (Fatia 12) ✅
+
+Só a primeira parte do fluxo mudou de cara; as rotas, a lógica e o pagamento são os mesmos.
+
+```mermaid
+flowchart LR
+  H["Home<br/>serviços, barbeiro, galeria"] -->|"Agendar horário<br/>(topo, herói ou barra fixa)"| A["/agendar"]
+  H -->|"Agendar este serviço"| A
+  A -->|"1 serviço"| D["próximo dia livre<br/>já escolhido"]
+  D -->|"2 horário (chip)"| R["resumo fixo"]
+  R -->|"3 Continuar"| F["/agendar/dados"]
+  F --> P["pagamento<br/>(prazo = expiraEm)"]
+  P --> C["confirmação"]
+```
+
+- Da home ao formulário de dados: **no máximo 4 toques** (Agendar horário, serviço, horário, Continuar). Com um só barbeiro ativo, o seletor de barbeiro some; com mais de um, volta como opções.
+- O dia vem da tira de 7 dias (o primeiro com horário já selecionado); "Outro dia" cobre até 30 dias; um dia sem horário oferece "Ver o próximo dia com horário".
+- Horário indisponível aparece em cinza, com borda tracejada, riscado e a palavra "indisponível" para quem usa leitor de tela.
+- A home não promete prazo em minutos: o prazo (3 a 60 min, D121) só aparece no cronômetro da tela de pagamento. Antes de reservar o texto é "prazo curto".
+
 ### 2.1 Reservar e pagar ✅
 
 ```mermaid

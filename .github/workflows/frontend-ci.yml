@@ -103,11 +103,21 @@ jobs:
         working-directory: frontend
         run: npx playwright test
 
+      # Fatia 12, A24: Lighthouse móvel (CPU 4x e Slow 4G simulados) no build de produção, contra a API real que já está
+      # no ar. O orçamento (Desempenho ≥ 90, Acessibilidade ≥ 95, LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms) está em lighthouserc.json.
+      - name: Lighthouse móvel (home e /agendar)
+        working-directory: frontend
+        run: npx -y @lhci/cli@0.15.1 autorun
+
       # Eval do SDD: os 62 critérios da fatia 7 (7A e 7B) têm teste com o número dele (só dentro de @DisplayName, test( ou it().
       - name: Conferir spec × testes (fatia 7 inteira)
         run: |
           sh scripts/testar-conferir-spec.sh
           sh scripts/conferir-spec.sh 7 --exigir
+
+      # Fatia 12: os 27 critérios do site mais fluido têm teste com o número deles.
+      - name: Conferir spec × testes (fatia 12)
+        run: sh scripts/conferir-spec.sh 12 --exigir
 
       - name: Publicar relatórios (Playwright e cobertura)
         if: always()
