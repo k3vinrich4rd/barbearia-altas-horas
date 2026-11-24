@@ -526,14 +526,22 @@ Plano da Fase 1 (D38), **sem custo e sem cartão**: API no **Render** (web servi
 | Imagem da API (JDK 25 no build, JRE 25 e usuário não-root no runtime) | [`backend/Dockerfile`](backend/Dockerfile) |
 | Blueprint do Render (segredos gerados pelo Render ou preenchidos no painel, nunca no repositório) | [`render.yaml`](render.yaml) |
 | Backup semanal criptografado | [`.github/workflows/backup-banco.yml`](.github/workflows/backup-banco.yml) |
-| Passo a passo de ativação, limites do plano free e rollback | [`docs/planejamento/ativar-deploy.md`](docs/planejamento/ativar-deploy.md) |
+| Passo a passo de ativação, limites do plano free, rollback em 3 degraus, alertas e Secrets do backup | [`docs/planejamento/ativar-deploy.md`](docs/planejamento/ativar-deploy.md) |
+| Deploy só com CI verde (`autoDeployTrigger: checksPass`) e health do Render no liveness (Fatia 8B) | [`render.yaml`](render.yaml) |
+| Cache AOT do JDK 25 gerado no `docker build` (subida mais curta), liveness/readiness e pool de 3 conexões (Fatia 8B) | [`backend/Dockerfile`](backend/Dockerfile) |
+| Banco do Aiven mantido ligado por conexão direta, sem acordar a API (Fatia 8B) | [`.github/workflows/manter-banco.yml`](.github/workflows/manter-banco.yml) |
+| Diff do ping do perfil (06:40 a 19:50, ~291 h/mês do Render) para o Kevin aplicar | [`docs/planejamento/ping-perfil.diff.md`](docs/planejamento/ping-perfil.diff.md) |
 
 </details>
 
 ```bash
 sh scripts/testar-imagem.sh    # docker build + PostgreSQL 18 + API no perfil prod (variáveis falsas): health UP, Flyway, CORS, IP real
 sh scripts/testar-backup.sh    # pg_dump, criptografia e restauração num banco novo
+sh scripts/horas-render.sh --conferir   # conta de horas do ping no Render (Fatia 8B: ~291 h/mês, limite 300)
+sh scripts/verificar-no-ar.sh  # depois de um deploy ou rollback: API, front, CORS e rota de pagamento simulado
 ```
+
+A Fatia 8B (deploy robusto) mediu, no Docker Desktop, a subida da API em **6,6 s** (mediana de 3, com cache AOT e C1) contra **15,4 s** da imagem da Fatia 8, e com `--cpus=0,25` (estimativa do Render) 32,2 s contra 51,0 s; os números e o que ainda é roteiro do Kevin estão no [guia de testes](docs/guia-testes.md#5c-deploy-robusto-fatia-8b).
 
 Está no ar em beta desde 18/11/2026: a API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)) e o front na Vercel ([site](https://barbearia-altas-horas.vercel.app)), ainda com pagamento simulado. No plano grátis, a API dorme sem uso e a primeira chamada pode passar de um minuto (em 20/11/2026 levou cerca de 90 segundos). Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
 
@@ -594,6 +602,7 @@ Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (re
 - [x] **Fatias 7A e 7B · Telas Next.js no ar (beta):** [barbearia-altas-horas.vercel.app](https://barbearia-altas-horas.vercel.app) (home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade e o painel do barbeiro: agenda, reserva manual, pendências, cadastros, auditoria e alcance; contrato 1.7.1)
 - [ ] **Fatia 7C · Painel no canvas:** 🔄 em andamento (branch `wip/fatia-7c-painel-canvas`)
 - [x] **Fatia 8 · Deploy no ar (beta, [spec](docs/sdd/fatia-8-deploy.md)):** API no Render ([health UP](https://altas-horas-api.onrender.com/actuator/health)), banco Aiven PostgreSQL free, front na Vercel e backup semanal criptografado; o pagamento ainda é simulado
+- [x] **Fatia 8B · Deploy robusto e econômico ([spec](docs/sdd/fatia-8b-deploy-robusto.md)):** deploy só com CI verde, cache AOT, liveness/readiness, `503` limpo com o banco fora, desligamento limpo, rollback e alertas documentados, ping dentro das 750 h. Falta o Kevin cadastrar os Secrets do backup e aplicar o diff do ping (roteiros A3, A4, A20 a A23, A27 a A31 no [guia](docs/guia-testes.md#5c-deploy-robusto-fatia-8b))
 - [ ] **Fatia 9 · Assistente de dúvidas:** RAG, desligado por padrão (🗓 planejada)
 
 ## 📚 Documentação
