@@ -13,7 +13,8 @@ export const CABECALHOS_DO_SERVICE_WORKER = [
 const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  images: { unoptimized: true },
+  // Fotos pelo otimizador do next/image (Fatia 12, A12 e A26): WebP, tamanhos por `sizes`, carregamento preguiçoso.
+  images: { formats: ["image/webp"] },
   async headers() {
     return [{ source: "/sw.js", headers: CABECALHOS_DO_SERVICE_WORKER }];
   },
