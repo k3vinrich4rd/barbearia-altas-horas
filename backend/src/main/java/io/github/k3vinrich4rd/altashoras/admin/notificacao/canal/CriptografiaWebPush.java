@@ -55,7 +55,7 @@ public final class CriptografiaWebPush {
     }
 
     /** Versão com o par efêmero e o sal fixos, para conferir contra o vetor de teste da RFC 8291. */
-    public static Cifrado cifrar(byte[] texto, byte[] chavePublicaDoAparelho, byte[] segredoDeAutenticacao,
+    static Cifrado cifrar(byte[] texto, byte[] chavePublicaDoAparelho, byte[] segredoDeAutenticacao,
             KeyPair efemero, byte[] sal) {
         try {
             byte[] minhaPublica = pontoNaoComprimido((ECPublicKey) efemero.getPublic());
@@ -90,6 +90,9 @@ public final class CriptografiaWebPush {
             saida.writeBytes(minhaPublica);
             saida.writeBytes(cifrado);
             return new Cifrado(saida.toByteArray());
+        } catch (java.security.InvalidKeyException | java.security.spec.InvalidKeySpecException chaveRuim) {
+            // Chave do aparelho que o JDK recusa (ponto fora da curva): o destino é inválido, não é falha passageira.
+            throw new IllegalArgumentException("chave pública do aparelho inválida");
         } catch (GeneralSecurityException falha) {
             throw new IllegalStateException("falha ao cifrar o aviso", falha);
         }
@@ -102,7 +105,31 @@ public final class CriptografiaWebPush {
         }
         BigInteger x = new BigInteger(1, Arrays.copyOfRange(ponto, 1, 33));
         BigInteger y = new BigInteger(1, Arrays.copyOfRange(ponto, 33, 65));
+        if (!pontoNaCurva(x, y)) {
+            throw new IllegalArgumentException("chave pública do aparelho fora da curva");
+        }
         return (ECPublicKey) KeyFactory.getInstance("EC").generatePublic(new ECPublicKeySpec(new ECPoint(x, y), CURVA));
+    }
+
+    /** x e y menores que p e y² = x³ + ax + b (mod p): um ponto fora da curva abriria ataque de curva inválida no ECDH. */
+    static boolean pontoNaCurva(BigInteger x, BigInteger y) {
+        BigInteger p = ((java.security.spec.ECFieldFp) CURVA.getCurve().getField()).getP();
+        if (x.signum() < 0 || y.signum() < 0 || x.compareTo(p) >= 0 || y.compareTo(p) >= 0) {
+            return false;
+        }
+        BigInteger esquerda = y.multiply(y).mod(p);
+        BigInteger direita = x.pow(3).add(CURVA.getCurve().getA().multiply(x)).add(CURVA.getCurve().getB()).mod(p);
+        return esquerda.equals(direita);
+    }
+
+    /** O {@code p256dh} (65 bytes, não comprimido) é um ponto válido da curva P-256? Nunca lança. */
+    public static boolean ehChavePublicaValida(byte[] ponto) {
+        try {
+            chavePublica(ponto);
+            return true;
+        } catch (GeneralSecurityException | IllegalArgumentException invalida) {
+            return false;
+        }
     }
 
     static byte[] pontoNaoComprimido(ECPublicKey chave) {

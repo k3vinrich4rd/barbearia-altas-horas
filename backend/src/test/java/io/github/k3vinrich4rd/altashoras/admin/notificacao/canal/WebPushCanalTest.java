@@ -172,4 +172,40 @@ class WebPushCanalTest {
         assertThat(new Vapid(vapid.publica(), vapid.privada(), "https://site.exemplo.test").toString()).doesNotContain(vapid.privada())
                 .doesNotContain(vapid.publica());
     }
+
+    /** O p256dh de um aparelho com o ponto adulterado: ainda tem 65 bytes e começa em 4, mas y foi mexido e saiu da curva. */
+    private String pontoForaDaCurva() {
+        byte[] ponto = Base64.getUrlDecoder().decode(aparelho.p256dh());
+        ponto[64] ^= 0x01;
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(ponto);
+    }
+
+    @Test
+    @DisplayName("A24: chave do aparelho com o ponto fora da curva P-256: DESTINO_INVALIDO, nada é enviado, e o Despachante manda apagar a inscrição sem deixar pendência eterna")
+    void pontoForaDaCurvaApagaAInscricao() {
+        String endpoint = "http://localhost:" + servidor.getAddress().getPort() + "/push/x";
+        Aparelho ruim = new Aparelho(endpoint, pontoForaDaCurva(), aparelho.auth());
+        assertThat(CriptografiaWebPush.ehChavePublicaValida(Base64.getUrlDecoder().decode(aparelho.p256dh()))).isTrue();
+        assertThat(CriptografiaWebPush.ehChavePublicaValida(Base64.getUrlDecoder().decode(ruim.chaveP256dh()))).isFalse();
+
+        assertThat(canal.enviar(aviso(), new DestinoDoAviso(UUID.randomUUID(), ruim, null))).isEqualTo(ResultadoDoEnvio.DESTINO_INVALIDO);
+        assertThat(vistos).isEmpty();
+
+        var parametros = new io.github.k3vinrich4rd.altashoras.admin.notificacao.ParametrosDeNotificacao("webpush", "", "",
+                "https://site.exemplo.test", "localhost", false, 30, 90, 5, Duration.ofHours(1));
+        var relatorio = new io.github.k3vinrich4rd.altashoras.admin.notificacao.Despachante(List.of(canal), parametros)
+                .entregar(aviso(), UUID.randomUUID(), List.of(ruim), () -> null);
+        assertThat(relatorio.invalidos()).hasSize(1);
+        assertThat(relatorio.pendente()).isFalse();
+    }
+
+    @Test
+    @DisplayName("A24: x ou y maiores ou iguais a p também são recusados")
+    void coordenadasAcimaDeP() {
+        byte[] ponto = new byte[65];
+        ponto[0] = 4;
+        java.util.Arrays.fill(ponto, 1, 65, (byte) 0xff);
+        assertThat(CriptografiaWebPush.ehChavePublicaValida(ponto)).isFalse();
+        assertThat(CriptografiaWebPush.ehChavePublicaValida(new byte[65])).isFalse();
+    }
 }
