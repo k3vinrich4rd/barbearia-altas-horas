@@ -49,7 +49,7 @@ describe("consentimento", () => {
     expect(screen.getAllByRole("status").some((s) => s.textContent === "Marketing: aceito.")).toBe(true);
 
     // revogar não pede nada além do clique
-    await r.user.click(screen.getByRole("checkbox"));
+    await r.user.click(screen.getByRole("checkbox", { name: /Aceito receber ofertas/ }));
     await waitFor(() => expect(bodies).toHaveLength(2));
     expect(bodies[1].aceito).toBe(false);
     expect(await screen.findByText("Marketing: não aceito.")).toBeInTheDocument();

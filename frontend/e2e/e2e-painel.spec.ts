@@ -63,7 +63,7 @@ test("A59: troca da senha inicial, agenda, cancelar com motivo, devolução, aud
   await expect(page.getByRole("heading", { name: "Alcance por região" })).toBeVisible();
   // o anunciador de rotas do Next também é um alert, mas vazio: erro de verdade tem texto
   await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0);
-  await expect(page.getByRole("table").or(page.getByText("Ainda não há atendimentos suficientes"))).toBeVisible();
+  await expect(page.getByRole("table").or(page.getByText("Ainda não há clientes suficientes"))).toBeVisible();
 
   // 8. o cliente (conta comum) não entra em /painel
   const contexto = await browser.newContext();

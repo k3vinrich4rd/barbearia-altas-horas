@@ -31,7 +31,7 @@ class ExportacaoDadosIT extends PrivacidadeBase {
         Cliente cliente = entrar(email);
         consentimentoEm(cliente.id(), true, DadosDeTeste.em(TERCA, 9, 0)); // linha 2
         consentimentoEm(cliente.id(), false, DadosDeTeste.em(TERCA, 9, 15)); // linha 3
-        jdbc.update("UPDATE usuario SET cep = '01001000', bairro = 'Sé', cidade = 'São Paulo', uf = 'SP' WHERE id = ?",
+        jdbc.update("UPDATE usuario SET bairro = 'Sé', cidade = 'São Paulo', uf = 'SP' WHERE id = ?",
                 cliente.id());
 
         UUID servico = DadosDeTeste.servico(jdbc, "Corte Clássico", 30, 4500, true);
@@ -52,7 +52,7 @@ class ExportacaoDadosIT extends PrivacidadeBase {
                 .andExpect(jsonPath("$.conta.nome").value("Cliente Teste"))
                 .andExpect(jsonPath("$.conta.email").value(c.cliente().email()))
                 .andExpect(jsonPath("$.conta.whatsapp").value("11900000001"))
-                .andExpect(jsonPath("$.conta.endereco.cep").value("01001000"))
+                .andExpect(jsonPath("$.conta.endereco.cep").doesNotExist())
                 .andExpect(jsonPath("$.conta.endereco.bairro").value("Sé"))
                 .andExpect(jsonPath("$.conta.endereco.cidade").value("São Paulo"))
                 .andExpect(jsonPath("$.conta.endereco.uf").value("SP"))

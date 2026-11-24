@@ -21,7 +21,7 @@ class ViaCepCliente extends ProvedorDeCep {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Resposta(@Nullable String cep, @Nullable String logradouro, @Nullable String bairro,
-            @Nullable String localidade, @Nullable String uf, @Nullable Object erro) {
+            @Nullable String localidade, @Nullable String uf, @Nullable String ibge, @Nullable Object erro) {
     }
 
     ViaCepCliente(RestClient.Builder construtor, CepProps props) {
@@ -52,6 +52,6 @@ class ViaCepCliente extends ProvedorDeCep {
             throw falha("CORPO_INVALIDO");
         }
         return Optional.of(new Endereco(cep.digitos(), texto(corpo.logradouro()), texto(corpo.bairro()),
-                texto(corpo.localidade()), corpo.uf(), fonte()));
+                texto(corpo.localidade()), corpo.uf(), texto(corpo.ibge()), fonte()));
     }
 }

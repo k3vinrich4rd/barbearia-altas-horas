@@ -80,10 +80,11 @@ export async function cadastrarCliente(
   await page.getByLabel("WhatsApp").fill("11900000001");
   await page.getByLabel("Senha").fill(SENHA_DE_TESTE);
   if (extra.cep) {
+    await page.locator("#autoriza-regiao").check(); // o CEP só existe com a caixinha de região marcada (A47)
     await page.locator("#cep").fill(extra.cep);
     await page.getByLabel("Senha").focus(); // sai do campo: a busca do CEP roda ao sair
   }
-  if (extra.marketing) await page.getByRole("checkbox").check();
+  if (extra.marketing) await page.locator("#marketing").check();
   await page.getByRole("button", { name: "Criar conta" }).click();
   await expect(page).toHaveURL(/\/meus-agendamentos/);
   return email;

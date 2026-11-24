@@ -43,13 +43,22 @@ describe("home: de onde vêm nossos clientes (Fatia 12, E10)", () => {
           atualizadoEm: "2026-11-23T00:00:00Z",
           totalCidades: 1,
           totalBairros: 1,
-          regioes: [{ cidade: "Osasco", uf: "SP", bairros: ["Centro"] }],
+          regioes: [
+            {
+              cidade: "Osasco",
+              uf: "SP",
+              codigoIbge: "3534401",
+              comFaixas: false,
+              bairros: ["Centro"],
+              bairrosComFaixa: [{ bairro: "Centro", faixaPercentual: null, outros: false }],
+            },
+          ],
         }),
       ),
     );
-    renderizar(<Home />);
+    const { user } = renderizar(<Home />);
     const comDados = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;
-    expect(await within(comDados).findByText("Osasco - SP")).toBeInTheDocument();
+    await user.click(await within(comDados).findByRole("button", { name: "Osasco - SP" })); // o município abre os bairros (Fatia 11)
     expect(comDados).toHaveTextContent("Centro");
     expect(comDados).not.toHaveTextContent("Em breve");
     expect(comDados.textContent).not.toMatch(/\d/);
