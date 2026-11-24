@@ -48,7 +48,9 @@ describe("sessão do BFF", () => {
 
     const destino = destinoAposSessaoEncerrada("/meus-agendamentos");
     expect(destino).toBe("/entrar?voltar=%2Fmeus-agendamentos&aviso=sessao");
-    expect(mensagemDoErro({ code: "REFRESH_INVALIDO", status: 401 })).toBe("Sua sessão terminou. Entre de novo.");
+    expect(mensagemDoErro({ code: "REFRESH_INVALIDO", status: 401 })).toBe(
+      "Por segurança, você saiu da conta depois de um tempo parado. Entre de novo para continuar.",
+    );
   });
 
   test("A7: logout chama a API com o refresh do cookie, apaga os cookies e responde 204 mesmo com a API fora do ar", async () => {

@@ -70,7 +70,16 @@ describe("acesso ao painel", () => {
       </PainelLayout>,
       ADMIN,
     );
-    expect(doMenu()).toEqual(["Agenda", "Reserva manual", "Pendências", "Cadastros", "Auditoria", "Alcance", "Novidades", "Notificações"]);
+    expect(doMenu()).toEqual([
+      "Agenda",
+      "Reserva manual",
+      "Pendências",
+      "Cadastros",
+      "Auditoria",
+      "Alcance",
+      "Novidades",
+      "Notificações",
+    ]);
     admin.unmount();
 
     // e o 403 da API (papel mudou depois do login) também é tratado, com texto e sem quebrar a tela
@@ -79,6 +88,6 @@ describe("acesso ao painel", () => {
       http.get(`${BFF}/admin/pagamentos/eventos`, () => erro(403, "ACESSO_NEGADO")),
     );
     renderizar(<PainelPendencias />, ADMIN);
-    expect((await screen.findAllByText(/Você não tem acesso a esta área/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Esta área é só da equipe da barbearia/)).length).toBeGreaterThan(0);
   });
 });

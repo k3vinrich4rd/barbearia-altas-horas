@@ -14,6 +14,7 @@ import { apenasDigitos, cepComOitoDigitos, MENSAGEM_SENHA, senhaValida } from "@
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
+import { CampoSenha } from "@/componentes/CampoSenha";
 import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
 import { useSessao } from "@/componentes/Sessao";
 
@@ -83,9 +84,7 @@ export function Cadastro() {
         whatsapp: v.whatsapp,
         senha: v.senha,
         aceitaMarketing: marketing,
-        ...(comRegiao
-          ? { cep: v.cep, autorizaRegiao: true, versaoTextoRegiao: politica.dados!.versao }
-          : {}),
+        ...(comRegiao ? { cep: v.cep, autorizaRegiao: true, versaoTextoRegiao: politica.dados!.versao } : {}),
       }),
     );
     if (!resposta) return;
@@ -131,10 +130,9 @@ export function Cadastro() {
           onChange={set("whatsapp")}
           erro={campos.whatsapp}
         />
-        <Campo
+        <CampoSenha
           id="senha"
           rotulo="Senha"
-          type="password"
           autoComplete="new-password"
           ajuda="De 10 a 72 caracteres."
           value={v.senha}

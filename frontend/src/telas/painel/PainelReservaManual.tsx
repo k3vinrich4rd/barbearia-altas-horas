@@ -114,7 +114,7 @@ export function PainelReservaManual() {
             {erroApi && !doCampo && erroApi.code !== "VALIDACAO_INVALIDA" && (
               <AvisoDeErro
                 erro={erroApi}
-                final="O servidor não respondeu. Confira a agenda antes de tentar de novo: a reserva pode ter sido criada."
+                final="A agenda não respondeu desta vez. Confira a agenda antes de tentar de novo: a reserva pode ter sido criada."
               />
             )}
             <Selecao

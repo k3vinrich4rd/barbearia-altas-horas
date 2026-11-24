@@ -21,6 +21,7 @@ import { Botao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
+import { TEXTOS } from "@/conteudo/textos";
 
 const DIAS_DA_TIRA = 7;
 /** Quantos dias "Ver o próximo dia com horário" olha por vez. É o limite da BUSCA, não regra da agenda (D197): sem horário nesse trecho, a pessoa procura mais. */
@@ -274,16 +275,16 @@ export function Agendar() {
               if (grupos.length === 0)
                 return (
                   <div>
-                    <p role="status">Sem horários neste dia.</p>
-                    <Botao onClick={() => void procurarProximoDiaComHorario(dataValida ? data : hoje)} disabled={procurando}>
+                    <p role="status">{TEXTOS.diaCheio}</p>
+                    <Botao
+                      onClick={() => void procurarProximoDiaComHorario(dataValida ? data : hoje)}
+                      disabled={procurando}
+                    >
                       {procurando ? "Procurando…" : "Ver o próximo dia com horário"}
                     </Botao>
                     {buscadoAte && (
                       <>
-                        <Aviso tipo="aviso">
-                          Não achamos horário livre nos próximos {DIAS_DA_BUSCA} dias. Procure mais {DIAS_DA_BUSCA} dias ou
-                          escolha em Outro dia.
-                        </Aviso>
+                        <Aviso tipo="aviso">{TEXTOS.buscaSemHorario}</Aviso>
                         <Botao onClick={() => void procurarProximoDiaComHorario(buscadoAte)} disabled={procurando}>
                           Procurar mais {DIAS_DA_BUSCA} dias
                         </Botao>{" "}
@@ -340,9 +341,7 @@ export function Agendar() {
         </section>
       )}
 
-      <p className="nota">
-        Só aparecem os horários livres. Pode marcar para hoje ou para qualquer data futura.
-      </p>
+      <p className="nota">{TEXTOS.notaAgendar}</p>
       <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
 
       <div className="resumo-fixo-espaco" aria-hidden="true" />

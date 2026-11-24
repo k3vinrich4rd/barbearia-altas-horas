@@ -7,11 +7,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { aceitarConvite } from "@/api/bff";
 import { textoDoCodigo } from "@/api/mensagens";
+import { TEXTOS } from "@/conteudo/textos";
 import { MENSAGEM_SENHA, senhaValida } from "@/api/validacao";
 import { useEnvio } from "@/api/hooks";
 import { Aviso } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
+import { CampoSenha } from "@/componentes/CampoSenha";
 import { useSessao } from "@/componentes/Sessao";
 
 const FORMATO_DO_CODIGO = /^[A-Za-z0-9_-]{43}$/;
@@ -54,7 +56,6 @@ export function Convite() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
-  const [mostrar, setMostrar] = useState(false);
   const [erros, setErros] = useState<Partial<Record<"email" | "senha" | "confirmacao", string>>>({});
 
   useEffect(() => {
@@ -78,13 +79,15 @@ export function Convite() {
     if (primeiroComErro) document.getElementById(`convite-${primeiroComErro}`)?.focus();
   }, [primeiroComErro, erroApi]);
 
-  if (codigo === undefined) return <p role="status">Carregando…</p>;
+  if (codigo === undefined) return <p role="status">{TEXTOS.carregando}</p>;
 
   if (!codigo || !FORMATO_DO_CODIGO.test(codigo)) {
     return (
       <>
         <h1>Link do convite</h1>
-        <Aviso tipo="erro">Este link não vale mais ou não pode ser usado aqui. Peça outro convite ao dono da barbearia.</Aviso>
+        <Aviso tipo="erro">
+          Este link não vale mais ou não pode ser usado aqui. Peça outro convite ao dono da barbearia.
+        </Aviso>
         <p>
           <Link href="/entrar">Já tenho conta no site: entrar</Link>
         </p>
@@ -125,7 +128,7 @@ export function Convite() {
       {textoDoCodigo(erroApi.code)}
     </Aviso>
   ) : primeiroComErro ? (
-    <Aviso tipo="erro">Confira os campos marcados.</Aviso>
+    <Aviso tipo="erro">{textoDoCodigo("VALIDACAO_INVALIDA")}</Aviso>
   ) : null;
 
   return (
@@ -133,13 +136,13 @@ export function Convite() {
       <h1>{conta ? "Aceitar convite" : "Criar minha senha"}</h1>
       {conta ? (
         <p>
-          Isto soma o papel de barbeiro à sua conta. Sua senha não muda. Digite o e-mail da sua conta para confirmar. Depois de
-          aceitar, entre de novo para ver o painel.
+          Isto soma o papel de barbeiro à sua conta. Sua senha não muda. Digite o e-mail da sua conta para confirmar.
+          Depois de aceitar, entre de novo para ver o painel.
         </p>
       ) : (
         <p>
-          O dono da barbearia convidou você. Digite o seu e-mail e crie a sua senha: é com eles que você entra no painel. A senha
-          é só sua, nunca peça nem mande por mensagem.
+          O dono da barbearia convidou você. Digite o seu e-mail e crie a sua senha: é com eles que você entra no
+          painel. A senha é só sua, nunca peça nem mande por mensagem.
         </p>
       )}
       <form onSubmit={aoEnviar} noValidate aria-label={conta ? "Aceitar convite" : "Criar minha senha"}>
@@ -155,33 +158,26 @@ export function Convite() {
         />
         {!conta && (
           <>
-            <Campo
+            <CampoSenha
               id="convite-senha"
               rotulo="Senha"
-              type={mostrar ? "text" : "password"}
               autoComplete="new-password"
               ajuda="De 10 a 72 caracteres (acentos e símbolos contam mais)."
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               erro={campos.senha}
             />
-            <Campo
+            <CampoSenha
               id="convite-confirmacao"
               rotulo="Repita a senha"
-              type={mostrar ? "text" : "password"}
               autoComplete="new-password"
               value={confirmacao}
               onChange={(e) => setConfirmacao(e.target.value)}
               erro={campos.confirmacao}
             />
-            <Botao aria-pressed={mostrar} onClick={() => setMostrar((m) => !m)}>
-              {mostrar ? "Esconder a senha" : "Mostrar a senha"}
-            </Botao>
           </>
         )}
-        {envio.esperando && (
-          <Aviso tipo="aviso">Muitas tentativas. Tente de novo em {envio.restante} s.</Aviso>
-        )}
+        {envio.esperando && <Aviso tipo="aviso">Muitas tentativas. Tente de novo em {envio.restante} s.</Aviso>}
         <Botao type="submit" variante="principal" disabled={envio.enviando || envio.esperando}>
           {conta ? "Aceitar convite" : "Criar minha senha"}
         </Botao>

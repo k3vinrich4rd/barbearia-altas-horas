@@ -61,7 +61,9 @@ describe("login e logout", () => {
     r = renderizar(<Entrar />);
     await entrar(r.user);
     const alerta = await screen.findByRole("alert");
-    expect(alerta).toHaveTextContent("E-mail ou senha incorretos.");
+    expect(alerta).toHaveTextContent(
+      "E-mail ou senha não conferem. Confira e tente de novo; o botão Mostrar a senha ajuda.",
+    );
     expect(alerta.textContent).not.toMatch(/não existe|não cadastrado|senha errada|e-mail errado/i);
     r.unmount();
 

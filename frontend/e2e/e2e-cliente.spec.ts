@@ -84,6 +84,8 @@ test("A58: uma conta sem reserva exclui a conta e não consegue mais entrar", as
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(SENHA_DE_TESTE);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.locator(".aviso-erro")).toContainText("E-mail ou senha incorretos.");
+  await expect(page.locator(".aviso-erro")).toContainText(
+    "E-mail ou senha não conferem. Confira e tente de novo; o botão Mostrar a senha ajuda.",
+  );
   expect(API_URL).toBeTruthy();
 });

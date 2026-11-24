@@ -14,6 +14,7 @@ import { useSessao } from "@/componentes/Sessao";
 import { LinkBotao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
+import { TEXTOS } from "@/conteudo/textos";
 
 export function Confirmacao({ reservaId }: { reservaId: string }) {
   const sessao = useSessao();
@@ -58,7 +59,7 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
   return (
     <>
       <p className="sobretitulo">Etapa 3 · Confirmação</p>
-      <h1>Horário confirmado</h1>
+      <h1>{TEXTOS.confirmado}</h1>
       <EstadoDaConsulta consulta={reserva}>
         {(r) => (
           <>
