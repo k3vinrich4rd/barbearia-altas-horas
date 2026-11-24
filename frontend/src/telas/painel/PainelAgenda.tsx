@@ -70,13 +70,22 @@ function entradasDoDia(dia: string, itens: AgendamentoAdmin[], jornada: Interval
   return lista.sort((a, b) => a.minutos - b.minutos);
 }
 
+/**
+ * O dia vem do endereço (`?data=`) ou é hoje no fuso da barbearia. Entre `/painel?data=X` e `/painel` o Next mantém a
+ * mesma tela montada, e o `useState` só olha o valor inicial: sem a `key`, o dia de X ficava preso e o painel abria
+ * num dia que não era hoje. A `key` remonta a agenda a cada mudança do `?data=`.
+ */
 export function PainelAgenda() {
+  const doEndereco = useSearchParams().get("data");
+  const valido = doEndereco && /^\d{4}-\d{2}-\d{2}$/.test(doEndereco) ? doEndereco : null;
+  return <AgendaDoPainel key={valido ?? "hoje"} diaDoEndereco={valido} />;
+}
+
+function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
   const sessao = useSessao();
-  const busca = useSearchParams();
   const admin = !!sessao.papeis?.includes("ADMIN");
   const hoje = diaNoFuso(new Date());
-  const doEndereco = busca.get("data");
-  const [data, setData] = useState(doEndereco && /^\d{4}-\d{2}-\d{2}$/.test(doEndereco) ? doEndereco : hoje);
+  const [data, setData] = useState(diaDoEndereco ?? hoje);
   const [visao, setVisao] = useState<Visao>("DIA");
   const [barbeiroId, setBarbeiroId] = useState("");
   const [mensagem, setMensagem] = useState("");
