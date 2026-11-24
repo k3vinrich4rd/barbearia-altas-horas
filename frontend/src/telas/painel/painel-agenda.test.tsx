@@ -1,12 +1,23 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { BARBEIRO } from "@/testes/dados";
 import { BFF, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { definirBusca, zerarNavegacao } from "@/testes/navegacao";
-import { agendamentoAdmin, barbeiroAdmin, JORNADA_PADRAO, SESSAO_BARBEIRO } from "@/testes/painel";
+import {
+  agendamentoAdmin,
+  barbeiroAdmin,
+  colunaDoDia,
+  gradeDoDia,
+  JORNADA_PADRAO,
+  resumoDoMes,
+  SESSAO_BARBEIRO,
+} from "@/testes/painel";
 import { ADMIN, fixarRelogio, renderizar } from "@/testes/render";
 import { PainelAgenda } from "./PainelAgenda";
 
+// A45 da Fatia 7, com a agenda nova da Fatia 14C (E17): a lista do dia continua (status em texto, data-estado, etiqueta
+// MANUAL, nada de e-mail nem CPF); a navegação "Dia anterior · Próximo dia · Dia · Semana" deu lugar à data, ao "Hoje"
+// e ao calendário do mês, e o almoço passou para a grade do dia.
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
 ligarServidor();
 beforeEach(() => {
@@ -37,12 +48,16 @@ const TRES = [
   }),
 ];
 
-function api(consultas: URLSearchParams[], itens: unknown[] = TRES) {
+function api(consultas: URLSearchParams[], itens: ReturnType<typeof agendamentoAdmin>[] = TRES) {
   servidor.use(
-    http.get(`${BFF}/admin/agenda`, ({ request }) => {
-      consultas.push(new URL(request.url).searchParams);
-      return HttpResponse.json(itens);
+    http.get(`${BFF}/admin/agenda/dia`, ({ request }) => {
+      const busca = new URL(request.url).searchParams;
+      consultas.push(busca);
+      return HttpResponse.json(gradeDoDia(busca.get("data") ?? "", [colunaDoDia(itens)]));
     }),
+    http.get(`${BFF}/admin/agenda/mes`, ({ request }) =>
+      HttpResponse.json(resumoDoMes(new URL(request.url).searchParams.get("mes") ?? "")),
+    ),
     http.get(`${BFF}/admin/barbeiros`, () => HttpResponse.json([barbeiroAdmin()])),
     http.get(`${BFF}/admin/minha-jornada`, () =>
       HttpResponse.json({ barbeiroId: BARBEIRO.id, nomeExibicao: BARBEIRO.nomeExibicao, intervalos: JORNADA_PADRAO }),
@@ -50,8 +65,10 @@ function api(consultas: URLSearchParams[], itens: unknown[] = TRES) {
   );
 }
 
+const lista = () => screen.getByRole("region", { name: "Agendamentos do dia" });
+
 describe("agenda do painel", () => {
-  test("A45: lista ordenada por horário com status em texto e data-estado, navega de dia, alterna dia e semana, filtra barbeiro só para o ADMIN, mostra o almoço, a etiqueta MANUAL e nunca e-mail nem CPF", async () => {
+  test("A45: lista ordenada por horário com status em texto e data-estado, troca de dia pela data e pelo Hoje, filtra barbeiro só para o ADMIN, mostra a etiqueta MANUAL e nunca e-mail nem CPF", async () => {
     definirBusca("data=2026-11-24");
     const consultas: URLSearchParams[] = [];
     api(consultas, [
@@ -68,10 +85,10 @@ describe("agenda do painel", () => {
     ]);
     const { user, unmount } = renderizar(<PainelAgenda />, ADMIN);
 
-    const itens = await screen.findAllByRole("listitem");
-    const reservas = itens.filter((i) => i.dataset.estado !== "almoco");
+    await screen.findByText(/Carlos M\./, { selector: "li *" });
+    const reservas = within(lista()).getAllByRole("listitem");
     expect(consultas[0].get("data")).toBe("2026-11-24");
-    expect(consultas[0].get("visao")).toBe("DIA");
+    expect(consultas[0].has("visao")).toBe(false);
     expect(consultas[0].has("barbeiroId")).toBe(false);
     expect(reservas.map((i) => i.dataset.estado)).toEqual(["concluido", "confirmado", "aguardando", "confirmado"]);
     expect(reservas[0]).toHaveTextContent("09:00–10:00");
@@ -90,43 +107,32 @@ describe("agenda do painel", () => {
     expect(reservas[3]).not.toHaveTextContent(/pagamento|devolu|PAGO/i);
     expect(document.body.textContent).not.toMatch(/@|CPF/);
 
-    // navegação de dia
-    await user.click(screen.getByRole("button", { name: "Próximo dia" }));
+    // troca de dia: pela data e pelo Hoje
+    fireEvent.change(screen.getByLabelText("Data"), { target: { value: "2026-11-25" } });
     await vi.waitFor(() => expect(consultas.at(-1)?.get("data")).toBe("2026-11-25"));
-    await user.click(screen.getByRole("button", { name: "Dia anterior" }));
-    await vi.waitFor(() => expect(consultas.at(-1)?.get("data")).toBe("2026-11-24"));
     await user.click(screen.getByRole("button", { name: "Hoje" }));
     await vi.waitFor(() => expect(consultas.at(-1)?.get("data")).toBe("2026-11-18"));
 
-    // semana
-    await user.click(screen.getByRole("button", { name: "Semana" }));
-    await vi.waitFor(() => expect(consultas.at(-1)?.get("visao")).toBe("SEMANA"));
-    expect(screen.getByRole("button", { name: "Semana" })).toHaveAttribute("aria-pressed", "true");
-
-    // filtro de barbeiro (ADMIN) manda barbeiroId; com ele o almoço aparece listrado
-    await user.click(screen.getByRole("button", { name: "Dia" }));
+    // filtro de barbeiro (ADMIN) manda barbeiroId
     await user.selectOptions(screen.getByLabelText("Barbeiro"), BARBEIRO.id);
     await vi.waitFor(() => expect(consultas.at(-1)?.get("barbeiroId")).toBe(BARBEIRO.id));
     unmount();
   });
 
-  test("A45: o almoço é a lacuna da jornada, listrado e com texto; o BARBEIRO não tem filtro e a chamada não leva barbeiroId; dia vazio avisa", async () => {
+  test("A45: o almoço é a lacuna da jornada, listrado e com texto na grade; o BARBEIRO não tem filtro e a chamada não leva barbeiroId; dia vazio avisa", async () => {
     definirBusca("data=2026-11-24");
     const consultas: URLSearchParams[] = [];
     api(consultas);
     const { unmount } = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const almoco = await screen.findByText(/Almoço · 12h às 13h/);
+    const linha = (await screen.findByRole("rowheader", { name: "12:00" })).closest("tr")!;
+    const almoco = within(linha).getByText("Almoço");
     expect(almoco).toHaveAttribute("data-estado", "almoco");
-    // entre o 10:00 e o 14:00, por horário
-    const ordem = screen.getAllByRole("listitem").map((i) => i.dataset.estado);
-    expect(ordem).toEqual(["concluido", "confirmado", "almoco", "aguardando"]);
     expect(screen.queryByLabelText("Barbeiro")).toBeNull();
     expect(consultas[0].has("barbeiroId")).toBe(false);
     unmount();
 
-    servidor.use(http.get(`${BFF}/admin/agenda`, () => HttpResponse.json([])));
+    api([], []);
     renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
     expect(await screen.findByText("Nenhum cliente marcado neste dia ainda.")).toBeInTheDocument();
-    expect(within(document.body).queryByText(/Almoço/)).toBeNull();
   });
 });

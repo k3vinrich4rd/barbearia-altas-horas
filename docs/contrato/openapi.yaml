@@ -774,6 +774,56 @@ paths:
         '401': { $ref: '#/components/responses/Erro401' }
         '403': { $ref: '#/components/responses/Erro403' }
         '404': { $ref: '#/components/responses/Erro404' }
+  /admin/agenda/mes:
+    get:
+      tags: [admin]
+      operationId: agendaDoMes
+      summary: Calendário do mês com a contagem de reservas por dia (1.11.0, 14C)
+      description: |
+        Um item por dia do mês, em ordem (28 a 31). `reservas` conta CONFIRMADO, CONCLUIDO, NAO_COMPARECEU e
+        AGUARDANDO_PAGAMENTO ainda no prazo (inclusive a reserva manual); fora ficam EXPIRADO, CANCELADO e a aguardando
+        vencida (E14). O dia é o dia civil no fuso da barbearia, nunca o UTC. `folga` = alguma folga cobre parte do dia;
+        `expediente` = a jornada tem intervalo neste dia da semana. ADMIN vê todos os barbeiros ou o filtrado; BARBEIRO
+        vê só o próprio (o escopo vem do `sub` do token; `barbeiroId` só filtra o que o ADMIN pode ver). Barbeiro
+        inexistente, alheio ou conta BARBEIRO sem vínculo: `404` (R23). Uma consulta de reservas, uma de folgas e uma de
+        jornadas, qualquer que seja o número de barbeiros (E16). `Cache-Control: no-store`.
+      parameters:
+        - { name: mes, in: query, required: true, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$', example: '2026-12' } }
+        - { name: barbeiroId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Resumo do mês
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumoDoMes' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
+  /admin/agenda/dia:
+    get:
+      tags: [admin]
+      operationId: gradeDoDia
+      summary: Grade do dia por horário, com LIVRE, OCUPADO, ALMOCO e FOLGA (1.11.0, 14C)
+      description: |
+        Uma coluna por barbeiro visível, na ordem do nome. `horarios` vai do primeiro início ao último fim da jornada do
+        barbeiro naquele dia da semana, de `granularidadeMin` em `granularidadeMin`; dia sem jornada: `horarios` vazio.
+        Prioridade da situação: OCUPADO > FOLGA > ALMOCO > LIVRE (E15). `agendamentos` traz as reservas que ocupam
+        (as mesmas do E14), inclusive uma fora da jornada. Mesmo escopo e mesmos erros de `/admin/agenda/mes`; `data`
+        fora do formato ISO ou inexistente (ex.: 2026-02-30) é `400`. `Cache-Control: no-store`.
+      parameters:
+        - { name: data, in: query, required: true, schema: { type: string, format: date, example: '2026-12-01' } }
+        - { name: barbeiroId, in: query, required: false, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Grade do dia
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GradeDoDia' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '404': { $ref: '#/components/responses/Erro404' }
   /admin/agendamentos:
     post:
       tags: [admin]
@@ -1933,6 +1983,50 @@ components:
               oneOf:
                 - { $ref: '#/components/schemas/StatusCobranca' }
                 - { type: 'null' }
+    ResumoDoMes:
+      description: Calendário do mês do painel (1.11.0, 14C). Um item por dia, em ordem.
+      type: object
+      required: [mes, dias]
+      properties:
+        mes: { type: string, pattern: '^\d{4}-\d{2}$', example: '2026-12' }
+        dias:
+          type: array
+          items:
+            type: object
+            required: [data, reservas, folga, expediente]
+            properties:
+              data: { type: string, format: date }
+              reservas: { type: integer, minimum: 0, description: 'CONFIRMADO, CONCLUIDO, NAO_COMPARECEU e AGUARDANDO_PAGAMENTO ainda no prazo (E14)' }
+              folga: { type: boolean, description: 'alguma folga cobre parte do dia' }
+              expediente: { type: boolean, description: 'a jornada tem intervalo neste dia da semana' }
+    GradeDoDia:
+      description: Grade do dia do painel (1.11.0, 14C). Uma coluna por barbeiro visível, na ordem do nome.
+      type: object
+      required: [data, granularidadeMin, colunas]
+      properties:
+        data: { type: string, format: date }
+        granularidadeMin: { type: integer, example: 30 }
+        colunas:
+          type: array
+          items:
+            type: object
+            required: [barbeiroId, nomeExibicao, horarios, agendamentos]
+            properties:
+              barbeiroId: { type: string, format: uuid }
+              nomeExibicao: { type: string }
+              horarios:
+                type: array
+                description: do primeiro início ao último fim da jornada do dia, de granularidade em granularidade
+                items:
+                  type: object
+                  required: [inicio, situacao]
+                  properties:
+                    inicio: { type: string, pattern: '^\d{2}:\d{2}$', example: '09:00', description: 'HH:mm no fuso da barbearia' }
+                    situacao: { type: string, enum: [LIVRE, OCUPADO, ALMOCO, FOLGA] }
+                    agendamentoId: { type: [string, 'null'], format: uuid, description: 'só em OCUPADO' }
+              agendamentos:
+                type: array
+                items: { $ref: '#/components/schemas/AgendamentoAdmin' }
     AgendamentoGuest:
       allOf:
         - $ref: '#/components/schemas/Agendamento'
