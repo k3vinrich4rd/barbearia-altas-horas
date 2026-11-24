@@ -279,4 +279,20 @@ class InscricaoDePushIT extends NotificacaoBase {
         post("/admin/notificacoes/teste", barbeiro).andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.code").value("LIMITE_EXCEDIDO"));
     }
+
+    @Test
+    @DisplayName("A24: p256dh com o ponto fora da curva (65 bytes, começa em 4, mas y adulterado) é 400 VALIDACAO_INVALIDA e nada é guardado")
+    void pontoForaDaCurvaNaInscricao() throws Exception {
+        Conta barbeiro = conta("BARBEIRO");
+        byte[] ponto = java.util.Base64.getUrlDecoder().decode(aparelho.p256dh());
+        ponto[64] ^= 0x01;
+        String ruim = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ponto);
+
+        inscrever(barbeiro, """
+                { "endpoint": "https://fcm.googleapis.com/fcm/send/fora-da-curva", "chaves": { "p256dh": "%s", "auth": "%s" } }
+                """.formatted(ruim, aparelho.auth())).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"));
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM inscricao_push", Long.class)).isZero();
+    }
 }

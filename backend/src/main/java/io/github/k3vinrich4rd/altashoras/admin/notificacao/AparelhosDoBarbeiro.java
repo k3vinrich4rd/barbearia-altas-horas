@@ -12,6 +12,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import io.github.k3vinrich4rd.altashoras.admin.notificacao.canal.Canal;
+import io.github.k3vinrich4rd.altashoras.admin.notificacao.canal.CriptografiaWebPush;
 import io.github.k3vinrich4rd.altashoras.admin.notificacao.canal.DestinoDoAviso.Aparelho;
 import io.github.k3vinrich4rd.altashoras.admin.notificacao.canal.ValidadorDeEndpoint;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeLimite;
@@ -65,7 +66,8 @@ class AparelhosDoBarbeiro {
         if (!validador.aceita(pedido.endpoint())) {
             throw ExcecaoDeNegocio.campoInvalido("endpoint", "Endereço de notificação não aceito.");
         }
-        if (!ehChaveDoAparelho(pedido.chaves().p256dh(), 65, (byte) 4) || !ehChaveDoAparelho(pedido.chaves().auth(), 16, null)) {
+        if (!ehChaveDoAparelho(pedido.chaves().p256dh(), 65, (byte) 4) || !ehChaveDoAparelho(pedido.chaves().auth(), 16, null)
+                || !CriptografiaWebPush.ehChavePublicaValida(decodificar(pedido.chaves().p256dh()))) {
             throw ExcecaoDeNegocio.campoInvalido("chaves", "Chaves de notificação inválidas.");
         }
         Aparelho aparelho = new Aparelho(pedido.endpoint(), pedido.chaves().p256dh(), pedido.chaves().auth());
@@ -101,6 +103,10 @@ class AparelhosDoBarbeiro {
             relatorio.invalidos().forEach(a -> inscricoes.removerMorta(a.endpoint()));
             relatorio.enviados().forEach(a -> inscricoes.marcarEnvioOk(a.endpoint(), agora));
         });
+    }
+
+    private static byte[] decodificar(String valor) {
+        return java.util.Base64.getUrlDecoder().decode(valor.replace('+', '-').replace('/', '_').replace("=", ""));
     }
 
     /** Tamanho certo (em bytes) depois de decodificar o base64url; nunca devolve o valor recebido. */
