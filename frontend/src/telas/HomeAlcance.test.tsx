@@ -65,7 +65,7 @@ describe("alcance na home", () => {
     expect(carapicuiba.textContent).toBe("Centro");
   });
 
-  test("A50: vitrine vazia, 429 ou rede fora: o bloco some e a home segue sem erro de página inteira", async () => {
+  test("A50: vitrine vazia, 429 ou rede fora: o bloco mostra o estado vazio Em breve (Fatia 12), sem botão nem número, e a home segue sem erro de página inteira", async () => {
     const respostas = {
       vazio: () => HttpResponse.json({ ...ALCANCE, totalCidades: 0, totalBairros: 0, regioes: [] }),
       limite: () => erro(429, "LIMITE_EXCEDIDO", {}, { "retry-after": "30" }),
@@ -79,7 +79,9 @@ describe("alcance na home", () => {
       renderizar(<Home />);
       expect(await screen.findByText("Corte Clássico / Social"), nome).toBeInTheDocument();
       await new Promise((r) => setTimeout(r, 50));
-      expect(screen.queryByRole("heading", { name: "De onde vêm nossos clientes" }), nome).toBeNull();
+      const bloco = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;
+      expect(await within(bloco).findByText(/Em breve/), nome).toBeInTheDocument();
+      expect(within(bloco).queryByRole("button"), nome).toBeNull();
       expect(screen.queryByRole("alert"), nome).toBeNull();
       cleanup();
     }
