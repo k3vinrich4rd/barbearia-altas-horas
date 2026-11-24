@@ -772,6 +772,7 @@ Os testes antigos que conferiam a antecedência de 2 h e o horizonte de 30 dias 
 
 - `cd backend && ./mvnw verify`: **581 testes, 0 falhas, 0 erros, 0 pulados**, `BUILD SUCCESS` em 6 min 9 s. Cobertura do JaCoCo: **95,7% das instruções, 80,8% dos ramos, 94,6% das linhas**. `ModulithTest`, `ArquiteturaTest` e `ContratoExemplosDeErroTest` verdes (556 da develop + os 25 novos; nenhum teste saiu, só mudaram de valor os que citavam a regra revogada).
 - `npm ci` (0 vulnerabilidades), `npm run gerar:tipos` e `gerar:rotas`, `tsc --noEmit` e `eslint` sem erro, `vitest`: **75 arquivos, 181 testes verdes** (os 7 novos falhavam contra o front antigo e passam agora), `npm run build` ok.
+- `npx playwright test` contra a API real no perfil `dev` (PostgreSQL 18 isolado, removido no fim; build do front com `NEXT_PUBLIC_PAGAMENTO_SIMULADO=true`): **23 de 23 verdes em 6,6 min**, e o `prorrogacao-pix.spec.ts` (A27) em 2,1 min (a espera do último minuto é real).
 - `npx @redocly/cli@2.78.0 lint docs/contrato/openapi.yaml`: **0 erros e 0 avisos** (6 exceções explícitas, a nova é a do caminho `/agendamentos/{id}/prorrogacao` × `/agendamentos/guest/{id}`).
 - `sh scripts/conferir-spec.sh 14 --exigir --exceto 28-62`: **27 de 27 critérios com teste** (`--ate 27` no `frontend-ci.yml`).
 
