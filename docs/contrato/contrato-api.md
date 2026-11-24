@@ -63,13 +63,16 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `DELETE` | `/me` | excluir minha conta (LGPD) | 👤 (só cliente) | `204` | `401`, `403 ACESSO_NEGADO` (admin e barbeiro sem papel de cliente não se excluem), `409 EXCLUSAO_BLOQUEADA_POR_RESERVA`, `409 USUARIO_JA_VINCULADO` (cliente que também é barbeiro ativo: o dono desliga o acesso antes, **1.8.0**) | [4.9](#49-privacidade) |
 | `GET` | `/me/consentimentos` | meus consentimentos | 👤 | `200` | `401` | [4.9](#49-privacidade) |
 | `PUT` | `/me/consentimentos/marketing` | aceita ou revoga marketing | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
-| `GET` | `/politica-privacidade` | política de privacidade e texto da caixa de marketing, com a versão vigente | 🌐 | `200` | — | [4.9](#49-privacidade) |
+| `PUT` | `/me/consentimentos/regiao` | aceita ou revoga o uso da região no alcance; **revogar apaga** a localidade do perfil e das reservas (**novo na 1.9.0**, 11A) | 👤 | `200` | `400`, `401` | [4.9](#49-privacidade) |
+| `PUT` | `/me` | autoriza (CEP + `versaoTextoRegiao`) ou retira o uso da região do perfil; o CEP não é guardado (**novo na 1.9.0**, 11A) | 👤 | `200` | `400 VALIDACAO_INVALIDA`, `401` | [4.4](#44-autenticação-e-conta) |
+| `GET` | `/politica-privacidade` | política de privacidade, texto da caixa de marketing e **texto da caixinha de região**, com a versão vigente (**1.2**) | 🌐 | `200` | — | [4.9](#49-privacidade) |
 | `GET` | `/politica-pagamento` | texto e versão da política (sem cancelamento, remarcação ou estorno) | 🌐 | `200` | — | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 3 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
-| `GET` | `/alcance` | cidades e bairros atendidos, só nomes e sem contagens, últimos 12 meses (**novo na 1.5.0**, 6C) | 🌐 (30/min por IP) | `200` | `429` | [4.6](#46-guest) |
-| `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`); `cep` opcional (**6C**) | 🌐 (limite por IP) | `201` | `400` (`CEP_INVALIDO` se o `cep` tem formato errado), `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
+| `GET` | `/alcance` | municípios e bairros atendidos (pessoas diferentes, k ≥ 5), só nomes e **faixas de porcentagem**, nunca número, últimos 12 meses (**1.9.0**, 11C) | 🌐 (30/min por IP) | `200` | `429` | [4.6](#46-guest) |
+| `DELETE` | `/agendamentos/guest/{id}/regiao` | o visitante retira a autorização de região da reserva, com o `X-Guest-Token`; idempotente (**novo na 1.9.0**, 11A) | 🎟 (limite por IP) | `204` | `404` (token errado, ausente ou de outra reserva, mesmo corpo), `429` | [4.6](#46-guest) |
+| `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`); `cep` opcional e só vale com `autorizaRegiao = true` (**1.9.0**) | 🌐 (limite por IP) | `201` | `400` (`CEP_INVALIDO` se o `cep` tem formato errado), `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
 | `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
@@ -93,7 +96,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/admin/pagamentos/eventos/{id}/revisao` | marca o evento como revisado, sem reprocessar (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
 | `GET` `PUT` | `/admin/configuracao` | regras configuráveis da agenda (`fuso` só leitura) | 🛠 | `200` | `400`, `401`, `403`, `409 CONFLITO_DE_VERSAO` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/auditoria` | ações do painel (paginado, sem IP) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
-| `GET` | `/admin/alcance` | de onde vêm os atendimentos: cidades e bairros com contagem e percentual, k ≥ 5 (**novo na 1.5.0**, 6C). ADMIN vê tudo (filtro `barbeiroId`); BARBEIRO só os próprios | 🛠 | `200` | `400`, `401`, `403`, `404` | [4.6](#46-guest) |
+| `GET` | `/admin/alcance` | de onde vêm os **clientes** (pessoas diferentes) por estado, região ou município, com `nivel`, `uf` e `periodo`, k = 5 e subida de nível (**1.9.0**, 11D). ADMIN vê tudo (filtro `barbeiroId`); BARBEIRO só os clientes dele | 🛠 | `200` | `400`, `401`, `403`, `404` | [4.6](#46-guest) |
 | `GET` | `/admin/notificacoes/chave-publica` | a chave pública VAPID para o navegador criar a inscrição; `{ disponivel: false }` sem VAPID (**novo na 1.10.0**, Fatia 13) | 🛠 | `200` | `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
 | `POST` `DELETE` | `/admin/notificacoes/inscricao` | guarda e remove o aparelho do barbeiro na **conta do token**; o `endpoint` do remover vai no corpo (**novo na 1.10.0**) | 🛠 | `204` | `400 VALIDACAO_INVALIDA`, `400 CAMPO_DESCONHECIDO`, `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
 | `GET` | `/admin/notificacoes` | "Novidades": os avisos da conta de quem chama, sem dado do cliente (**novo na 1.10.0**) | 🛠 | `200` | `400`, `401`, `403` | [4.13](#413-notificações-do-barbeiro-110-fatia-13) |
@@ -106,12 +109,12 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 |---|---|---|---|---|---|---|
 | `GET /disponibilidade` | — | — | um dia por chamada | — | — | < 300 ms |
 | `POST /auth/login` | — | `email`, `senha` | — | 5 erros/15 min por e-mail + IP | — | — |
-| `POST /auth/cadastro` | — | `nome`, `email`, `whatsapp`, `senha`, `cep?`, `aceitaMarketing` | — | 5/h por IP | — | — |
+| `POST /auth/cadastro` | — | `nome`, `email`, `whatsapp`, `senha`, `cep?`, `aceitaMarketing`, `autorizaRegiao?`, `versaoTextoRegiao?` | — | 5/h por IP | — | — |
 | `POST /agendamentos` | o próprio cliente (do token) | `servicoId`, `barbeiroId`, `inicio` | — | — | — (o horário já é único) | < 400 ms |
 | `GET /agendamentos/{id}` | `cliente_id = sub` senão `404` | — | — | — | — | — |
-| `POST /agendamentos/guest` | — | `servicoId`, `barbeiroId`, `inicio`, `nome`, `email`, `whatsapp`, `cep?` | — | 3/h por IP | — | < 400 ms |
+| `POST /agendamentos/guest` | — | `servicoId`, `barbeiroId`, `inicio`, `nome`, `email`, `whatsapp`, `cep?`, `autorizaRegiao?`, `versaoTextoRegiao?` | — | 3/h por IP | — | < 400 ms |
 | `GET /alcance` | — | — | — | 30/min por IP | — | — |
-| `GET /admin/alcance` | BARBEIRO só os próprios atendimentos (o `barbeiroId` da query vira o dele) | — | — | — | — | — |
+| `GET /admin/alcance` | BARBEIRO só os próprios clientes (o `barbeiroId` da query vira o dele, sem sinal no corpo) | — | — | — | — | — |
 | `GET /agendamentos/guest/{id}` | hash do `X-Guest-Token` = `token_hash` senão `404` | — | — | — | — | — |
 | `POST /pagamentos/cobrancas` | `X-Guest-Token` da reserva | `reservaId`, `cpf` | — | 5/h por IP | **obrigatória** | depende do gateway |
 | `POST /pagamentos/webhook` | autenticação do provedor | corpo do provedor (só os campos usados são lidos) | — | — | id do evento único | < 300 ms (só grava) |
@@ -169,13 +172,13 @@ Aceita `01001-000` ou `01001000`; outro formato → `400 CEP_INVALIDO` sem chama
 
 `POST /auth/cadastro`
 ```json
-{ "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "whatsapp": "(11) 90000-0001", "senha": "Senha-de-teste-123", "cep": "01001-000", "aceitaMarketing": false }
+{ "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "whatsapp": "(11) 90000-0001", "senha": "Senha-de-teste-123", "cep": "01001-000", "aceitaMarketing": false, "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
 ```
 `201` + `Location: /me`
 ```json
-{ "id": "c0000000-0000-4000-8000-00000000000a", "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "papeis": ["CLIENTE"], "endereco": { "cep": "01001000", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP", "completo": true } }
+{ "id": "c0000000-0000-4000-8000-00000000000a", "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "papeis": ["CLIENTE"], "endereco": { "cep": null, "bairro": "Sé", "cidade": "São Paulo", "uf": "SP", "completo": true }, "regiaoAutorizada": true }
 ```
-Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13 dígitos depois de sanitizar; `senha` de 10 a 72 **bytes** em UTF-8 (o BCrypt corta em 72 bytes, e letra acentuada ocupa 2); `cep` opcional, 8 dígitos; `aceitaMarketing` opcional, padrão `false` (R28). CEP não resolvido → `endereco.completo: false` e bairro/cidade nulos (R31). Resposta **nunca** tem `senha` nem `senhaHash`.
+Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13 dígitos depois de sanitizar; `senha` de 10 a 72 **bytes** em UTF-8 (o BCrypt corta em 72 bytes, e letra acentuada ocupa 2); `cep` opcional, 8 dígitos, **só vale com `autorizaRegiao = true`** (a caixinha de consentimento de região, desmarcada por padrão; sem ela o CEP é ignorado, nem consultado nem guardado, e **o CEP nunca é guardado**); com a caixinha, `versaoTextoRegiao` precisa ser a vigente (`400 VALIDACAO_INVALIDA` em `versaoTextoRegiao`); `aceitaMarketing` opcional, padrão `false` (R28). CEP não resolvido → sem região (R31). `endereco.cep` é `deprecated` e sempre `null` (1.9.0). Resposta **nunca** tem `senha` nem `senhaHash`.
 
 `POST /auth/login`
 ```json
@@ -246,21 +249,30 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
 ```
 > O `tokenGuest` aparece **uma vez** (o banco guarda só o hash). É o que permite ao guest consultar a reserva e pagar: sem conta, sem expor a reserva a quem só tem o id. O CPF **não** é pedido aqui (R9).
 
-**Alcance por região (Fatia 6C).** O corpo aceita `cep` **opcional** (`01001000` ou `01001-000`). Formato errado: `400 CEP_INVALIDO` e nada é criado. CEP inexistente ou provedor fora **nunca** impedem a reserva (R31): ela nasce sem região. A resposta do `POST` não muda (não devolve CEP nem região).
+**Alcance por região (Fatia 6C, 11 na 1.9.0).** O corpo aceita `cep` **opcional** (`01001000` ou `01001-000`) e a caixinha `autorizaRegiao` com `versaoTextoRegiao` (a vigente, senão `400 VALIDACAO_INVALIDA`). Formato errado do CEP: `400 CEP_INVALIDO` e nada é criado. **Sem `autorizaRegiao = true` o CEP é ignorado** (nem consultado, nem guardado). CEP inexistente ou provedor fora **nunca** impedem a reserva (R31): ela nasce sem região. O CEP nunca é guardado: a reserva guarda bairro, município, UF, o código IBGE e a versão do texto aceito. As respostas do visitante (`POST` e `GET /agendamentos/guest/{id}`) ganham `regiaoAutorizada`.
 
-`GET /alcance` (🌐, 30 por minuto por IP, `429` com `Retry-After`) → `200`, sem contagens, últimos 12 meses, cache de 1 hora no servidor:
+`DELETE /agendamentos/guest/{id}/regiao` com o `X-Guest-Token` da reserva → `204`: apaga a região **na hora** (LGPD art. 8º, § 5º), idempotente; token errado, ausente ou de outra reserva → o mesmo `404`. A reserva não muda.
+
+`GET /alcance` (🌐, 30 por minuto por IP, `429` com `Retry-After`) → `200`, últimos 12 meses, cache de 1 hora no servidor. Conta **pessoas diferentes** (5 atendimentos de uma pessoa são 1 cliente). **Nunca** número, total nem contagem de pessoas: só nomes e `faixaPercentual` (a porcentagem sobre o município arredondada para baixo em múltiplos de 5, `"15"`, ou `"<5"`). Município com menos de 5 pessoas não aparece; com menos de 20, só os nomes dos bairros que passam no k (`comFaixas: false`). O "Outros bairros" só aparece com 5 ou mais, sem faixa. `bairros` (só nomes) é o formato antigo, `deprecated`:
 ```json
-{ "atualizadoEm": "2026-11-17T08:00:00-03:00", "totalCidades": 1, "totalBairros": 1,
-  "regioes": [ { "cidade": "Osasco", "uf": "SP", "bairros": ["Centro"] } ] }
+{ "atualizadoEm": "2026-11-23T08:00:00-03:00", "totalCidades": 1, "totalBairros": 2,
+  "regioes": [ { "cidade": "Osasco", "uf": "SP", "codigoIbge": "3534401", "comFaixas": true, "bairros": ["Centro", "Presidente Altino"],
+    "bairrosComFaixa": [ { "bairro": "Centro", "faixaPercentual": "65", "outros": false }, { "bairro": "Presidente Altino", "faixaPercentual": "20", "outros": false },
+                         { "bairro": "Outros bairros", "faixaPercentual": null, "outros": true } ] } ] }
 ```
-`GET /admin/alcance?de=2026-11-01&ate=2026-11-17&barbeiroId=...` (🛠, nunca em cache) → `200`. `de` e `ate` são dias civis (padrão: os últimos 30 dias); `barbeiroId` só vale para ADMIN (o BARBEIRO vê sempre os próprios). Período invertido ou com mais de 366 dias: `400 VALIDACAO_INVALIDA`; barbeiro inexistente: `404`. Só entram reservas `CONFIRMADO` e `CONCLUIDO`; o `percentual` é sobre o `total` do período. Bairro com menos de 5 atendimentos vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades" (`uf` nula):
+`GET /admin/alcance?nivel=MUNICIPIO&uf=SP&periodo=ULTIMOS_30_DIAS&barbeiroId=...` (🛠, nunca em cache) → `200`. `nivel` = `ESTADO` | `REGIAO` | `MUNICIPIO` (padrão) escolhe o que aparece nas linhas (cada uma traz o nível de baixo em `filhos`); `periodo` = `ULTIMOS_30_DIAS` (padrão) | `ULTIMOS_90_DIAS` | `ULTIMOS_12_MESES`; `de` e `ate` (dias civis) seguem aceitos, mas sem a proteção entre janelas. `barbeiroId` só vale para ADMIN: o BARBEIRO vê **sempre só os clientes dele** e a resposta não mostra que o filtro foi ignorado. Período invertido ou com mais de 366 dias, ou `nivel`/`periodo` inválidos: `400 VALIDACAO_INVALIDA`; barbeiro inexistente, inativo ou sem vínculo: `404`. Só entram reservas `CONFIRMADO` e `CONCLUIDO`; a reserva manual não conta. **k = 5** (`app.alcance.k`, nunca abaixo de 3) vale em cada recorte: o lugar com menos de 5 **sobe de nível** (bairro → município → região imediata do IBGE → UF → "Outros estados", `agrupadoEm`), nunca vira número; nenhum valor entre 1 e 4 aparece (só `abaixoDoLimite: true` com `clientes` e `percentual` nulos). `totalVisivel: false` quando a conta fecharia um número menor que k (aí o total e os percentuais somem). `percentual` é sobre o total do recorte, 1 casa decimal:
 ```json
-{ "periodo": { "de": "2026-11-01", "ate": "2026-11-17" }, "total": 9, "semRegiao": 1,
-  "cidades": [
-    { "cidade": "Osasco", "uf": "SP", "atendimentos": 6, "percentual": 66.7, "abaixoDoLimite": false,
-      "bairros": [ { "bairro": "Centro", "atendimentos": 6, "percentual": 66.7, "abaixoDoLimite": false } ] },
-    { "cidade": "Outras cidades", "uf": null, "atendimentos": null, "percentual": null, "abaixoDoLimite": true, "bairros": [] } ] }
+{ "periodo": { "de": "2026-10-25", "ate": "2026-11-23" }, "nivel": "MUNICIPIO", "k": 5, "totalVisivel": true, "clientes": 27,
+  "semRegiao": { "clientes": 0, "abaixoDoLimite": false },
+  "grupos": [
+    { "tipo": "MUNICIPIO", "codigo": "3534401", "nome": "Osasco", "uf": "SP", "clientes": 18, "percentual": 66.7, "abaixoDoLimite": false, "agrupadoEm": null,
+      "filhos": [ { "tipo": "BAIRRO", "codigo": "3534401", "nome": "Centro", "clientes": 12, "percentual": 44.4, "abaixoDoLimite": false },
+                  { "tipo": "OUTROS", "codigo": "3534401", "nome": "Outros bairros", "clientes": 6, "percentual": 22.2, "abaixoDoLimite": false } ] },
+    { "tipo": "OUTROS", "codigo": "350001", "nome": "Outros municípios da região imediata de São Paulo", "uf": "SP", "clientes": 9, "percentual": 33.3,
+      "abaixoDoLimite": false, "agrupadoEm": "REGIAO", "filhos": [] } ],
+  "total": 27, "cidades": [] }
 ```
+`total` e `cidades` são o formato antigo (`deprecated`). **Única exceção à regra "só acrescenta":** `semRegiao` era um número e agora é um objeto (o painel foi atualizado junto).
 
 `GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix ou do checkout do cartão). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.
 
@@ -303,15 +315,17 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 
 `GET /me/dados` → `200` (exportação), com `Cache-Control: no-store`. Traz a conta, o **histórico inteiro** de consentimentos (do mais antigo para o mais novo) e só as reservas em que a conta é o cliente. Nunca sai hash de senha, refresh token, token de visitante, IP nem dado de outra pessoa. Limite de 5 por hora por conta (H22): passou, `429` com `Retry-After`.
 ```json
-{ "geradoEm": "2026-12-01T10:00:00-03:00", "conta": { "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "whatsapp": "11900000001", "endereco": { "cep": "01001000", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP" } }, "consentimentos": [ { "finalidade": "MARKETING_CEP", "aceito": false, "versaoTexto": "1.0", "registradoEm": "2026-11-20T09:00:00-03:00" } ], "agendamentos": [ { "id": "a0000000-0000-4000-8000-000000000101", "inicio": "2026-12-01T10:00:00-03:00", "fim": "2026-12-01T10:30:00-03:00", "status": "CONFIRMADO", "servico": "Corte Clássico", "precoCentavos": 4500, "motivoCancelamento": null } ] }
+{ "geradoEm": "2026-12-01T10:00:00-03:00", "conta": { "nome": "Cliente Teste A", "email": "cliente.a@exemplo.test", "whatsapp": "11900000001", "regiaoAutorizada": true, "endereco": { "cep": null, "municipioIbge": "3550308", "bairro": "Sé", "cidade": "São Paulo", "uf": "SP" } }, "consentimentos": [ { "finalidade": "MARKETING_CEP", "aceito": false, "versaoTexto": "1.0", "registradoEm": "2026-11-20T09:00:00-03:00" }, { "finalidade": "REGIAO_ALCANCE", "aceito": true, "versaoTexto": "1.2", "registradoEm": "2026-11-23T09:00:00-03:00" } ], "agendamentos": [ { "id": "a0000000-0000-4000-8000-000000000101", "inicio": "2026-12-01T10:00:00-03:00", "fim": "2026-12-01T10:30:00-03:00", "status": "CONFIRMADO", "servico": "Corte Clássico", "precoCentavos": 4500, "motivoCancelamento": null } ] }
 ```
 `DELETE /me` → `204`; só `CLIENTE` (barbeiro e admin: `403 ACESSO_NEGADO`) e sem pedir a senha no beta. Numa única transação: anonimiza a conta (o e-mail fica livre para novo cadastro), apaga os refresh tokens, cancela as reservas futuras **não pagas** e grava a revogação final do consentimento (ADR 0009). O login e o token antigo dão `401` em seguida. Com reserva futura **paga** (`CONFIRMADO`) ou cobrança aguardando devolução a exclusão é recusada com `409 EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda: o titular combina o cancelamento com a barbearia (R14, R18) e exclui depois.
 
 `GET /me/consentimentos` → `200` com o **estado atual** de cada finalidade (a linha mais recente); conta sem nenhum registro (o admin inicial) recebe `[]`.
 
-`PUT /me/consentimentos/marketing` `{ "aceito": true, "versaoTexto": "1.1" }` → `200` com o consentimento registrado (cada mudança é uma linha nova, R28). `versaoTexto` precisa ser a vigente (a de `GET /politica-privacidade`): outra versão é `400 VALIDACAO_INVALIDA` com `errors[].field = versaoTexto`. Pedir o estado que já vale, na mesma versão, devolve a linha existente e não grava outra. Revogar não apaga CEP, bairro nem cidade da conta.
+`PUT /me/consentimentos/marketing` `{ "aceito": true, "versaoTexto": "1.1" }` → `200` com o consentimento registrado (cada mudança é uma linha nova, R28). `versaoTexto` precisa ser a vigente (a de `GET /politica-privacidade`): outra versão é `400 VALIDACAO_INVALIDA` com `errors[].field = versaoTexto`. Pedir o estado que já vale, na mesma versão, devolve a linha existente e não grava outra. Revogar o marketing não apaga bairro nem cidade da conta (a região é outra finalidade).
 
-`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.1", "textoConsentimento": "...", "politica": "...", "atualizadaEm": "2026-11-18T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.1 (6D: WhatsApp comercial do barbeiro, reserva por fora do sistema e backup) é um **rascunho técnico, não é parecer jurídico**.
+`PUT /me/consentimentos/regiao` `{ "aceito": false, "versaoTexto": "1.2" }` → `200` (finalidade `REGIAO_ALCANCE`, no molde do de marketing). **Revogar apaga** a localidade do perfil e a região de todas as reservas da conta, na mesma transação, e a pessoa passa a "sem região" no alcance. `PUT /me` `{ "cep": "06010-000", "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }` autoriza e grava a região (o CEP é consultado e descartado); sem `autorizaRegiao = true`, ou sem CEP, é a mesma revogação.
+
+`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.2", "textoConsentimento": "...", "textoConsentimentoRegiao": "...", "politica": "...", "atualizadaEm": "2026-11-23T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.2 (Fatia 11: consentimento de região, "clientes" no lugar de "atendimentos", faixas, retenção da região, o CEP que não é guardado) é um **rascunho técnico, não é parecer jurídico**; o texto da caixinha e da política passam pela revisão do Cautelar antes do merge.
 
 ### 4.11 Reserva manual (1.6, Fatia 6D)
 
@@ -447,6 +461,7 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
 | 1.10.0 | 2026-11-24 | Fatia 13 (notificação ao barbeiro): `GET /admin/notificacoes/chave-publica`, `POST` e `DELETE /admin/notificacoes/inscricao`, `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` e `POST /admin/notificacoes/teste` (todas 🛠, só da conta do token); schemas `ChavePublicaPush`, `InscricaoPush`, `RemocaoDeInscricaoPush`, `Novidades` e `AvisoDoPainel`. Nenhum campo novo nos schemas existentes e nenhum código de erro novo. A versão `1.9.0` é da Fatia 11 (alcance por nível) | não (só acrescenta) |
+| 1.9.0 | 2026-11-23 | Fatia 11 (alcance por nível, ADR 0014): `PUT /me` e `PUT /me/consentimentos/regiao` (consentimento `REGIAO_ALCANCE`, revogar apaga a região), `DELETE /agendamentos/guest/{id}/regiao` (o visitante retira a autorização), `autorizaRegiao` e `versaoTextoRegiao` em `POST /auth/cadastro` e `POST /agendamentos/guest` (o `cep` só vale com a caixinha e nunca é guardado), `regiaoAutorizada` no `Perfil`, na exportação e nas respostas do visitante, `municipioIbge` em `Endereco`, `textoConsentimentoRegiao` e a política **1.2**; `GET /alcance` em **faixas** (`faixaPercentual`, `bairrosComFaixa`, `codigoIbge`, `comFaixas`; `bairros` fica `deprecated`) e contando pessoas; `GET /admin/alcance` com `nivel`, `uf`, `periodo`, `k`, `totalVisivel`, `grupos` e `filhos` (`total` e `cidades` ficam `deprecated`). `endereco.cep` fica `deprecated` e sempre nulo. **Exceção à regra de só acrescentar:** `AlcancePainel.semRegiao` passou de número a objeto `{ clientes, abaixoDoLimite }` | sim, só o painel de alcance (atualizado na mesma entrega); o resto só acrescenta |
 | 1.8.0 | 2026-11-23 | Fatia 10B (convite do barbeiro): `POST` e `DELETE /admin/barbeiros/{id}/convite` (só ADMIN), `POST /auth/convite` (pública, com limite por IP), código de erro `422 CONVITE_INVALIDO`, `BarbeiroAdmin.acesso` e `conviteExpiraEm` (só leitura); `DELETE /me` de cliente que também é barbeiro ativo responde `409 USUARIO_JA_VINCULADO`. Só acréscimos; os papéis, as rotas e as telas atuais continuam valendo | não (só acrescenta) |
 | 1.7.1 | 2026-11-20 | Só documentação: descrição de cada tag, servidor do beta publicado, exemplos **reais** (perfil `dev`) nas respostas do fluxo principal e nos erros `400`, `401`, `403`, `404`, `409`, `422` (o `404` com a mensagem de cada rota: serviço, reserva, cobrança; o `409 COBRANCA_EM_ANDAMENTO` com exemplo); a descrição do `201` do visitante diz que o BFF tira o `tokenGuest` do corpo (D150); `400` documentado em `POST /auth/logout`; lint do Redocly com 0 avisos (exceções justificadas em `.redocly.lint-ignore.yaml`) e rodando no CI | não (nenhuma rota, campo ou status de sucesso mudou) |
 | 1.7.0 (proposta) | 2026-11-18 | Fatia 7B (painel): rota nova `GET /admin/minha-jornada` (ADMIN ou BARBEIRO), a jornada do barbeiro da própria conta, para a agenda do BARBEIRO listrar o almoço (D142). Nenhum campo ou rota existente mudou | não (só acrescenta) |

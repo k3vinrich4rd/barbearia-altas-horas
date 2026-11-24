@@ -173,21 +173,21 @@ Convenção: as tabelas de teste usam um **IBGE de teste** pequeno (Osasco e Car
 | A42 | o painel respondido | cabeçalhos | `Cache-Control: no-store`; o `percentual` tem 1 casa e é sobre o total do recorte | `AlcancePorNivelIT` |
 | A43 | **teste de propriedade** (200 sementes, k = 3, 5 e 8): pessoas aleatórias (conta e visitante, 1 a 3 reservas, 1 a 4 barbeiros, alguns revogaram, alguns sem município) | juntar **todas** as respostas públicas e do painel possíveis (vitrine; painel por `nivel` × `uf` × barbeiro {todos, cada um} × as três janelas) | (P1) nenhum número publicado é positivo e menor que k; (P2) para todo par "recorte maior, recorte menor" (todos × um barbeiro; janela maior × menor; grupo × soma dos filhos nomeados) a diferença é 0 ou ≥ k; (P3) quando `totalVisivel`, total − soma dos visíveis é 0 ou ≥ k; (P4) na vitrine, nenhum campo é número de pessoas e, para todo total T ≥ 20 compatível com as faixas, o resto escondido do município não fica determinado como positivo e menor que k | `AlcancePropriedadeTest` |
 | A44 | o teste A43 com a regra da E11 e da E9 **desligadas** (mutação) | rodar | o teste **falha**: prova que ele pega o vazamento por subtração | `AlcancePropriedadeTest` |
-| A45 | `openapi.yaml` 1.9.0 · `scripts/conferir-spec.sh 11 --exigir` | lint e conferência | 0 erros; cada `A#` tem teste com o número; exemplos reais no `AlcancePainel` | CI |
+| A45 | `openapi.yaml` 1.9.0 · `scripts/conferir-spec.sh 11 --exigir` | lint e conferência | 0 erros; cada `A#` tem teste com o número; exemplos reais no `AlcancePainel` | `ContratoExemplosDeErroTest` |
 | A46 | política de privacidade | `GET /politica-privacidade` | versão **1.2**: consentimento, "clientes", faixas, retenção da região, canal de contato; texto revisado pelo Cautelar | `PoliticaPrivacidadeIT` |
 
 ### Telas (front)
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A47 | cadastro, perfil e checkout do visitante | abrir | a caixinha de consentimento **desmarcada**, com o texto do ADR 0014 e o canal de contato; o campo de CEP só envia com a caixinha marcada; sem marcar, o CEP nem sai do navegador | `Consentimento.test.tsx`, `entrar.spec.ts` |
-| A48 | confirmação e consulta da reserva do visitante | abrir | o link "Retirar minha autorização de região" chama o BFF, que usa o `tokenGuest` e apaga na hora (A6); estado de sucesso e de erro | `ConfirmacaoRegiao.test.tsx` |
-| A49 | "Meus dados" | abrir | o consentimento de região mostrado e revogável, ao lado do de marketing, com confirmação em uma linha | `MeusDados.test.tsx` |
-| A50 | home | abrir e clicar num município | lista de municípios; ao clicar, os bairros com "cerca de 15%", "menos de 5%" ou só o nome (município com menos de 20); **nenhum** número de pessoas; o bloco some se a vitrine vier vazia ou der `429` | `HomeAlcance.test.tsx` |
-| A51 | painel do Dono/Admin | abrir "Alcance" | seletor de nível (Estado, Região, Município), filtro de barbeiro, de UF e de período; `<table>` com `<caption>`, linhas e filhos; "menos de 5" em texto, sem barra | `PainelAlcance.test.tsx` |
-| A52 | painel do barbeiro convidado | abrir "Alcance" | o mesmo seletor e período, **sem** filtro de barbeiro, com o aviso "só os seus clientes"; nunca mostra bairro com menos de k | `PainelAlcance.test.tsx` |
-| A53 | `totalVisivel = false` | abrir | o total e as porcentagens somem e a tela explica em uma frase ("a soma ficou escondida para proteger os clientes") | `PainelAlcance.test.tsx` |
-| A54 | acessibilidade das telas novas | teclado e leitor | rótulos, foco, `role="alert"` nos erros, contraste do design system (axe) | `PainelAlcance.test.tsx`, axe |
+| A47 | cadastro, perfil e checkout do visitante | abrir | a caixinha de consentimento **desmarcada**, com o texto do ADR 0014 e o canal de contato; o campo de CEP só envia com a caixinha marcada; sem marcar, o CEP nem sai do navegador | `Consentimento` |
+| A48 | confirmação e consulta da reserva do visitante | abrir | o link "Retirar minha autorização de região" chama o BFF, que usa o `tokenGuest` e apaga na hora (A6); estado de sucesso e de erro | `ConfirmacaoRegiao` |
+| A49 | "Meus dados" | abrir | o consentimento de região mostrado e revogável, ao lado do de marketing, com confirmação em uma linha | `MeusDados` |
+| A50 | home | abrir e clicar num município | lista de municípios; ao clicar, os bairros com "cerca de 15%", "menos de 5%" ou só o nome (município com menos de 20); **nenhum** número de pessoas; o bloco some se a vitrine vier vazia ou der `429` | `HomeAlcance` |
+| A51 | painel do Dono/Admin | abrir "Alcance" | seletor de nível (Estado, Região, Município), filtro de barbeiro, de UF e de período; `<table>` com `<caption>`, linhas e filhos; "menos de 5" em texto, sem barra | `PainelAlcance` |
+| A52 | painel do barbeiro convidado | abrir "Alcance" | o mesmo seletor e período, **sem** filtro de barbeiro, com o aviso "só os seus clientes"; nunca mostra bairro com menos de k | `PainelAlcance` |
+| A53 | `totalVisivel = false` | abrir | o total e as porcentagens somem e a tela explica em uma frase ("a soma ficou escondida para proteger os clientes") | `PainelAlcance` |
+| A54 | acessibilidade das telas novas | teclado e leitor | rótulos, foco, `role="alert"` nos erros, contraste do design system (axe) | `PainelAlcance` |
 
 ## 5. Entregas
 

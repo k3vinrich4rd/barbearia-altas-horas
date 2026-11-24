@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { BARBEIRO, CINCO_SERVICOS, reserva } from "@/testes/dados";
+import { BARBEIRO, CINCO_SERVICOS, POLITICA_PRIVACIDADE, reserva } from "@/testes/dados";
 import { BFF, delay, erro, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { definirBusca, roteador, zerarNavegacao } from "@/testes/navegacao";
 import { fixarRelogio, renderizar } from "@/testes/render";
@@ -21,6 +21,7 @@ beforeEach(() => {
   servidor.use(
     http.get(`${BFF}/servicos`, () => HttpResponse.json(CINCO_SERVICOS)),
     http.get(`${BFF}/barbeiros`, () => HttpResponse.json([BARBEIRO])),
+    http.get(`${BFF}/politica-privacidade`, () => HttpResponse.json(POLITICA_PRIVACIDADE)),
   );
 });
 afterEach(() => vi.useRealTimers());
@@ -35,7 +36,11 @@ async function preencher(user: Awaited<ReturnType<typeof abrirFormulario>>["user
   await user.type(screen.getByLabelText("Nome"), "Fulano de Tal");
   await user.type(screen.getByLabelText("E-mail"), "fulano@exemplo.test");
   await user.type(screen.getByLabelText("WhatsApp"), "(11) 90000-0001");
-  if (cep) await user.type(screen.getByLabelText(/CEP/), cep);
+  if (cep) {
+    // o CEP só existe com a caixinha de região marcada (A47)
+    await user.click(await screen.findByRole("checkbox", { name: /Autorizo usar só meu bairro/ }));
+    await user.type(screen.getByRole("textbox", { name: "CEP" }), cep);
+  }
 }
 
 describe("reserva do visitante", () => {
@@ -60,8 +65,8 @@ describe("reserva do visitante", () => {
     );
     expect(screen.queryByLabelText("Nome")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Continuar sem conta" }));
-    for (const rotulo of ["Nome", "E-mail", "WhatsApp", "CEP (opcional)"])
-      expect(screen.getByLabelText(rotulo)).toBeInTheDocument();
+    for (const rotulo of ["Nome", "E-mail", "WhatsApp"]) expect(screen.getByLabelText(rotulo)).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "CEP" })).toBeNull(); // sem a caixinha marcada o CEP nem aparece
 
     await preencher(user);
     await user.dblClick(screen.getByRole("button", { name: "Reservar" }));
@@ -78,7 +83,7 @@ describe("reserva do visitante", () => {
     expect(screen.getByLabelText("WhatsApp")).not.toHaveAttribute("aria-invalid");
   });
 
-  test("A22: CEP vazio não envia a chave nem consulta /cep; CEP preenchido vai como digitado; CEP inválido aparece no campo", async () => {
+  test("A22: CEP vazio não envia a chave nem consulta /cep; CEP preenchido (com a caixinha) vai como digitado, com a versão do texto; CEP inválido aparece no campo", async () => {
     const corpos: Record<string, unknown>[] = [];
     servidor.use(
       http.post(`${BFF}/agendamentos/guest`, async ({ request }) => {
@@ -96,10 +101,17 @@ describe("reserva do visitante", () => {
       await user.click(screen.getByRole("button", { name: "Reservar" }));
       await waitFor(() => expect(corpos.length).toBeGreaterThan(0));
       const corpo = corpos.at(-1)!;
-      if (cep === "") expect("cep" in corpo).toBe(false);
-      if (cep === "01001-000") expect(corpo.cep).toBe("01001-000");
+      if (cep === "") {
+        expect("cep" in corpo).toBe(false);
+        expect("autorizaRegiao" in corpo).toBe(false);
+      }
+      if (cep === "01001-000") {
+        expect(corpo.cep).toBe("01001-000");
+        expect(corpo.autorizaRegiao).toBe(true);
+        expect(corpo.versaoTextoRegiao).toBe(POLITICA_PRIVACIDADE.versao);
+      }
       if (cep === "123") {
-        const campo = await screen.findByLabelText(/CEP/);
+        const campo = await screen.findByRole("textbox", { name: "CEP" });
         await waitFor(() => expect(campo).toHaveAttribute("aria-invalid", "true"));
         expect(campo).toHaveAccessibleDescription(/CEP inválido. Digite os 8 números./);
       }

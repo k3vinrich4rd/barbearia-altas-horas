@@ -17,7 +17,7 @@ class ConsentimentoIT extends PrivacidadeBase {
     private static final String ROTA = "/me/consentimentos/marketing";
 
     @Test
-    @DisplayName("A23: cliente cadastrado sem aceitaMarketing: GET /me/consentimentos devolve 1 item, MARKETING_CEP, aceito=false, versaoTexto=1.1 e a data do cadastro")
+    @DisplayName("A23: cliente cadastrado sem aceitaMarketing: GET /me/consentimentos devolve 1 item, MARKETING_CEP, aceito=false, versaoTexto=1.2 e a data do cadastro")
     void semAceiteNoCadastro() throws Exception {
         relogio.reiniciar(); // 17/11 08:00: o dia do cadastro
         String email = cadastrar(false);
@@ -28,7 +28,7 @@ class ConsentimentoIT extends PrivacidadeBase {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].finalidade").value("MARKETING_CEP"))
                 .andExpect(jsonPath("$[0].aceito").value(false))
-                .andExpect(jsonPath("$[0].versaoTexto").value("1.1"))
+                .andExpect(jsonPath("$[0].versaoTexto").value("1.2"))
                 .andExpect(jsonPath("$[0].registradoEm").value("2026-11-17T08:00:00-03:00"));
     }
 
@@ -50,10 +50,10 @@ class ConsentimentoIT extends PrivacidadeBase {
         irPara(TERCA, 9, 30);
         Cliente cliente = entrar(email);
 
-        put(ROTA, cliente.acesso(), consentimento(true, "1.1")).andExpect(status().isOk())
+        put(ROTA, cliente.acesso(), consentimento(true, "1.2")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.finalidade").value("MARKETING_CEP"))
                 .andExpect(jsonPath("$.aceito").value(true))
-                .andExpect(jsonPath("$.versaoTexto").value("1.1"))
+                .andExpect(jsonPath("$.versaoTexto").value("1.2"))
                 .andExpect(jsonPath("$.registradoEm").value("2026-12-01T09:30:00-03:00"));
 
         assertThat(consentimentosNoBanco(cliente.id())).hasSize(2);
@@ -68,10 +68,10 @@ class ConsentimentoIT extends PrivacidadeBase {
         String email = cadastrar(false);
         irPara(TERCA, 9, 30);
         Cliente cliente = entrar(email);
-        put(ROTA, cliente.acesso(), consentimento(true, "1.1")).andExpect(status().isOk());
+        put(ROTA, cliente.acesso(), consentimento(true, "1.2")).andExpect(status().isOk());
         relogio.avancar(Duration.ofMinutes(1)); // a mudança seguinte tem de ser depois: "a mais recente" é pela data
 
-        put(ROTA, cliente.acesso(), consentimento(false, "1.1")).andExpect(status().isOk())
+        put(ROTA, cliente.acesso(), consentimento(false, "1.2")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.aceito").value(false));
 
         assertThat(linhasDeConsentimento(cliente.id())).isEqualTo(3);
@@ -85,14 +85,14 @@ class ConsentimentoIT extends PrivacidadeBase {
     @DisplayName("A27: PUT com o estado que já vale na mesma versão devolve 200 com a linha existente e não grava nenhuma linha nova")
     void estadoIgualNaoGravaOutraLinha() throws Exception {
         relogio.reiniciar();
-        String email = cadastrar(true); // aceito=true na versão 1.1, em 17/11
+        String email = cadastrar(true); // aceito=true na versão 1.2, em 17/11
         irPara(TERCA, 9, 30);
         Cliente cliente = entrar(email);
 
-        put(ROTA, cliente.acesso(), consentimento(true, "1.1")).andExpect(status().isOk())
+        put(ROTA, cliente.acesso(), consentimento(true, "1.2")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.aceito").value(true))
                 .andExpect(jsonPath("$.registradoEm").value("2026-11-17T08:00:00-03:00"));
-        put(ROTA, cliente.acesso(), consentimento(true, "1.1")).andExpect(status().isOk());
+        put(ROTA, cliente.acesso(), consentimento(true, "1.2")).andExpect(status().isOk());
 
         assertThat(linhasDeConsentimento(cliente.id())).isEqualTo(1);
     }
@@ -106,10 +106,10 @@ class ConsentimentoIT extends PrivacidadeBase {
         put(ROTA, cliente.acesso(), consentimento(true, "0.9")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
                 .andExpect(jsonPath("$.errors[0].field").value("versaoTexto"));
-        put(ROTA, cliente.acesso(), "{ \"versaoTexto\": \"1.1\" }").andExpect(status().isBadRequest())
+        put(ROTA, cliente.acesso(), "{ \"versaoTexto\": \"1.2\" }").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
                 .andExpect(jsonPath("$.errors[0].field").value("aceito"));
-        put(ROTA, cliente.acesso(), "{ \"aceito\": true, \"versaoTexto\": \"1.1\", \"finalidade\": \"MARKETING_CEP\" }")
+        put(ROTA, cliente.acesso(), "{ \"aceito\": true, \"versaoTexto\": \"1.2\", \"finalidade\": \"MARKETING_CEP\" }")
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CAMPO_DESCONHECIDO"));
         put(ROTA, cliente.acesso(), consentimento(true, "1".repeat(21))).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDACAO_INVALIDA"))
@@ -125,32 +125,34 @@ class ConsentimentoIT extends PrivacidadeBase {
         Cliente b = novoCliente(true);
         var antesDeB = consentimentosNoBanco(b.id());
 
-        put(ROTA, a.acesso(), consentimento(true, "1.1")).andExpect(status().isOk());
+        put(ROTA, a.acesso(), consentimento(true, "1.2")).andExpect(status().isOk());
         relogio.avancar(Duration.ofMinutes(1));
-        put(ROTA, a.acesso(), consentimento(false, "1.1")).andExpect(status().isOk());
+        put(ROTA, a.acesso(), consentimento(false, "1.2")).andExpect(status().isOk());
 
         assertThat(consentimentosNoBanco(b.id())).isEqualTo(antesDeB);
         get("/me/consentimentos", b.acesso()).andExpect(status().isOk()).andExpect(jsonPath("$[0].aceito").value(true));
         mvc.perform(MockMvcRequestBuilders.get("/me/consentimentos")).andExpect(status().isUnauthorized());
-        mvc.perform(MockMvcRequestBuilders.put(ROTA).contentType(MediaType.APPLICATION_JSON).content(consentimento(true, "1.1")))
+        mvc.perform(MockMvcRequestBuilders.put(ROTA).contentType(MediaType.APPLICATION_JSON).content(consentimento(true, "1.2")))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("A30: revogar o consentimento não apaga CEP, bairro nem cidade: GET /me continua com o endereço")
+    @DisplayName("A30: revogar o consentimento de marketing não apaga bairro nem cidade: GET /me continua com o endereço")
     void revogarNaoApagaOEndereco() throws Exception {
         Cliente cliente = novoCliente(true);
-        jdbc.update("UPDATE usuario SET cep = '01001000', bairro = 'Sé', cidade = 'São Paulo', uf = 'SP' WHERE id = ?",
+        jdbc.update("UPDATE usuario SET bairro = 'Sé', cidade = 'São Paulo', uf = 'SP' WHERE id = ?", cliente.id());
+        jdbc.update("INSERT INTO consentimento (usuario_id, finalidade, versao_texto, aceito) VALUES (?, 'REGIAO_ALCANCE', '1.2', true)",
                 cliente.id());
 
-        put(ROTA, cliente.acesso(), consentimento(false, "1.1")).andExpect(status().isOk())
+        put(ROTA, cliente.acesso(), consentimento(false, "1.2")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.aceito").value(false));
 
+        // O marketing é outra finalidade: revogá-lo não retira a autorização de região (A4 trata da região).
         get("/me", cliente.acesso()).andExpect(status().isOk())
-                .andExpect(jsonPath("$.endereco.cep").value("01001000"))
+                .andExpect(jsonPath("$.endereco.cep").doesNotExist())
                 .andExpect(jsonPath("$.endereco.bairro").value("Sé"))
                 .andExpect(jsonPath("$.endereco.cidade").value("São Paulo"));
-        assertThat(jdbc.queryForMap("SELECT cep, bairro, cidade FROM usuario WHERE id = ?", cliente.id()))
+        assertThat(jdbc.queryForMap("SELECT bairro, cidade FROM usuario WHERE id = ?", cliente.id()))
                 .containsEntry("bairro", "Sé").containsEntry("cidade", "São Paulo");
     }
 

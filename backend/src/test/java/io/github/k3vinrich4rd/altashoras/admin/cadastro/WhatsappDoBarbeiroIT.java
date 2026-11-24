@@ -19,7 +19,7 @@ import io.github.k3vinrich4rd.altashoras.admin.CadastrosBase;
 
 /**
  * A7 a A11 da Fatia 6D: o WhatsApp do barbeiro como contato comercial (D122). Cadastro só pelo ADMIN, formato, rota pública
- * com o número, e o texto da política (versão 1.1) que explica isso. Números fictícios.
+ * com o número, e o texto da política (versão 1.2) que explica isso. Números fictícios.
  */
 class WhatsappDoBarbeiroIT extends CadastrosBase {
 
@@ -122,10 +122,10 @@ class WhatsappDoBarbeiroIT extends CadastrosBase {
     }
 
     @Test
-    @DisplayName("A11: GET /politica-privacidade devolve a versão 1.1 e o texto diz que o WhatsApp do barbeiro é contato comercial (não é dado de cliente) e que a reserva manual guarda só nome e observação, sem WhatsApp do cliente")
+    @DisplayName("A11: GET /politica-privacidade devolve a versão 1.2 e o texto diz que o WhatsApp do barbeiro é contato comercial (não é dado de cliente) e que a reserva manual guarda só nome e observação, sem WhatsApp do cliente")
     void politicaExplicaOContatoComercial() throws Exception {
         mvc.perform(MockMvcRequestBuilders.get("/politica-privacidade")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.versao").value("1.1"))
+                .andExpect(jsonPath("$.versao").value("1.2"))
                 .andExpect(jsonPath("$.politica").value(containsString("WhatsApp comercial do barbeiro")))
                 .andExpect(jsonPath("$.politica").value(containsString("não é dado de cliente")))
                 .andExpect(jsonPath("$.politica").value(containsString("agendamento marcado por fora do sistema")))

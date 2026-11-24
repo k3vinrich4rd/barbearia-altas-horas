@@ -13,11 +13,13 @@ import io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroResumo;
 /**
  * O "Agendamento" do contrato. {@code tokenGuest} só aparece na resposta da criação pelo visitante (mostrado uma
  * vez; o banco guarda o hash). {@code expiraEm} é nulo depois que a reserva sai da espera do pagamento.
+ * {@code regiaoAutorizada} só aparece nas respostas do visitante (Fatia 11): a reserva guarda a região com a prova do aceite.
  */
 public record AgendamentoResposta(UUID id, StatusReserva status, Reserva.Origem origem, ServicoDaReserva servico,
         BarbeiroResumo barbeiro, String inicio, String fim, long precoCentavos, @Nullable String expiraEm,
         @Nullable String motivoCancelamento, long version,
-        @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String tokenGuest) {
+        @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable String tokenGuest,
+        @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable Boolean regiaoAutorizada) {
 
     public record ServicoDaReserva(UUID id, String nome, int duracaoMin) {
     }
@@ -37,7 +39,12 @@ public record AgendamentoResposta(UUID id, StatusReserva status, Reserva.Origem 
                 new BarbeiroResumo(linha.barbeiroId(), linha.barbeiroNome()),
                 formatar(linha.inicio(), fuso), formatar(linha.fim(), fuso), linha.precoCentavos(),
                 esperandoPagamento && linha.expiraEm() != null ? formatar(linha.expiraEm(), fuso) : null,
-                linha.motivoCancelamento(), linha.version(), tokenGuest);
+                linha.motivoCancelamento(), linha.version(), tokenGuest, null);
+    }
+
+    AgendamentoResposta comRegiaoAutorizada(boolean autorizada) {
+        return new AgendamentoResposta(id, status, origem, servico, barbeiro, inicio, fim, precoCentavos, expiraEm,
+                motivoCancelamento, version, tokenGuest, autorizada);
     }
 
     private static String formatar(Instant instante, ZoneId fuso) {

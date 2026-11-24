@@ -23,12 +23,14 @@ class BuscarEndereco implements CepApi {
 
     private static final Logger LOG = LoggerFactory.getLogger(BuscarEndereco.class);
 
+    private final ResolverRegiao regiao;
     private final ProvedorDeCep viaCep;
     private final ProvedorDeCep brasilApi;
     private final Cache encontrados;
     private final Cache inexistentes;
 
-    BuscarEndereco(ViaCepCliente viaCep, BrasilApiCliente brasilApi, CacheManager cacheDoCep) {
+    BuscarEndereco(ViaCepCliente viaCep, BrasilApiCliente brasilApi, CacheManager cacheDoCep, ResolverRegiao regiao) {
+        this.regiao = regiao;
         this.viaCep = viaCep;
         this.brasilApi = brasilApi;
         this.encontrados = cacheDoCep.getCache(CepConfig.CACHE_ENCONTRADO);
@@ -51,7 +53,7 @@ class BuscarEndereco implements CepApi {
             return Optional.empty();
         }
 
-        Optional<Endereco> resultado = consultarProvedores(cep);
+        Optional<Endereco> resultado = consultarProvedores(cep).map(regiao::completar);
         resultado.ifPresentOrElse(endereco -> encontrados.put(chave, endereco),
                 () -> inexistentes.put(chave, Boolean.TRUE));
         LOG.info("cep resolvido: {}, fonte={}", resultado.isPresent() ? "sim" : "não",

@@ -1,6 +1,7 @@
 package io.github.k3vinrich4rd.altashoras.conta.sessao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -94,7 +95,8 @@ class SemDadoPessoalNoLogIT {
         UUID servico = DadosDeTeste.servico(jdbc, 30);
         String corpo = """
                 { "servicoId": "%s", "barbeiroId": "%s", "inicio": "%s", "nome": "Visitante Alcance",
-                  "email": "visitante.alcance@exemplo.test", "whatsapp": "(11) 90000-0075", "cep": "%s" }
+                  "email": "visitante.alcance@exemplo.test", "whatsapp": "(11) 90000-0075", "cep": "%s",
+                  "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
                 """;
         // Os provedores de CEP aqui apontam para uma porta fechada (nenhuma rede real): a região não é resolvida.
         mvc.perform(post("/agendamentos/guest").contentType(MediaType.APPLICATION_JSON).with(ContaDeTeste.ip(ip))
@@ -121,7 +123,7 @@ class SemDadoPessoalNoLogIT {
         String email = ContaDeTeste.emailNovo();
         mvc.perform(json(post("/auth/cadastro"), """
                 { "nome": "Cliente Teste", "email": "%s", "whatsapp": "(11) 90000-0001", "senha": "%s",
-                  "cep": "01001-000", "aceitaMarketing": true }
+                  "cep": "01001-000", "aceitaMarketing": true, "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
                 """.formatted(email, ContaDeTeste.SENHA)).with(ContaDeTeste.ip(ip))).andExpect(status().isCreated());
         // O CPF nunca é aceito no cadastro: a recusa (400) também não pode devolver o valor ao log.
         mvc.perform(json(post("/auth/cadastro"), """
@@ -133,7 +135,7 @@ class SemDadoPessoalNoLogIT {
 
         mvc.perform(get("/cep/01001000").with(ContaDeTeste.ip(ip)));
         mvc.perform(put("/me/consentimentos/marketing").header("Authorization", acesso)
-                .contentType(MediaType.APPLICATION_JSON).content("{ \"aceito\": false, \"versaoTexto\": \"1.1\" }"));
+                .contentType(MediaType.APPLICATION_JSON).content("{ \"aceito\": false, \"versaoTexto\": \"1.2\" }"));
         mvc.perform(get("/me/dados").header("Authorization", acesso).with(ContaDeTeste.ip(ip))).andExpect(status().isOk());
 
         // Um visitante vencido e uma auditoria de mais de 1 ano, para o job ter o que limpar (e logar só a contagem).
@@ -165,5 +167,47 @@ class SemDadoPessoalNoLogIT {
                 .doesNotContain("visitante.antigo@exemplo.test").doesNotContain("11977770001").doesNotContain("Visitante Antigo")
                 .doesNotContain(sessao.acesso()).doesNotContain(sessao.refresh())
                 .contains("Retenção de dados: limpeza=reserva_guest linhas=");
+    }
+
+    @Test
+    @DisplayName("A8: o fluxo da região (cadastro e reserva com a caixinha, PUT /me, retirada da autorização pela conta e pelo visitante, exportação) não deixa CEP, e-mail, WhatsApp nem token no log (R30)")
+    void nadaNoLogDaRegiao(CapturedOutput saida) throws Exception {
+        String ip = "203.0.113.88";
+        String email = ContaDeTeste.emailNovo();
+        String corpoDoCadastro = """
+                { "nome": "Cliente Região", "email": "%s", "whatsapp": "(11) 90000-0088", "senha": "%s",
+                  "cep": "06010-000", "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
+                """.formatted(email, ContaDeTeste.SENHA);
+        mvc.perform(json(post("/auth/cadastro"), corpoDoCadastro).with(ContaDeTeste.ip(ip))).andExpect(status().isCreated());
+        Sessao sessao = ContaDeTeste.entrar(mvc, email, ContaDeTeste.SENHA);
+        String acesso = "Bearer " + sessao.acesso();
+        mvc.perform(put("/me").header("Authorization", acesso).contentType(MediaType.APPLICATION_JSON).with(ContaDeTeste.ip(ip))
+                .content("{ \"cep\": \"06010-000\", \"autorizaRegiao\": true, \"versaoTextoRegiao\": \"1.2\" }"))
+                .andExpect(status().isOk());
+        mvc.perform(put("/me/consentimentos/regiao").header("Authorization", acesso).contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"aceito\": false, \"versaoTexto\": \"1.2\" }")).andExpect(status().isOk());
+
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        UUID servico = DadosDeTeste.servico(jdbc, 30);
+        String reserva = mvc.perform(post("/agendamentos/guest").contentType(MediaType.APPLICATION_JSON).with(ContaDeTeste.ip(ip))
+                .content("""
+                        { "servicoId": "%s", "barbeiroId": "%s", "inicio": "%s", "nome": "Visitante Região",
+                          "email": "visitante.regiao@exemplo.test", "whatsapp": "(11) 90000-0089", "cep": "06010-000",
+                          "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }
+                        """.formatted(servico, barbeiro, DadosDeTeste.em(java.time.LocalDate.of(2026, 12, 1), 11, 0))))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(reserva, "$.id");
+        String token = JsonPath.read(reserva, "$.tokenGuest");
+        mvc.perform(delete("/agendamentos/guest/" + id + "/regiao").header("X-Guest-Token", token).with(ContaDeTeste.ip(ip)))
+                .andExpect(status().isNoContent());
+        mvc.perform(delete("/agendamentos/guest/" + id + "/regiao").header("X-Guest-Token", "g1_errado").with(ContaDeTeste.ip(ip)))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/me/dados").header("Authorization", acesso).with(ContaDeTeste.ip(ip))).andExpect(status().isOk());
+
+        assertThat(saida.getAll())
+                .doesNotContain("06010000").doesNotContain("06010-000").doesNotContain(email)
+                .doesNotContain("visitante.regiao@exemplo.test").doesNotContain("11900000088").doesNotContain("90000-0088")
+                .doesNotContain("11900000089").doesNotContain("90000-0089").doesNotContain(token).doesNotContain(sessao.acesso())
+                .doesNotContain(ip);
     }
 }

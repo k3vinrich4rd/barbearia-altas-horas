@@ -1,6 +1,6 @@
 # ADR 0014 · Alcance: subir de nível, k = 5 e consentimento para a região do CEP
 
-- Status: **aceito** (Alicerce, 20/11/2026, a partir da revisão do Cautelar que o Kevin autorizou)
+- Status: **aceito** (Alicerce, 20/11/2026) e **implementado na Fatia 11** (24/11/2026)
 - Cobre: F6 (CEP mínimo), F7 e F8 (alcance em níveis) do redesign de 20/11
 - Relacionados: ADR 0009 (LGPD), D128 (backup 30 dias), R30 (nada pessoal em log)
 
@@ -32,6 +32,7 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 - Um lugar com contagem abaixo de k não some: entra em "Outros bairros" da cidade, "Outras cidades" da região, "Outras regiões" da UF ou "Outros estados".
 - Se o próprio grupo "Outros" ficar abaixo de k, ele sobe junto para o nível de cima.
 - O k vale em **cada combinação de filtro** (barbeiro, período e nível), e isso inclui os grupos "Outros".
+- **Atualização (D-1, Fatia 11, D166):** em vez de esconder o total do grupo, rebaixa-se o menor filho nomeado para dentro do "Outros" (o município continua visível); o texto abaixo vale como último recurso. A região imediata e o k foram implementados como decididos aqui.
 - **Supressão complementar** (contra descobrir por subtração): quando o total do nível de cima aparece e só um lugar ficou escondido, o "Outros" mostra "menos de k", sem número. Se mesmo assim desse para calcular, o total do nível de cima também não aparece.
 - Valores abaixo de k nunca aparecem como número, percentual, `0`, `null` ou "NaN".
 
