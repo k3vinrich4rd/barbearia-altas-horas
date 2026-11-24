@@ -61,6 +61,8 @@ flowchart LR
 | 10 · Convite e login do barbeiro terceiro (10A isolamento, 10B convite) | [fatia-10-convite-do-barbeiro.md](fatia-10-convite-do-barbeiro.md) | ✅ aprovada (23/11) |
 | 11 · Alcance por estado, município e região (k = 5, consentimento sem CEP) | [fatia-11-alcance-por-nivel.md](fatia-11-alcance-por-nivel.md) | ✅ aprovada (23/11) |
 | 12 · Site mais fluido e mais completo (home, agendar, galeria, Trajetória) | [fatia-12-site-fluido.md](fatia-12-site-fluido.md) | ✅ aprovada (23/11) com as 12 propostas · implementada (12A, 12B e 12C, 27 critérios com teste; LCP medido 2,46 a 2,63 s, ver guia de testes 7.5) |
+| 12 · Site mais fluido e mais completo (home, agendar, galeria, Trajetória) | [fatia-12-site-fluido.md](fatia-12-site-fluido.md) | 📝 aguarda aprovação do Kevin |
+| 13 · Notificação ao barbeiro quando o cliente marca horário (Web Push, aviso no painel, e-mail preparado) | [fatia-13-notificacao-ao-barbeiro.md](fatia-13-notificacao-ao-barbeiro.md) | 📝 aguarda aprovação do Kevin |
 
 ## A IA no processo
 
