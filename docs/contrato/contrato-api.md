@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.7.1
+# 📑 Contrato da API · v1.7.2
 
 | | |
 |---|---|
@@ -376,6 +376,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 429 | <a id="limite_excedido"></a>`LIMITE_EXCEDIDO` | limite de tentativas (H14), com `Retry-After` | Muitas tentativas |
 | 503 | <a id="gateway_indisponivel"></a>`GATEWAY_INDISPONIVEL` | gateway fora ou lento | Pagamento indisponível no momento |
 | 503 | <a id="cep_indisponivel"></a>`CEP_INDISPONIVEL` | ViaCEP e BrasilAPI fora | Consulta de CEP indisponível |
+| 503 | <a id="banco_indisponivel"></a>`BANCO_INDISPONIVEL` | banco de dados fora ou lento (Fatia 8B, E10); com `Retry-After`, sem dado do banco no corpo | Agenda indisponível no momento |
 | 500 | <a id="erro_interno"></a>`ERRO_INTERNO` | erro não previsto (sem detalhe técnico na resposta) | Erro interno |
 
 ## 6. Propostas (atrás de flag ou pós-beta)
@@ -395,6 +396,7 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.7.2 | 2026-11-23 | Fatia 8B: código de erro novo `503 BANCO_INDISPONIVEL` (banco fora ou lento, com `Retry-After`, sem dado do banco); as rotas `/actuator/health/liveness` e `/readiness` são de operação e ficam fora do contrato | não (um código novo no enum; o front trata como 503 genérico) |
 | 1.7.1 | 2026-11-20 | Só documentação: descrição de cada tag, servidor do beta publicado, exemplos **reais** (perfil `dev`) nas respostas do fluxo principal e nos erros `400`, `401`, `403`, `404`, `409`, `422` (o `404` com a mensagem de cada rota: serviço, reserva, cobrança; o `409 COBRANCA_EM_ANDAMENTO` com exemplo); a descrição do `201` do visitante diz que o BFF tira o `tokenGuest` do corpo (D150); `400` documentado em `POST /auth/logout`; lint do Redocly com 0 avisos (exceções justificadas em `.redocly.lint-ignore.yaml`) e rodando no CI | não (nenhuma rota, campo ou status de sucesso mudou) |
 | 1.7.0 (proposta) | 2026-11-18 | Fatia 7B (painel): rota nova `GET /admin/minha-jornada` (ADMIN ou BARBEIRO), a jornada do barbeiro da própria conta, para a agenda do BARBEIRO listrar o almoço (D142). Nenhum campo ou rota existente mudou | não (só acrescenta) |
 | 1.6.0 (proposta) | 2026-11-18 | Fatia 6D: prazo de pagamento de 3 minutos (descrições e `expiracaoPagamentoMin` de 3 a 60); `whatsapp` em `GET /barbeiros` e em `POST` e `PUT /admin/barbeiros`; rota nova `POST /admin/agendamentos` (reserva manual) e schema `ReservaManualRequest`; `origem = MANUAL` e `observacao` em `AgendamentoAdmin`; política de privacidade e texto do consentimento na versão `1.1` | não (campos novos; o front que fixa a versão do texto em `1.0` passa a receber `400` no consentimento e deve ler a versão de `GET /politica-privacidade`) |

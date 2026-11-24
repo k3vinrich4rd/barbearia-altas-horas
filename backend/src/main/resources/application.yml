@@ -32,6 +32,8 @@ spring:
     deserialization:
       # Campo que o contrato não prevê é erro (400 CAMPO_DESCONHECIDO): ninguém manda "papeis" no cadastro.
       fail-on-unknown-properties: true
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   threads:
     virtual:
       enabled: true
@@ -108,6 +110,13 @@ management:
   endpoint:
     health:
       show-details: never
+      # Fatia 8B (E7): /actuator/health/liveness (o processo vive; o Render usa este) e /readiness (pronta para atender).
+      probes:
+        enabled: true
+
+server:
+  # Fatia 8B (E11): um deploy no meio de uma reserva deixa a requisição em curso terminar (SIGTERM do Render).
+  shutdown: graceful
 
 logging:
   pattern:
