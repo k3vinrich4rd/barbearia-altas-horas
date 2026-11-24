@@ -4,6 +4,10 @@ docs/contrato/openapi.yaml:
   # O servidor local (perfil dev, docker compose) é de propósito: é onde quem clona o projeto testa.
   no-server-example.com:
     - '#/servers/1/url'
+  # `POST /agendamentos/{id}/prorrogacao` e `GET /agendamentos/guest/{id}` casam em `/agendamentos/guest/prorrogacao`; o Spring
+  # escolhe o literal `guest` antes de `{id}` (conferido na A11 e A12) e nenhuma reserva tem id igual a "guest" (é um UUID).
+  no-ambiguous-paths:
+    - '#/paths/~1agendamentos~1{id}~1prorrogacao'
   # Leituras públicas sem parâmetro nem corpo: não existe resposta 4xx real para documentar
   # (conferido no perfil dev em 20/11/2026). Inventar um 4xx só para o lint passar seria mentir no contrato.
   operation-4xx-response:

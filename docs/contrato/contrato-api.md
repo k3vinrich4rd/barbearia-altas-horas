@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.10.1
+# 📑 Contrato da API · v1.11.0
 
 | | |
 |---|---|
@@ -50,7 +50,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/actuator/health` | saúde da API | 🌐 | `200` | — | — |
 | `GET` | `/servicos` | serviços ativos com duração e preço | 🌐 | `200` | — | [4.1](#41-catálogo) |
 | `GET` | `/barbeiros` | barbeiros ativos, com o `whatsapp` comercial (**muda na 1.6.0**, 6D) | 🌐 | `200` | — | [4.1](#41-catálogo) |
-| `GET` | `/disponibilidade` | horários livres de um dia | 🌐 | `200` | `400 VALIDACAO_INVALIDA`, `404 RECURSO_NAO_ENCONTRADO`, `422 FORA_DO_HORIZONTE` | [4.2](#42-disponibilidade) |
+| `GET` | `/disponibilidade` | horários livres de um dia | 🌐 | `200` | `400 VALIDACAO_INVALIDA`, `404 RECURSO_NAO_ENCONTRADO`, `422 ANTECEDENCIA_INSUFICIENTE` (data que já passou; **1.11.0**) | [4.2](#42-disponibilidade) |
 | `GET` | `/cep/{cep}` | endereço pelo CEP (cache) | 🌐 | `200` | `400 CEP_INVALIDO`, `404 CEP_NAO_ENCONTRADO`, `503 CEP_INDISPONIVEL`, `429` | [4.3](#43-cep) |
 | `POST` | `/auth/cadastro` | cria conta de cliente | 🌐 | `201` | `400 VALIDACAO_INVALIDA`, `409 EMAIL_JA_CADASTRADO`, `429` | [4.4](#44-autenticação-e-conta) |
 | `POST` | `/auth/convite` | o barbeiro aceita o convite do dono: digita o **próprio e-mail** e cria a senha (**novo na 1.8.0**, 10B). Conta que já existe: com o token dela e sem `senha` (H32) | 🌐 (10 por hora por IP; token do cliente opcional) | `204` | `400 VALIDACAO_INVALIDA`, `400 CAMPO_DESCONHECIDO`, `422 CONVITE_INVALIDO` (uma resposta só), `429 LIMITE_EXCEDIDO` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
@@ -68,12 +68,14 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/politica-privacidade` | política de privacidade, texto da caixa de marketing e **texto da caixinha de região**, com a versão vigente (**1.2**) | 🌐 | `200` | — | [4.9](#49-privacidade) |
 | `GET` | `/politica-pagamento` | texto e versão da política (sem cancelamento, remarcação ou estorno) | 🌐 | `200` | — | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 3 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
+| `POST` | `/agendamentos/{id}/prorrogacao` | acrescenta 1 minuto ao prazo do Pix, **uma vez** e só no último minuto; sem corpo; idempotente sem chave (**novo na 1.11.0**, 14A) | 👤 | `201` (`200` na repetição) | `400 CAMPO_DESCONHECIDO`, `401`, `404` (inclusive de outro dono e reserva manual), `409 CONFLITO_CONCORRENTE`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/alcance` | municípios e bairros atendidos (pessoas diferentes, k ≥ 5), só nomes e **faixas de porcentagem**, nunca número, últimos 12 meses (**1.9.0**, 11C) | 🌐 (30/min por IP) | `200` | `429` | [4.6](#46-guest) |
 | `DELETE` | `/agendamentos/guest/{id}/regiao` | o visitante retira a autorização de região da reserva, com o `X-Guest-Token`; idempotente (**novo na 1.9.0**, 11A) | 🎟 (limite por IP) | `204` | `404` (token errado, ausente ou de outra reserva, mesmo corpo), `429` | [4.6](#46-guest) |
 | `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`); `cep` opcional e só vale com `autorizaRegiao = true` (**1.9.0**) | 🌐 (limite por IP) | `201` | `400` (`CEP_INVALIDO` se o `cep` tem formato errado), `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
+| `POST` | `/agendamentos/guest/{id}/prorrogacao` | o mesmo "mais 1 minuto" para o visitante, com o `X-Guest-Token` (**novo na 1.11.0**, 14A) | 🧾 | `201` (`200` na repetição) | `400 CAMPO_DESCONHECIDO`, `404` (token errado, ausente ou de outra reserva), `409 CONFLITO_CONCORRENTE`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA` | [4.6](#46-guest) |
 | `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
 | `GET` | `/admin/agenda` | agenda do dia ou da semana, com nome e WhatsApp de quem vem e o status da cobrança (`AgendamentoAdmin`) | 🛠 ✂️ (só a própria, **H9**) | `200` | `400`, `401`, `403`, `404` (barbeiro inexistente, alheio ou sem vínculo) | [Painel](../admin/painel-admin.md) |
@@ -112,6 +114,8 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST /auth/cadastro` | — | `nome`, `email`, `whatsapp`, `senha`, `cep?`, `aceitaMarketing`, `autorizaRegiao?`, `versaoTextoRegiao?` | — | 5/h por IP | — | — |
 | `POST /agendamentos` | o próprio cliente (do token) | `servicoId`, `barbeiroId`, `inicio` | — | — | — (o horário já é único) | < 400 ms |
 | `GET /agendamentos/{id}` | `cliente_id = sub` senão `404` | — | — | — | — | — |
+| `POST /agendamentos/{id}/prorrogacao` | `cliente_id = sub` senão `404` | nenhum (sem corpo) | — | — | natural: repetir devolve `200` com o mesmo corpo | — |
+| `POST /agendamentos/guest/{id}/prorrogacao` | hash do `X-Guest-Token` = `token_hash` senão `404` | nenhum (sem corpo) | — | — | natural: repetir devolve `200` com o mesmo corpo | — |
 | `POST /agendamentos/guest` | — | `servicoId`, `barbeiroId`, `inicio`, `nome`, `email`, `whatsapp`, `cep?`, `autorizaRegiao?`, `versaoTextoRegiao?` | — | 3/h por IP | — | < 400 ms |
 | `GET /alcance` | — | — | — | 30/min por IP | — | — |
 | `GET /admin/alcance` | BARBEIRO só os próprios clientes (o `barbeiroId` da query vira o dele, sem sinal no corpo) | — | — | — | — | — |
@@ -158,7 +162,7 @@ As três rotas de catálogo (`/servicos`, `/barbeiros`, `/politica-pagamento`) r
   ]
 }
 ```
-Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDANDO_PAGAMENTO` vencidas, R15); passos de `granularidadeMin` (H11); só a partir de `agora + antecedenciaMinimaMin` (H5); até `horizonteDias` (H12); `data` **antes de hoje** ou além do horizonte → `422 FORA_DO_HORIZONTE`. Um início só é oferecido se o serviço **inteiro** couber no intervalo da jornada (o de 60 min não aparece às 11h30 nem às 19h30). Serviço inexistente → `404`; inativo → `422 SERVICO_INATIVO`; `barbeiroId` inexistente ou inativo → `404`; `data` ou `servicoId` ausente ou malformado → `400 VALIDACAO_INVALIDA` com o campo em `errors[]`. Horários em ordem crescente, sempre com segundos e offset; barbeiro sem horário vem com `horarios: []`. Resposta com `Cache-Control: no-store`.
+Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDANDO_PAGAMENTO` vencidas, R15); passos de `granularidadeMin` (H11); só inícios **depois de agora** (1.11.0, D197: **não há** antecedência mínima nem limite de dias à frente; qualquer data de hoje em diante é aceita, até 400 dias); `data` **anterior a hoje**, no fuso da barbearia → `422 ANTECEDENCIA_INSUFICIENTE` ("o horário já passou"). Um início só é oferecido se o serviço **inteiro** couber no intervalo da jornada (o de 60 min não aparece às 11h30 nem às 19h30). Serviço inexistente → `404`; inativo → `422 SERVICO_INATIVO`; `barbeiroId` inexistente ou inativo → `404`; `data` ou `servicoId` ausente ou malformado → `400 VALIDACAO_INVALIDA` com o campo em `errors[]`. Horários em ordem crescente, sempre com segundos e offset; barbeiro sem horário vem com `horarios: []`. Resposta com `Cache-Control: no-store`.
 
 ### 4.3 CEP
 
@@ -222,7 +226,11 @@ Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13
   "expiraEm": "2026-11-30T15:15:00-03:00"
 }
 ```
-Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; deadlock que persistiu depois do retry interno → `409 CONFLITO_CONCORRENTE` (o horário pode estar livre: o front **não** o esconde e pode repetir a requisição **uma vez**; vale também para o guest, ADR 0003); fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; antes de `agora + antecedência` → `422 ANTECEDENCIA_INSUFICIENTE`; `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `precoCentavos` no corpo → `400 CAMPO_DESCONHECIDO`. O horário fica travado por 15 minutos até o pagamento (R6, R7); o próximo passo é a [cobrança](#47-pagamento-100-antecipado).
+Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; deadlock que persistiu depois do retry interno → `409 CONFLITO_CONCORRENTE` (o horário pode estar livre: o front **não** o esconde e pode repetir a requisição **uma vez**; vale também para o guest, ADR 0003); fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; `inicio` que já passou (até agora, inclusive) → `422 ANTECEDENCIA_INSUFICIENTE` (a única regra de tempo desde a 1.11.0, D197); `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `precoCentavos` no corpo → `400 CAMPO_DESCONHECIDO`. O horário fica travado por 15 minutos até o pagamento (R6, R7); o próximo passo é a [cobrança](#47-pagamento-100-antecipado).
+
+**Campo novo na 1.11.0 (`prorrogacao`)**, em todo `Agendamento` (e em `AgendamentoGuest` e `AgendamentoAdmin`): `null` para reserva manual e para reserva que não está `AGUARDANDO_PAGAMENTO` dentro do prazo; senão `{ "usada": false, "segundos": 60, "abreEm": "2026-11-30T15:14:00-03:00", "fechaEm": "2026-11-30T15:15:00-03:00" }`. A janela é `[expiraEm − 60 s, expiraEm)`, calculada no servidor.
+
+**Acrescentar 1 minuto** (`POST /agendamentos/{id}/prorrogacao`, 👤, **sem corpo**) → `201` com o `Agendamento` e o `expiraEm` **60 s depois** do que estava correndo (`prorrogacao.usada = true`). A repetição devolve `200` com o mesmo corpo, **sem** somar. Ordem das checagens: `404` (não é dono, inexistente ou reserva manual) → `422 TRANSICAO_INVALIDA` (`CONFIRMADO`, `CONCLUIDO`, `NAO_COMPARECEU` ou `CANCELADO`) → `200` (já prorrogada e no prazo) → `422 RESERVA_EXPIRADA` (prazo vencido ou `EXPIRADO`: não há carência nem reabertura) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava. O Pix já gerado **não muda**. Corpo com qualquer campo → `400 CAMPO_DESCONHECIDO`. Deadlock que persistiu depois do retry → `409 CONFLITO_CONCORRENTE`.
 
 `GET /me/agendamentos?pagina=0&tamanho=20` → `200` página do formato acima, mais recentes primeiro.
 
@@ -275,6 +283,8 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
 `total` e `cidades` são o formato antigo (`deprecated`). **Única exceção à regra "só acrescenta":** `semRegiao` era um número e agora é um objeto (o painel foi atualizado junto).
 
 `GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix ou do checkout do cartão). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.
+
+**Acrescentar 1 minuto como visitante (1.11.0):** `POST /agendamentos/guest/{id}/prorrogacao` com o `X-Guest-Token` da reserva e **sem bearer nem corpo** → as mesmas respostas da rota do cliente (`201`, `200` na repetição, `422 PRORROGACAO_FORA_DA_JANELA`, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA`). Token errado, ausente ou de outra reserva → o mesmo `404` de "não existe" (R23). A rota é pública **só para `POST`** (a lista do `SegurancaConfig`).
 
 ### 4.7 Pagamento 100% antecipado
 
@@ -332,7 +342,7 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 `POST /admin/agendamentos` (ADMIN ou BARBEIRO) `{ "servicoId": "...", "barbeiroId": "...", "inicio": "2026-12-01T15:00:00-03:00", "nomeCliente": "Fulano de Tal", "observacao": "combinado por WhatsApp" }` → `201` `AgendamentoAdmin` com `status = CONFIRMADO`, `origem = MANUAL`, `expiraEm = null`, `cobrancaStatus = null`, `cliente = { "nome": "Fulano de Tal", "whatsapp": null }` e `observacao`. `nomeCliente` (até 80) e `observacao` (até 200) são opcionais; sem nome, `cliente.nome` vem como `Sem nome`.
 
 - **Quem:** ADMIN trava para qualquer barbeiro; BARBEIRO só para si (barbeiro alheio, inexistente ou conta sem vínculo: `404`).
-- **Regras:** as da reserva do cliente (jornada, almoço, folga, granularidade, serviço ativo, horizonte, constraint do banco), **exceto a antecedência mínima**; horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado é `409 HORARIO_INDISPONIVEL`. Grava auditoria (`AGENDAMENTO_MANUAL_CRIADO`) na mesma transação.
+- **Regras:** as da reserva do cliente (jornada, almoço, folga, granularidade, serviço ativo, constraint do banco); desde a 1.11.0 (D197) **nenhuma** reserva tem antecedência mínima nem horizonte, e o horário que já passou (início até agora, inclusive) é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado é `409 HORARIO_INDISPONIVEL`. Grava auditoria (`AGENDAMENTO_MANUAL_CRIADO`) na mesma transação.
 - **Depois de criada:** aparece em `GET /admin/agenda`, ocupa o horário na disponibilidade e pode ser concluída ou marcada como falta (`PATCH /admin/agendamentos/{id}/status`). Só o ADMIN cancela, com motivo; como não há cobrança, nada vai para devolução.
 - **Privacidade:** não existe campo de WhatsApp, e-mail nem CPF do cliente, e o sistema não guarda. `nomeCliente` e `observacao` somem 90 dias depois do fim da reserva. Cliente e visitante recebem `404` ao tentar ver ou pagar essa reserva. Não conta no alcance. Pagamento por fora (dinheiro, Pix direto) não gera registro financeiro.
 
@@ -427,8 +437,9 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 409 | <a id="usuario_ja_vinculado"></a>`USUARIO_JA_VINCULADO` | conta já ligada a outro barbeiro (**novo na 1.4.0**, usado pelo cadastro de barbeiros da 5B) | Conta já vinculada |
 | 409 | <a id="exclusao_bloqueada_por_reserva"></a>`EXCLUSAO_BLOQUEADA_POR_RESERVA` | `DELETE /me` com reserva futura paga (**novo na 1.5.0**, Fatia 6B): combine o cancelamento com a barbearia | Exclusão bloqueada por reserva |
 | 422 | <a id="fora_do_expediente"></a>`FORA_DO_EXPEDIENTE` | fora da jornada ou em folga | Fora do horário de atendimento |
-| 422 | <a id="antecedencia_insuficiente"></a>`ANTECEDENCIA_INSUFICIENTE` | antes da antecedência mínima (H5) | Antecedência mínima não atendida |
-| 422 | <a id="fora_do_horizonte"></a>`FORA_DO_HORIZONTE` | data além do horizonte (H12) | Data além do permitido |
+| 422 | <a id="antecedencia_insuficiente"></a>`ANTECEDENCIA_INSUFICIENTE` | o horário já passou: `inicio` até agora (inclusive) ou `data` anterior a hoje no fuso da barbearia; desde a **1.11.0** (D197) é a única regra de tempo, e o nome do código não mudou para não quebrar o front | Horário já passou |
+| 422 | <a id="fora_do_horizonte"></a>`FORA_DO_HORIZONTE` | **deprecated na 1.11.0** (D197): a API não devolve mais; o nome fica no enum para o front antigo | Data além do permitido |
+| 422 | <a id="prorrogacao_fora_da_janela"></a>`PRORROGACAO_FORA_DA_JANELA` | pediu "mais 1 minuto" **antes** do último minuto do prazo (**novo na 1.11.0**, 14A); `detail`: "Só dá para acrescentar tempo no último minuto." | Fora da janela de prorrogação |
 | 422 | <a id="aceite_politica_obrigatorio"></a>`ACEITE_POLITICA_OBRIGATORIO` | cobrança sem `aceitePolitica: true` | Aceite da política obrigatório |
 | 422 | <a id="transicao_invalida"></a>`TRANSICAO_INVALIDA` | transição fora da máquina de estados | Mudança de status não permitida |
 | 422 | <a id="motivo_obrigatorio"></a>`MOTIVO_OBRIGATORIO` | cancelamento pela barbearia sem motivo | Motivo obrigatório |
@@ -461,6 +472,7 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.11.0 | 2026-11-24 | Fatia 14A: `POST /agendamentos/{id}/prorrogacao` e `POST /agendamentos/guest/{id}/prorrogacao` ("mais 1 minuto" no Pix, uma vez, só no último minuto); campo `prorrogacao` em `Agendamento` (e `AgendamentoGuest` e `AgendamentoAdmin`); código `422 PRORROGACAO_FORA_DA_JANELA`. **Agenda sem antecedência nem horizonte (D197):** `FORA_DO_HORIZONTE` fica `deprecated`; `ANTECEDENCIA_INSUFICIENTE` passa a significar só "o horário já passou"; `antecedenciaMinimaMin` e `horizonteDias` saem da resposta de `/admin/configuracao` e ficam opcionais, `deprecated` e ignorados no `PUT` | não (acrescenta; o que sai da resposta é só configuração do painel e o front é atualizado na mesma entrega) |
 | 1.10.1 | 2026-11-24 | Fatia 8B: código de erro novo `503 BANCO_INDISPONIVEL` (banco fora ou lento, com `Retry-After`, sem dado do banco); as rotas `/actuator/health/liveness` e `/readiness` são de operação e ficam fora do contrato | não (um código novo no enum; o front trata como 503 genérico) |
 | 1.10.0 | 2026-11-24 | Fatia 13 (notificação ao barbeiro): `GET /admin/notificacoes/chave-publica`, `POST` e `DELETE /admin/notificacoes/inscricao`, `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` e `POST /admin/notificacoes/teste` (todas 🛠, só da conta do token); schemas `ChavePublicaPush`, `InscricaoPush`, `RemocaoDeInscricaoPush`, `Novidades` e `AvisoDoPainel`. Nenhum campo novo nos schemas existentes e nenhum código de erro novo. A versão `1.9.0` é da Fatia 11 (alcance por nível) | não (só acrescenta) |
 | 1.9.0 | 2026-11-23 | Fatia 11 (alcance por nível, ADR 0014): `PUT /me` e `PUT /me/consentimentos/regiao` (consentimento `REGIAO_ALCANCE`, revogar apaga a região), `DELETE /agendamentos/guest/{id}/regiao` (o visitante retira a autorização), `autorizaRegiao` e `versaoTextoRegiao` em `POST /auth/cadastro` e `POST /agendamentos/guest` (o `cep` só vale com a caixinha e nunca é guardado), `regiaoAutorizada` no `Perfil`, na exportação e nas respostas do visitante, `municipioIbge` em `Endereco`, `textoConsentimentoRegiao` e a política **1.2**; `GET /alcance` em **faixas** (`faixaPercentual`, `bairrosComFaixa`, `codigoIbge`, `comFaixas`; `bairros` fica `deprecated`) e contando pessoas; `GET /admin/alcance` com `nivel`, `uf`, `periodo`, `k`, `totalVisivel`, `grupos` e `filhos` (`total` e `cidades` ficam `deprecated`). `endereco.cep` fica `deprecated` e sempre nulo. **Exceção à regra de só acrescentar:** `AlcancePainel.semRegiao` passou de número a objeto `{ clientes, abaixoDoLimite }` | sim, só o painel de alcance (atualizado na mesma entrega); o resto só acrescenta |
