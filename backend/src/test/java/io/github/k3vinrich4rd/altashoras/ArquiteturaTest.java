@@ -171,10 +171,11 @@ class ArquiteturaTest {
                 .because("o painel chama os donos; nenhum dono chama o painel (ADR 0002)")
                 .check(CLASSES);
         noClasses().that().resideInAPackage("..admin..").and().resideOutsideOfPackage("..admin.auditoria..")
+                .and().resideOutsideOfPackage("..admin.notificacao..")
                 .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.simple.JdbcClient")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.JdbcTemplate")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.EntityManager")
-                .because("o admin só enxerga SQL de auditoria_admin; as outras tabelas são dos donos (ADR 0002)")
+                .because("o admin só enxerga SQL de auditoria_admin e, desde a Fatia 13, das duas tabelas de notificacao (aviso_barbeiro e inscricao_push, que são dele); as outras tabelas são dos donos (ADR 0002)")
                 .check(CLASSES);
     }
 

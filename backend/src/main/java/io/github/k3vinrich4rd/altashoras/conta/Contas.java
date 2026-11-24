@@ -116,6 +116,15 @@ public class Contas {
         });
     }
 
+    /**
+     * O e-mail de login de uma conta ATIVA, só para o canal de e-mail da notificação ao barbeiro (Fatia 13, D-8: o e-mail que ele
+     * mesmo digitou no convite). Quem chama não grava nem imprime o valor (R30). Conta inexistente ou desativada: vazio.
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> emailDaConta(UUID usuarioId) {
+        return usuarios.findById(usuarioId).filter(Usuario::isAtivo).map(Usuario::getEmail);
+    }
+
     /** Conta ativa com o papel pedido (CLIENTE, BARBEIRO ou ADMIN). Conta inexistente ou desativada: {@code false}. */
     @Transactional(readOnly = true)
     public boolean temPapel(UUID usuarioId, String papel) {
