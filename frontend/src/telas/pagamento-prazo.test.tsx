@@ -61,4 +61,18 @@ describe("prazo do pagamento", () => {
     expect(screen.getByRole("button", { name: "Pagar" })).toBeInTheDocument();
     expect(screen.queryByText(/O tempo acabou e o horário voltou/)).toBeNull();
   });
+
+  test("A19: o prazo mostrado vem só do expiraEm: com 3 min a tela mostra 03:00 e, mudando o expiraEm para 10 min, mostra 10:00", async () => {
+    const agora = new Date("2026-11-18T08:00:00-03:00").getTime();
+    const em = (min: number) => new Date(agora + min * 60_000).toISOString();
+    api({ expiraEm: em(3) });
+    const { unmount } = montar();
+    expect(await screen.findByText("03:00")).toBeInTheDocument();
+    unmount();
+
+    api({ expiraEm: em(10) });
+    montar();
+    expect(await screen.findByText("10:00")).toBeInTheDocument();
+    expect(screen.queryByText("03:00")).toBeNull();
+  });
 });

@@ -42,11 +42,11 @@ class SeedDevIT {
     Clock clock;
 
     @Test
-    @DisplayName("A28: no perfil dev, a API mostra os 5 serviços reais e 22 horários do Corte Degradê (60 min) numa terça")
+    @DisplayName("A28: no perfil dev, a API mostra os 6 serviços reais e 22 horários do Corte Degradê (60 min) numa terça")
     void catalogoEDisponibilidadePelaApi() throws Exception {
         mvc.perform(get("/servicos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$.length()").value(6))
                 .andExpect(jsonPath("$[?(@.nome=='Corte Degradê / Fade / Navalhado')].precoFormatado").value("R$ 55,00"));
         mvc.perform(get("/barbeiros"))
                 .andExpect(jsonPath("$[0].nomeExibicao").value("Eduardo Candido"));
@@ -69,15 +69,15 @@ class SeedDevIT {
     }
 
     @Test
-    @DisplayName("A9: 5 serviços com os preços reais em centavos; todos duram 60 min (2 slots)")
+    @DisplayName("A9: 6 serviços com os preços reais em centavos; todos duram 60 min (2 slots)")
     void catalogo() {
         List<Map<String, Object>> servicos = jdbc.queryForList(
                 "SELECT nome, duracao_min, preco_centavos FROM servico ORDER BY preco_centavos");
         assertThat(servicos).extracting(s -> s.get("preco_centavos"))
-                .containsExactly(2000L, 3000L, 4500L, 5500L, 6000L);
+                .containsExactly(2000L, 3000L, 4500L, 5500L, 6000L, 8000L);
         assertThat(servicos).extracting(s -> s.get("duracao_min")).containsOnly(60);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM servico WHERE duracao_min = 60", Integer.class))
-                .isEqualTo(5);
+                .isEqualTo(6);
     }
 
     @Test
@@ -94,7 +94,7 @@ class SeedDevIT {
         jdbc.execute(sql);
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM servico WHERE duracao_min = 60", Integer.class))
-                .isEqualTo(5);
+                .isEqualTo(6);
         assertThat(jdbc.queryForObject(
                 "SELECT nome FROM servico WHERE id = '6f1c2a8e-0000-4000-8000-000000000001'", String.class))
                 .isEqualTo("Nome alterado pelo admin");

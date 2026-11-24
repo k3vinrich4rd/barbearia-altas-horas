@@ -237,11 +237,14 @@ curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-00
 <tr><td>✂️ Corte Moderno / Visagismo (tesoura)</td><td align="center">60 min</td><td align="right"><kbd>R$ 60,00</kbd></td></tr>
 <tr><td>🪒 Barba Completa / Desenhada</td><td align="center">60 min</td><td align="right"><kbd>R$ 30,00</kbd></td></tr>
 <tr><td>🪒 Acabamento (pezinho) / Sobrancelha</td><td align="center">60 min</td><td align="right"><kbd>R$ 20,00</kbd></td></tr>
+<tr><td>✂️ Descoloração / Platinado (química)</td><td align="center">60 min</td><td align="right"><kbd>R$ 80,00</kbd></td></tr>
 </table>
 
 <sub>Sem combos. Preços, horários e regras são dados que o Eduardo muda no painel, sem mexer no código.</sub>
 
 ### Da cadeira
+
+> **Fatia 12 (site mais fluido):** no site a galeria agora é uma grade de **18 fotos** (as 3 abaixo e 15 novas dos Instagrams do Eduardo e da barbearia, com autorização de imagem confirmada, D158), com a foto inteira ao tocar. A home segue a ordem em que o cliente decide (serviços, barbeiro, galeria, **Trajetória**), tem barra fixa "Agendar horário" no celular e o `/agendar` virou serviço → horário em chips → "Continuar". Detalhes: [spec](docs/sdd/fatia-12-site-fluido.md).
 
 <table>
 <tr>

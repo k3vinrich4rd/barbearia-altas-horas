@@ -1,7 +1,9 @@
 "use client";
-// Passo 1 da reserva: serviço, barbeiro, dia e horário (A18 a A20). Horários no fuso da barbearia, agrupados por barbeiro.
+// Passo 1 da reserva em poucos toques (Fatia 12C, spec 4.2): serviço, (barbeiro só se houver mais de um), tira de 7 dias
+// com o próximo dia livre já escolhido, horários em chips e resumo fixo com "Continuar". Horários no fuso da barbearia,
+// agrupados por barbeiro. A rota e a lógica seguem as mesmas: /agendar → /agendar/dados → pagamento → confirmação.
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import {
   diaNoFuso,
@@ -13,14 +15,70 @@ import {
   somarDias,
 } from "@/api/formato";
 import { useConsulta } from "@/api/hooks";
+import { mensagemDoErro } from "@/api/mensagens";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
-import { mensagemDoErro } from "@/api/mensagens";
 
 const HORIZONTE = Number(process.env.NEXT_PUBLIC_HORIZONTE_DIAS ?? "30") || 30;
+const DIAS_DA_TIRA = 7;
+
+const buscarDisponibilidade = (servicoId: string, data: string, barbeiroId: string) =>
+  chamar(
+    api().GET("/disponibilidade", { params: { query: { servicoId, data, ...(barbeiroId ? { barbeiroId } : {}) } } }),
+  );
+
+const totalDeHorarios = (d: Awaited<ReturnType<typeof buscarDisponibilidade>>) =>
+  d.barbeiros.reduce((n, b) => n + b.horarios.length, 0);
+
+/** Quantos horários livres cada dia da tira tem (null = não deu para saber). Uma consulta por dia, ao escolher o serviço. */
+function useSemana(servicoId: string, barbeiroId: string, dias: string[]) {
+  const [lido, setLido] = useState<{ chave: string; porDia: Record<string, number | null> }>();
+  const chave = `${servicoId}|${barbeiroId}|${dias[0]}`;
+  useEffect(() => {
+    if (!servicoId) return;
+    let vivo = true;
+    Promise.all(
+      dias.map((d) =>
+        buscarDisponibilidade(servicoId, d, barbeiroId).then(
+          (r) => totalDeHorarios(r),
+          () => null,
+        ),
+      ),
+    ).then((contagens) => {
+      if (vivo) setLido({ chave, porDia: Object.fromEntries(dias.map((d, i) => [d, contagens[i]])) });
+    });
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+  return lido?.chave === chave ? lido.porDia : undefined;
+}
+
+/** Entre o primeiro e o último horário livre, o que falta na grade (almoço, ocupado) vira chip indisponível. */
+function comIndisponiveis(horarios: string[]): { inicio: string; livre: boolean }[] {
+  const tempos = horarios.map((h) => new Date(h).getTime());
+  const passos = tempos.slice(1).map((t, i) => t - tempos[i]);
+  const passo = passos.length > 0 ? Math.min(...passos) : 0;
+  const livres = new Set(horarios);
+  if (passo <= 0) return horarios.map((inicio) => ({ inicio, livre: true }));
+  const saida: { inicio: string; livre: boolean }[] = [];
+  for (let t = tempos[0], n = 0; t <= tempos[tempos.length - 1] && n < 96; t += passo, n++) {
+    const livre = horarios.find((h) => new Date(h).getTime() === t);
+    saida.push(
+      livre && livres.has(livre) ? { inicio: livre, livre: true } : { inicio: new Date(t).toISOString(), livre: false },
+    );
+  }
+  return saida;
+}
+
+const rotuloDoDia = (dia: string) => {
+  const meio = `${dia}T12:00:00Z`;
+  return `${formatarDiaDaSemana(meio, "UTC").slice(0, 3)} ${Number(dia.slice(8, 10))}`;
+};
 
 export function Agendar() {
   const roteador = useRouter();
@@ -28,31 +86,73 @@ export function Agendar() {
   const [servicoId, setServicoId] = useState(busca.get("servicoId") ?? "");
   const [barbeiroId, setBarbeiroId] = useState(busca.get("barbeiroId") ?? "");
   const [data, setData] = useState(busca.get("data") ?? "");
+  const [escolhido, setEscolhido] = useState<{ chave: string; barbeiroId: string; inicio: string }>();
+  const [procurando, setProcurando] = useState(false);
+  const [semProximo, setSemProximo] = useState(false);
+  const diaEscolhidoPelaPessoa = useRef(Boolean(busca.get("data")));
   const ocupado = busca.get("ocupado") ?? undefined;
 
   const hoje = diaNoFuso(new Date());
   const limite = somarDias(hoje, HORIZONTE);
   const dataValida = data !== "" && data >= hoje && data <= limite;
+  const tira = Array.from({ length: DIAS_DA_TIRA }, (_, i) => somarDias(hoje, i));
 
   const servicos = useConsulta(buscarServicos, []);
   const barbeiros = useConsulta(() => chamar(api().GET("/barbeiros")), []);
+  // com um só barbeiro ativo, a escolha some e a agenda é a dele
+  const unico = barbeiros.dados?.length === 1;
+  const barbeiroEfetivo = unico ? "" : barbeiroId;
+
   const disponibilidade = useConsulta(
-    () =>
-      chamar(
-        api().GET("/disponibilidade", {
-          params: { query: { servicoId, data, ...(barbeiroId ? { barbeiroId } : {}) } },
-        }),
-      ),
-    [servicoId, data, barbeiroId],
+    () => buscarDisponibilidade(servicoId, data, barbeiroEfetivo),
+    [servicoId, data, barbeiroEfetivo],
     Boolean(servicoId) && dataValida,
   );
+  const semana = useSemana(servicoId, barbeiroEfetivo, tira);
 
-  function escolher(barbeiro: string, inicio: string) {
-    const p = new URLSearchParams({ servicoId, barbeiroId: barbeiro, inicio });
-    roteador.push(`/agendar/dados?${p.toString()}`);
+  // o próximo dia que tem horário já vem escolhido (a pessoa só troca se quiser)
+  useEffect(() => {
+    if (diaEscolhidoPelaPessoa.current || data || !semana) return;
+    const primeiro = tira.find((d) => (semana[d] ?? 0) > 0);
+    if (primeiro) setData(primeiro);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semana]);
+
+  function escolherDia(dia: string) {
+    diaEscolhidoPelaPessoa.current = true;
+    setSemProximo(false);
+    setData(dia);
   }
 
+  async function verProximoDiaComHorario() {
+    setProcurando(true);
+    setSemProximo(false);
+    for (let d = somarDias(dataValida ? data : hoje, 1); d <= limite; d = somarDias(d, 1)) {
+      try {
+        if (totalDeHorarios(await buscarDisponibilidade(servicoId, d, barbeiroEfetivo)) > 0) {
+          setProcurando(false);
+          escolherDia(d);
+          return;
+        }
+      } catch {
+        /* um dia que falha não impede de procurar nos outros */
+      }
+    }
+    setProcurando(false);
+    setSemProximo(true);
+  }
+
+  const servico = servicos.dados?.find((s) => s.id === servicoId);
+  const chave = `${servicoId}|${data}|${barbeiroEfetivo}`;
+  const sel = escolhido?.chave === chave ? escolhido : undefined;
   const barbeiroEscolhido = barbeiros.dados?.find((b) => b.id === barbeiroId);
+  const fusoDoDia = disponibilidade.dados?.fuso ?? FUSO_PADRAO;
+
+  function continuar() {
+    if (!sel) return;
+    const p = new URLSearchParams({ servicoId, barbeiroId: sel.barbeiroId, inicio: sel.inicio });
+    roteador.push(`/agendar/dados?${p.toString()}`);
+  }
 
   return (
     <>
@@ -62,83 +162,127 @@ export function Agendar() {
 
       <section aria-labelledby="passo-servico">
         <h2 id="passo-servico">1 · Serviço</h2>
-        <EstadoDaConsulta consulta={servicos}>
-          {(lista) =>
-            lista.length === 0 ? (
-              <p>Sem serviços no momento.</p>
-            ) : (
-              <div role="radiogroup" aria-labelledby="passo-servico" className="lista opcoes">
-                {lista.map((s) => (
-                  <label key={s.id} className="opcao">
-                    <input
-                      type="radio"
-                      name="servico"
-                      value={s.id}
-                      checked={servicoId === s.id}
-                      onChange={() => setServicoId(s.id)}
-                    />
-                    <span>
-                      <strong>{s.nome}</strong>
-                      <br />
-                      <span className="hora">{s.duracaoMin} min</span> ·{" "}
-                      <span className="preco">{formatarPreco(s)}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )
-          }
-        </EstadoDaConsulta>
+        <div className="reserva-servicos">
+          <EstadoDaConsulta consulta={servicos}>
+            {(lista) =>
+              lista.length === 0 ? (
+                <p>Sem serviços no momento.</p>
+              ) : (
+                <div role="radiogroup" aria-labelledby="passo-servico" className="lista opcoes">
+                  {lista.map((s) => (
+                    <label key={s.id} className="opcao">
+                      <input
+                        type="radio"
+                        name="servico"
+                        value={s.id}
+                        checked={servicoId === s.id}
+                        onChange={() => setServicoId(s.id)}
+                      />
+                      <span>
+                        <strong>{s.nome}</strong>
+                        <br />
+                        <span className="hora">{s.duracaoMin} min</span> ·{" "}
+                        <span className="preco">{formatarPreco(s)}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )
+            }
+          </EstadoDaConsulta>
+        </div>
       </section>
 
+      {barbeiros.dados && barbeiros.dados.length > 1 && (
+        <section aria-labelledby="passo-barbeiro">
+          <h2 id="passo-barbeiro">2 · Barbeiro</h2>
+          <div role="radiogroup" aria-labelledby="passo-barbeiro" className="lista opcoes barbeiros-cartoes">
+            {[{ id: "", nomeExibicao: "Qualquer barbeiro" }, ...barbeiros.dados].map((b) => (
+              <label key={b.id || "qualquer"} className="opcao">
+                <input
+                  type="radio"
+                  name="barbeiro"
+                  value={b.id}
+                  checked={barbeiroId === b.id}
+                  onChange={() => setBarbeiroId(b.id)}
+                />
+                <span>
+                  <strong>{b.nomeExibicao}</strong>
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="passo-dia">
-        <h2 id="passo-dia">2 · Dia</h2>
-        <form onSubmit={(e) => e.preventDefault()}>
-          <div className="campo">
-            <label htmlFor="barbeiro">Barbeiro</label>
-            <select id="barbeiro" value={barbeiroId} onChange={(e) => setBarbeiroId(e.target.value)}>
-              <option value="">Qualquer barbeiro</option>
-              {barbeiros.dados?.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.nomeExibicao}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="campo">
-            <label htmlFor="data">Dia</label>
-            <input
-              id="data"
-              type="date"
-              min={hoje}
-              max={limite}
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              aria-describedby={data !== "" && !dataValida ? "data-erro" : undefined}
-              aria-invalid={data !== "" && !dataValida ? true : undefined}
-            />
-            {data !== "" && !dataValida && (
-              <p id="data-erro" className="campo-erro">
-                Escolha um dia de hoje até {formatarDataCurta(`${limite}T12:00:00Z`)}.
-              </p>
-            )}
-            {disponibilidade.erro && !disponibilidade.erro.acordando && (
-              <AvisoDeErro erro={disponibilidade.erro} id="data-erro-api" />
-            )}
-          </div>
-        </form>
+        <h2 id="passo-dia">{unico || !barbeiros.dados ? "2" : "3"} · Dia</h2>
+        <div role="group" aria-label="Próximos dias" className="dias-tira">
+          {tira.map((dia) => {
+            const livres = semana?.[dia];
+            return (
+              <button
+                key={dia}
+                type="button"
+                className="dia-chip"
+                aria-pressed={data === dia}
+                data-livre={livres === undefined || livres === null ? "desconhecido" : livres > 0 ? "sim" : "nao"}
+                onClick={() => escolherDia(dia)}
+              >
+                <span>{rotuloDoDia(dia)}</span>
+                <span className="dia-chip-nota">
+                  {livres === undefined || livres === null ? "" : livres > 0 ? "livre" : "sem horário"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="campo">
+          <label htmlFor="data">Outro dia (até {formatarDataCurta(`${limite}T12:00:00Z`)})</label>
+          <input
+            id="data"
+            type="date"
+            min={hoje}
+            max={limite}
+            value={data}
+            onChange={(e) => escolherDia(e.target.value)}
+            aria-describedby={data !== "" && !dataValida ? "data-erro" : undefined}
+            aria-invalid={data !== "" && !dataValida ? true : undefined}
+          />
+          {data !== "" && !dataValida && (
+            <p id="data-erro" className="campo-erro">
+              Escolha um dia de hoje até {formatarDataCurta(`${limite}T12:00:00Z`)}.
+            </p>
+          )}
+          {disponibilidade.erro && !disponibilidade.erro.acordando && (
+            <AvisoDeErro erro={disponibilidade.erro} id="data-erro-api" />
+          )}
+        </div>
       </section>
 
       {servicoId && dataValida && !disponibilidade.erro && (
         <section aria-labelledby="passo-horario">
-          <h2 id="passo-horario">3 · Horário</h2>
+          <h2 id="passo-horario">{unico || !barbeiros.dados ? "3" : "4"} · Horário</h2>
           <EstadoDaConsulta consulta={disponibilidade}>
             {(d) => {
               const dia = `${d.data}T12:00:00Z`;
               const grupos = d.barbeiros
                 .map((b) => ({ ...b, horarios: b.horarios.filter((h) => h !== ocupado) }))
                 .filter((b) => b.horarios.length > 0);
-              if (grupos.length === 0) return <p>Sem horário livre neste dia. Tente outro dia.</p>;
+              if (grupos.length === 0)
+                return (
+                  <div>
+                    <p role="status">Sem horários neste dia.</p>
+                    <Botao onClick={verProximoDiaComHorario} disabled={procurando}>
+                      {procurando ? "Procurando…" : "Ver o próximo dia com horário"}
+                    </Botao>
+                    {semProximo && (
+                      <Aviso tipo="aviso">
+                        Não há horários livres nos próximos {HORIZONTE} dias. Tente mais tarde.
+                      </Aviso>
+                    )}
+                  </div>
+                );
               const livres = grupos.reduce((n, g) => n + g.horarios.length, 0);
               return (
                 <div>
@@ -152,16 +296,31 @@ export function Agendar() {
                       aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}
                     >
                       <h3>{b.nomeExibicao}</h3>
-                      <div className="horarios">
-                        {b.horarios.map((h) => (
-                          <Botao
-                            key={h}
-                            className="botao botao-secundario horario"
-                            onClick={() => escolher(b.barbeiroId, h)}
-                          >
-                            {formatarHora(h, d.fuso ?? FUSO_PADRAO)}
-                          </Botao>
-                        ))}
+                      <div className="horarios horarios-chips">
+                        {comIndisponiveis(b.horarios).map((h) =>
+                          h.livre ? (
+                            <button
+                              key={h.inicio}
+                              type="button"
+                              className="botao botao-secundario horario chip-horario"
+                              aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
+                              onClick={() => setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })}
+                            >
+                              {formatarHora(h.inicio, fusoDoDia)}
+                            </button>
+                          ) : (
+                            <button
+                              key={h.inicio}
+                              type="button"
+                              className="botao botao-secundario horario chip-horario chip-indisponivel"
+                              aria-disabled="true"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              {formatarHora(h.inicio, fusoDoDia)}
+                              <span className="so-leitor"> indisponível</span>
+                            </button>
+                          ),
+                        )}
                       </div>
                     </div>
                   ))}
@@ -171,27 +330,36 @@ export function Agendar() {
           </EstadoDaConsulta>
         </section>
       )}
-      <aside aria-labelledby="t-resumo" className="resumo">
-        <h2 id="t-resumo">Resumo</h2>
+
+      <p className="nota">
+        Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até {HORIZONTE} dias à frente.
+      </p>
+      <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
+
+      <div className="resumo-fixo-espaco" aria-hidden="true" />
+      <aside aria-labelledby="t-resumo" className="resumo-fixo">
+        <h2 id="t-resumo" className="so-leitor">
+          Resumo
+        </h2>
         <dl>
           <dt>Serviço</dt>
-          <dd>{servicos.dados?.find((x) => x.id === servicoId)?.nome ?? "Escolha o serviço"}</dd>
-          <dt>Dia</dt>
-          <dd>{dataValida ? formatarDataCurta(`${data}T12:00:00Z`) : "Escolha o dia"}</dd>
-          <dt>Total</dt>
+          <dd>{servico?.nome ?? "Escolha o serviço"}</dd>
+          <dt>Quando</dt>
           <dd>
-            {(() => {
-              const x = servicos.dados?.find((y) => y.id === servicoId);
-              return x ? formatarPreco(x) : "-";
-            })()}
+            {sel
+              ? `${formatarDiaDaSemana(sel.inicio, fusoDoDia)}, ${formatarDataCurta(sel.inicio, fusoDoDia)} às ${formatarHora(sel.inicio, fusoDoDia)}`
+              : "Escolha o horário"}
           </dd>
+          <dt>Total</dt>
+          <dd>{servico ? formatarPreco(servico) : "-"}</dd>
         </dl>
         <p className="nota">
-          Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até 30 dias à frente. Pix ou cartão:
-          na próxima etapa, um contador mostra o prazo para pagar e o horário fica reservado só para você. Sem pagamento
-          no prazo, o horário volta para a agenda.
+          Pagamento antecipado por Pix ou cartão. Você terá um prazo curto para pagar, que aparece na próxima etapa; sem
+          pagamento nesse prazo, o horário volta para a agenda.
         </p>
-        <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
+        <Botao variante="principal" disabled={!sel} onClick={continuar}>
+          Continuar
+        </Botao>
       </aside>
     </>
   );
