@@ -9,12 +9,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -69,8 +71,11 @@ public class Reservas {
     private final EntityManager em;
     private final TransactionTemplate transacao;
     private final Clock clock;
+    private final ApplicationEventPublisher eventos;
 
-    Reservas(JdbcClient jdbc, EntityManager em, PlatformTransactionManager gerenciador, Clock clock) {
+    Reservas(JdbcClient jdbc, EntityManager em, PlatformTransactionManager gerenciador, Clock clock,
+            ApplicationEventPublisher eventos) {
+        this.eventos = eventos;
         this.jdbc = jdbc;
         this.em = em;
         this.transacao = new TransactionTemplate(gerenciador);
@@ -152,6 +157,8 @@ public class Reservas {
                 }
                 reserva.mudarPara(StatusReserva.CONFIRMADO, clock.instant());
                 em.flush();
+                // Só aqui, depois do flush: se a constraint recusar (23P01) a transação desfaz e o evento some junto (A5).
+                eventos.publishEvent(new ReservaConfirmada(reservaId, reserva.getBarbeiroId(), reserva.getInicio()));
                 return ResultadoConfirmacao.CONFIRMADA;
             });
         } catch (ExcecaoDeNegocio regra) {
@@ -218,6 +225,31 @@ public class Reservas {
     public boolean estaCancelada(UUID reservaId) {
         return jdbc.sql("SELECT count(*) FROM reserva WHERE id = :id AND status = 'CANCELADO'").param("id", reservaId)
                 .query(Long.class).single() > 0;
+    }
+
+    /** O que o aviso ao barbeiro precisa da reserva: o nome do serviço e o horário. Nada do cliente (E2). */
+    public record DadosDoAviso(String servico, Instant inicio) {
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<DadosDoAviso> paraAviso(UUID reservaId) {
+        return jdbc.sql("""
+                SELECT s.nome, r.inicio FROM reserva r JOIN servico s ON s.id = r.servico_id WHERE r.id = :id
+                """)
+                .param("id", reservaId)
+                .query((rs, n) -> new DadosDoAviso(rs.getString("nome"),
+                        rs.getObject("inicio", OffsetDateTime.class).toInstant()))
+                .optional();
+    }
+
+    /**
+     * A conta do barbeiro, para o painel avisar (Fatia 13, E4): só de barbeiro ATIVO com conta ligada. Desligado, inativo ou
+     * sem conta: vazio. Só o id da conta sai.
+     */
+    @Transactional(readOnly = true)
+    public Optional<UUID> contaDoBarbeiroAtivo(UUID barbeiroId) {
+        return jdbc.sql("SELECT usuario_id FROM barbeiro WHERE id = :id AND ativo AND usuario_id IS NOT NULL")
+                .param("id", barbeiroId).query(UUID.class).optional();
     }
 
     private static ExcecaoDeNegocio naoEncontrada() {

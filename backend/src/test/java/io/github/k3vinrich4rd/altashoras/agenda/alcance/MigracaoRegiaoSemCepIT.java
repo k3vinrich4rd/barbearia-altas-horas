@@ -51,7 +51,7 @@ class MigracaoRegiaoSemCepIT {
             UUID reservaSemProva = reserva(jdbc, barbeiro, servico, 1, null);
             jdbc.update("UPDATE reserva_guest SET cep = '06010000' WHERE reserva_id IN (?, ?)", reservaComProva, reservaSemProva);
 
-            Flyway tudo = Flyway.configure().dataSource(fonte).locations("classpath:db/migration").load();
+            Flyway tudo = Flyway.configure().dataSource(fonte).locations("classpath:db/migration").target("12").load(); // a V13 (Fatia 13) é de outra fatia
             assertThat(tudo.migrate().migrationsExecuted).isEqualTo(1);
 
             assertThat(jdbc.queryForList("SELECT 1 FROM usuario WHERE id = ? AND cidade = 'Osasco' AND regiao_municipio_ibge = '3534401'",

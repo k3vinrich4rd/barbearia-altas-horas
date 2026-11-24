@@ -18,6 +18,7 @@ describe("cabeçalhos de segurança", () => {
       expect(csp).toContain("default-src 'self'");
       expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/);
       expect(csp).toContain("connect-src 'self'");
+      expect(csp).toContain("worker-src 'self'");
       expect(csp).toContain("form-action 'self'");
       expect(r.headers.get("x-content-type-options")).toBe("nosniff");
       expect(r.headers.get("referrer-policy")).toBe("no-referrer");

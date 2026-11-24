@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin |
+| **Status** | ✅ aprovada pelo Kevin em 24/11/2026, com as 10 propostas (D-1 a D-10) como estão |
 | **Origem** | pedido do Kevin em 24/11/2026: quando um cliente marca horário pelo app (**com cadastro** ou **sem cadastro, como visitante**), o **barbeiro daquela reserva** recebe uma notificação. Em geral é o Eduardo (Dono/Admin), mas o barbeiro convidado da [Fatia 10](fatia-10-convite-do-barbeiro.md) também recebe as dos clientes dele. A reserva manual por WhatsApp é feita pelo próprio barbeiro e **não avisa** |
 | **Escolhas do Kevin** | **Canal:** Web Push (notificação no celular, grátis e sem conta externa) **mais** um aviso dentro do painel. **Momento:** quando o **pagamento confirma**; reserva que expira sem pagar não gera aviso. **Preparado para e-mail:** uma porta `CanalDeNotificacao`, com o Web Push ligado e o e-mail **desligado por padrão** (mesmo padrão do `GatewayDePagamento`: `GatewaySimulado` ligado, `AsaasGateway` desligado) |
 | **Entrega** | uma branch (`feat/fatia-13-notificacao-ao-barbeiro`) com commits separados: **13A** · evento `ReservaConfirmada` e aviso no painel (sem push) · **13B** · porta `CanalDeNotificacao`, Web Push e inscrição · **13C** · telas, service worker e manifesto (PWA) · **13D** · e-mail stub e documentação |
@@ -104,7 +104,7 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 | E5 | **Listener `@ApplicationModuleListener`** (assíncrono, transação própria, reentrega pelo outbox, como `CancelaCobrancaDaReservaExpirada`): `AvisaBarbeiroDaReserva`. Passos: **(1)** numa transação curta, lê o serviço e a conta do barbeiro e grava o aviso com `INSERT ... ON CONFLICT (reserva_id, usuario_id) DO NOTHING`, e carrega as inscrições da conta (máximo 10); **(2)** **fora de qualquer transação**, chama cada canal ligado; **(3)** numa transação curta, marca `push_enviado_em` e `ultimo_envio_ok` | **só 3 conexões** no banco: nenhuma chamada de rede segura conexão (mesma regra do gateway de pagamento, E27 da Fatia 4) |
 | E6 | **Idempotência: um aviso por reserva confirmada e por conta.** A `UNIQUE (reserva_id, usuario_id)` garante uma linha só, mesmo se o outbox reentregar. O **envio** só repete enquanto `push_enviado_em` for nulo: falha **transitória** (rede, `429`, `5xx`) deixa o evento **pendente** (a exceção sobe e o Modulith republica); sucesso em ao menos um aparelho, **ou nenhum aparelho inscrito**, marca como entregue. Falha só **definitiva** (`404`, `410`) não repete | não perder o aviso nem encher o celular de repetidos. Limite conhecido: se 1 de 2 aparelhos falhar de forma transitória e outro entregar, o aviso não é reenviado ao primeiro (aceito; o painel sempre tem o aviso) |
 | E7 | **Porta `CanalDeNotificacao`** (interface **sem framework**, no pacote `admin.notificacao.canal`): `Canal canal()` e `ResultadoDoEnvio enviar(AvisoParaEnvio aviso, DestinoDoAviso destino)`. `ResultadoDoEnvio` ∈ `ENVIADO`, `TENTAR_DEPOIS`, `DESTINO_INVALIDO`, `NAO_CONFIGURADO`. `AvisoParaEnvio` = título, texto e link relativo (sem dado de cliente). O **Despachante** recebe todas as implementações como beans e **usa só as de `app.notificacao.canais`**; nome fora da lista de canais conhecidos faz a aplicação **falhar na partida** com mensagem clara. Canais vazio = só o painel. Trocar o canal é editar a variável de ambiente | mesmo desenho do `GatewayDePagamento`/`GatewaySimulado`/`AsaasGateway` (ADR 0007 e 0011). Como a seleção é por lista (e não por uma flag por classe), ligar os dois canais ao mesmo tempo também é só configuração |
-| E8 | **`WebPushCanal` (ligado)**: um **único** `java.net.http.HttpClient` (sem pool novo), timeout de conexão e de resposta de **5 s**, `TTL` de 1 hora e `Urgency: high`. Criptografa o corpo (RFC 8291, `aes128gcm`) e assina com VAPID (RFC 8292). **Biblioteca**: proposta de `nl.martijndwars:web-push` (usa BouncyCastle); a alternativa de escrever a criptografia com o JDK é a D-2. Só **uma classe** importa a biblioteca (travado pelo `ArquiteturaTest`, A47). `404` e `410` do serviço de push = `DESTINO_INVALIDO` (a inscrição é **apagada**); `429`, `5xx` e timeout = `TENTAR_DEPOIS`; `201` = `ENVIADO` | limpar a inscrição morta evita enviar para sempre a quem desinstalou ou revogou a permissão |
+| E8 | **`WebPushCanal` (ligado)**: um **único** `java.net.http.HttpClient` (sem pool novo), timeout de conexão e de resposta de **5 s**, `TTL` de 1 hora e `Urgency: high`. Criptografa o corpo (RFC 8291, `aes128gcm`) e assina com VAPID (RFC 8292). **Biblioteca**: proposta de `nl.martijndwars:web-push` (usa BouncyCastle); a alternativa de escrever a criptografia com o JDK é a D-2. Só **uma classe** importa a biblioteca (travado pelo `ArquiteturaTest`, A47). `404` e `410` do serviço de push = `DESTINO_INVALIDO` (a inscrição é **apagada**); `400`, `401`, `403` e `413` = `RECUSADO` (a inscrição **fica**, log de alerta, conta tentativa; D178); `429`, `5xx` e timeout = `TENTAR_DEPOIS`; depois de **5 tentativas** o push é abandonado e o aviso fica só em Novidades (D178); `201` = `ENVIADO`; ponto P-256 fora da curva = `DESTINO_INVALIDO` e `400` na inscrição | limpar a inscrição morta evita enviar para sempre a quem desinstalou ou revogou a permissão |
 | E9 | **Só hosts de serviço de push são aceitos** como `endpoint` (https obrigatório): `fcm.googleapis.com`, `updates.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`. Lista em `app.notificacao.webpush.hosts-permitidos` (**conferir os nomes na implementação**, pelos documentos dos navegadores). Qualquer outro host é `400 VALIDACAO_INVALIDA` e **nunca é chamado** | o backend faz uma requisição para uma URL que **o usuário informou**: sem a lista, é um SSRF (OWASP API Top 10). Mesmo o dono é só um usuário autenticado |
 | E10 | **Conteúdo mínimo.** Push: título `Altas Horas`, texto `Novo horário: <serviço>, <dia da semana abreviado> <dd/MM> às <HH:mm>` no fuso `America/Sao_Paulo` (exemplo: **"Novo horário: Corte Degradê, qui 27/11 às 10:00"**), link relativo `/painel`, `tag` = o id da reserva (o sistema operacional junta repetidos). **Sem nome, WhatsApp, e-mail, CPF, valor pago nem o id da reserva no texto.** O nome do cliente **não entra** no push nem na lista "Novidades" (D-3); o barbeiro vê o nome abrindo a agenda, que já é autenticada e isolada por barbeiro. Corpo do push com no máximo **3 KB** (o limite do protocolo é 4 KB) | o push passa por Google, Mozilla ou Apple (embora criptografado de ponta a ponta); minimização (LGPD art. 6º, III) e R30 |
 | E11 | **Inscrição**: `endpoint` é **único** no banco. Repetir o mesmo `endpoint` na mesma conta é idempotente; o mesmo `endpoint` chegando por **outra conta** (o mesmo aparelho, outro login) **passa para a conta nova**: quem fez o login por último é quem usa o aparelho, e a conta antiga **deixa de receber** nele. **Limite de 10 aparelhos por conta**: a 11ª substitui a mais antiga. Desligar o barbeiro (Fatia 10) ou excluir a conta **apaga** as inscrições e os avisos dele; o `ON DELETE CASCADE` cobre a exclusão, e o **desligamento** precisa de uma chamada explícita (**conferir na implementação** o evento que a Fatia 10 já publica, `ConviteAceito` e `RetencaoDeBarbeiroDesligado` são os vizinhos) | `endpoint` + chaves identificam o aparelho de uma pessoa: dado pessoal do barbeiro, com ciclo de vida igual ao da conta (H33) |
@@ -198,11 +198,11 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 | A36 | 3 avisos do Eduardo, 1 já lido | `GET /admin/notificacoes` | `naoLidas = 2`; `itens` do mais novo ao mais antigo, com `servico`, `inicio`, `criadoEm`, `lido`, `reservaId`; **sem** nome nem WhatsApp do cliente; `limite` 1 a 50 (fora disso `400`) | `AvisosDoPainelIT` |
 | A37 | 100 avisos da conta | a lista é pedida | **2 consultas** ao banco (lista + contagem), medidas por contador de comandos, e no máximo 20 itens por padrão | `AvisosDoPainelIT` |
 | A38 | avisos não lidos | `POST /admin/notificacoes/marcar-lidas` | `204` e `naoLidas = 0` | `AvisosDoPainelIT` |
-| A39 | manifesto do site | `GET /manifest.webmanifest` | `200`, `start_url` `/painel`, `display` `standalone`, ícones 192 e 512 e um `maskable` | `manifesto.test.ts` |
-| A40 | o `sw.js` com o evento `push` simulado | recebe o payload do A23, depois um payload ilegível | mostra a notificação com título e texto do payload; o ilegível mostra o texto padrão; o `notificationclick` foca a aba do painel ou abre `/painel`; o arquivo é servido sem cache | `sw.test.ts` |
-| A41 | navegador sem `PushManager` · iPhone fora do modo `standalone` · iOS < 16.4 · permissão `denied` · permissão `default` · inscrição ativa | a tela de ativação é aberta em cada um | o estado correto da seção "Front", com a **instrução do iPhone** no segundo e no terceiro, e a **permissão só pedida após o toque** em "Ativar" | `AtivarNotificacoes.test.tsx` |
-| A42 | o selo "Novidades" com 2 não lidos | o painel abre, e depois a lista é aberta | o selo mostra 2, e some após a lista chamar `marcar-lidas`; a mensagem do service worker atualiza a contagem **sem** polling | `NovidadesDoPainel.test.tsx` |
-| A43 | fluxo ponta a ponta com a API real (perfil `dev`, pagamento simulado) | visitante e cliente com cadastro marcam com o Eduardo e pagam, e o barbeiro convidado entra | o selo do Eduardo mostra as 2 novidades; o do convidado, **nenhuma** | `notificacao.spec.ts` (E2E) |
+| A39 | manifesto do site | `GET /manifest.webmanifest` | `200`, `start_url` `/painel`, `display` `standalone`, ícones 192 e 512 e um `maskable` | `manifesto` |
+| A40 | o `sw.js` com o evento `push` simulado | recebe o payload do A23, depois um payload ilegível | mostra a notificação com título e texto do payload; o ilegível mostra o texto padrão; o `notificationclick` foca a aba do painel ou abre `/painel`; o arquivo é servido sem cache | `sw` |
+| A41 | navegador sem `PushManager` · iPhone fora do modo `standalone` · iOS < 16.4 · permissão `denied` · permissão `default` · inscrição ativa | a tela de ativação é aberta em cada um | o estado correto da seção "Front", com a **instrução do iPhone** no segundo e no terceiro, e a **permissão só pedida após o toque** em "Ativar" | `AtivarNotificacoes` |
+| A42 | o selo "Novidades" com 2 não lidos | o painel abre, e depois a lista é aberta | o selo mostra 2, e some após a lista chamar `marcar-lidas`; a mensagem do service worker atualiza a contagem **sem** polling | `NovidadesDoPainel` |
+| A43 | fluxo ponta a ponta com a API real (perfil `dev`, pagamento simulado) | visitante e cliente com cadastro marcam com o Eduardo e pagam, e o barbeiro convidado entra | o selo do Eduardo mostra as 2 novidades; o do convidado, **nenhuma** | `notificacao` (E2E) |
 
 ### 13D · Isolamento e a porta do e-mail
 
@@ -214,33 +214,33 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 | A47 | o código do backend | roda o `ArquiteturaTest` e o `ModulithTest` | `agenda` **não** depende de `admin`; `admin.notificacao` só usa a API pública da `agenda` e da `conta`; **só** `WebPushCanal` importa a biblioteca de Web Push; nenhuma classe de `admin.notificacao` abre `BarbeiroRepository` | `ArquiteturaTest`, `ModulithTest` |
 | A48 | `EmailCanal` (stub) com um **falso** no lugar do cliente de e-mail | ligado em `canais` **com** configuração falsa | recebe o aviso e o e-mail da conta, **sem** nome de cliente; ligado **sem** configuração devolve `NAO_CONFIGURADO` e registra uma linha sem dado pessoal; **desligado** (padrão) nunca é chamado | `EmailCanalTest` |
 | A49 | uma execução completa dos testes A1 a A48 | captura de log | nenhuma linha contém `endpoint`, `p256dh`, `auth`, chave VAPID, nome, WhatsApp ou e-mail (R30) | `LogsSemDadoPessoalIT` |
-| A50 | `openapi.yaml` 1.9.0 · `scripts/conferir-spec.sh 13 --exigir` | lint e conferência | 0 erros; cada `A#` tem teste com o número; exemplos reais nos schemas novos | CI |
+| A50 | `openapi.yaml` 1.10.0 · `scripts/conferir-spec.sh 13 --exigir` | lint e conferência | 0 erros; cada `A#` tem teste com o número; exemplos reais nos schemas novos | `ContratoExemplosDeErroTest` |
 
 ## 5. Entregas
 
 **13A** · agenda e painel (sem push)
-- [ ] `ReservaConfirmada` em `agenda` e a publicação em `Reservas.confirmarPagamento`, só quando o status muda (A1 a A7)
-- [ ] migração (a próxima livre) só com `aviso_barbeiro` nesta etapa, ou as duas tabelas de uma vez (decisão na implementação)
-- [ ] `admin.notificacao`: `AvisaBarbeiroDaReserva`, `AvisosDoPainel` e o controller (A8 a A14, A36 a A38)
-- [ ] método público mínimo da agenda para achar a conta do barbeiro (E4)
+- [x] `ReservaConfirmada` em `agenda` e a publicação em `Reservas.confirmarPagamento`, só quando o status muda (A1 a A7)
+- [x] migração (a próxima livre) só com `aviso_barbeiro` nesta etapa, ou as duas tabelas de uma vez (decisão na implementação)
+- [x] `admin.notificacao`: `AvisaBarbeiroDaReserva`, `AvisosDoPainel` e o controller (A8 a A14, A36 a A38)
+- [x] método público mínimo da agenda para achar a conta do barbeiro (E4)
 
 **13B** · canais e inscrição
-- [ ] porta `CanalDeNotificacao`, `Despachante`, `CanalFalso` de teste (A15 a A19)
-- [ ] `WebPushCanal` com `HttpClient` único e timeouts, lista de hosts (A20 a A24)
-- [ ] inscrição, remoção, chave pública, teste e limites (A25 a A33)
-- [ ] job de limpeza e apagar no desligamento e na exclusão (A34 e A35)
-- [ ] `render.yaml` com as variáveis `sync: false`, `application.yml` e `.env.example`
+- [x] porta `CanalDeNotificacao`, `Despachante`, `CanalFalso` de teste (A15 a A19)
+- [x] `WebPushCanal` com `HttpClient` único e timeouts, lista de hosts (A20 a A24)
+- [x] inscrição, remoção, chave pública, teste e limites (A25 a A33)
+- [x] job de limpeza e apagar no desligamento e na exclusão (A34 e A35)
+- [x] `render.yaml` com as variáveis `sync: false`, `application.yml` e `.env.example`
 
 **13C** · front (**as telas esperam o desenho do Kevin**, D148; até lá, layout neutro só com os tokens)
-- [ ] `manifest.ts`, ícones, `public/sw.js` e os cabeçalhos do service worker (A39 e A40)
-- [ ] tela "Notificações" com os 5 estados e a instrução do iPhone (A41)
-- [ ] selo e lista "Novidades" no painel (A42 e A43)
+- [x] `manifest.ts`, ícones, `public/sw.js` e os cabeçalhos do service worker (A39 e A40)
+- [x] tela "Notificações" com os 5 estados e a instrução do iPhone (A41)
+- [x] selo e lista "Novidades" no painel (A42 e A43)
 
 **13D** · porta do e-mail e documentação
-- [ ] `EmailCanal` stub e o teste com o falso (A48)
-- [ ] `docs/planejamento/notificacao-por-email.md`: o que falta para ligar (E12)
-- [ ] testes de isolamento e de log (A44 a A49)
-- [ ] contrato 1.9.0, decisões D170 a D176 em `decisoes.md`, guia de testes com saída real, guia curto de "como ativar no iPhone e no Android" e o passo a passo da chave VAPID para o Kevin
+- [x] `EmailCanal` stub e o teste com o falso (A48)
+- [x] `docs/planejamento/notificacao-por-email.md`: o que falta para ligar (E12)
+- [x] testes de isolamento e de log (A44 a A49)
+- [x] contrato 1.9.0, decisões D170 a D176 em `decisoes.md`, guia de testes com saída real, guia curto de "como ativar no iPhone e no Android" e o passo a passo da chave VAPID para o Kevin
 
 ### Telas (design system) · **aguardam desenho**
 
@@ -304,13 +304,13 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 
 ## 9. Pronto quando
 
-- [ ] todos os critérios A1 a A50 com teste verde (backend no `./mvnw verify`, front no vitest e no E2E; `scripts/conferir-spec.sh 13 --exigir` confere 50 de 50)
-- [ ] testes de integração só com `CanalFalso` e servidor HTTP local, **sem rede real**
-- [ ] contrato `1.9.0` (ou a próxima minor livre) com `redocly lint` em 0 erros e o histórico de versões atualizado
-- [ ] a confirmação de pagamento de visitante e de cliente com cadastro aciona o aviso **só** do barbeiro da reserva; a manual e a que expira **não** acionam
-- [ ] migração com o número livre na hora, sem editar nenhuma anterior
-- [ ] decisões D170 a D176 em `decisoes.md` (números conferidos)
-- [ ] documento do e-mail (`notificacao-por-email.md`) e guia do iPhone e do Android escritos
+- [x] todos os critérios A1 a A50 com teste verde (backend no `./mvnw verify`, front no vitest e no E2E; `scripts/conferir-spec.sh 13 --exigir` confere 50 de 50)
+- [x] testes de integração só com `CanalFalso` e servidor HTTP local, **sem rede real**
+- [x] contrato `1.9.0` (ou a próxima minor livre) com `redocly lint` em 0 erros e o histórico de versões atualizado
+- [x] a confirmação de pagamento de visitante e de cliente com cadastro aciona o aviso **só** do barbeiro da reserva; a manual e a que expira **não** acionam
+- [x] migração com o número livre na hora, sem editar nenhuma anterior
+- [x] decisões D170 a D176 em `decisoes.md` (números conferidos)
+- [x] documento do e-mail (`notificacao-por-email.md`) e guia do iPhone e do Android escritos
 - [ ] **telas desenhadas** e o visual trocado (hoje layout neutro): depende do desenho do Kevin
 - [ ] parágrafo da política de privacidade sobre notificações revisado pelo Cautelar
 - [ ] [checklist da PR](checklist-pr.md) completo na abertura da PR (o Kevin abre)

@@ -926,6 +926,8 @@ Saída real (17/11/2026, 17h13), resumida:
 
 ### AL1 ✅ Alcance por região (Fatia 6C)
 
+> ⚠️ **Histórico (Fatia 6C).** Desde a Fatia 11 (ADR 0014, V12) o CEP **não é mais guardado**: a coluna `reserva_guest.cep` não existe, a região só é gravada com a caixinha de consentimento (`autorizaRegiao` + `versaoTextoRegiao`) e o alcance usa k = 5 com subida de nível. A consulta SQL e a saída abaixo valem só como registro do comportamento antigo; o roteiro atual é o da Fatia 11.
+
 Os critérios A62 a A75 já têm teste automatizado (`AlcanceDaReservaIT`, `AlcancePainelIT`, `AlcancePublicoIT`, `RetencaoJobIT` e `SemDadoPessoalNoLogIT`). Este roteiro mostra o mesmo à mão, no perfil `dev`. Precisa do ADMIN com a senha já trocada (AD3) e do ViaCEP de verdade (internet) para o CEP ser resolvido.
 
 ```bash
@@ -1132,6 +1134,23 @@ O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a 
 
 Para o teste de visitantes, esta seção **não** entra: o público só testa o cliente (13 passos); o convite e o desligamento são da equipe.
 
+### 7.6 Notificação ao barbeiro (Fatia 13) ✅
+
+Quando o **pagamento confirma** uma reserva (de cliente com cadastro ou de visitante), o barbeiro daquela reserva ganha um aviso em **Painel → Novidades** e, se tiver o aparelho ativado, uma notificação no celular: *"Novo horário: Corte Degradê, sex 27/11 às 10:00"* (a spec escreveu "qui" no exemplo, mas 27/11/2026 é sexta). O aviso **não leva o nome do cliente**. Reserva que expira, cancelada ou manual não avisa. As telas **aguardam desenho** (layout neutro, D148). Só a equipe testa: o público não entra aqui.
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| N1 | Painel → Notificações | como barbeiro, abrir a tela num celular Android ou no computador e tocar em **Ativar notificações** | o navegador pede a permissão **só depois do toque**; a tela passa a "Ativo" com "Enviar um teste" e "Desativar" | a preencher no teste manual (depende do aparelho) |
+| N2 | Enviar um teste | tocar em **Enviar um teste** | chega "Notificações ativadas neste aparelho"; o 6º em uma hora responde `429` | a preencher no teste manual |
+| N3 | iPhone | abrir pelo Safari, sem a Tela de Início | a tela mostra "No iPhone, toque em Compartilhar, depois em Adicionar à Tela de Início…"; com iOS menor que 16.4: "Atualize o iPhone…" | a preencher no iPhone real (não dá para provar em teste automático) |
+| N4 | Cliente marca e paga | com a API no perfil `dev`, o cliente (ou visitante) marca com o Eduardo e confirma o pagamento simulado | o selo **Novidades** do Eduardo mostra o número; abrir a lista zera o selo e destaca os itens "Novo"; o barbeiro convidado não vê nada | `frontend/e2e/notificacao.spec.ts` (A43) |
+| N5 | Voltar à aba | deixar o painel aberto, pagar uma reserva em outra aba e voltar | o selo atualiza ao voltar o foco (e na hora, se o push chegar), **sem polling** | `NovidadesDoPainel.test.tsx` (A42) |
+
+**Ligar de verdade:** o par de chaves VAPID e o deploy estão em [ativar-deploy.md](planejamento/ativar-deploy.md#passo-2b--notificação-ao-barbeiro-chave-vapid-fatia-13). Sem as chaves a tela mostra "indisponíveis" e o aviso do painel funciona igual. O e-mail está pronto e desligado: [notificacao-por-email.md](planejamento/notificacao-por-email.md).
+
+**Como ativar no Android e no iPhone (guia curto):** *Android (Chrome):* abra o painel, vá em Notificações, toque em Ativar e em Permitir; confira com "Enviar um teste". *iPhone (iOS 16.4 ou mais novo):* no Safari, toque em Compartilhar, depois em **Adicionar à Tela de Início**; abra o Altas Horas pelo **ícone novo** (não pelo Safari), entre no painel, Notificações, Ativar. Se negou por engano: Ajustes do aparelho, Notificações, Altas Horas.
+
+**Números (24/11/2026, Windows, Node 22, Java 25, PostgreSQL 18 real):** `./mvnw verify`: **542 testes, 0 falhas** (depois do merge com a Fatia 11 e das correções do Sentinela) (eram 387 em 20/11; a Fatia 13 soma os A1 a A50 do backend, incluindo a criptografia conferida contra o exemplo da RFC 8291) · front: `eslint` e `tsc --noEmit` sem erro, `vitest`: **72 arquivos, 171 testes verdes**, `next build` ok (rotas `/manifest.webmanifest`, `/painel/novidades` e `/painel/notificacoes`) · `npx playwright test` contra a API real no perfil `dev` (banco isolado, removido no fim): **22 de 22 verdes em 3,3 min** (entra `notificacao.spec.ts`, A43) · `scripts/conferir-spec.sh 13 --exigir`: **50 de 50** · `redocly lint` 2.78.0 no contrato 1.10.0: 0 erros. O que **não** se prova em teste automático: a notificação chegando num iPhone e num Android de verdade (passos N1 a N3).
 ### 7.5 Alcance por nível e consentimento de região (Fatia 11)
 
 | # | O que fazer | Esperado | Situação |

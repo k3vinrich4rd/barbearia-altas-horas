@@ -135,7 +135,7 @@ class ArquiteturaTest {
     }
 
     @Test
-    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada (com o pagamento), todos com @Order, e a agenda roda antes da conta")
+    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada (com o pagamento e, desde a Fatia 13, o painel das notificações), todos com @Order, e a agenda roda antes da conta")
     void privacidadePublicaPortasEQuemTemDadoImplementa() {
         noClasses().that().resideInAPackage("..privacidade..")
                 .should().dependOnClassesThat().resideInAnyPackage("..conta..", "..agenda..", "..pagamento..", "..admin..",
@@ -152,7 +152,7 @@ class ArquiteturaTest {
                 .filter(m -> m.isAnnotatedWith(EventListener.class)
                         && m.getRawParameterTypes().stream().anyMatch(t -> t.isEquivalentTo(ExclusaoSolicitada.class)))
                 .toList();
-        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(3)
+        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(4)
                 .allSatisfy(m -> org.assertj.core.api.Assertions.assertThat(m.isAnnotatedWith(Order.class))
                         .as("@Order explícito em " + m.getOwner().getSimpleName()).isTrue());
         org.assertj.core.api.Assertions.assertThat(ouvintes.stream().map(m -> m.getOwner().getPackageName()).toList())
@@ -190,10 +190,11 @@ class ArquiteturaTest {
                 .because("o painel chama os donos; nenhum dono chama o painel (ADR 0002)")
                 .check(CLASSES);
         noClasses().that().resideInAPackage("..admin..").and().resideOutsideOfPackage("..admin.auditoria..")
+                .and().resideOutsideOfPackage("..admin.notificacao..")
                 .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.simple.JdbcClient")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.JdbcTemplate")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.EntityManager")
-                .because("o admin só enxerga SQL de auditoria_admin; as outras tabelas são dos donos (ADR 0002)")
+                .because("o admin só enxerga SQL de auditoria_admin e, desde a Fatia 13, das duas tabelas de notificacao (aviso_barbeiro e inscricao_push, que são dele); as outras tabelas são dos donos (ADR 0002)")
                 .check(CLASSES);
     }
 
@@ -237,5 +238,19 @@ class ArquiteturaTest {
                 "src/main/java/io/github/k3vinrich4rd/altashoras/plataforma/seguranca/SegurancaConfig.java"));
         org.assertj.core.api.Assertions.assertThat(seguranca.split("\"/auth/convite\"", -1)).hasSize(2);
         org.assertj.core.api.Assertions.assertThat(seguranca).doesNotContain("\"/auth/**\"").doesNotContain("\"/admin/barbeiros/*/convite\"");
+    }
+
+    @Test
+    @DisplayName("A47: agenda não depende de admin; admin.notificacao não abre BarbeiroRepository nem usa tipo interno da agenda; nenhuma classe usa biblioteca de Web Push nem BouncyCastle (a criptografia é do JDK, D172); só a porta e o Despachante conhecem os canais")
+    void notificacaoRespeitaAsFronteiras() {
+        noClasses().that().resideInAPackage("io.github.k3vinrich4rd.altashoras.agenda..").should().dependOnClassesThat().resideInAPackage("io.github.k3vinrich4rd.altashoras.admin..")
+                .because("a agenda publica o evento e não conhece o painel (ADR 0002)").check(CLASSES);
+        noClasses().that().resideInAPackage("..admin.notificacao..").should().dependOnClassesThat()
+                .resideInAnyPackage("..agenda.catalogo..", "..agenda.reserva..", "..agenda.disponibilidade..", "..conta.usuario..")
+                .because("o painel só usa a API pública da agenda e da conta").check(CLASSES);
+        noClasses().should().dependOnClassesThat().resideInAnyPackage("nl.martijndwars..", "org.bouncycastle..")
+                .because("o Web Push usa só o JDK: sem BouncyCastle nem segundo cliente HTTP na memória pequena").check(CLASSES);
+        noClasses().that().resideOutsideOfPackage("..admin.notificacao..").should().dependOnClassesThat()
+                .resideInAPackage("..admin.notificacao.canal..").because("os canais são detalhe do painel").check(CLASSES);
     }
 }

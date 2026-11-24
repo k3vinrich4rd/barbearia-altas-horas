@@ -7,6 +7,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { api, chamar } from "@/api/cliente";
+import { desativarNoAparelho, tirarAparelhoNoLogout } from "@/api/push";
 import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
@@ -46,6 +48,12 @@ export function Menu() {
   }, [aberto]);
 
   async function aoSair() {
+    // O barbeiro que sai leva o aparelho junto das notificações (a inscrição é da conta); falha aqui nunca trava o logout.
+    if (sessao.papeis?.some((p) => p === "ADMIN" || p === "BARBEIRO")) {
+      await tirarAparelhoNoLogout(desativarNoAparelho, (endpoint) =>
+        chamar(api().DELETE("/admin/notificacoes/inscricao", { body: { endpoint } })).then(() => undefined),
+      );
+    }
     await sessao.encerrar();
     router.push("/");
     router.refresh();
