@@ -30,6 +30,7 @@ CREATE TABLE aviso_barbeiro (
     criado_em       timestamptz NOT NULL,
     lido_em         timestamptz,
     push_enviado_em timestamptz,                   -- nulo = falta entregar (E6)
+    tentativas      smallint    NOT NULL DEFAULT 0, -- entregas que falharam; ao chegar no limite o aviso fica só em Novidades (D178)
     CONSTRAINT aviso_barbeiro_um_por_reserva UNIQUE (reserva_id, usuario_id)
 );
 CREATE INDEX aviso_barbeiro_lista_idx ON aviso_barbeiro (usuario_id, criado_em DESC);

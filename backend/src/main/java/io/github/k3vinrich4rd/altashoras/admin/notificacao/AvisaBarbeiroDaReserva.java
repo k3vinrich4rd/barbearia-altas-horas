@@ -51,11 +51,14 @@ class AvisaBarbeiroDaReserva {
     private final Despachante despachante;
     private final Clock clock;
     private final ZoneId fuso;
+    private final int tentativasMax;
     private final TransactionTemplate curta;
     private final TransactionTemplate semTransacao;
 
     AvisaBarbeiroDaReserva(Reservas reservas, Contas contas, Avisos avisos, Inscricoes inscricoes, Despachante despachante,
-            PlatformTransactionManager gerenciador, Clock clock, @Value("${app.fuso:America/Sao_Paulo}") String fuso) {
+            PlatformTransactionManager gerenciador, Clock clock, @Value("${app.fuso:America/Sao_Paulo}") String fuso,
+            @Value("${app.notificacao.tentativas-max:5}") int tentativasMax) {
+        this.tentativasMax = tentativasMax;
         this.reservas = reservas;
         this.contas = contas;
         this.avisos = avisos;
@@ -102,6 +105,13 @@ class AvisaBarbeiroDaReserva {
             }
         });
         if (relatorio.pendente()) {
+            int tentativas = curta.execute(status -> avisos.registrarTentativa(preparo.avisoId()));
+            if (tentativas >= tentativasMax) {
+                // Desiste do push (o aviso continua em Novidades) para o reenvio não ser infinito (D178).
+                curta.executeWithoutResult(status -> avisos.marcarEntregue(preparo.avisoId(), clock.instant()));
+                LOG.warn("aviso {} ficou só em Novidades depois de {} tentativas de push", evento.reservaId(), tentativas);
+                return;
+            }
             // Sem dado nenhum na mensagem: a republicação do outbox tenta de novo (E6).
             throw new IllegalStateException("entrega do aviso pendente: falha passageira em todos os destinos");
         }

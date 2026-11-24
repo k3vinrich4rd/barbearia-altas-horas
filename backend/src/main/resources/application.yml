@@ -78,6 +78,7 @@ app:
   notificacao:
     # Canais LIGADOS, separados por vírgula (E7): webpush, email. Vazio = só o aviso do painel. Nome desconhecido = a API não sobe.
     canais: ${APP_NOTIFICACAO_CANAIS:webpush}
+    tentativas-max: 5             # entregas do push que podem falhar; depois o aviso fica só em Novidades (D178)
     retencao-avisos-dias: 30      # quanto tempo o aviso fica no painel (E13)
     retencao-inscricao-dias: 90   # aparelho sem nenhum envio com sucesso há tanto tempo é apagado (E13)
     webpush:

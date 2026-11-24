@@ -171,4 +171,32 @@ class AvisaBarbeiroDaReservaIT extends NotificacaoBase {
         List<Envio> envios = falsoWebPush.envios();
         assertThat(envios).isNotEmpty().allSatisfy(e -> assertThat(e.emTransacao()).isFalse());
     }
+
+    @Test
+    @DisplayName("A12: o push recusado (403) mantém a inscrição, e depois de 5 tentativas o aviso fica só em Novidades: sem reenvio infinito (D178)")
+    void desisteDepoisDeCincoTentativas() throws Exception {
+        Barbeiro barbeiro = barbeiroComConta("BARBEIRO");
+        UUID reserva = reservaAguardando(barbeiro.id(), servicoDeTeste("Corte Clássico"), as(10, 0));
+        inscrever(barbeiro.conta().id(), "https://fcm.googleapis.com/fcm/send/aparelho-1");
+        falsoWebPush.responder(d -> ResultadoDoEnvio.RECUSADO);
+
+        reservas.confirmarPagamento(reserva);
+        for (int rodada = 1; rodada <= 5; rodada++) {
+            int esperada = rodada;
+            esperar(() -> falsoWebPush.envios().size() == esperada);
+            esperar(() -> jdbc.queryForObject("SELECT tentativas FROM aviso_barbeiro WHERE reserva_id = ?", Integer.class, reserva) == esperada);
+            if (rodada < 5) {
+                esperar(() -> jdbc.queryForObject("SELECT count(*) FROM event_publication WHERE status = 'FAILED'", Long.class) == 1);
+                incompletas.resubmitIncompletePublications(publicacao -> publicacao.getEvent() instanceof ReservaConfirmada);
+            }
+        }
+
+        esperarOutboxVazio();
+        assertThat(jdbc.queryForObject("SELECT push_enviado_em IS NOT NULL FROM aviso_barbeiro WHERE reserva_id = ?", Boolean.class, reserva)).isTrue();
+        assertThat(avisosDa(barbeiro.conta().id())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM inscricao_push", Long.class)).isEqualTo(1);
+        incompletas.resubmitIncompletePublications(publicacao -> true);
+        Thread.sleep(500);
+        assertThat(falsoWebPush.envios()).hasSize(5);
+    }
 }

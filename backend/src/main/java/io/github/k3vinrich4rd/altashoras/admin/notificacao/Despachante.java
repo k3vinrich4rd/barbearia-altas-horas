@@ -88,7 +88,7 @@ public class Despachante {
                             enviados.add(aparelho);
                         }
                         case DESTINO_INVALIDO -> invalidos.add(aparelho);
-                        case TENTAR_DEPOIS -> algumPassageiro = true;
+                        case TENTAR_DEPOIS, RECUSADO -> algumPassageiro = true;
                         case NAO_CONFIGURADO -> LOG.warn("canal {} ligado sem configuração; aviso não enviado", canal.canal().nome());
                     }
                 }
@@ -99,7 +99,7 @@ public class Despachante {
                 }
                 ResultadoDoEnvio resultado = chamar(canal, aviso, new DestinoDoAviso(usuarioId, null, endereco));
                 algumEnviado = resultado == ResultadoDoEnvio.ENVIADO;
-                algumPassageiro = resultado == ResultadoDoEnvio.TENTAR_DEPOIS;
+                algumPassageiro = resultado == ResultadoDoEnvio.TENTAR_DEPOIS || resultado == ResultadoDoEnvio.RECUSADO;
                 if (resultado == ResultadoDoEnvio.NAO_CONFIGURADO) {
                     LOG.warn("canal {} ligado sem configuração; aviso não enviado", canal.canal().nome());
                 }

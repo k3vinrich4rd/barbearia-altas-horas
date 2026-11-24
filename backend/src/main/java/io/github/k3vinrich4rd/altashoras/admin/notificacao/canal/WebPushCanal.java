@@ -118,10 +118,13 @@ public class WebPushCanal implements CanalDeNotificacao {
         if (status == 429 || status >= 500) {
             return ResultadoDoEnvio.TENTAR_DEPOIS;
         }
-        // 404 e 410: a inscrição morreu. 400, 401, 403 e 413: o serviço não aceita esta inscrição (por exemplo, criada com outro
-        // par VAPID): nenhuma tentativa nova resolve, e o barbeiro precisa ativar de novo.
-        LOG.warn("serviço de push recusou o envio: status={}", status);
-        return ResultadoDoEnvio.DESTINO_INVALIDO;
+        // Só 404 e 410 dizem que a inscrição morreu (RFC 8030): apagar. O resto (400, 401, 403, 413...) pode ser o NOSSO erro (par VAPID
+        // trocado, corpo grande): a inscrição fica e o aviso tenta até o limite (D178). Sem dado pessoal no log.
+        if (status == 404 || status == 410) {
+            return ResultadoDoEnvio.DESTINO_INVALIDO;
+        }
+        LOG.warn("push recusado status={}, confira o par VAPID e o tamanho do aviso", status);
+        return ResultadoDoEnvio.RECUSADO;
     }
 
     /** O JSON que o service worker lê (A23): título, texto, link e tag; nunca dado de cliente. */
