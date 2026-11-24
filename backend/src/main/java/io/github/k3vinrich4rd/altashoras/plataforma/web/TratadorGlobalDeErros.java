@@ -11,7 +11,10 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -83,6 +86,18 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> conflitoDeVersao(Exception ex, HttpServletRequest request) {
         ProblemDetail corpo = problema(CodigoErro.CONFLITO_DE_VERSAO, request.getRequestURI());
         return ResponseEntity.status(corpo.getStatus()).body(corpo);
+    }
+
+    /**
+     * Banco fora, lento ou sem conexão no pool (Fatia 8B, E10, A15): 503 genérico com Retry-After, nunca um pedido
+     * pendurado nem a mensagem do driver (R30: sem URL, sem usuário). A API se recupera sozinha quando o banco volta.
+     */
+    @ExceptionHandler({DataAccessResourceFailureException.class, TransientDataAccessException.class,
+            CannotCreateTransactionException.class})
+    ResponseEntity<ProblemDetail> bancoIndisponivel(Exception ex, HttpServletRequest request) {
+        LOG.warn("Banco indisponível em {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getClass().getSimpleName());
+        ProblemDetail corpo = problema(CodigoErro.BANCO_INDISPONIVEL, request.getRequestURI());
+        return ResponseEntity.status(corpo.getStatus()).header(HttpHeaders.RETRY_AFTER, "30").body(corpo);
     }
 
     /** Erro não previsto: 500 sem detalhe técnico na resposta; a pilha fica só no log, ligada pelo traceId. */
