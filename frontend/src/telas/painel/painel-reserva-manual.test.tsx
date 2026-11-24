@@ -107,6 +107,15 @@ describe("reserva manual", () => {
     await user.click(screen.getByRole("button", { name: "Criar reserva" }));
     expect(await screen.findByText(/não atende neste horário/)).toBeInTheDocument();
 
+    // A62: 18:18 (fora da grade) mostra o que a API explicou: o passo da grade e a jornada do dia
+    resposta = () =>
+      erro(422, "FORA_DO_EXPEDIENTE", {
+        detail:
+          "Este horário não está na grade: os inícios são de 30 em 30 minutos a partir do começo de cada turno. Jornada do barbeiro neste dia: 07:00 às 12:00 e 13:00 às 20:00.",
+      });
+    await user.click(screen.getByRole("button", { name: "Criar reserva" }));
+    expect(await screen.findByText(/de 30 em 30 minutos.*07:00 às 12:00 e 13:00 às 20:00/)).toBeInTheDocument();
+
     resposta = () => erro(422, "SERVICO_INATIVO");
     await user.click(screen.getByRole("button", { name: "Criar reserva" }));
     expect(await screen.findByText("Este serviço não está disponível agora. Escolha outro.")).toBeInTheDocument();
