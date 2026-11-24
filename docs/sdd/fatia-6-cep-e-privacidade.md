@@ -125,11 +125,11 @@ Relógio fixo: terça, **01/12/2026, 09:30** (-03:00). Datas conferidas por cód
 | A12 | teto do cache em 3 entradas (`app.cep.cache-max=3`) | consultar 4 CEPs diferentes e `cleanUp` | no máximo 3 entradas guardadas; o padrão de produção é 10 000 | `CepCacheIT` |
 | A13 | ViaCEP responde `200` com `cep` de outro CEP · com `uf = "São Paulo"` · com corpo `{}`; BrasilAPI responde certo | `GET /cep/01001000` | cada resposta do ViaCEP vale como **falha** e cai na BrasilAPI (`fonte = BRASILAPI`) | `CepRespostaInvalidaIT` |
 | A14 | 30 consultas do IP `203.0.113.7` no último minuto | a 31ª consulta | `429` com `Retry-After`; outro IP segue com `200`; um minuto depois o IP volta a consultar | `CepLimiteIT` |
-| A15 | cadastro com `cep = 01001000` e ViaCEP respondendo | `POST /auth/cadastro` | `201`; o banco guarda `cep`, `bairro = Sé`, `cidade = São Paulo`, `uf = SP`; o `Perfil` traz `endereco.completo = true` | `CadastroComCepIT` |
+| A15 | cadastro com `cep = 01001000` e ViaCEP respondendo | `POST /auth/cadastro` | `201`; o banco guarda `cep`, `bairro = Sé`, `cidade = São Paulo`, `uf = SP`; o `Perfil` traz `endereco.completo = true` | `CadastroComCepIT` · substituído pela Fatia 11 (A2), D162 a D170 |
 | A16 | cadastro com `cep` e os dois provedores fora | `POST /auth/cadastro` | `201` (R31); o banco guarda só `cep`, com bairro, cidade e uf nulos; `endereco.completo = false`; o tempo total fica abaixo de 3,5 s | `CepDegradacaoIT` |
-| A17 | cadastro com `cep = 99999999` (inexistente) | `POST /auth/cadastro` | `201`, igual ao A16 | `CadastroComCepIT` |
-| A18 | cadastro **sem** `cep` | `POST /auth/cadastro` | `201`; **zero** chamadas aos provedores | `CadastroComCepIT` |
-| A19 | dois cadastros com o mesmo CEP | `POST /auth/cadastro` duas vezes | uma única chamada ao ViaCEP (o segundo usa o cache) e as duas contas com o endereço completo | `CadastroComCepIT` |
+| A17 | cadastro com `cep = 99999999` (inexistente) | `POST /auth/cadastro` | `201`, igual ao A16 | `CadastroComCepIT` · substituído pela Fatia 11 (A26), D162 a D170 |
+| A18 | cadastro **sem** `cep` | `POST /auth/cadastro` | `201`; **zero** chamadas aos provedores | `CadastroComCepIT` · substituído pela Fatia 11 (A1), D162 a D170 |
+| A19 | dois cadastros com o mesmo CEP | `POST /auth/cadastro` duas vezes | uma única chamada ao ViaCEP (o segundo usa o cache) e as duas contas com o endereço completo | `CadastroComCepIT` · substituído pela Fatia 11 (A2), D162 a D170 |
 | A20 | consultas com sucesso, `404`, falha de provedor e cadastros com CEP, com os CEPs fictícios acima | ler o log da execução | nenhum CEP (com ou sem hífen) aparece no log (R30) | `SemDadoPessoalNoLogCepIT` |
 | A21 | módulos | `./mvnw verify` | `cep` só expõe `CepApi`, `Endereco` e `CepIndisponivel`; `conta` depende de `cep` e nada de `cep` depende de `conta`; clientes dos provedores não são acessíveis de fora | `ModulithTest`, `ArquiteturaTest` |
 | A22 | perfil `test` | subir o contexto | os dois provedores têm timeout de conexão de 1 s e leitura de 2 s; as URLs base apontam para `localhost` (nenhum teste sai para a internet) | `CepConfigTest` |
@@ -191,19 +191,19 @@ Relógio da 6C: o mesmo das Fatias 4 e 5 (terça, 17/11/2026 08:00 -03:00). Per�
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A62 | ViaCEP devolve Sé, São Paulo, SP | visitante agenda com `cep = 01001-000` | `201`; `reserva.regiao_*` = Sé, São Paulo, SP e `reserva_guest.cep = 01001000` | `AlcanceDaReservaIT` |
-| A63 | provedores fora (`503`) ou CEP `99999999` | visitante agenda com esse `cep` | `201`; reserva sem região e `reserva_guest.cep` nulo | `AlcanceDaReservaIT` |
+| A62 | ViaCEP devolve Sé, São Paulo, SP | visitante agenda com `cep = 01001-000` | `201`; `reserva.regiao_*` = Sé, São Paulo, SP e `reserva_guest.cep = 01001000` | `AlcanceDaReservaIT` · substituído pela Fatia 11 (A2), D162 a D170 |
+| A63 | provedores fora (`503`) ou CEP `99999999` | visitante agenda com esse `cep` | `201`; reserva sem região e `reserva_guest.cep` nulo | `AlcanceDaReservaIT` · substituído pela Fatia 11 (A26), D162 a D170 |
 | A64 | — | visitante agenda com `cep = 123` | `400 CEP_INVALIDO`, nenhuma reserva criada, zero chamadas externas | `AlcanceDaReservaIT` |
 | A65 | visitante agenda sem `cep` | `POST /agendamentos/guest` | `201` como antes (testes da Fatia 4 continuam verdes) | `AlcanceDaReservaIT` |
-| A66 | cliente com Centro, Osasco, SP no cadastro | reserva | a reserva copia Centro, Osasco, SP; mudar o endereço do usuário depois não muda a reserva | `AlcanceDaReservaIT` |
-| A67 | 6 atendimentos `CONCLUIDO` em Centro/Osasco, 2 em Sé/São Paulo, 1 `EXPIRADO` em Centro, 1 `CONFIRMADO` sem região | `GET /admin/alcance` como ADMIN | `total = 9` (`EXPIRADO` fora), `semRegiao = 1`; Osasco com Centro 6; os 2 de São Paulo saem em "Outras cidades" com `atendimentos` e `percentual` nulos e `abaixoDoLimite = true`; Osasco e Centro com `abaixoDoLimite = false`; percentuais com 1 casa decimal | `AlcancePainelIT` |
-| A68 | 5 atendimentos em Osasco: 4 no Centro e 1 em Presidente Altino | painel | Osasco aparece (5); dentro dela só "Outros bairros" com 5 (≥ 5: número aparece, `abaixoDoLimite = false`); com 7 (5 no Centro e 2 em bairros pequenos), o "Outros bairros" vem sem número e com `abaixoDoLimite = true` | `AlcancePainelIT` |
-| A69 | atendimentos de dois barbeiros | `BARBEIRO` A chama `GET /admin/alcance?barbeiroId=<B>` | vê só os próprios | `AlcancePainelIT` |
-| A70 | ADMIN | `?barbeiroId=<inexistente>` · `?de=2026-11-10&ate=2026-11-01` · período de 400 dias · sem token · cliente | `404` · `400` · `400` · `401` · `403` | `AlcancePainelIT` |
-| A71 | o cenário do A67 | `GET /alcance` sem token | `200` com `regioes = [{ Osasco, SP, [Centro] }]`, `totalCidades = 1`, `totalBairros = 1`, **sem** número de atendimentos no JSON | `AlcancePublicoIT` |
-| A72 | atendimentos de 13 meses atrás em outro bairro (5 ou mais) | `GET /alcance` | não aparecem (só últimos 12 meses) | `AlcancePublicoIT` |
-| A73 | duas chamadas com um atendimento novo no meio; depois 31 chamadas no mesmo minuto do mesmo IP | `GET /alcance` | a segunda vem do cache do servidor (1 hora, `Ticker` de teste); a 31ª é `429` com `Retry-After` | `AlcancePublicoIT` |
-| A74 | visitante com `cep` vencido há 90 dias | job de retenção | `reserva_guest.cep = NULL`; `reserva.regiao_*` continua igual | `RetencaoJobIT` |
+| A66 | cliente com Centro, Osasco, SP no cadastro | reserva | a reserva copia Centro, Osasco, SP; mudar o endereço do usuário depois não muda a reserva | `AlcanceDaReservaIT` · substituído pela Fatia 11 (A2), D162 a D170 |
+| A67 | 6 atendimentos `CONCLUIDO` em Centro/Osasco, 2 em Sé/São Paulo, 1 `EXPIRADO` em Centro, 1 `CONFIRMADO` sem região | `GET /admin/alcance` como ADMIN | `total = 9` (`EXPIRADO` fora), `semRegiao = 1`; Osasco com Centro 6; os 2 de São Paulo saem em "Outras cidades" com `atendimentos` e `percentual` nulos e `abaixoDoLimite = true`; Osasco e Centro com `abaixoDoLimite = false`; percentuais com 1 casa decimal | `AlcancePainelIT` · substituído pela Fatia 11 (A14), D162 a D170 |
+| A68 | 5 atendimentos em Osasco: 4 no Centro e 1 em Presidente Altino | painel | Osasco aparece (5); dentro dela só "Outros bairros" com 5 (≥ 5: número aparece, `abaixoDoLimite = false`); com 7 (5 no Centro e 2 em bairros pequenos), o "Outros bairros" vem sem número e com `abaixoDoLimite = true` | `AlcancePainelIT` · substituído pela Fatia 11 (A15), D162 a D170 |
+| A69 | atendimentos de dois barbeiros | `BARBEIRO` A chama `GET /admin/alcance?barbeiroId=<B>` | vê só os próprios | `AlcancePainelIT` · substituído pela Fatia 11 (A21), D162 a D170 |
+| A70 | ADMIN | `?barbeiroId=<inexistente>` · `?de=2026-11-10&ate=2026-11-01` · período de 400 dias · sem token · cliente | `404` · `400` · `400` · `401` · `403` | `AlcancePainelIT` · substituído pela Fatia 11 (A37), D162 a D170 |
+| A71 | o cenário do A67 | `GET /alcance` sem token | `200` com `regioes = [{ Osasco, SP, [Centro] }]`, `totalCidades = 1`, `totalBairros = 1`, **sem** número de atendimentos no JSON | `AlcancePublicoIT` · substituído pela Fatia 11 (A28), D162 a D170 |
+| A72 | atendimentos de 13 meses atrás em outro bairro (5 ou mais) | `GET /alcance` | não aparecem (só últimos 12 meses) | `AlcancePublicoIT` · substituído pela Fatia 11 (A31), D162 a D170 |
+| A73 | duas chamadas com um atendimento novo no meio; depois 31 chamadas no mesmo minuto do mesmo IP | `GET /alcance` | a segunda vem do cache do servidor (1 hora, `Ticker` de teste); a 31ª é `429` com `Retry-After` | `AlcancePublicoIT` · substituído pela Fatia 11 (A33), D162 a D170 |
+| A74 | visitante com `cep` vencido há 90 dias | job de retenção | `reserva_guest.cep = NULL`; `reserva.regiao_*` continua igual | `RetencaoJobIT` · substituído pela Fatia 11 (A10), D162 a D170 |
 | A75 | roteiro da 6C | ler o log | nenhum CEP em texto claro (o log diz só "região resolvida: sim/não") | `SemDadoPessoalNoLogIT` |
 
 ### Transversais

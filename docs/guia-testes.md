@@ -40,7 +40,7 @@ docker compose up -d                                         # PostgreSQL 18 na 
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Deixe esse terminal aberto (a API fica rodando) e abra **outro** para os testes. O perfil `dev` não precisa de `.env` e cria dados fictícios: o barbeiro **Carlos Eduardo Cândido**, os 5 serviços reais e a jornada de terça a sábado (07h–12h e 13h–20h).
+Deixe esse terminal aberto (a API fica rodando) e abra **outro** para os testes. O perfil `dev` não precisa de `.env` e cria dados fictícios: o barbeiro **Eduardo Candido**, os 5 serviços reais e a jornada de terça a sábado (07h–12h e 13h–20h).
 
 ```bash
 curl -i http://localhost:8080/actuator/health
@@ -235,7 +235,7 @@ HTTP/1.1 200
 Cache-Control: no-store
 
 {"data":"2026-12-01","fuso":"America/Sao_Paulo","servicoId":"6f1c2a8e-0000-4000-8000-000000000003","duracaoMin":60,
- "barbeiros":[{"barbeiroId":"b0000000-0000-4000-8000-000000000001","nomeExibicao":"Carlos Eduardo Cândido",
+ "barbeiros":[{"barbeiroId":"b0000000-0000-4000-8000-000000000001","nomeExibicao":"Eduardo Candido",
  "horarios":["2026-12-01T07:00:00-03:00","2026-12-01T07:30:00-03:00", "...", "2026-12-01T11:00:00-03:00",
              "2026-12-01T13:00:00-03:00", "...", "2026-12-01T19:00:00-03:00"]}]}
 ```
@@ -674,7 +674,7 @@ Backup e restauração OK (A20).
 
 ## 5c. Deploy robusto: cache AOT, health, queda do banco e ping (Fatia 8B) ✅
 
-Tudo roda na sua máquina, com o Docker Desktop aberto e **variáveis falsas** (nenhuma conta nem serviço). Critérios na [spec da Fatia 8B](sdd/fatia-8b-deploy-robusto.md); decisões D152 a D160.
+Tudo roda na sua máquina, com o Docker Desktop aberto e **variáveis falsas** (nenhuma conta nem serviço). Critérios na [spec da Fatia 8B](sdd/fatia-8b-deploy-robusto.md); decisões D179 a D187.
 
 ```bash
 sh scripts/testar-imagem.sh                      # build + PostgreSQL 18 + API: A1 a A15 (Fatia 8) e 8B-A5 a 8B-A18
@@ -718,9 +718,9 @@ Rodada completa, mesma máquina, `docker run` até o health completo `UP` (inclu
 | **8B como a imagem sobe** (cache + `TieredStopAtLevel=1`) | 20,3 s · 6,6 s · 5,0 s | **6,6 s** |
 
 - Ganho só do cache: **35%** (meta de 25%: passou); ganho do cache + `TieredStopAtLevel=1`: 44% sobre o 8B sem nada e **57% sobre a imagem da Fatia 8** (15,4 s para 6,6 s).
-- **A variação entre rodadas é grande** (a máquina tem 2 CPUs e quase toda rodada tem uma subida atípica, a primeira costuma ser a pior): numa rodada anterior o cache sozinho deu 9% e noutra 20%, e o conjunto cache + C1 deu de 44% a 54% em todas. Por isso a imagem leva as duas coisas (D155).
+- **A variação entre rodadas é grande** (a máquina tem 2 CPUs e quase toda rodada tem uma subida atípica, a primeira costuma ser a pior): numa rodada anterior o cache sozinho deu 9% e noutra 20%, e o conjunto cache + C1 deu de 44% a 54% em todas. Por isso a imagem leva as duas coisas (D182).
 - **A11, com `--cpus=0,25`** (estimativa do Render, que tem ~0,1 CPU): 32,2 s com cache e C1 contra 51,0 s sem nenhum dos dois (em outra rodada, 28,8 s contra 60,8 s). Não entra no pass/fail.
-- **A12:** a imagem foi de 435 MB para 605 MB (**+170 MB**; o cache AOT tem **125 MiB**). A spec previa 120 MB: o limite do script passou a 200 MB (D156).
+- **A12:** a imagem foi de 435 MB para 605 MB (**+170 MB**; o cache AOT tem **125 MiB**). A spec previa 120 MB: o limite do script passou a 200 MB (D183).
 - Estes números são do Docker Desktop, não do Render: o primeiro deploy real e o painel do Render são a prova final.
 
 ### O que se confere à mão (roteiros do Kevin, depois do primeiro deploy com `checksPass`)
@@ -995,6 +995,8 @@ Saída real (17/11/2026, 17h13), resumida:
 
 ### AL1 ✅ Alcance por região (Fatia 6C)
 
+> ⚠️ **Histórico (Fatia 6C).** Desde a Fatia 11 (ADR 0014, V12) o CEP **não é mais guardado**: a coluna `reserva_guest.cep` não existe, a região só é gravada com a caixinha de consentimento (`autorizaRegiao` + `versaoTextoRegiao`) e o alcance usa k = 5 com subida de nível. A consulta SQL e a saída abaixo valem só como registro do comportamento antigo; o roteiro atual é o da Fatia 11.
+
 Os critérios A62 a A75 já têm teste automatizado (`AlcanceDaReservaIT`, `AlcancePainelIT`, `AlcancePublicoIT`, `RetencaoJobIT` e `SemDadoPessoalNoLogIT`). Este roteiro mostra o mesmo à mão, no perfil `dev`. Precisa do ADMIN com a senha já trocada (AD3) e do ViaCEP de verdade (internet) para o CEP ser resolvido.
 
 ```bash
@@ -1067,14 +1069,14 @@ status da reserva depois do job: EXPIRADO
 **2. O WhatsApp do barbeiro.** Antes e depois do cadastro pelo admin; a rota pública não precisa de token:
 
 ```text
-GET /barbeiros antes: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": null}]
+GET /barbeiros antes: [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "whatsapp": null}]
 PUT admin (whatsapp "(11) 91234-5678"): 200 whatsapp = 11912345678 version = 1
-GET /barbeiros (sem token): [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Carlos Eduardo Cândido", "whatsapp": "11912345678"}]
+GET /barbeiros (sem token): [{"id": "b0000000-0000-4000-8000-000000000001", "nomeExibicao": "Eduardo Candido", "whatsapp": "11912345678"}]
 link: https://wa.me/11912345678
 PUT com número inválido ("123"): 400 VALIDACAO_INVALIDA [{'message': 'deve ter de 10 a 13 dígitos', 'field': 'whatsapp'}]
 ```
 
-**O que prova:** o seed dev fica sem número; o admin cadastra com máscara e o banco guarda só os dígitos; a rota pública devolve o número para o front montar o `wa.me`; formato errado dá `400` no campo certo.
+**O que prova:** o seed dev fica sem número (desde a D152, o perfil dev já nasce com o WhatsApp comercial público gravado pela V8); o admin cadastra com máscara e o banco guarda só os dígitos; a rota pública devolve o número para o front montar o `wa.me`; formato errado dá `400` no campo certo.
 
 **3. A reserva manual.** Admin trava a quinta 26/11 às 10h (horário livre, `10:00` na disponibilidade):
 
@@ -1155,6 +1157,84 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 | P7 | Reserva manual | travar um horário combinado por WhatsApp (com e sem nome) | a agenda do dia mostra "MANUAL · WHATSAPP", sem pagamento; o horário some de `/agendar` | Saída real: a preencher no fluxo manual |
 | P8 | Cadastros | editar serviço (preço `55,90`), barbeiro (WhatsApp com máscara), jornada, folga e regras | preço vira centavos; nome repetido aparece no campo; jornada sobreposta marca o dia; fuso só leitura; prazo de 3 a 60 min | Saída real: a preencher no fluxo manual |
 | P9 | Auditoria e alcance | abrir as duas telas | auditoria sem IP; alcance com "menos de 5" e sem percentual nas linhas pequenas | Saída real: a preencher no fluxo manual |
+
+### 7.5 Site mais fluido (Fatia 12) ✅
+
+**Passos à mão (visitante, no celular ou numa janela estreita):**
+
+1. Abra a home: a ordem é herói (com a faixa "Escolha · Pague · Confirmado"), **Serviços** (6 cartões, o último é **Descoloração / Platinado (química), 60 min, R$ 80,00**), **Barbeiro**, **Galeria**, **Trajetória**, "De onde vêm nossos clientes" e **Dúvidas**. ✅
+2. Em **Galeria** toque numa foto: abre inteira, com legenda; `←` e `→` trocam, `Esc` fecha e o foco volta à miniatura. ✅
+3. Abra `/#historia`: a janela vai para a **Trajetória** e o endereço vira `/#trajetoria`. ✅
+4. Role até o rodapé: a barra **Agendar horário** continua visível (só abaixo de 768 px) e não cobre o último link. Em `/agendar`, `/entrar`, `/cadastro` e `/painel` ela não existe. ✅
+5. Toque em **Agendar este serviço** no platinado: `/agendar` abre com ele marcado, o próximo dia com horário já escolhido e, com um só barbeiro, sem seletor de barbeiro. Escolha um chip de horário e toque em **Continuar** (4 toques desde a home). ✅
+6. O texto do pagamento diz "prazo curto", sem número: o prazo só aparece como cronômetro na tela de pagamento (vem de `expiraEm`). ✅
+7. Sem clientes com região consentida, o bloco "De onde vêm nossos clientes" mostra "Em breve", sem número nem botão. ✅
+
+**O que roda sozinho (saída real de 23/11/2026, Windows, Node 22, Java 25, PostgreSQL 18 isolado):**
+
+- `cd backend && ./mvnw verify`: **398 testes, 0 falhas** (entram os 4 de `V10ServicoDescoloracaoPlatinadoIT`, A21; `V8CatalogoInicialIT` e `SeedDevIT` passam a esperar 6 serviços).
+- `cd frontend && npm run lint && npx tsc --noEmit && npm run verificar:tokens`: limpos.
+- `npm run test:cobertura`: **58 arquivos, 108 testes verdes**; cobertura 87,5% das linhas de instrução (Statements) e 83,5% dos ramos.
+- `npm run build`: compila (Next 16).
+- `npx playwright test` (API real no perfil `dev`, banco isolado): **20 de 20 verdes** num banco recém-criado (num banco já usado, A63 e A55 oscilaram por disputa dos mesmos horários), com axe sem nenhuma violação (A14 e A25), 4 toques (A23) e o fluxo da home ao pagamento (A22, mais o A57 de ponta a ponta).
+- `bash scripts/conferir-spec.sh 12 --exigir`: **27 de 27 critérios com teste**.
+- **Lighthouse móvel** (`npx lighthouse@12`, CPU 4x e Slow 4G simulados, contra `next build` + `next start` local com a API real; 3 execuções cada):
+
+| Tela | Desempenho | Acessibilidade | LCP | CLS | TBT |
+|---|---|---|---|---|---|
+| `/` | 95, 97, 97 | 100 | 2,54 a 2,63 s | 0,000 a 0,003 | 55 a 143 ms |
+| `/agendar` | 94, 96, 97 | 100 | 2,46 a 2,57 s | 0,002 | 106 a 197 ms |
+
+  O **LCP** fica entre 2,46 e 2,63 s, **até 130 ms acima** do orçamento de 2,5 s em parte das execuções (o título repinta quando a fonte Playfair troca, `display: swap`, D-1 do design system). Com `display: optional` o mesmo teste deu 2,44 a 2,51 s; não foi aplicado porque muda o desenho. Antes de reservar espaço para a lista de serviços e fixar o resumo, o `/agendar` tinha CLS 0,141; hoje 0,002.
+- Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada).
+### 7.4 Convite do barbeiro (Fatia 10)
+
+O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a senha; o convidado só mexe na própria agenda. As telas ainda **aguardam desenho** (layout neutro). Para repetir à mão: API no perfil `dev`, front em `http://localhost:3000`, o admin do `ADMIN_EMAIL`. O teste de ponta a ponta de verdade é `frontend/e2e/convite.spec.ts` (A36), que faz tudo isso contra a API real.
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| C1 | Cadastros → Barbeiros | como dono, criar um barbeiro e tocar em "Gerar convite" (não pede e-mail) | diálogo com o link `/convite#…`, o QR, o prazo de 48 h, "Copiar link" e "Enviar pelo WhatsApp"; ao fechar o código some e a linha mostra "Convite pendente até …" com "Gerar outro" e "Revogar" | Saída real: a preencher no fluxo manual |
+| C2 | Abrir o link | colar o link numa janela anônima | "Criar minha senha"; o código sai da barra de endereço; recarregar a página mostra o mesmo formulário (abrir não consome o convite) | Saída real: a preencher no fluxo manual |
+| C3 | Criar a senha | digitar o próprio e-mail, a senha (10 a 72 caracteres) e a confirmação | vai para o login com "Senha criada. Entre com seu e-mail e a nova senha."; ao entrar, o menu mostra "Você entrou como Barbeiro" e só a própria agenda | Saída real: a preencher no fluxo manual |
+| C4 | Link repetido | abrir o mesmo link de novo e tentar criar outra conta | uma frase só ("Este link não vale mais ou não pode ser usado aqui") e o caminho "Já tenho conta no site: entrar" | Saída real: a preencher no fluxo manual |
+| C5 | Conta que já existe | entrar como cliente, abrir um convite novo e digitar o e-mail da conta | "Aceitar convite" (sem senha); depois, entrar de novo mostra o painel de barbeiro e a senha antiga continua valendo | Saída real: a preencher no fluxo manual |
+| C6 | Dono na agenda de outro | como dono, filtrar a agenda pelo barbeiro convidado, fazer uma reserva manual e fechar e cancelar uma reserva dele | funciona, com o dono como autor na auditoria; o convidado, nos mesmos atos na agenda de outro, recebe "não encontrado" | Saída real: a preencher no fluxo manual |
+| C7 | Desligar | como dono, editar o barbeiro, desmarcar "Ativo" e confirmar | a confirmação explica que mantém o histórico; a linha vira "Desligado"; a sessão do barbeiro cai na hora; reativar sozinho não devolve o acesso (só um convite novo) | Saída real: a preencher no fluxo manual |
+
+Para o teste de visitantes, esta seção **não** entra: o público só testa o cliente (13 passos); o convite e o desligamento são da equipe.
+
+### 7.6 Notificação ao barbeiro (Fatia 13) ✅
+
+Quando o **pagamento confirma** uma reserva (de cliente com cadastro ou de visitante), o barbeiro daquela reserva ganha um aviso em **Painel → Novidades** e, se tiver o aparelho ativado, uma notificação no celular: *"Novo horário: Corte Degradê, sex 27/11 às 10:00"* (a spec escreveu "qui" no exemplo, mas 27/11/2026 é sexta). O aviso **não leva o nome do cliente**. Reserva que expira, cancelada ou manual não avisa. As telas **aguardam desenho** (layout neutro, D148). Só a equipe testa: o público não entra aqui.
+
+| # | Tela | O que fazer | O que deve acontecer | Saída real |
+|---|---|---|---|---|
+| N1 | Painel → Notificações | como barbeiro, abrir a tela num celular Android ou no computador e tocar em **Ativar notificações** | o navegador pede a permissão **só depois do toque**; a tela passa a "Ativo" com "Enviar um teste" e "Desativar" | a preencher no teste manual (depende do aparelho) |
+| N2 | Enviar um teste | tocar em **Enviar um teste** | chega "Notificações ativadas neste aparelho"; o 6º em uma hora responde `429` | a preencher no teste manual |
+| N3 | iPhone | abrir pelo Safari, sem a Tela de Início | a tela mostra "No iPhone, toque em Compartilhar, depois em Adicionar à Tela de Início…"; com iOS menor que 16.4: "Atualize o iPhone…" | a preencher no iPhone real (não dá para provar em teste automático) |
+| N4 | Cliente marca e paga | com a API no perfil `dev`, o cliente (ou visitante) marca com o Eduardo e confirma o pagamento simulado | o selo **Novidades** do Eduardo mostra o número; abrir a lista zera o selo e destaca os itens "Novo"; o barbeiro convidado não vê nada | `frontend/e2e/notificacao.spec.ts` (A43) |
+| N5 | Voltar à aba | deixar o painel aberto, pagar uma reserva em outra aba e voltar | o selo atualiza ao voltar o foco (e na hora, se o push chegar), **sem polling** | `NovidadesDoPainel.test.tsx` (A42) |
+
+**Ligar de verdade:** o par de chaves VAPID e o deploy estão em [ativar-deploy.md](planejamento/ativar-deploy.md#passo-2b--notificação-ao-barbeiro-chave-vapid-fatia-13). Sem as chaves a tela mostra "indisponíveis" e o aviso do painel funciona igual. O e-mail está pronto e desligado: [notificacao-por-email.md](planejamento/notificacao-por-email.md).
+
+**Como ativar no Android e no iPhone (guia curto):** *Android (Chrome):* abra o painel, vá em Notificações, toque em Ativar e em Permitir; confira com "Enviar um teste". *iPhone (iOS 16.4 ou mais novo):* no Safari, toque em Compartilhar, depois em **Adicionar à Tela de Início**; abra o Altas Horas pelo **ícone novo** (não pelo Safari), entre no painel, Notificações, Ativar. Se negou por engano: Ajustes do aparelho, Notificações, Altas Horas.
+
+**Números (24/11/2026, Windows, Node 22, Java 25, PostgreSQL 18 real):** `./mvnw verify`: **542 testes, 0 falhas** (depois do merge com a Fatia 11 e das correções do Sentinela) (eram 387 em 20/11; a Fatia 13 soma os A1 a A50 do backend, incluindo a criptografia conferida contra o exemplo da RFC 8291) · front: `eslint` e `tsc --noEmit` sem erro, `vitest`: **72 arquivos, 171 testes verdes**, `next build` ok (rotas `/manifest.webmanifest`, `/painel/novidades` e `/painel/notificacoes`) · `npx playwright test` contra a API real no perfil `dev` (banco isolado, removido no fim): **22 de 22 verdes em 3,3 min** (entra `notificacao.spec.ts`, A43) · `scripts/conferir-spec.sh 13 --exigir`: **50 de 50** · `redocly lint` 2.78.0 no contrato 1.10.0: 0 erros. O que **não** se prova em teste automático: a notificação chegando num iPhone e num Android de verdade (passos N1 a N3).
+### 7.5 Alcance por nível e consentimento de região (Fatia 11)
+
+| # | O que fazer | Esperado | Situação |
+|---|---|---|---|
+| 1 | Cadastro: abrir `/cadastro` | a caixinha de região **desmarcada**, o texto da API, o canal de contato e o link da política; nenhum campo de CEP | ⏳ roteiro manual |
+| 2 | Marcar a caixinha, digitar o CEP 06010-000 e criar a conta | `PUT /me`/cadastro com `autorizaRegiao: true`; `GET /me` traz `regiaoAutorizada: true` e `endereco.cep` nulo | ✅ `RegiaoConsentidaIT` (A1 a A3), `PerfilSemCepIT` (A7) |
+| 3 | Sem marcar a caixinha, mandar `cep` direto à API | `201`, nenhuma região gravada e nenhuma chamada ao ViaCEP | ✅ `RegiaoConsentidaIT` (A1) |
+| 4 | "Meus dados" → "Retirar minha autorização de região" | confirmação em uma linha; a região some do perfil e das reservas | ✅ `RevogarRegiaoIT` (A4, A5), `MeusDados.test.tsx` (A49) |
+| 5 | Visitante: confirmação da reserva → "Retirar minha autorização de região" | `DELETE /agendamentos/guest/{id}/regiao` → 204; token errado → 404 | ✅ `RevogarRegiaoGuestIT` (A6), `ConfirmacaoRegiao.test.tsx` (A48) |
+| 6 | Painel (Dono): Alcance, trocar Estado, Região e Município; filtrar UF, período e barbeiro | linhas e filhos; "menos de 5" em texto; lugar pequeno sobe de nível | ✅ `AlcancePorNivelIT`, `SubidaDeNivelIT`, `PainelAlcance.test.tsx` (A51) |
+| 7 | Painel (barbeiro convidado) | só os clientes dele, sem filtro de barbeiro, nunca bairro pequeno | ✅ `AlcancePorBarbeiroIT` (A37, A38), `PainelAlcance.test.tsx` (A52) |
+| 8 | Home: clicar num município | bairros em "cerca de 15%", "menos de 5%" ou só o nome; nenhum número de pessoas | ✅ `VitrineEmFaixasIT`, `HomeAlcance.test.tsx` (A50) |
+| 9 | Nenhuma subtração revela um número menor que k | 200 sementes, k = 3, 5 e 8; sem as defesas o teste falha | ✅ `AlcancePropriedadeTest` (A43, A44) |
+
+Roteiro do painel com dado real: com o banco do `docker compose`, crie 6 contas em Osasco/Centro com a caixinha e uma reserva cada (ver o fluxo ponta a ponta), entre como Dono e abra "Alcance".
 
 ## 8. Jornada completa
 

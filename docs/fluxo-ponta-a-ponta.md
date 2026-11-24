@@ -60,6 +60,26 @@ O navegador **só fala com o Next** (`/api/**`, o BFF). O BFF confere a rota con
 | confirmar | `/agendar/confirmacao/{id}` | resumo, aviso sem cancelamento, **código da reserva** com Copiar e link `…/reserva#id=…&codigo=…` (o `#` não vai ao servidor) | `GET /agendamentos/guest/{id}` · `GET /api/visitante` (rota só do BFF) |
 | consultar | `/reserva` | lê o fragmento, **apaga o `#`** do endereço e consulta; código errado e reserva inexistente mostram o mesmo texto | `GET /agendamentos/guest/{id}` com `X-Guest-Token` |
 
+### 2.0b O caminho até o formulário em poucos toques (Fatia 12) ✅
+
+Só a primeira parte do fluxo mudou de cara; as rotas, a lógica e o pagamento são os mesmos.
+
+```mermaid
+flowchart LR
+  H["Home<br/>serviços, barbeiro, galeria"] -->|"Agendar horário<br/>(topo, herói ou barra fixa)"| A["/agendar"]
+  H -->|"Agendar este serviço"| A
+  A -->|"1 serviço"| D["próximo dia livre<br/>já escolhido"]
+  D -->|"2 horário (chip)"| R["resumo fixo"]
+  R -->|"3 Continuar"| F["/agendar/dados"]
+  F --> P["pagamento<br/>(prazo = expiraEm)"]
+  P --> C["confirmação"]
+```
+
+- Da home ao formulário de dados: **no máximo 4 toques** (Agendar horário, serviço, horário, Continuar). Com um só barbeiro ativo, o seletor de barbeiro some; com mais de um, volta como opções.
+- O dia vem da tira de 7 dias (o primeiro com horário já selecionado); "Outro dia" cobre até 30 dias; um dia sem horário oferece "Ver o próximo dia com horário".
+- Horário indisponível aparece em cinza, com borda tracejada, riscado e a palavra "indisponível" para quem usa leitor de tela.
+- A home não promete prazo em minutos: o prazo (3 a 60 min, D121) só aparece no cronômetro da tela de pagamento. Antes de reservar o texto é "prazo curto".
+
 ### 2.1 Reservar e pagar ✅
 
 ```mermaid
@@ -258,6 +278,14 @@ sequenceDiagram
 
 Os `409` são `EXCLUSAO_BLOQUEADA_POR_RESERVA` e nada muda. A cobrança das reservas canceladas vira `CANCELADA` pelo outbox, depois do commit. O token de acesso já emitido deixa de valer na hora (`ValidadorDeConta`, D98). Admin com a senha inicial recebe `403 TROCA_DE_SENHA_OBRIGATORIA` em `/me/dados` e `/me/consentimentos`.
 
+### 3.4 Região por consentimento e alcance por nível ✅ (Fatia 11)
+
+1. `POST /auth/cadastro` com `cep`, `autorizaRegiao: true` e `versaoTextoRegiao: "1.2"` → o CEP é consultado uma vez e descartado; ficam Centro, Osasco, SP e o código `3534401`.
+2. O cliente reserva (`POST /agendamentos`): a reserva copia a região e a versão do texto aceito.
+3. O Dono abre `GET /admin/alcance?nivel=MUNICIPIO`: com 6 pessoas em Osasco/Centro aparece `Osasco 6` e `Centro 6`; com 3 pessoas, o município sobe para "Outros municípios da região imediata de São Paulo" (`agrupadoEm: REGIAO`) ou, sozinho, para "Outros estados" com `abaixoDoLimite: true`.
+4. Um barbeiro convidado com poucos clientes vê o município ou "menos de 5", nunca um bairro pequeno; o `barbeiroId` que ele mandar é ignorado sem sinal.
+5. `PUT /me/consentimentos/regiao` com `aceito: false` apaga a localidade e a região das reservas; o alcance seguinte conta a pessoa em "sem região". Saída real conferida em `RevogarRegiaoIT`, `SubidaDeNivelIT` e `AlcancePorBarbeiroIT`.
+
 ## 4. Painel (ADMIN e BARBEIRO)
 
 Todas as rotas `/admin/**` exigem login e papel; o admin inicial precisa **trocar a senha** antes (`403 TROCA_DE_SENHA_OBRIGATORIA`).
@@ -274,6 +302,33 @@ Todas as rotas `/admin/**` exigem login e papel; o admin inicial precisa **troca
 | WhatsApp do barbeiro ✅ (6D) | `POST`/`PUT /admin/barbeiros` (campo `whatsapp`, só ADMIN) · `GET /barbeiros` (público) | `CadastroDeBarbeiros` guarda só os dígitos (`barbeiro.whatsapp`); `CatalogoController` devolve `BarbeiroNoCatalogo`; o front monta `https://wa.me/<número>` |
 | Alcance por região ✅ (6C) | `GET /admin/alcance?de&ate&barbeiroId` | `AlcanceController` (módulo `admin`) → `AlcanceDaAgenda.painel` (API pública da `agenda`: confere o escopo, o período de até 366 dias e o barbeiro) → `ConsultaAlcance` (uma consulta agrupa `CONFIRMADO` e `CONCLUIDO` por cidade, uf e bairro e agrega em memória). **K-anonimato (k ≥ 5):** bairro com menos de 5 vira "Outros bairros" e cidade com menos de 5 vira "Outras cidades". O ADMIN vê tudo ou filtra por barbeiro; o BARBEIRO vê só os próprios (o `barbeiroId` da query é trocado pelo dele). Nunca em cache |
 | Vitrine pública do alcance ✅ (6C) | `GET /alcance` (sem token) | `AlcancePublicoController` (módulo `agenda`): limite de 30 por minuto por IP (`LimitadorDeTentativas`), cache Caffeine de 1 hora com `Ticker` injetável → `AlcanceDaAgenda.publico`: últimos 12 meses, **só nomes** das cidades e dos bairros que passam no k ≥ 5, sem contagens |
+
+### 4.1 Convite e acesso do barbeiro (Fatia 10)
+
+Quem pode o quê: só o **ADMIN** (Dono/Admin) adiciona um barbeiro, gera o convite, o desliga e mexe na agenda de outro (ver, reserva manual, fechar, cancelar); o barbeiro convidado só mexe na própria e recebe `404` igual na de outro.
+
+| Passo | Rota | Classes |
+|---|---|---|
+| Política de acesso | (toda rota de escopo do painel) | `AcessoAgenda` (módulo `agenda`, a única que liga conta e barbeiro): `alvo`, `alvoDoAlcance`, `exigirDonoDaReserva`, `proprio`; `PainelDaAgenda`, `AlcanceDaAgenda` e `CadastrosDoPainel` só perguntam a ela |
+| Gerar convite ✅ (10B) | `POST /admin/barbeiros/{id}/convite` (só ADMIN, sem corpo) | `BarbeirosAdminController` → `ConviteDeBarbeiro` → `Contas.emitirConvite` (código de 32 bytes, SHA-256 em `convite_conta`, 48 h) + `Auditor` na mesma transação |
+| Abrir o link | `/convite#<codigo>` (página, sem chamar a API) | `Convite.tsx`: lê o fragmento, tira da barra de endereço |
+| Aceitar ✅ (10B) | `POST /api/convite` (BFF) → `POST /auth/convite` | `convite()` no BFF (token da sessão só se houver) → `ConviteController` → `AceitarConvite` (limite por IP, `SELECT ... FOR UPDATE`, conta nova ou H32) → evento `ConviteAceito` → `VinculoDoConvite` (agenda liga `barbeiro.usuario_id`) e `AuditoriaDoConvite` (painel audita) |
+| Desligar ✅ (10B) | `PUT /admin/barbeiros/{id}` com `ativo: false` | `CadastroDeBarbeiros.alterar` → `Contas.revogarConvite` e `Contas.desligarContaDeEquipe` (tira o papel, anonimiza a conta só de equipe); `ContaEmUso` barra o token antigo; histórico mantido (D153) |
+| Retenção | job `RetencaoDeDados` | `RetencaoDeBarbeiroDesligado`: pseudônimo no `nome_exibicao` 5 anos depois da última reserva |
+
+### 4.2 Aviso ao barbeiro quando o cliente paga (Fatia 13)
+
+O pagamento confirma a reserva, e o **barbeiro daquela reserva** (só ele) sabe na hora. Cliente com cadastro e visitante seguem o mesmo caminho: `Reservas.confirmarPagamento` é o ponto único (webhook, conciliação e simulação passam por ele).
+
+| Passo | Onde | Classes |
+|---|---|---|
+| Pagamento confirma ✅ | webhook ou `POST /pagamentos/simulacao/{id}/confirmar` | `Reservas.confirmarPagamento` muda para `CONFIRMADO` e, **só na mudança**, publica `ReservaConfirmada` (ids e instante, sem dado pessoal) pelo outbox (`event_publication`), na mesma transação. Chamada repetida e `HORARIO_OCUPADO` não publicam |
+| Ouvir o evento ✅ | `admin.notificacao` | `AvisaBarbeiroDaReserva` (`@ApplicationModuleListener`): acha a conta do barbeiro **ativo** (`Reservas.contaDoBarbeiroAtivo`), grava `aviso_barbeiro` (um por reserva e conta) e lê os aparelhos, tudo numa transação curta |
+| Entregar ✅ | fora de transação | `Despachante` chama os canais de `app.notificacao.canais`: `WebPushCanal` (RFC 8291 e VAPID com o JDK, `HttpClient` único, 5 s, só hosts de serviço de push) e, se ligado, `EmailCanal` (stub). Falha passageira deixa o evento pendente; `ReenvioDeAvisosPendentes` republica |
+| Marcar ✅ | transação curta | `push_enviado_em`, `ultimo_envio_ok`; inscrição morta (`404`/`410`) é apagada na hora |
+| Ver no painel ✅ | `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` | `AvisosDoPainel` (2 consultas); o front: `NovidadesProvider` (selo sem polling: foco da aba e `postMessage` do `sw.js`) e `PainelNovidades` |
+| Ativar o aparelho ✅ | `GET .../chave-publica`, `POST` e `DELETE .../inscricao`, `POST .../teste` | `AparelhosDoBarbeiro` (conta do token, limite de 10 aparelhos, 5 testes por hora); o front: `PainelNotificacoes`, `push.ts`, `public/sw.js`, `manifest.ts` |
+| Retenção ✅ | job das 3h | `LimpezaDeNotificacoes` (30 dias de aviso, 90 de aparelho sem envio); desligar o barbeiro e excluir a conta chamam `ApagaNotificacoesDaConta` |
 
 ## 5. Por baixo: o que sustenta tudo
 

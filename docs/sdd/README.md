@@ -57,6 +57,11 @@ flowchart LR
 | 8 · Deploy grátis | [fatia-8-deploy.md](fatia-8-deploy.md) | ✅ preparada e no ar em beta |
 | 8B · Deploy robusto e econômico | [fatia-8b-deploy-robusto.md](fatia-8b-deploy-robusto.md) | ✅ aprovada pelo Kevin (23/11/2026) · implementada na branch `feat/fatia-8b-deploy-robusto`, aguardando PR (CI verde antes do deploy, subida mais rápida, health sem falso alarme, ping dentro das 750 h, rollback, backup) |
 | 9 · Assistente de dúvidas (RAG) | [fatia-9-assistente-de-duvidas.md](fatia-9-assistente-de-duvidas.md) | 📝 pós-beta, desligada por padrão |
+| Catálogo inicial (V8) | [fatia-catalogo-inicial.md](fatia-catalogo-inicial.md) | ✅ implementada (20/11/2026): 5 serviços, o barbeiro e a jornada no banco, A1 a A7 (D152) |
+| 10 · Convite e login do barbeiro terceiro (10A isolamento, 10B convite) | [fatia-10-convite-do-barbeiro.md](fatia-10-convite-do-barbeiro.md) | ✅ aprovada (23/11) |
+| 11 · Alcance por estado, município e região (k = 5, consentimento sem CEP) | [fatia-11-alcance-por-nivel.md](fatia-11-alcance-por-nivel.md) | ✅ aprovada (23/11) |
+| 12 · Site mais fluido e mais completo (home, agendar, galeria, Trajetória) | [fatia-12-site-fluido.md](fatia-12-site-fluido.md) | ✅ aprovada (23/11) com as 12 propostas · implementada (12A, 12B e 12C, 27 critérios com teste; LCP medido 2,46 a 2,63 s, ver guia de testes 7.5) |
+| 13 · Notificação ao barbeiro quando o cliente marca horário (Web Push, aviso no painel, e-mail preparado) | [fatia-13-notificacao-ao-barbeiro.md](fatia-13-notificacao-ao-barbeiro.md) | ✅ aprovada em 24/11/2026 (implementando) |
 
 ## A IA no processo
 

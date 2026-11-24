@@ -3,148 +3,211 @@ package io.github.k3vinrich4rd.altashoras.agenda;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.k3vinrich4rd.altashoras.agenda.alcance.ConsultaAlcance;
+import io.github.k3vinrich4rd.altashoras.agenda.alcance.NiveisDeAlcance;
+import io.github.k3vinrich4rd.altashoras.agenda.alcance.NiveisDeAlcance.Janela;
+import io.github.k3vinrich4rd.altashoras.agenda.alcance.NiveisDeAlcance.Pessoa;
+import io.github.k3vinrich4rd.altashoras.agenda.alcance.NiveisDeAlcance.Publicacao;
+import io.github.k3vinrich4rd.altashoras.agenda.alcance.NiveisDeAlcance.Recorte;
 import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.ConfiguracaoAgenda;
 import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.ConfiguracaoAgendaRepository;
-import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
 /**
- * API pública da agenda para o alcance por região (Fatia 6C, ADR 0002): de onde vêm os atendimentos, por cidade e bairro.
- * O painel (módulo admin) pergunta aqui e nunca lê a tabela da reserva. Só entram reservas CONFIRMADO e CONCLUIDO (E31) e
- * nenhum grupo com menos de {@value #K_MINIMO} atendimentos aparece com nome (k-anonimato, E32).
- * O ADMIN vê todos os barbeiros ou filtra por um; o BARBEIRO vê sempre só os próprios atendimentos: o {@code barbeiroId}
- * que ele mandar é trocado pelo dele (E36).
+ * API pública da agenda para o alcance (Fatia 6C, reescrita na Fatia 11, ADR 0002 e ADR 0014): de onde vêm os CLIENTES (pessoas
+ * distintas, não atendimentos), por estado, região, município e bairro. O painel (módulo admin) pergunta aqui e nunca lê a
+ * tabela da reserva. Só entram reservas CONFIRMADO e CONCLUIDO (E14) e nenhum lugar com menos de k pessoas aparece com número
+ * (k-anonimato, E6): ele sobe de nível (E7). O ADMIN vê todos os barbeiros ou filtra por um; o BARBEIRO vê sempre só os próprios
+ * clientes: o {@code barbeiroId} que ele mandar é trocado pelo dele, sem sinal disso na resposta (E15).
  */
 @Service
 public class AlcanceDaAgenda {
 
-    /** Menor grupo que aparece com nome: abaixo disso entra em "Outros bairros" ou "Outras cidades" (E32). */
-    public static final int K_MINIMO = 5;
     /** Período máximo do painel, em dias (366 cobre um ano bissexto inteiro). */
     public static final int PERIODO_MAXIMO_DIAS = 366;
     /** Padrão do painel: hoje e os 29 dias anteriores. */
     public static final int PERIODO_PADRAO_DIAS = 30;
-    public static final String OUTRAS_CIDADES = "Outras cidades";
-    public static final String OUTROS_BAIRROS = "Outros bairros";
 
     private static final DateTimeFormatter FORMATO = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+
+    /** O nível das linhas do painel (o seletor da tela). */
+    public enum Nivel {
+        ESTADO, REGIAO, MUNICIPIO
+    }
+
+    /** As três janelas padrão, as únicas que a regra E11 compara entre si. */
+    public enum PeriodoPadrao {
+        ULTIMOS_30_DIAS, ULTIMOS_90_DIAS, ULTIMOS_12_MESES
+    }
 
     /** Dias civis, inclusive nas duas pontas, no fuso da barbearia. */
     public record Periodo(LocalDate de, LocalDate ate) {
     }
 
-    /** Abaixo do limite ("Outros bairros" com menos de 5): {@code atendimentos} e {@code percentual} nulos e {@code abaixoDoLimite} verdadeiro (D114). */
+    /** Quem ficou sem região: {@code clientes} nulo e {@code abaixoDoLimite} quando o número não é publicado. */
+    public record SemRegiao(@Nullable Long clientes, boolean abaixoDoLimite) {
+    }
+
+    /**
+     * Um filho (nível de baixo) de um grupo. {@code clientes} e {@code percentual} são nulos quando {@code abaixoDoLimite}
+     * (a tela escreve "menos de k"). Em "OUTROS", {@code codigo} é o do pai.
+     */
+    public record Filho(String tipo, @Nullable String codigo, String nome, @Nullable Long clientes,
+            @Nullable Double percentual, boolean abaixoDoLimite) {
+    }
+
+    /**
+     * Uma linha do nível pedido (UF, REGIAO, MUNICIPIO ou OUTROS). {@code agrupadoEm} diz até que nível um "Outros" subiu
+     * (REGIAO, UF ou PAIS) e é nulo quando a linha ficou no nível pedido.
+     */
+    public record Grupo(String tipo, @Nullable String codigo, String nome, @Nullable String uf, @Nullable Long clientes,
+            @Nullable Double percentual, boolean abaixoDoLimite, @Nullable String agrupadoEm, List<Filho> filhos) {
+    }
+
+    /** Deprecated (próxima major): o bairro como o painel antigo mostrava, agora contando clientes. */
     public record Bairro(String bairro, @Nullable Long atendimentos, @Nullable Double percentual, boolean abaixoDoLimite) {
     }
 
-    /** "Outras cidades" tem {@code uf} nula e nenhum bairro. O percentual é sobre o total do período (inclui o sem região). */
+    /** Deprecated (próxima major): a cidade como o painel antigo mostrava; só vem preenchida com {@code nivel = MUNICIPIO}. */
     public record Cidade(String cidade, @Nullable String uf, @Nullable Long atendimentos, @Nullable Double percentual,
             boolean abaixoDoLimite, List<Bairro> bairros) {
     }
 
-    public record Painel(Periodo periodo, long total, long semRegiao, List<Cidade> cidades) {
+    public record Painel(Periodo periodo, Nivel nivel, int k, boolean totalVisivel, @Nullable Long clientes,
+            SemRegiao semRegiao, List<Grupo> grupos, @Nullable Long total, List<Cidade> cidades) {
     }
 
-    /** A vitrine pública: só nomes. */
-    public record Regiao(String cidade, String uf, List<String> bairros) {
+    /** Um bairro da vitrine: só o nome e a faixa de porcentagem ({@code "15"} ou {@code "<5"}); nunca número de pessoas. */
+    public record BairroDaVitrine(String bairro, @Nullable String faixaPercentual, boolean outros) {
     }
 
-    public record Publico(String atualizadoEm, int totalCidades, int totalBairros, List<Regiao> regioes) {
+    /**
+     * Um município da vitrine. {@code bairros} (só nomes) é o formato antigo, deprecated; {@code bairrosComFaixa} traz a faixa.
+     * {@code comFaixas} é falso em município com menos de 20 pessoas (só nomes).
+     */
+    public record RegiaoDaVitrine(String cidade, String uf, String codigoIbge, boolean comFaixas, List<String> bairros,
+            List<BairroDaVitrine> bairrosComFaixa) {
+
+        public RegiaoDaVitrine(String cidade, String uf, String codigoIbge, boolean comFaixas,
+                List<BairroDaVitrine> bairrosComFaixa) {
+            this(cidade, uf, codigoIbge, comFaixas, bairrosComFaixa.stream().filter(b -> !b.outros())
+                    .map(BairroDaVitrine::bairro).toList(), bairrosComFaixa);
+        }
+    }
+
+    public record Publico(String atualizadoEm, int totalCidades, int totalBairros, List<RegiaoDaVitrine> regioes) {
     }
 
     private final ConsultaAlcance consulta;
     private final ConfiguracaoAgendaRepository configuracoes;
-    private final JdbcClient jdbc;
+    private final AcessoAgenda acesso;
     private final Clock clock;
 
-    AlcanceDaAgenda(ConsultaAlcance consulta, ConfiguracaoAgendaRepository configuracoes, JdbcClient jdbc, Clock clock) {
+    AlcanceDaAgenda(ConsultaAlcance consulta, ConfiguracaoAgendaRepository configuracoes, AcessoAgenda acesso, Clock clock) {
         this.consulta = consulta;
         this.configuracoes = configuracoes;
-        this.jdbc = jdbc;
+        this.acesso = acesso;
         this.clock = clock;
     }
 
     /**
-     * O alcance do período. Sem {@code ate}, é hoje; sem {@code de}, são 29 dias antes de {@code ate}. Período invertido ou
-     * com mais de 366 dias: 400. Barbeiro inexistente, ou BARBEIRO sem vínculo com uma conta: 404 (R23).
+     * O alcance do período. Com {@code de} ou {@code ate}, é uma janela livre (D108: sem a proteção entre janelas, D-4); sem
+     * os dois, vale {@code periodo} (padrão: 30 dias). Período invertido ou com mais de 366 dias: 400. Barbeiro inexistente,
+     * ou BARBEIRO sem vínculo com uma conta: 404 (R23).
      */
     @Transactional(readOnly = true)
     public Painel painel(PainelDaAgenda.Escopo escopo, @Nullable LocalDate de, @Nullable LocalDate ate,
-            @Nullable UUID barbeiroId) {
+            @Nullable UUID barbeiroId, @Nullable Nivel nivel, @Nullable String uf, @Nullable PeriodoPadrao periodo) {
         ZoneId fuso = fuso();
-        LocalDate fim = ate != null ? ate : LocalDate.ofInstant(clock.instant(), fuso);
-        LocalDate inicio = de != null ? de : fim.minusDays(PERIODO_PADRAO_DIAS - 1L);
-        if (inicio.isAfter(fim)) {
-            throw ExcecaoDeNegocio.campoInvalido("de", "A data inicial não pode ser depois da final.");
+        LocalDate hoje = LocalDate.ofInstant(clock.instant(), fuso);
+        LocalDate fim;
+        LocalDate inicio;
+        if (de != null || ate != null) {
+            fim = ate != null ? ate : hoje;
+            inicio = de != null ? de : fim.minusDays(PERIODO_PADRAO_DIAS - 1L);
+            if (inicio.isAfter(fim)) {
+                throw ExcecaoDeNegocio.campoInvalido("de", "A data inicial não pode ser depois da final.");
+            }
+            if (inicio.plusDays(PERIODO_MAXIMO_DIAS).isBefore(fim.plusDays(1))) {
+                throw ExcecaoDeNegocio.campoInvalido("ate", "O período pode ter no máximo " + PERIODO_MAXIMO_DIAS + " dias.");
+            }
+        } else {
+            fim = hoje;
+            inicio = inicioDe(periodo == null ? PeriodoPadrao.ULTIMOS_30_DIAS : periodo, hoje);
         }
-        if (inicio.plusDays(PERIODO_MAXIMO_DIAS).isBefore(fim.plusDays(1))) {
-            throw ExcecaoDeNegocio.campoInvalido("ate", "O período pode ter no máximo " + PERIODO_MAXIMO_DIAS + " dias.");
-        }
-        UUID alvo = barbeiroDoPedido(escopo, barbeiroId);
-        return consulta.painel(new Periodo(inicio, fim), utc(inicio.atStartOfDay(fuso).toInstant()),
-                utc(fim.plusDays(1).atStartOfDay(fuso).toInstant()), alvo);
+        Nivel nivelEscolhido = nivel == null ? Nivel.MUNICIPIO : nivel;
+        UUID alvo = acesso.alvoDoAlcance(escopo, barbeiroId);
+
+        List<Pessoa> pessoas = consulta.pessoas(janela(inicio.isBefore(hoje.minusMonths(12)) ? inicio : hoje.minusMonths(12), fim, fuso).de()
+                .minus(java.time.Duration.ofDays(31)));
+        Janela janela = janela(inicio, fim, fuso);
+        List<Janela> padroes = padroes(hoje, fuso);
+        boolean admin = escopo.admin();
+        Function<Recorte, List<Recorte>> referencias = NiveisDeAlcance.referenciasPadrao(padroes, admin);
+        NiveisDeAlcance niveis = consulta.niveis();
+        Publicacao publicacao = niveis.publicar(pessoas, new Recorte(alvo, janela), referencias);
+        NiveisDeAlcance.Resultado resultado = niveis.painel(publicacao, nivelEscolhido, uf == null || uf.isBlank() ? null
+                : uf.strip().toUpperCase(java.util.Locale.ROOT));
+        return new Painel(new Periodo(inicio, fim), nivelEscolhido, niveis.k(), resultado.totalVisivel(), resultado.clientes(),
+                resultado.semRegiao(), resultado.grupos(), resultado.clientes(),
+                nivelEscolhido == Nivel.MUNICIPIO ? cidadesAntigas(resultado.grupos()) : List.of());
     }
 
-    /** A vitrine pública: os últimos 12 meses de todos os barbeiros, só nomes de quem passa no k ≥ 5. Sem cache aqui (E35). */
+    /** A vitrine pública: os últimos 12 meses de todos os barbeiros, só nomes e faixas. Sem cache aqui (E35). */
     @Transactional(readOnly = true)
     public Publico publico() {
         ZoneId fuso = fuso();
         Instant agora = clock.instant();
         LocalDate hoje = LocalDate.ofInstant(agora, fuso);
-        Painel painel = consulta.painel(new Periodo(hoje.minusMonths(12), hoje),
-                utc(hoje.minusMonths(12).atStartOfDay(fuso).toInstant()),
-                utc(hoje.plusDays(1).atStartOfDay(fuso).toInstant()), null);
-        List<Regiao> regioes = painel.cidades().stream()
-                .filter(c -> c.uf() != null)
-                .map(c -> new Regiao(c.cidade(), c.uf(), c.bairros().stream().map(Bairro::bairro)
-                        .filter(nome -> !OUTROS_BAIRROS.equals(nome)).toList()))
-                .toList();
+        Janela janela = janela(inicioDe(PeriodoPadrao.ULTIMOS_12_MESES, hoje), hoje, fuso);
+        List<RegiaoDaVitrine> regioes = consulta.niveis().vitrine(consulta.pessoas(janela.de().minus(java.time.Duration.ofDays(31))), janela);
         int bairros = regioes.stream().mapToInt(r -> r.bairros().size()).sum();
         return new Publico(FORMATO.format(agora.atZone(fuso)), regioes.size(), bairros, regioes);
     }
 
-    /**
-     * ADMIN vê todos ou o barbeiro filtrado (inexistente é 404). BARBEIRO vê sempre o próprio, seja qual for o que mandou
-     * (E36); sem vínculo com um barbeiro, 404.
-     */
-    private @Nullable UUID barbeiroDoPedido(PainelDaAgenda.Escopo escopo, @Nullable UUID barbeiroId) {
-        if (escopo.admin()) {
-            if (barbeiroId == null) {
-                return null;
-            }
-            boolean existe = jdbc.sql("SELECT count(*) FROM barbeiro WHERE id = :id").param("id", barbeiroId)
-                    .query(Long.class).single() > 0;
-            if (!existe) {
-                throw barbeiroNaoEncontrado();
-            }
-            return barbeiroId;
+    private static LocalDate inicioDe(PeriodoPadrao periodo, LocalDate hoje) {
+        return switch (periodo) {
+            case ULTIMOS_30_DIAS -> hoje.minusDays(29);
+            case ULTIMOS_90_DIAS -> hoje.minusDays(89);
+            case ULTIMOS_12_MESES -> hoje.minusMonths(12);
+        };
+    }
+
+    private static Janela janela(LocalDate inicio, LocalDate fim, ZoneId fuso) {
+        return new Janela(inicio.atStartOfDay(fuso).toInstant(), fim.plusDays(1).atStartOfDay(fuso).toInstant());
+    }
+
+    private static List<Janela> padroes(LocalDate hoje, ZoneId fuso) {
+        List<Janela> janelas = new ArrayList<>();
+        for (PeriodoPadrao p : PeriodoPadrao.values()) {
+            janelas.add(janela(inicioDe(p, hoje), hoje, fuso));
         }
-        return jdbc.sql("SELECT id FROM barbeiro WHERE usuario_id = :usuario").param("usuario", escopo.usuarioId())
-                .query(UUID.class).optional().orElseThrow(AlcanceDaAgenda::barbeiroNaoEncontrado);
+        return janelas;
+    }
+
+    /** O formato antigo (deprecated), preenchido com {@code nivel = MUNICIPIO}: agora cada número conta clientes. */
+    private static List<Cidade> cidadesAntigas(List<Grupo> grupos) {
+        List<Cidade> cidades = new ArrayList<>();
+        for (Grupo g : grupos) {
+            List<Bairro> bairros = g.filhos().stream()
+                    .map(f -> new Bairro(f.nome(), f.clientes(), f.percentual(), f.abaixoDoLimite())).toList();
+            cidades.add(new Cidade(g.nome(), g.uf(), g.clientes(), g.percentual(), g.abaixoDoLimite(), bairros));
+        }
+        return cidades;
     }
 
     private ZoneId fuso() {
         return ZoneId.of(configuracoes.findById(ConfiguracaoAgenda.ID_UNICO).orElseThrow().getFuso());
-    }
-
-    private static OffsetDateTime utc(Instant instante) {
-        return OffsetDateTime.ofInstant(instante, ZoneOffset.UTC);
-    }
-
-    private static ExcecaoDeNegocio barbeiroNaoEncontrado() {
-        return new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Barbeiro não encontrado.");
     }
 }

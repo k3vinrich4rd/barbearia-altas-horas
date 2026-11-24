@@ -81,6 +81,8 @@ class SegurancaConfig {
                         // Visitante sem conta (R26): reserva com limite por IP; a consulta exige o X-Guest-Token.
                         .requestMatchers(HttpMethod.POST, "/agendamentos/guest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/agendamentos/guest/*").permitAll()
+                        // Fatia 11: o visitante retira a autorização de região com o token da própria reserva (A6).
+                        .requestMatchers(HttpMethod.DELETE, "/agendamentos/guest/*/regiao").permitAll()
                         // Pagamento (Fatia 4B): o visitante cobra com o X-Guest-Token e o gateway chama o webhook sem
                         // login; quem decide o acesso é a reserva (dono) e o asaas-access-token. A confirmação simulada
                         // só existe no modo simulado (D59). O CSRF continua valendo só com Cookie.
@@ -88,6 +90,9 @@ class SegurancaConfig {
                                 "/pagamentos/simulacao/*/confirmar").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/cadastro", "/auth/login", "/auth/refresh",
                                 "/auth/logout").permitAll()
+                        // Convite do barbeiro (Fatia 10B): público, com limite por IP; o código vale por si só e o token do
+                        // cliente é opcional (conta que já existe, H32). Só esta rota de /auth/convite é pública.
+                        .requestMatchers(HttpMethod.POST, "/auth/convite").permitAll()
                         // Só ADMIN (E2): pagamentos, auditoria e, na 5B, os cadastros. A senha inicial continua barrada.
                         .requestMatchers("/admin/pagamentos/**", "/admin/pagamentos", "/admin/auditoria",
                                 "/admin/servicos/**", "/admin/servicos", "/admin/barbeiros/**", "/admin/barbeiros",
@@ -155,11 +160,14 @@ class SegurancaConfig {
         };
     }
 
-    /** {@code DELETE /me}: logado com o papel CLIENTE e sem papel de equipe. BARBEIRO e ADMIN recebem 403 (E15). */
+    /**
+     * {@code DELETE /me}: logado com o papel CLIENTE e sem o papel ADMIN. Quem é só BARBEIRO ou ADMIN recebe 403 (E15); quem
+     * é cliente E barbeiro chega à exclusão, que responde 409 até o dono desligar o acesso de barbeiro (A29).
+     */
     private static AuthorizationManager<RequestAuthorizationContext> soCliente() {
         return (autenticacao, contexto) -> {
             Authentication quem = autenticacao.get();
-            boolean cliente = temAlgumPapel(quem, "ROLE_CLIENTE") && !temAlgumPapel(quem, "ROLE_BARBEIRO", "ROLE_ADMIN");
+            boolean cliente = temAlgumPapel(quem, "ROLE_CLIENTE") && !temAlgumPapel(quem, "ROLE_ADMIN");
             return new AuthorizationDecision(cliente);
         };
     }

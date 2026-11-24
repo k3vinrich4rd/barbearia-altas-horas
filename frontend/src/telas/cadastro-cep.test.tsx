@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 describe("CEP no cadastro", () => {
-  test("A33: CEP achado mostra o endereço; 404, 503, 429, rede e demora avisam; em TODOS os casos Criar conta continua habilitado e o corpo leva só o cep", async () => {
+  test("A33: com a caixinha de região marcada, CEP achado mostra o endereço; 404, 503, 429, rede e demora avisam; em TODOS os casos Criar conta continua habilitado e o corpo leva o cep, a autorização e a versão do texto", async () => {
     const cenarios: { nome: string; resposta: () => Response | Promise<Response>; texto: RegExp }[] = [
       {
         nome: "achou",
@@ -30,20 +30,20 @@ describe("CEP no cadastro", () => {
         texto: /^Sé, São Paulo - SP$/,
       },
       { nome: "404", resposta: () => erro(404, "CEP_NAO_ENCONTRADO"), texto: /Não encontramos este CEP/ },
-      { nome: "503", resposta: () => erro(503, "CEP_INDISPONIVEL"), texto: /o cadastro continua e o CEP é salvo/i },
+      { nome: "503", resposta: () => erro(503, "CEP_INDISPONIVEL"), texto: /o cadastro continua, só sem a sua região/i },
       {
         nome: "429",
         resposta: () => erro(429, "LIMITE_EXCEDIDO", {}, { "retry-after": "10" }),
-        texto: /o cadastro continua e o CEP é salvo/i,
+        texto: /o cadastro continua, só sem a sua região/i,
       },
-      { nome: "rede", resposta: () => HttpResponse.error(), texto: /o cadastro continua e o CEP é salvo/i },
+      { nome: "rede", resposta: () => HttpResponse.error(), texto: /o cadastro continua, só sem a sua região/i },
       {
         nome: "demora de 4 s",
         resposta: async () => {
           await delay(4000);
           return HttpResponse.json({ cep: "01001000", bairro: "Sé", cidade: "São Paulo", uf: "SP" });
         },
-        texto: /o cadastro continua e o CEP é salvo/i,
+        texto: /o cadastro continua, só sem a sua região/i,
       },
     ];
     const corpos: Record<string, unknown>[] = [];
@@ -57,7 +57,8 @@ describe("CEP no cadastro", () => {
     for (const c of cenarios) {
       servidor.use(http.get(`${BFF}/cep/01001000`, () => c.resposta()));
       const { user, unmount } = renderizar(<Cadastro />);
-      await user.type(screen.getByLabelText("CEP (opcional)"), "01001-000");
+      await user.click(await screen.findByRole("checkbox", { name: /Autorizo usar só meu bairro/ }));
+      await user.type(screen.getByRole("textbox", { name: "CEP" }), "01001-000");
       await user.tab();
       expect(await screen.findByText(c.texto, {}, { timeout: 6000 }), c.nome).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Criar conta" }), c.nome).toBeEnabled();
@@ -70,12 +71,16 @@ describe("CEP no cadastro", () => {
       await waitFor(() => expect(corpos.length).toBeGreaterThan(0));
       const corpo = corpos.pop()!;
       expect(corpo.cep, c.nome).toBe("01001-000");
+      expect(corpo.autorizaRegiao, c.nome).toBe(true);
+      expect(corpo.versaoTextoRegiao, c.nome).toBe(POLITICA_PRIVACIDADE.versao);
       expect(Object.keys(corpo).sort(), c.nome).toEqual([
         "aceitaMarketing",
+        "autorizaRegiao",
         "cep",
         "email",
         "nome",
         "senha",
+        "versaoTextoRegiao",
         "whatsapp",
       ]);
       unmount();

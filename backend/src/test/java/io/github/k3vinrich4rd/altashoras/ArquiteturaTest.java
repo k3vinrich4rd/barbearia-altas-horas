@@ -97,13 +97,13 @@ class ArquiteturaTest {
     }
 
     @Test
-    @DisplayName("A21: o módulo cep só expõe CepApi, Endereco e CepIndisponivel; os clientes dos provedores, o controller e o cache não são acessíveis de fora")
+    @DisplayName("A21: o módulo cep só expõe CepApi, Endereco, CepIndisponivel e a tabela do IBGE; os clientes dos provedores, o controller e o cache não são acessíveis de fora")
     void cepSoExpoeAPortaEOsTiposDela() {
         var publicas = CLASSES.stream().filter(c -> c.getPackageName().equals("io.github.k3vinrich4rd.altashoras.cep"))
                 .filter(c -> !c.getSimpleName().equals("package-info"))
                 .map(c -> c.getSimpleName()).toList();
         org.assertj.core.api.Assertions.assertThat(publicas)
-                .containsExactlyInAnyOrder("CepApi", "Endereco", "Fonte", "CepIndisponivel");
+                .containsExactlyInAnyOrder("CepApi", "Endereco", "Fonte", "CepIndisponivel", "TabelaIbge", "Municipio");
         noClasses().that().resideOutsideOfPackage("..cep.consulta..")
                 .should().dependOnClassesThat().resideInAPackage("..cep.consulta..")
                 .because("os clientes ViaCEP e BrasilAPI, o cache e o controller são detalhes do módulo cep (ADR 0002)")
@@ -116,7 +116,26 @@ class ArquiteturaTest {
     }
 
     @Test
-    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada (com o pagamento), todos com @Order, e a agenda roda antes da conta")
+    @DisplayName("A25: a tabela do IBGE, a tradução de região e o alcance não têm cliente HTTP (RestClient, HttpClient, WebClient, URL): nenhuma chamada de rede traduz região em tempo de execução")
+    void traducaoDeRegiaoSemRede() {
+        noClasses().that().haveSimpleName("TabelaIbge").or().haveSimpleName("ResolverRegiao")
+                .or().resideInAPackage("..agenda.alcance..").or().haveSimpleName("AlcanceDaAgenda")
+                .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.client.RestClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("java.net.http.HttpClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.reactive.function.client.WebClient")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.client.RestTemplate")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("java.net.URL")
+                .orShould().dependOnClassesThat().haveFullyQualifiedName("java.net.HttpURLConnection")
+                .because("a tabela do IBGE é um arquivo do jar, gerado por scripts/gerar-tabela-ibge.sh (E16)")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("..agenda.alcance..")
+                .should().dependOnClassesThat().resideInAPackage("..cep.consulta..")
+                .because("o alcance usa só a tabela pública do módulo cep, nunca os clientes dos provedores")
+                .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("A60: a privacidade não importa conta, agenda, pagamento, admin nem plataforma; conta e agenda implementam FonteDeDadosDoTitular e escutam ExclusaoSolicitada (com o pagamento e, desde a Fatia 13, o painel das notificações), todos com @Order, e a agenda roda antes da conta")
     void privacidadePublicaPortasEQuemTemDadoImplementa() {
         noClasses().that().resideInAPackage("..privacidade..")
                 .should().dependOnClassesThat().resideInAnyPackage("..conta..", "..agenda..", "..pagamento..", "..admin..",
@@ -133,7 +152,7 @@ class ArquiteturaTest {
                 .filter(m -> m.isAnnotatedWith(EventListener.class)
                         && m.getRawParameterTypes().stream().anyMatch(t -> t.isEquivalentTo(ExclusaoSolicitada.class)))
                 .toList();
-        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(3)
+        org.assertj.core.api.Assertions.assertThat(ouvintes).hasSize(4)
                 .allSatisfy(m -> org.assertj.core.api.Assertions.assertThat(m.isAnnotatedWith(Order.class))
                         .as("@Order explícito em " + m.getOwner().getSimpleName()).isTrue());
         org.assertj.core.api.Assertions.assertThat(ouvintes.stream().map(m -> m.getOwner().getPackageName()).toList())
@@ -171,10 +190,67 @@ class ArquiteturaTest {
                 .because("o painel chama os donos; nenhum dono chama o painel (ADR 0002)")
                 .check(CLASSES);
         noClasses().that().resideInAPackage("..admin..").and().resideOutsideOfPackage("..admin.auditoria..")
+                .and().resideOutsideOfPackage("..admin.notificacao..")
                 .should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.simple.JdbcClient")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.jdbc.core.JdbcTemplate")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.EntityManager")
-                .because("o admin só enxerga SQL de auditoria_admin; as outras tabelas são dos donos (ADR 0002)")
+                .because("o admin só enxerga SQL de auditoria_admin e, desde a Fatia 13, das duas tabelas de notificacao (aviso_barbeiro e inscricao_push, que são dele); as outras tabelas são dos donos (ADR 0002)")
                 .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("A1: só AcessoAgenda liga a conta ao barbeiro (findByUsuarioId); nenhum outro fonte da agenda filtra barbeiro por usuario_id em SQL")
+    void soAcessoAgendaLigaContaEBarbeiro() throws java.io.IOException {
+        noClasses().that().doNotHaveSimpleName("AcessoAgenda")
+                .should().callMethod(io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroRepository.class,
+                        "findByUsuarioId", java.util.UUID.class)
+                .because("a política de quem mexe na agenda de quem é única (ADR 0013, D151)")
+                .check(CLASSES);
+        java.nio.file.Path fontes = java.nio.file.Path.of("src/main/java/io/github/k3vinrich4rd/altashoras/agenda");
+        java.util.regex.Pattern filtro = java.util.regex.Pattern.compile("(?is)where\\s+(\\w+\\.)?usuario_id\\s*=");
+        try (var arquivos = java.nio.file.Files.walk(fontes)) {
+            var infratores = arquivos.filter(p -> p.toString().endsWith(".java"))
+                    .filter(p -> !p.getFileName().toString().equals("AcessoAgenda.java"))
+                    .filter(p -> {
+                        try {
+                            return filtro.matcher(java.nio.file.Files.readString(p)).find();
+                        } catch (java.io.IOException falha) {
+                            throw new java.io.UncheckedIOException(falha);
+                        }
+                    }).toList();
+            org.assertj.core.api.Assertions.assertThat(infratores).isEmpty();
+        }
+    }
+
+    @Test
+    @DisplayName("A34: a conta não depende da agenda nem do admin; só o admin gera o convite; /auth/convite é a única rota de convite liberada no SegurancaConfig")
+    void conviteSoPeloAdminERotaPublicaUnica() throws java.io.IOException {
+        noClasses().that().resideInAPackage("..conta..")
+                .should().dependOnClassesThat().resideInAnyPackage("..agenda..", "..admin..")
+                .because("a conta não sabe que a agenda existe: o vínculo do barbeiro vem por evento (ADR 0002)")
+                .check(CLASSES);
+        noClasses().that().resideOutsideOfPackage("..admin..").and().doNotHaveSimpleName("Contas")
+                .should().callMethod(io.github.k3vinrich4rd.altashoras.conta.Contas.class, "emitirConvite",
+                        java.util.UUID.class, String.class, java.util.UUID.class)
+                .because("gerar convite é do dono (ADMIN); a rota que o aceita não gera nenhum")
+                .check(CLASSES);
+        String seguranca = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/io/github/k3vinrich4rd/altashoras/plataforma/seguranca/SegurancaConfig.java"));
+        org.assertj.core.api.Assertions.assertThat(seguranca.split("\"/auth/convite\"", -1)).hasSize(2);
+        org.assertj.core.api.Assertions.assertThat(seguranca).doesNotContain("\"/auth/**\"").doesNotContain("\"/admin/barbeiros/*/convite\"");
+    }
+
+    @Test
+    @DisplayName("A47: agenda não depende de admin; admin.notificacao não abre BarbeiroRepository nem usa tipo interno da agenda; nenhuma classe usa biblioteca de Web Push nem BouncyCastle (a criptografia é do JDK, D172); só a porta e o Despachante conhecem os canais")
+    void notificacaoRespeitaAsFronteiras() {
+        noClasses().that().resideInAPackage("io.github.k3vinrich4rd.altashoras.agenda..").should().dependOnClassesThat().resideInAPackage("io.github.k3vinrich4rd.altashoras.admin..")
+                .because("a agenda publica o evento e não conhece o painel (ADR 0002)").check(CLASSES);
+        noClasses().that().resideInAPackage("..admin.notificacao..").should().dependOnClassesThat()
+                .resideInAnyPackage("..agenda.catalogo..", "..agenda.reserva..", "..agenda.disponibilidade..", "..conta.usuario..")
+                .because("o painel só usa a API pública da agenda e da conta").check(CLASSES);
+        noClasses().should().dependOnClassesThat().resideInAnyPackage("nl.martijndwars..", "org.bouncycastle..")
+                .because("o Web Push usa só o JDK: sem BouncyCastle nem segundo cliente HTTP na memória pequena").check(CLASSES);
+        noClasses().that().resideOutsideOfPackage("..admin.notificacao..").should().dependOnClassesThat()
+                .resideInAPackage("..admin.notificacao.canal..").because("os canais são detalhe do painel").check(CLASSES);
     }
 }

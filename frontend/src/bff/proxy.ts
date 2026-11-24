@@ -12,7 +12,7 @@ import {
   type Tokens,
 } from "./cookies";
 import { resolver, type DepsBff, type DepsResolvidas } from "./config";
-import { exigeOrigem, origemPermitida } from "./origem";
+import { exigeOrigem, ipDoCliente, origemPermitida } from "./origem";
 import { apiIndisponivel, naoEncontrado, origemNegada, problema } from "./problema";
 
 interface Padrao {
@@ -101,11 +101,12 @@ function respostaDeRenovacaoFalha(r: Extract<Renovacao, { ok: false }>): Respons
   return apiIndisponivel();
 }
 
-type Modo = "publico" | "guest" | "misto" | "bearer";
+/** "opcional": manda o token da sessão SE houver (o aceite do convite de quem já tem conta, H32); sem sessão, vai sem token. */
+type Modo = "publico" | "guest" | "misto" | "bearer" | "opcional";
 
 function modoDaRota(metodo: string, caminho: string): Modo {
   if (casa(PUBLICAS, metodo, caminho)) return "publico";
-  if (metodo === "GET" && caminho.startsWith("/agendamentos/guest/")) return "guest";
+  if ((metodo === "GET" || metodo === "DELETE") && caminho.startsWith("/agendamentos/guest/")) return "guest";
   if (casa(COM_GUEST, metodo, caminho)) return "misto";
   return "bearer";
 }
@@ -156,6 +157,9 @@ export async function chamarComSessao(
   if (tipo) base.set("content-type", tipo);
   const chave = request.headers.get("x-idempotency-key");
   if (chave) base.set("x-idempotency-key", chave);
+  // o IP real do cliente, para o limite por IP e a auditoria da API não virarem o IP do BFF (D156)
+  const ip = ipDoCliente(request);
+  if (ip) base.set("x-forwarded-for", ip);
 
   let bearer: string | undefined;
   let guest: string | undefined;
@@ -165,8 +169,9 @@ export async function chamarComSessao(
   if (modo === "guest" || (modo === "misto" && !cookies[COOKIE_ACESSO] && !cookies[COOKIE_REFRESH])) {
     guest = request.headers.get("x-guest-token") ?? lerVisitante(request)?.token;
   }
-  const usaBearer = modo === "bearer" || (modo === "misto" && !guest);
   const refresh = cookies[COOKIE_REFRESH];
+  const temSessao = Boolean(cookies[COOKIE_ACESSO] || refresh);
+  const usaBearer = modo === "bearer" || (modo === "misto" && !guest) || (modo === "opcional" && temSessao);
   if (usaBearer) {
     bearer = cookies[COOKIE_ACESSO];
     if (!bearer && refresh) {
@@ -286,3 +291,4 @@ async function aplicarPos(
 }
 
 export { problema };
+export type { Modo };

@@ -1,7 +1,10 @@
 // GERADO por scripts/gerar-rotas.mjs a partir de docs/contrato/openapi.yaml. NÃO EDITAR.
 // Rotas que o BFF aceita (método + caminho do contrato). O webhook do gateway nunca entra (E4).
 export const ROTAS_PERMITIDAS: readonly string[] = [
+  "DELETE /admin/barbeiros/{id}/convite",
   "DELETE /admin/barbeiros/{id}/folgas/{folgaId}",
+  "DELETE /admin/notificacoes/inscricao",
+  "DELETE /agendamentos/guest/{id}/regiao",
   "DELETE /me",
   "GET /admin/agenda",
   "GET /admin/alcance",
@@ -10,6 +13,8 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "GET /admin/barbeiros/{id}/folgas",
   "GET /admin/configuracao",
   "GET /admin/minha-jornada",
+  "GET /admin/notificacoes",
+  "GET /admin/notificacoes/chave-publica",
   "GET /admin/pagamentos",
   "GET /admin/pagamentos/eventos",
   "GET /admin/servicos",
@@ -29,13 +34,18 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "PATCH /admin/agendamentos/{id}/status",
   "POST /admin/agendamentos",
   "POST /admin/barbeiros",
+  "POST /admin/barbeiros/{id}/convite",
   "POST /admin/barbeiros/{id}/folgas",
+  "POST /admin/notificacoes/inscricao",
+  "POST /admin/notificacoes/marcar-lidas",
+  "POST /admin/notificacoes/teste",
   "POST /admin/pagamentos/eventos/{id}/revisao",
   "POST /admin/pagamentos/{id}/devolucao",
   "POST /admin/servicos",
   "POST /agendamentos",
   "POST /agendamentos/guest",
   "POST /auth/cadastro",
+  "POST /auth/convite",
   "POST /auth/login",
   "POST /auth/logout",
   "POST /auth/refresh",
@@ -45,7 +55,9 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "PUT /admin/barbeiros/{id}/jornada",
   "PUT /admin/configuracao",
   "PUT /admin/servicos/{id}",
+  "PUT /me",
   "PUT /me/consentimentos/marketing",
+  "PUT /me/consentimentos/regiao",
   "PUT /me/senha",
 ];
 
@@ -67,6 +79,7 @@ export const ROTAS_PUBLICAS: readonly string[] = [
 
 // Rotas que aceitam X-Guest-Token (visitante).
 export const ROTAS_COM_TOKEN_GUEST: readonly string[] = [
+  "DELETE /agendamentos/guest/{id}/regiao",
   "GET /agendamentos/guest/{id}",
   "POST /pagamentos/cobrancas",
   "POST /pagamentos/simulacao/{cobrancaId}/confirmar",

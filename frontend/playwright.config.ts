@@ -13,7 +13,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${process.env.PORT ?? 3000}`,
     locale: "pt-BR",
     timezoneId: "America/Sao_Paulo",
     trace: "retain-on-failure",
@@ -21,7 +21,7 @@ export default defineConfig({
   },
   webServer: {
     command: "node scripts/servir-e2e.mjs",
-    url: "http://localhost:3000",
+    url: `http://localhost:${process.env.PORT ?? 3000}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: { API_URL, NEXT_PUBLIC_PAGAMENTO_SIMULADO: "true", NEXT_PUBLIC_HORIZONTE_DIAS: "30" },

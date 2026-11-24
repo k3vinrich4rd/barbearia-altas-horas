@@ -12,6 +12,8 @@ export function politicaDeConteudo(nonce: string, desenvolvimento: boolean): str
     "img-src 'self' data:",
     "font-src 'self'",
     "connect-src 'self'",
+    // O service worker do Web Push (/sw.js, Fatia 13): com 'strict-dynamic' o 'self' do script-src não vale para workers.
+    "worker-src 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
@@ -39,6 +41,7 @@ export function semCache(caminho: string): boolean {
     caminho.startsWith("/meus-agendamentos") ||
     caminho.startsWith("/painel") ||
     caminho.startsWith("/agendar") ||
+    caminho.startsWith("/convite") ||
     caminho.startsWith("/reserva")
   );
 }

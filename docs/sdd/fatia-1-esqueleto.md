@@ -17,7 +17,7 @@
 | E4 | `Clock` injetável | bean `Clock` em `America/Sao_Paulo`; proibido `Instant.now()` direto (regra ArchUnit) |
 | E5 | `compose.yaml` | PostgreSQL 18 na porta **5433** (D40); volume nomeado; healthcheck |
 | E6 | Flyway `V1__agenda.sql` | a partir da [proposta](../banco/V1__agenda.proposta.sql) **já com o modelo novo** (abaixo) |
-| E7 | Seed `dev` (`R__seed_dev.sql` só no perfil `dev`) | Carlos Eduardo Cândido, jornada ter–sáb 07–12 e 13–20, 5 serviços reais, configuração (120 min, 30 min, 30 dias, 15 min) |
+| E7 | Seed `dev` (`R__seed_dev.sql` só no perfil `dev`) | Carlos Eduardo Candido, jornada ter–sáb 07–12 e 13–20, 5 serviços reais, configuração (120 min, 30 min, 30 dias, 15 min) |
 | E8 | CI | GitHub Actions: `./mvnw verify`, CodeQL, gitleaks |
 
 ### Mudanças no DDL em relação à proposta (D31 a D35)

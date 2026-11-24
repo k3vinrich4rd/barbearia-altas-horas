@@ -1,19 +1,15 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { AvisoDaHome } from "@/componentes/AvisoDaHome";
+import { BarbeiroDaHome } from "@/componentes/BarbeiroDaHome";
 import { LinkBotao } from "@/componentes/Botao";
+import { Galeria } from "@/componentes/Galeria";
 import { AlcanceDaHome, ServicosDaHome } from "@/componentes/ListaDeServicos";
-import {
-  ComoFunciona,
-  Duvidas,
-  Galeria,
-  Historia,
-  OndeEstamos,
-  Premios,
-  WhatsappDaHome,
-} from "@/componentes/SecoesDaHome";
+import { Duvidas, FaixaComoFunciona, Trajetoria, WhatsappDoHeroi } from "@/componentes/SecoesDaHome";
 import { FATOS_DA_HOME, IMAGENS, SUBTITULO_DA_HOME, TITULO_DA_HOME } from "@/conteudo/historia";
 
+// Ordem da home (Fatia 12, A1): a ordem em que o cliente decide. Herói (com a faixa "Como funciona"), serviços,
+// barbeiro, galeria, Trajetória, de onde vêm os clientes, dúvidas; "Onde estamos" é o rodapé do layout.
 export default function Home() {
   return (
     <>
@@ -33,9 +29,8 @@ export default function Home() {
             <LinkBotao href="/agendar" variante="principal">
               Agendar horário
             </LinkBotao>
-            <LinkBotao href="/servicos">Serviços e preços</LinkBotao>
+            <WhatsappDoHeroi />
           </p>
-          <WhatsappDaHome />
           <ul className="fatos">
             {FATOS_DA_HOME.map((f) => (
               <li key={f.titulo}>
@@ -49,18 +44,14 @@ export default function Home() {
           <Image src={IMAGENS.fachada.src} alt={IMAGENS.fachada.alt} width={560} height={420} priority />
           <figcaption className="nota">A fachada, na R. São Judas Tadeu, 313</figcaption>
         </figure>
+        <FaixaComoFunciona />
       </section>
-      <div className="divisor" aria-hidden="true">
-        <span className="selo">19 ✂ 97</span>
-      </div>
-      <Historia />
-      <Premios />
       <ServicosDaHome />
-      <ComoFunciona />
+      <BarbeiroDaHome />
       <Galeria />
-      <Duvidas />
+      <Trajetoria />
       <AlcanceDaHome />
-      <OndeEstamos />
+      <Duvidas />
     </>
   );
 }

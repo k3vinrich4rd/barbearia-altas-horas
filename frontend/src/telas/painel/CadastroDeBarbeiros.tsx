@@ -13,6 +13,7 @@ import { Campo } from "@/componentes/Campo";
 import { Dialogo } from "@/componentes/Dialogo";
 import { EditorDeJornada } from "@/componentes/EditorDeJornada";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
+import { AcoesDeConvite, EtiquetaDeAcesso } from "./PainelConvite";
 import { almocosDoDia, horaCurta, type BarbeiroAdmin, type Folga } from "./tipos";
 
 function resumoDoAlmoco(b: BarbeiroAdmin): string {
@@ -187,6 +188,7 @@ export function CadastroDeBarbeiros() {
   const [usuarioId, setUsuarioId] = useState("");
   const [ativo, setAtivo] = useState(true);
   const [erros, setErros] = useState<Partial<Record<"nome" | "whatsapp" | "usuarioId", string>>>({});
+  const [desligando, setDesligando] = useState(false);
   const envio = useEnvio();
   const envioDaJornada = useEnvio();
 
@@ -202,7 +204,7 @@ export function CadastroDeBarbeiros() {
     setAtivo(b === "novo" ? true : b.ativo);
   }
 
-  async function salvar(e: FormEvent) {
+  async function salvar(e: FormEvent, confirmado = false) {
     e.preventDefault();
     const novos: typeof erros = {};
     const numeros = soNumeros(whatsapp);
@@ -211,6 +213,12 @@ export function CadastroDeBarbeiros() {
       novos.whatsapp = "Digite o DDD e o número (10 ou 11 números).";
     setErros(novos);
     if (Object.keys(novos).length > 0 || editando === null) return;
+    // Desligar tira o acesso e mantém o histórico (D153): pede confirmação antes, com as consequências por escrito.
+    if (editando !== "novo" && editando.ativo && !ativo && !confirmado) {
+      setDesligando(true);
+      return;
+    }
+    setDesligando(false);
     const corpo = {
       nomeExibicao: nome.trim(),
       ...(usuarioId.trim() ? { usuarioId: usuarioId.trim() } : {}),
@@ -283,6 +291,7 @@ export function CadastroDeBarbeiros() {
                     <th scope="col">Nome</th>
                     <th scope="col">WhatsApp comercial</th>
                     <th scope="col">Conta de login</th>
+                    <th scope="col">Acesso ao painel</th>
                     <th scope="col">Situação</th>
                     <th scope="col">Jornada</th>
                     <th scope="col">Ações</th>
@@ -295,6 +304,9 @@ export function CadastroDeBarbeiros() {
                       <td>{b.whatsapp ? mascararWhatsapp(b.whatsapp) : "Sem número"}</td>
                       <td>{b.usuarioId ? "Vinculada" : "Sem conta"}</td>
                       <td>
+                        <EtiquetaDeAcesso barbeiro={b} />
+                      </td>
+                      <td>
                         <span className="etiqueta" data-status={b.ativo ? "confirmado" : "cancelado"}>
                           {b.ativo ? "Ativo" : "Inativo"}
                         </span>
@@ -305,6 +317,7 @@ export function CadastroDeBarbeiros() {
                           <Botao aria-label={`Editar ${b.nomeExibicao}`} onClick={() => abrir(b)}>
                             Editar
                           </Botao>
+                          <AcoesDeConvite barbeiro={b} aoMudar={lista.recarregar} aoAvisar={setMensagem} />
                           <Botao
                             aria-label={`Jornada e folgas de ${b.nomeExibicao}`}
                             onClick={() => {
@@ -352,6 +365,24 @@ export function CadastroDeBarbeiros() {
         )}
       </EstadoDaConsulta>
 
+      {desligando && editando !== null && editando !== "novo" && (
+        <Dialogo titulo={`Desligar ${editando.nomeExibicao}`} aoFechar={() => setDesligando(false)}>
+          <p>
+            Desligar tira o acesso dele ao painel agora e mantém o histórico: as reservas e a auditoria continuam. Se a conta for
+            só de barbeiro, ela é desativada e anonimizada (nome e e-mail apagados); se ele também é cliente, a conta de cliente
+            segue como está. O WhatsApp comercial some. Para ele voltar a ter acesso, gere um convite novo.
+          </p>
+          <div className="acoes">
+            <Botao variante="principal" disabled={envio.enviando} onClick={(e) => salvar(e as unknown as FormEvent, true)}>
+              Desligar barbeiro
+            </Botao>
+            <Botao disabled={envio.enviando} onClick={() => setDesligando(false)}>
+              Voltar
+            </Botao>
+          </div>
+        </Dialogo>
+      )}
+
       {editando !== null && (
         <form
           onSubmit={salvar}
@@ -392,6 +423,9 @@ export function CadastroDeBarbeiros() {
               <input id="b-ativo" type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} />
               <label htmlFor="b-ativo">Ativo (aparece para o cliente agendar)</label>
             </div>
+          )}
+          {editando !== "novo" && editando.ativo && !ativo && (
+            <p className="campo-ajuda">Desmarcar e salvar desliga o barbeiro: o acesso ao painel sai e o histórico fica.</p>
           )}
           <div className="acoes">
             <Botao type="submit" variante="principal" disabled={envio.enviando}>
