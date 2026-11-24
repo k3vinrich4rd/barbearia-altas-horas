@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin |
+| **Status** | ✅ aprovada pelo Kevin em 24/11/2026, com as 10 propostas (D-1 a D-10) como estão |
 | **Origem** | pedido do Kevin em 24/11/2026: quando um cliente marca horário pelo app (**com cadastro** ou **sem cadastro, como visitante**), o **barbeiro daquela reserva** recebe uma notificação. Em geral é o Eduardo (Dono/Admin), mas o barbeiro convidado da [Fatia 10](fatia-10-convite-do-barbeiro.md) também recebe as dos clientes dele. A reserva manual por WhatsApp é feita pelo próprio barbeiro e **não avisa** |
 | **Escolhas do Kevin** | **Canal:** Web Push (notificação no celular, grátis e sem conta externa) **mais** um aviso dentro do painel. **Momento:** quando o **pagamento confirma**; reserva que expira sem pagar não gera aviso. **Preparado para e-mail:** uma porta `CanalDeNotificacao`, com o Web Push ligado e o e-mail **desligado por padrão** (mesmo padrão do `GatewayDePagamento`: `GatewaySimulado` ligado, `AsaasGateway` desligado) |
 | **Entrega** | uma branch (`feat/fatia-13-notificacao-ao-barbeiro`) com commits separados: **13A** · evento `ReservaConfirmada` e aviso no painel (sem push) · **13B** · porta `CanalDeNotificacao`, Web Push e inscrição · **13C** · telas, service worker e manifesto (PWA) · **13D** · e-mail stub e documentação |
