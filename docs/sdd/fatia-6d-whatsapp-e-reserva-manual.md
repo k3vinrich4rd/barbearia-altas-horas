@@ -65,7 +65,7 @@ A numeração é própria desta fatia (A1 a A28). Os testes antigos que dependia
 | A9 | números com 9 ou 14 dígitos ou sem dígitos | `POST` e `PUT` | `400 VALIDACAO_INVALIDA` no campo `whatsapp`, nada gravado | `WhatsappDoBarbeiroIT` |
 | A10 | BARBEIRO, CLIENTE, sem token | `POST` e `PUT` de barbeiro | `403`, `403`, `401`; número intacto | `WhatsappDoBarbeiroIT` |
 | A11 | política | `GET /politica-privacidade` | versão `1.1`; texto do WhatsApp comercial, da reserva por fora e do backup de 30 dias | `WhatsappDoBarbeiroIT` |
-| A12 | perfil dev | seed e `GET /barbeiros` | Eduardo sem WhatsApp | `SeedDevWhatsappIT` |
+| A12 | perfil dev | seed e `GET /barbeiros` | o seed dev não grava WhatsApp; desde a D152 o Eduardo tem o número comercial público da V8 | `SeedDevWhatsappIT` |
 | A13 | BARBEIRO, 15:00 livre | `POST /admin/agendamentos` | `201` CONFIRMADO, MANUAL, sem prazo, sem cobrança, sem `reserva_guest`, sem aceite, `criado_por`, auditoria sem nome | `ReservaManualIT` |
 | A14 | ADMIN | para o barbeiro B | `201` | `ReservaManualIT` |
 | A15 | BARBEIRO para outro barbeiro · conta sem vínculo · ADMIN com barbeiro inexistente | `POST` | `404`, nada gravado nem auditado | `ReservaManualIT` |
@@ -80,7 +80,7 @@ A numeração é própria desta fatia (A1 a A28). Os testes antigos que dependia
 | A24 | cliente logado e visitante | ler e pagar a reserva manual | `404` (R23); fora de "Meus agendamentos" | `ReservaManualIT` |
 | A25 | manual com fim há 90 dias exatos | job de retenção | nome e observação `NULL`; reserva, status, preço e `version` iguais; segunda rodada não muda nada | `ReservaManualRetencaoIT` |
 | A26 | manual com fim um minuto antes dos 90 dias | job | nome e observação intactos | `ReservaManualRetencaoIT` |
-| A27 | 5 atendimentos em Osasco e 3 manuais | `GET /admin/alcance` | total 5, `semRegiao` 0 | `ReservaManualAlcanceIT` |
+| A27 | 5 atendimentos em Osasco e 3 manuais | `GET /admin/alcance` | total 5, `semRegiao` 0 | `ReservaManualAlcanceIT` · substituído pela Fatia 11 (A27), D162 a D170 |
 | A28 | roteiro com sucesso e erros, e cadastro do WhatsApp do barbeiro | ler o log | nenhum nome, observação, WhatsApp nem token | `SemDadoPessoalNoLogReservaManualIT` |
 
 ## 5. Entregas

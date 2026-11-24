@@ -37,7 +37,7 @@ test("A63: o cartão simulado abre /pagamento-simulado/{cobrancaId} de verdade, 
   const outra = await semCookie.newPage();
   await outra.goto(`/pagamento-simulado/${cobrancaId}`);
   await outra.getByRole("button", { name: ROTULO_CONFIRMAR }).click();
-  await expect(outra.getByRole("alert")).toBeVisible();
+  await expect(outra.getByRole("alert").filter({ hasText: "Entre na sua conta" })).toBeVisible();
   await expect(outra).toHaveURL(new RegExp(`/pagamento-simulado/${cobrancaId}$`));
   await semCookie.close();
 

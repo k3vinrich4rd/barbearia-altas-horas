@@ -11,8 +11,15 @@ export const FATOS_DA_HOME: readonly { titulo: string; texto: string }[] = [
   { titulo: "2 prêmios", texto: "nacionais em 2017" },
 ];
 
+// Faixa "Como funciona" do herói (Fatia 12, D-11). Nenhum número de minutos: o prazo vem só do `expiraEm` (A19).
+export const PASSOS_DA_FAIXA: readonly { titulo: string; texto: string }[] = [
+  { titulo: "1 · Escolha", texto: "o serviço e um horário livre" },
+  { titulo: "2 · Pague", texto: "por Pix ou cartão, num prazo curto" },
+  { titulo: "3 · Confirmado", texto: "o horário fica garantido na agenda" },
+];
+
 export const HISTORIA: readonly string[] = [
-  "O Eduardo Cândido começou no ofício em 1995, com o primeiro mestre. Em 1997 abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e desde então atende de terça a sábado, do corte social clássico ao degradê navalhado.",
+  "O Eduardo Candido começou no ofício em 1995, com o primeiro mestre. Em 1997 abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e desde então atende de terça a sábado, do corte social clássico ao degradê navalhado.",
   "Na prateleira do salão, os troféus dividem espaço com fotos antigas. Para o Eduardo, cada um marca uma etapa do caminho, e cada dia na cadeira carrega um pouco da dedicação de quase 30 anos.",
   "Instrutor formado pela Ibel Formação, hoje ele também ensina na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e foi para a internet.",
 ];
@@ -68,26 +75,135 @@ export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
   },
 ];
 
-export const GALERIA: readonly { src: string; legenda: string; alt: string }[] = [
+// Galeria da home (Fatia 12, E2 a E4): 3 fotos que já estavam em docs/assets/galeria e 15 novas dos Instagrams do Eduardo
+// e da barbearia, com a autorização de imagem confirmada pelo Kevin (D158). Largura e altura são as reais do arquivo
+// (o next/image reserva o espaço, sem salto de layout). Sem nome de cliente em legenda ou texto alternativo.
+export const GALERIA: readonly { src: string; legenda: string; alt: string; largura: number; altura: number }[] = [
   {
     src: "/assets/galeria/eduardo-em-atendimento.jpg",
     legenda: "O Eduardo em atendimento",
-    alt: "Eduardo Cândido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo",
+    alt: "Eduardo Candido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo",
+    largura: 480,
+    altura: 480,
   },
   {
     src: "/assets/galeria/corte-topete-parede-do-logo.jpg",
     legenda: "A parede xadrez do logo",
     alt: "Cliente de perfil com topete alto e degradê, em frente à parede xadrez preta e branca com o logo da barbearia",
+    largura: 480,
+    altura: 480,
   },
   {
     src: "/assets/galeria/corte-degrade-com-desenho.jpg",
     legenda: "Degradê com desenho na navalha",
     alt: "Cliente de costas com cabelo crespo em degradê, pontas descoloridas e um desenho feito na navalha na nuca",
+    largura: 480,
+    altura: 480,
   },
   {
-    src: "/assets/fachada.jpg",
-    legenda: "A fachada da barbearia",
-    alt: "Fachada de vidro da Barbearia Altas Horas com dois adesivos redondos do logo e, ao fundo, as cadeiras, o balcão e os troféus",
+    src: "/assets/galeria/corte-social-grisalho-na-regua.jpg",
+    legenda: "Social na régua",
+    alt: "Eduardo, de camiseta preta e óculos, ajeitando com os dedos o cabelo grisalho de um cliente sentado, de capa preta com o logo da barbearia, no salão com espelho, bancada de ferramentas e uma TV ao fundo",
+    largura: 608,
+    altura: 1080,
+  },
+  {
+    src: "/assets/galeria/corte-infantil-cacheado-com-degrade.jpg",
+    legenda: "Corte infantil",
+    alt: "Menino de cabelo cacheado volumoso no topo e degradê nas laterais, de capa preta, com o Eduardo sorrindo atrás dele, de tesoura na mão, e o logo da barbearia na parede",
+    largura: 608,
+    altura: 1080,
+  },
+  {
+    src: "/assets/galeria/corte-franja-curta-jovem.jpg",
+    legenda: "Franja curta e laterais baixas",
+    alt: "Rapaz de cabelo liso preto com franja curta e laterais baixas, de capa preta, com o Eduardo penteando atrás dele e o logo redondo da barbearia na parede",
+    largura: 608,
+    altura: 1080,
+  },
+  {
+    src: "/assets/galeria/platinado-cliente-de-oculos.jpg",
+    legenda: "Platinado",
+    alt: "Cliente de cabelo curto platinado e óculos de armação fina, de capa verde, olhando de lado, com o Eduardo sorrindo atrás e tocando o cabelo",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/corte-infantil-risca-lateral.jpg",
+    legenda: "Corte infantil com risca",
+    alt: "Menino de cabelo liso penteado com risca lateral marcada e laterais baixas, de capa preta, com o Eduardo sorrindo atrás dele e o logo na parede",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/corte-cacheado-volume.jpg",
+    legenda: "Volume e definição",
+    alt: "Cliente de cabelo cacheado volumoso e curto, sorrindo, de capa cinza, com o Eduardo atrás dele segurando a tesoura e sorrindo",
+    largura: 640,
+    altura: 1136,
+  },
+  {
+    src: "/assets/galeria/platinado-cliente-e-eduardo.jpg",
+    legenda: "Descoloração e platinado",
+    alt: "Cliente de cabelo curto platinado e óculos, sorrindo, com o Eduardo sorrindo atrás, de camiseta com o logo da barbearia",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/corte-topo-volumoso-com-degrade.jpg",
+    legenda: "Topo volumoso e degradê",
+    alt: "Rapaz de cabelo crespo com topo alto e volumoso e laterais em degradê, de capa preta, com o Eduardo atrás dele, de tesoura na mão, e o logo na parede",
+    largura: 640,
+    altura: 1136,
+  },
+  {
+    src: "/assets/galeria/fade-perfil-capa-altas-horas.jpg",
+    legenda: "Fade de perfil",
+    alt: "Cliente de perfil com cabelo crespo e degradê baixo, de capa preta com o nome Barbearia estampado, no salão com o logo na parede ao fundo",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/barba-cheia-desenhada.jpg",
+    legenda: "Barba desenhada",
+    alt: "Cliente de frente, de cabelo escuro penteado para o lado e barba cheia bem desenhada, de capa preta, com o logo da barbearia ao fundo",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/degrade-parede-do-logo.jpg",
+    legenda: "Degradê e logo",
+    alt: "Cliente de perfil com cabelo liso penteado para trás em topete e degradê baixo na nuca, sob o logo redondo da barbearia na parede",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/degrade-baixo-alinhamento-na-cadeira.jpg",
+    legenda: "Alinhamento",
+    alt: "Cliente de cabelo crespo curto com degradê baixo, de capa cinza, com o Eduardo atrás dele passando a mão sobre o topo para conferir o alinhamento",
+    largura: 640,
+    altura: 1136,
+  },
+  {
+    src: "/assets/galeria/franja-reta-alinhada.jpg",
+    legenda: "Franja alinhada",
+    alt: "Rapaz de franja reta e comprida, com as laterais baixas, olhando para a câmera, com o logo redondo da barbearia na parede ao fundo",
+    largura: 480,
+    altura: 854,
+  },
+  {
+    src: "/assets/galeria/salao-vitrine-com-logo.jpg",
+    legenda: "O salão",
+    alt: "Vitrine de vidro da barbearia com dois adesivos redondos do logo Altas Horas 1997 e, ao fundo, as cadeiras, a bancada, uma TV e prateleiras de produtos",
+    largura: 1440,
+    altura: 1440,
+  },
+  {
+    src: "/assets/galeria/degrade-grisalho-penteado-para-tras.jpg",
+    legenda: "Degradê grisalho",
+    alt: "Cliente grisalho de perfil, com o cabelo penteado para trás em topete e degradê nas laterais, de camiseta preta",
+    largura: 1080,
+    altura: 1080,
   },
 ];
 
@@ -98,7 +214,13 @@ export const IMAGENS = {
   },
   retrato: {
     src: "/assets/eduardo-candido-avatar.png",
-    alt: "Eduardo Cândido, barbeiro e professor da Altas Horas, de camisa branca e gravata",
+    alt: "Eduardo Candido, barbeiro e professor da Altas Horas, de camisa branca e gravata",
+  },
+  barbeiro: {
+    src: "/assets/eduardo-candido.jpg",
+    alt: "Eduardo Candido, de camisa branca e gravata preta, olhando para a câmera",
+    largura: 480,
+    altura: 480,
   },
   fachada: {
     src: "/assets/fachada.jpg",
@@ -107,11 +229,11 @@ export const IMAGENS = {
   premios: [
     {
       src: "/assets/premios/premio-barbeiros-do-brasil-2017.jpg",
-      alt: "Eduardo Cândido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro",
+      alt: "Eduardo Candido, de terno escuro, segurando o troféu hexagonal do Prêmio Barbeiros do Brasil, com uma barra de barbeiro no centro",
     },
     {
       src: "/assets/premios/premio-master-barber-2017.jpg",
-      alt: "Eduardo Cândido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber",
+      alt: "Eduardo Candido, de terno preto e gravata, sorrindo e segurando o troféu dourado do Prêmio Master Barber",
     },
   ],
 } as const;

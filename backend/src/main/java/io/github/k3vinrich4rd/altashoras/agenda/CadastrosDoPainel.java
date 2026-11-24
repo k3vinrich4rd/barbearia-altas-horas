@@ -58,9 +58,11 @@ class CadastrosDoPainel {
     private final ServicoRepository servicos;
     private final BarbeiroRepository barbeiros;
     private final Clock clock;
+    private final AcessoAgenda acesso;
 
     CadastrosDoPainel(EntityManager em, JdbcClient jdbc, ServicoRepository servicos, BarbeiroRepository barbeiros,
-            Clock clock) {
+            Clock clock, AcessoAgenda acesso) {
+        this.acesso = acesso;
         this.em = em;
         this.jdbc = jdbc;
         this.servicos = servicos;
@@ -124,6 +126,12 @@ class CadastrosDoPainel {
                 .map(b -> barbeiroDe(b, b.getJornadas().stream()
                         .map(j -> new Intervalo(j.getDiaSemana(), j.getHoraInicio(), j.getHoraFim())).toList()))
                 .toList();
+    }
+
+    /** Um barbeiro pelo id, com a jornada. Inexistente: 404. */
+    @Transactional(readOnly = true)
+    BarbeiroCadastrado barbeiro(UUID id) {
+        return barbeiros().stream().filter(b -> b.id().equals(id)).findFirst().orElseThrow(CadastrosDoPainel::barbeiroNaoEncontrado);
     }
 
     @Transactional
@@ -195,9 +203,7 @@ class CadastrosDoPainel {
      */
     @Transactional(readOnly = true)
     PainelDaAgenda.JornadaDoBarbeiro minhaJornada(UUID usuarioId) {
-        Barbeiro barbeiro = barbeiros.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO,
-                        "Esta conta não está ligada a um barbeiro."));
+        Barbeiro barbeiro = acesso.proprio(usuarioId);
         return new PainelDaAgenda.JornadaDoBarbeiro(barbeiro.getId(), barbeiro.getNomeExibicao(),
                 jornadaDe(barbeiro.getId()));
     }

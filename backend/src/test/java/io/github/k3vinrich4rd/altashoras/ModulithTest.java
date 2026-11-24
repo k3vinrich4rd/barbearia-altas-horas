@@ -49,7 +49,7 @@ class ModulithTest {
     @DisplayName("A40: o admin só depende de agenda, pagamento, conta e privacidade (pelas APIs públicas); ninguém depende do admin; a agenda não conhece o pagamento")
     void adminSoPelasApisPublicas() {
         modulos.verify();
-        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "privacidade", "comum").contains("agenda", "pagamento");
+        assertThat(dependenciasDe("admin")).isSubsetOf("agenda", "pagamento", "conta", "privacidade", "plataforma", "comum").contains("agenda", "pagamento");
         for (String modulo : List.of("comum", "plataforma", "conta", "cep", "agenda", "pagamento", "privacidade")) {
             assertThat(dependenciasDe(modulo)).as("dependências de " + modulo).doesNotContain("admin");
         }
@@ -61,7 +61,7 @@ class ModulithTest {
     void cadastrosDoAdminSoPelasApisPublicas() {
         modulos.verify();
         assertThat(dependenciasDe("admin")).contains("agenda", "pagamento", "conta")
-                .isSubsetOf("agenda", "pagamento", "conta", "privacidade", "comum");
+                .isSubsetOf("agenda", "pagamento", "conta", "privacidade", "plataforma", "comum");
         // Nos módulos agenda e conta só o pacote raiz é API pública (ADR 0002): o Modulith recusa qualquer outra classe.
         var tiposDaAgendaUsadosPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
                 .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("agenda"))
@@ -72,7 +72,10 @@ class ModulithTest {
         var tiposDaContaUsadosPeloAdmin = modulos.getModuleByName("admin").orElseThrow().getDirectDependencies(modulos)
                 .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("conta"))
                 .map(d -> d.getTargetType().getFullName()).distinct().toList();
-        assertThat(tiposDaContaUsadosPeloAdmin).containsExactly("io.github.k3vinrich4rd.altashoras.conta.Contas");
+        // Contas (a porta), o convite que ela devolve (10B) e os dois eventos que o painel escuta para auditar: nada de usuario, sessao ou convite.
+        assertThat(tiposDaContaUsadosPeloAdmin).containsExactlyInAnyOrder("io.github.k3vinrich4rd.altashoras.conta.Contas",
+                "io.github.k3vinrich4rd.altashoras.conta.ConviteEmitido", "io.github.k3vinrich4rd.altashoras.conta.ConviteAceito",
+                "io.github.k3vinrich4rd.altashoras.conta.ConviteRevogadoPorTentativas");
     }
 
     @Test
@@ -118,9 +121,9 @@ class ModulithTest {
         var tiposDaContaUsadosPelaAgenda = modulos.getModuleByName("agenda").orElseThrow().getDirectDependencies(modulos)
                 .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("conta"))
                 .map(d -> d.getTargetType().getFullName()).distinct().toList();
-        // Contas (a porta) e o evento AdminInicialCriado (que a agenda já escutava): nada de usuario, sessao ou cadastro.
+        // Contas (a porta) e os eventos AdminInicialCriado e ConviteAceito (que a agenda escuta): nada de usuario, sessao ou cadastro.
         assertThat(tiposDaContaUsadosPelaAgenda).contains("io.github.k3vinrich4rd.altashoras.conta.Contas")
-                .allSatisfy(tipo -> assertThat(tipo).matches("io\\.github\\.k3vinrich4rd\\.altashoras\\.conta\\.(Contas.*|AdminInicialCriado)"));
+                .allSatisfy(tipo -> assertThat(tipo).matches("io\\.github\\.k3vinrich4rd\\.altashoras\\.conta\\.(Contas.*|AdminInicialCriado|ConviteAceito)"));
         var tiposDoCepUsadosPelaAgenda = modulos.getModuleByName("agenda").orElseThrow().getDirectDependencies(modulos)
                 .stream().filter(d -> d.getTargetModule().getIdentifier().toString().equals("cep"))
                 .map(d -> d.getTargetType().getFullName()).distinct().toList();

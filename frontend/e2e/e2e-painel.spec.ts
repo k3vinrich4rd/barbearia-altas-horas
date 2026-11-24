@@ -63,7 +63,7 @@ test("A59: troca da senha inicial, agenda, cancelar com motivo, devolução, aud
   await expect(page.getByRole("heading", { name: "Alcance por região" })).toBeVisible();
   // o anunciador de rotas do Next também é um alert, mas vazio: erro de verdade tem texto
   await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0);
-  await expect(page.getByRole("table").or(page.getByText("Ainda não há atendimentos suficientes"))).toBeVisible();
+  await expect(page.getByRole("table").or(page.getByText("Ainda não há clientes suficientes"))).toBeVisible();
 
   // 8. o cliente (conta comum) não entra em /painel
   const contexto = await browser.newContext();
@@ -82,13 +82,15 @@ test("A59: reserva manual do painel trava o horário, aparece na agenda com a et
   const horario = await horarioLivre(request);
   await entrarComoAdmin(page);
   await page.goto("/painel/reserva-manual");
-  await page.getByLabel("Serviço").selectOption({ index: 1 });
-  await page.getByLabel("Barbeiro").selectOption(horario.barbeiroId);
-  await page.getByLabel("Dia").fill(horario.dia);
-  await page.getByLabel("Horário").fill(horario.hora);
+  // O rodapé do site também tem uma região "Horário" (PDF, pág. 2): os campos são buscados só dentro do conteúdo principal.
+  const formulario = page.getByRole("main");
+  await formulario.getByLabel("Serviço").selectOption({ index: 1 });
+  await formulario.getByLabel("Barbeiro").selectOption(horario.barbeiroId);
+  await formulario.getByLabel("Dia").fill(horario.dia);
+  await formulario.getByLabel("Horário").fill(horario.hora);
   const nome = `Manual E2E ${Date.now()}`;
-  await page.getByLabel("Nome do cliente (opcional)").fill(nome);
-  await page.getByLabel("Observação (opcional)").fill("Combinado pelo WhatsApp.");
+  await formulario.getByLabel("Nome do cliente (opcional)").fill(nome);
+  await formulario.getByLabel("Observação (opcional)").fill("Combinado pelo WhatsApp.");
   await page.getByRole("button", { name: "Criar reserva" }).click();
   await expect(page).toHaveURL(new RegExp(`/painel\\?data=${horario.dia}`));
   const item = page.getByRole("listitem").filter({ hasText: nome });

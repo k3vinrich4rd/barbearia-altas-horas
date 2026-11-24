@@ -65,7 +65,8 @@ class MeIT {
                 .andExpect(jsonPath("$.id").value(conta.id()))
                 .andExpect(jsonPath("$.email").value(conta.email()))
                 .andExpect(jsonPath("$.papeis[0]").value("CLIENTE"))
-                .andExpect(jsonPath("$.endereco.cep").value("01001000"))
+                .andExpect(jsonPath("$.endereco").doesNotExist())
+                .andExpect(jsonPath("$.regiaoAutorizada").value(false))
                 .andExpect(jsonPath("$.senha").doesNotExist());
     }
 

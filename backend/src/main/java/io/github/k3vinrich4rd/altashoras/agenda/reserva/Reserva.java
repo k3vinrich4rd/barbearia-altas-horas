@@ -91,6 +91,14 @@ public class Reserva {
     @Column(name = "regiao_uf", length = 2)
     private @Nullable String regiaoUf;
 
+    /** Município do IBGE (7 dígitos) e a versão do texto de autorização aceito: a prova do consentimento (Fatia 11, E1). */
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "regiao_municipio_ibge", length = 7)
+    private @Nullable String regiaoMunicipioIbge;
+
+    @Column(name = "regiao_consentimento_versao")
+    private @Nullable String regiaoConsentimentoVersao;
+
     /** Só na reserva manual (6D): nome e observação digitados pela barbearia. Dado pessoal; viram NULL na retenção. */
     @Column(name = "nome_cliente")
     private @Nullable String nomeCliente;
@@ -156,6 +164,12 @@ public class Reserva {
         this.regiaoBairro = regiao.bairro();
         this.regiaoCidade = regiao.cidade();
         this.regiaoUf = regiao.uf();
+        this.regiaoMunicipioIbge = regiao.municipioIbge();
+        this.regiaoConsentimentoVersao = regiao.versaoConsentimento();
+    }
+
+    @Nullable String getRegiaoConsentimentoVersao() {
+        return regiaoConsentimentoVersao;
     }
 
     /** Muda o status só se a máquina de estados permitir; qualquer outra mudança é 422 TRANSICAO_INVALIDA. */
@@ -196,6 +210,10 @@ public class Reserva {
 
     public UUID getBarbeiroId() {
         return barbeiroId;
+    }
+
+    public Instant getInicio() {
+        return inicio;
     }
 
     public long getVersion() {

@@ -34,7 +34,7 @@ public class ProvedoresFalsos {
             """;
     public static final String BRASILAPI_SE = """
             {"cep":"01001000","state":"SP","city":"São Paulo","neighborhood":"Sé","street":"Praça da Sé",
-             "service":"viacep"}
+             "service":"viacep","ibge":{"city":"3550308","state":"35"}}
             """;
     public static final String VIACEP_ERRO = "{\"erro\": true}";
 
@@ -53,7 +53,7 @@ public class ProvedoresFalsos {
 
     /** Espera uma chamada à BrasilAPI para o CEP e responde com o criador dado. */
     public void brasilApi(String cep, ResponseCreator resposta) {
-        servidor.expect(ExpectedCount.once(), requestTo("http://localhost:1/api/cep/v1/" + cep))
+        servidor.expect(ExpectedCount.once(), requestTo("http://localhost:1/api/cep/v2/" + cep))
                 .andExpect(method(HttpMethod.GET)).andRespond(resposta);
     }
 
@@ -90,6 +90,18 @@ public class ProvedoresFalsos {
         return requisicao -> {
             throw new IOException("Connection refused");
         };
+    }
+
+    /** ViaCEP de Osasco, Centro (a cidade e o código IBGE vêm do provedor). */
+    public static final String CEP_OSASCO = "06010000";
+    public static final String VIACEP_OSASCO = """
+            {"cep":"06010-000","logradouro":"Rua Fictícia","bairro":"Centro","localidade":"Osasco","uf":"SP","ibge":"3534401"}
+            """;
+
+    /** ViaCEP de uma cidade qualquer, SEM o código IBGE: o município sai da tabela pelo nome e UF (A26). */
+    public static String viaCepSemIbge(String cep, String bairro, String cidade, String uf) {
+        return "{\"cep\":\"" + cep.substring(0, 5) + "-" + cep.substring(5) + "\",\"logradouro\":\"Rua Fictícia\","
+                + "\"bairro\":\"" + bairro + "\",\"localidade\":\"" + cidade + "\",\"uf\":\"" + uf + "\"}";
     }
 
     /** ViaCEP para outro CEP, no formato real da resposta. */

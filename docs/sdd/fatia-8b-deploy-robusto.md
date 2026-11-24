@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com as 10 propostas (D-1 a D-10) como estão · implementada na branch `feat/fatia-8b-deploy-robusto` (decisões D152 a D160); faltam os roteiros do Kevin |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com as 10 propostas (D-1 a D-10) como estão · implementada na branch `feat/fatia-8b-deploy-robusto` (decisões D179 a D187); faltam os roteiros do Kevin |
 | **Fatias do plano** | sucessora da [Fatia 8](fatia-8-deploy.md) (deploy grátis, já no ar em beta). Ela fecha o que a 8 deixou aberto: deploy só com CI verde, subida mais rápida, health que não derruba a API à toa, ping que cabe nas 750 h, rollback, alerta e backup de verdade |
 | **Branch** | `feat/fatia-8b-deploy-robusto` |
 | **Regras** | R30 (nada pessoal em log), H14/R26 (limite por IP), API8 do dossiê (health sem detalhes), D12 (pool pequeno para o Aiven), D38 e D66 (custo zero, banco free) |
@@ -149,7 +149,7 @@ As provas locais usam `scripts/testar-imagem.sh` (estendido) e `scripts/verifica
 | diff do workflow do ping, **para o Kevin aplicar** no repositório do perfil | janela de 06:40, sem chamada fora dela, laço de espera de 8 min (E12) |
 | `scripts/testar-imagem.sh`, `scripts/verificar-no-ar.sh`, `scripts/horas-render.sh`, `scripts/testar-backup.sh --real` | provas A5 a A19, A26, A31 |
 | `HealthProbesIT`, `PoolProdIT`, ajuste no `ArquivosDeImplantacaoTest` | provas A1, A2, A13, A16, A17, A22, A24, A25, A32, A33 |
-| `docs/planejamento/ativar-deploy.md`, `docs/sdd/checklist-pr.md`, `docs/guia-testes.md`, `decisoes.md` (D152 em diante), `docs/sdd/README.md` | rollback, alertas, limites, tabela de medição (com saída real) |
+| `docs/planejamento/ativar-deploy.md`, `docs/sdd/checklist-pr.md`, `docs/guia-testes.md`, `decisoes.md` (D179 em diante), `docs/sdd/README.md` | rollback, alertas, limites, tabela de medição (com saída real) |
 
 ## 7. Riscos e cuidados
 

@@ -41,11 +41,27 @@
 | `ADMIN_NOME` | Kevin | nome que aparece (opcional; o padrão é "Administrador") |
 | `APP_PRIVACIDADE_CONTATO` | Kevin | e-mail de contato do titular da política |
 | `CORS_ORIGENS` | Kevin, **depois da Fatia 7** | a URL do front no Vercel, sem barra no fim. Enquanto não houver front, deixe vazio (nenhum navegador acessa a API) |
+| `APP_NOTIFICACAO_VAPID_PUBLICA` · `APP_NOTIFICACAO_VAPID_PRIVADA` | Kevin, **depois de gerar o par** | veja o passo 2b abaixo; sem elas a API sobe normalmente, só sem o Web Push |
 | `URL_CHECKOUT_SIMULADO` | Kevin, **depois da Fatia 7** | a URL da tela de pagamento simulado do front |
 
 4. **Apply**. O primeiro deploy leva uns 5 a 8 minutos (build da imagem).
 5. **Quando o Render publica (Fatia 8B):** o `render.yaml` usa `autoDeployTrigger: checksPass` na branch `main`: o Render só publica um commit da `main` **depois** que os checks do GitHub (Backend CI e Frontend CI, que rodam em todo push na `main`) passam. A `main` só recebe o PR de release `develop → main`, que exige CI verde. O **Manual Deploy** continua no painel (deploy de emergência, se o CI estiver fora do ar). Conferir em **Events** do serviço: um commit com check vermelho aparece como "checks failed" e **não** publica (A3).
 6. **Vercel (A4):** em **Settings → Git** do projeto, confirme **Production Branch = `main`**; `develop` e PRs geram só **Preview**. O gate de CI do front é o PR de release (D-1); o plano Hobby não tem "Deployment Checks" bloqueante.
+
+### Passo 2b · Notificação ao barbeiro (chave VAPID, Fatia 13)
+
+O aviso no celular usa Web Push, que pede um **par de chaves** (curva elíptica P-256). O `generateValue` do Render **não serve**: ele gera texto aleatório. Faça **uma vez**, no seu computador:
+
+1. Abra um terminal (com o Node 22 instalado) e rode: `npx web-push generate-vapid-keys`
+2. Saem duas linhas: **Public Key** e **Private Key**, em texto (base64url). **Não commite** nenhuma das duas e não as cole em chat nem em issue.
+3. No Render, serviço **altas-horas-api** → **Environment**, crie:
+   - `APP_NOTIFICACAO_VAPID_PUBLICA` = a **Public Key**;
+   - `APP_NOTIFICACAO_VAPID_PRIVADA` = a **Private Key** (é o segredo).
+4. Guarde a Private Key no seu gerenciador de senhas. **Trocar o par invalida todas as inscrições**: cada barbeiro precisa tocar em "Ativar" de novo. Não gere um par novo a cada deploy.
+5. **Manual Deploy**. Depois de funcionar, opcional: crie `APP_NOTIFICACAO_EXIGIR_CHAVES=true` para a API se recusar a subir se alguém apagar a chave por engano.
+6. Teste: como barbeiro, abra **Painel → Notificações**, toque em **Ativar** e depois em **Enviar um teste**. No iPhone o site precisa estar na **Tela de Início** (iOS 16.4 ou mais novo).
+
+Sem as chaves nada quebra: a tela mostra "notificações indisponíveis" e o aviso continua aparecendo em **Novidades**, no painel. O e-mail fica desligado até você decidir ([notificacao-por-email.md](notificacao-por-email.md)).
 
 ## Passo 3 · Conferir que deu certo
 

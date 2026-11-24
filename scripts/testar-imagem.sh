@@ -176,7 +176,12 @@ con="$(psql_pg "SELECT conname FROM pg_constraint WHERE conname='reserva_sem_sob
 # ---------- A9: perfil prod de verdade (sem seed, sem usuário de desenvolvimento) ----------
 docker logs "$API" 2>&1 | grep -q 'The following 1 profile is active: "prod"' && ok A9a "perfil ativo: prod" || falha A9a "perfil prod não apareceu no log"
 docker logs "$API" 2>&1 | grep -q '"treino"' && falha 8B-A7b "o perfil treino apareceu no log da execução" || ok 8B-A7b "o perfil treino nunca é ativado em execução (só no docker build)"
-[ "$(psql_pg "SELECT count(*) FROM servico")" = "0" ] && ok A9b "banco sem seed fictício (catálogo vazio até o admin cadastrar)" || falha A9b "há serviços no banco: o seed dev vazou?"
+# Desde a V8 (D152) o catálogo real nasce em todos os perfis: 5 serviços e 1 barbeiro. O seed dev é a migração
+# repetível R__seed_dev.sql: se ela aparecer no histórico do Flyway, o perfil dev vazou para a imagem.
+seed_dev="$(psql_pg "SELECT count(*) FROM flyway_schema_history WHERE script LIKE 'R__%'")"
+servicos="$(psql_pg "SELECT count(*) FROM servico")"
+[ "$seed_dev" = "0" ] && [ "$servicos" = "5" ] && ok A9b "sem seed dev no banco e com o catálogo inicial da V8 (5 serviços)" \
+  || falha A9b "seed dev no histórico: $seed_dev; serviços: $servicos (esperado 0 e 5)"
 
 # ---------- A10: jobs de subida (retenção) ----------
 docker logs "$API" 2>&1 | grep -q 'Retenção de dados: limpeza=' && ok A10 "a retenção de dados rodou na subida" || falha A10 "a retenção não rodou na subida"
@@ -338,7 +343,7 @@ if [ "$ganho_cache" -ge 25 ]; then
   ok 8B-A10 "mediana com cache $(seg "$m_tier")s contra $(seg "$m_semtier")s sem cache: $ganho_cache% mais rápida (meta: 25% ou mais)"
 elif [ "$ganho_total" -ge 25 ]; then
   # Desvio registrado em decisoes.md: a meta de 25% é atingida pelo conjunto cache + TieredStopAtLevel=1, não pelo cache sozinho.
-  ok 8B-A10 "(desvio D154) o cache sozinho encurtou só $ganho_cache% (meta: 25%), mas cache + TieredStopAtLevel=1, como a imagem sobe, encurta $ganho_total% (mediana $(seg "$m_com")s contra $(seg "$m_semtier")s, a Fatia 8)"
+  ok 8B-A10 "(desvio D181) o cache sozinho encurtou só $ganho_cache% (meta: 25%), mas cache + TieredStopAtLevel=1, como a imagem sobe, encurta $ganho_total% (mediana $(seg "$m_com")s contra $(seg "$m_semtier")s, a Fatia 8)"
 else
   falha 8B-A10 "cache sozinho $ganho_cache%, cache + flag $ganho_total% (meta: 25%)"
 fi

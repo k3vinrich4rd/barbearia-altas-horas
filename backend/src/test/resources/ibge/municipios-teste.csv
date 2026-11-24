@@ -1,0 +1,14 @@
+# fonte=tabela-de-teste data=2026-11-23 municipios=12 regioesImediatas=4 ufs=3
+codigo;municipio;uf;regiaoImediataCodigo;regiaoImediataNome
+3106200;Belo Horizonte;MG;310001;Belo Horizonte
+3118601;Contagem;MG;310001;Belo Horizonte
+3303302;Niterói;RJ;330001;Rio de Janeiro
+3304557;Rio de Janeiro;RJ;330001;Rio de Janeiro
+3505708;Barueri;SP;350001;São Paulo
+3509502;Campinas;SP;350038;Campinas
+3510609;Carapicuíba;SP;350001;São Paulo
+3534401;Osasco;SP;350001;São Paulo
+3550308;São Paulo;SP;350001;São Paulo
+3556206;Valinhos;SP;350038;Campinas
+3556701;Vinhedo;SP;350038;Campinas
+3547304;Santana de Parnaíba;SP;350001;São Paulo

@@ -1,5 +1,6 @@
 "use client";
-// Cadastro (A33 a A35). O CEP NUNCA derruba o cadastro (R31): a busca só ajuda a conferir o endereço.
+// Cadastro (A33 a A35, A47). O CEP só existe com a caixinha de região marcada e NUNCA derruba o cadastro (R31): a busca só
+// ajuda a conferir o endereço, e o CEP não é guardado. Sem marcar, o CEP nem aparece na tela nem sai do navegador.
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,6 +14,7 @@ import { apenasDigitos, cepComOitoDigitos, MENSAGEM_SENHA, senhaValida } from "@
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
+import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
 import { useSessao } from "@/componentes/Sessao";
 
 export const TEMPO_LIMITE_CEP_MS = 3000;
@@ -26,6 +28,7 @@ export function Cadastro() {
   const envio = useEnvio();
   const [v, setV] = useState({ nome: "", email: "", whatsapp: "", senha: "", cep: "" });
   const [marketing, setMarketing] = useState(false);
+  const [regiao, setRegiao] = useState(false);
   const [cep, setCep] = useState<SituacaoCep>({ tipo: "nenhuma" });
   const [erroSenha, setErroSenha] = useState<string | undefined>();
   const politica = useConsulta(() => chamar(api().GET("/politica-privacidade")), []);
@@ -71,14 +74,18 @@ export function Cadastro() {
       return;
     }
     setErroSenha(undefined);
+    // O CEP e a caixinha só vão juntos: sem marcar, o CEP não é enviado (A47)
+    const comRegiao = regiao && v.cep.trim() !== "" && politica.dados !== undefined;
     const resposta = await envio.executar(() =>
       cadastrarConta({
         nome: v.nome,
         email: v.email,
         whatsapp: v.whatsapp,
         senha: v.senha,
-        ...(v.cep.trim() ? { cep: v.cep } : {}),
         aceitaMarketing: marketing,
+        ...(comRegiao
+          ? { cep: v.cep, autorizaRegiao: true, versaoTextoRegiao: politica.dados!.versao }
+          : {}),
       }),
     );
     if (!resposta) return;
@@ -134,23 +141,32 @@ export function Cadastro() {
           onChange={set("senha")}
           erro={erroSenha ?? campos.senha}
         />
-        <Campo
-          id="cep"
-          rotulo="CEP (opcional)"
-          inputMode="numeric"
-          autoComplete="postal-code"
-          value={v.cep}
-          onChange={set("cep")}
-          onBlur={consultarCep}
-          erro={campos.cep}
-        />
-        <div aria-live="polite">
-          {cep.tipo === "achou" && <p>{cep.texto}</p>}
-          {cep.tipo === "aviso" && <Aviso tipo="aviso">{cep.texto}</Aviso>}
-        </div>
-        <p className="nota">
-          Se o endereço não puder ser buscado agora, o cadastro continua e seu CEP é salvo. O endereço completa depois.
-        </p>
+        <ConsentimentoDeRegiao
+          marcado={regiao}
+          aoMudar={(m) => {
+            setRegiao(m);
+            if (!m) setCep({ tipo: "nenhuma" });
+          }}
+          politica={politica.dados}
+        >
+          <Campo
+            id="cep"
+            rotulo="CEP"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            value={v.cep}
+            onChange={set("cep")}
+            onBlur={consultarCep}
+            erro={campos.cep}
+          />
+          <div aria-live="polite">
+            {cep.tipo === "achou" && <p>{cep.texto}</p>}
+            {cep.tipo === "aviso" && <Aviso tipo="aviso">{cep.texto}</Aviso>}
+          </div>
+          <p className="nota">
+            Se o endereço não puder ser buscado agora, o cadastro continua, só sem a sua região. O CEP não é guardado.
+          </p>
+        </ConsentimentoDeRegiao>
 
         <div className="caixa">
           <input

@@ -63,6 +63,8 @@ test("A55: o fluxo do visitante se faz só com o teclado, com foco visível, lin
   const botaoHora = page.getByRole("button", { name: horario.hora, exact: true }).first();
   await tabAte(page, botaoHora);
   await page.keyboard.press("Enter");
+  await tabAte(page, page.getByRole("button", { name: "Continuar", exact: true })); // resumo fixo (Fatia 12C)
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/agendar\/dados\?/);
   await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
 

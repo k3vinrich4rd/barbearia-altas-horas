@@ -68,6 +68,8 @@ app:
     alcance-janela: 1m
     exportacao-max: 5     # exportações de dados (GET /me/dados) por conta (H22, E14)
     exportacao-janela: 1h
+    notificacao-teste-max: 5     # avisos de teste (POST /admin/notificacoes/teste) por conta (D-10)
+    notificacao-teste-janela: 1h
   privacidade:
     # Canal de contato do titular, escrito na política (E13). Vem do ambiente: nunca no repositório (D-4).
     contato: ${APP_PRIVACIDADE_CONTATO:}
@@ -75,6 +77,23 @@ app:
     retencao-guest-dias: 90     # contato do visitante, contado do fim da reserva (R29)
     retencao-ip-dias: 365       # IP da auditoria do painel (D77)
     retencao-webhook-dias: 365  # eventos de webhook já processados (ADR 0009)
+  notificacao:
+    # Canais LIGADOS, separados por vírgula (E7): webpush, email. Vazio = só o aviso do painel. Nome desconhecido = a API não sobe.
+    canais: ${APP_NOTIFICACAO_CANAIS:webpush}
+    tentativas-max: 5             # entregas do push que podem falhar; depois o aviso fica só em Novidades (D178)
+    retencao-avisos-dias: 30      # quanto tempo o aviso fica no painel (E13)
+    retencao-inscricao-dias: 90   # aparelho sem nenhum envio com sucesso há tanto tempo é apagado (E13)
+    webpush:
+      # Par VAPID (D175): gerado uma vez pelo Kevin (docs/planejamento/ativar-deploy.md). NUNCA no repositório nem em log.
+      vapid-publica: ${APP_NOTIFICACAO_VAPID_PUBLICA:}
+      vapid-privada: ${APP_NOTIFICACAO_VAPID_PRIVADA:}
+      # O "contato" do VAPID: a URL do site, nunca o e-mail pessoal de ninguém.
+      assunto: ${APP_NOTIFICACAO_VAPID_ASSUNTO:https://barbearia-altas-horas.vercel.app}
+      # Só serviços de push são chamados (E9, contra SSRF); *. casa só subdomínios.
+      hosts-permitidos: fcm.googleapis.com,updates.push.services.mozilla.com,*.push.apple.com,*.notify.windows.com
+      # true = a API não sobe com webpush ligado e sem a chave privada. Ligue depois de cadastrar o par no Render.
+      exigir-chaves: ${APP_NOTIFICACAO_EXIGIR_CHAVES:false}
+    # email: desligado (E12); só vale quando "email" entrar em canais. Ver docs/planejamento/notificacao-por-email.md.
   cep:
     # ViaCEP primeiro, BrasilAPI de fallback; sem chave e sem conta (D59, ADR 0008).
     viacep-url: https://viacep.com.br

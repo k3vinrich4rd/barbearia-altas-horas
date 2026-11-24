@@ -34,6 +34,7 @@ test("A60: nenhum dado pessoal vaza em console, URL, storage, cabeçalhos legív
   await page.getByLabel("Nome").fill("Fulano Privacidade");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("WhatsApp").fill(whatsapp);
+  await page.locator("#autoriza-regiao").check();
   await page.locator("#cep").fill(cep);
   await page.getByRole("button", { name: "Reservar" }).click();
   await expect(page).toHaveURL(/\/agendar\/pagamento\//);
@@ -53,6 +54,7 @@ test("A60: nenhum dado pessoal vaza em console, URL, storage, cabeçalhos legív
   await page.getByLabel("E-mail").fill(email2);
   await page.getByLabel("WhatsApp").fill(whatsapp);
   await page.getByLabel("Senha").fill(SENHA_DE_TESTE);
+  await page.locator("#autoriza-regiao").check();
   await page.locator("#cep").fill(cep);
   await page.getByLabel("Senha").focus();
   await page.getByRole("button", { name: "Criar conta" }).click();

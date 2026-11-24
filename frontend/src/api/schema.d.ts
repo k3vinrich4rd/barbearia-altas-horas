@@ -108,6 +108,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/convite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * O barbeiro aceita o convite e cria o próprio login (Fatia 10B)
+         * @description Pública, com limite de 10 pedidos por hora por IP (`429` com `Retry-After`). O dono gera o convite em
+         *     `POST /admin/barbeiros/{id}/convite` e entrega o link `/convite#<codigo>` por WhatsApp ou em pessoa; o barbeiro abre a
+         *     página (abrir **não** consome: o código vai no fragmento da URL, que nem o servidor nem a prévia de link recebem),
+         *     digita o **próprio e-mail** e cria a senha.
+         *
+         *     Ordem das checagens: (1) a forma do corpo, sem tocar no banco (`400`; a senha segue a regra do cadastro, de 10 a
+         *     72 **bytes** em UTF-8); (2) o limite por IP; (3) a busca pelo SHA-256 do código, com o relógio. Tudo o que não é um aceite
+         *     certo é **o mesmo** `422 CONVITE_INVALIDO`, com o mesmo corpo, título e mensagem: código inexistente, vencido, usado,
+         *     revogado, e-mail de conta de equipe ou de conta desativada, ou conta que já existe sem estar logada. A conta nova nasce
+         *     com o papel BARBEIRO e fica ligada ao barbeiro do convite.
+         *
+         *     **Conta que já existe (H32).** Se o e-mail é de um cliente, o aceite só vale com o token **dessa** conta
+         *     (`Authorization: Bearer`), sem `senha`: o convite soma o papel BARBEIRO e nunca define nem troca a senha. Mandar `senha`
+         *     nesse caso é `400 CAMPO_DESCONHECIDO`. Mandar o e-mail de um cliente sem a conta logada é o `422` genérico e soma uma
+         *     tentativa. Depois de 5 tentativas com o código certo (`app.conta.convite.tentativas-max`) o convite é revogado.
+         */
+        post: operations["aceitarConvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -166,9 +200,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Meu perfil */
+        /**
+         * Meu perfil
+         * @description `endereco.cep` é `deprecated` e sempre nulo desde a 1.9.0 (o CEP não é guardado); `regiaoAutorizada` diz se a conta
+         *     autoriza o uso de bairro e cidade no alcance. Sem região, `endereco` não aparece.
+         */
         get: operations["meuPerfil"];
-        put?: never;
+        /**
+         * Autoriza ou retira o uso da minha região (1.9.0)
+         * @description Com `autorizaRegiao = true`, o CEP e a `versaoTextoRegiao` vigente (a de `GET /politica-privacidade`): consulta o CEP,
+         *     grava bairro, cidade, UF e o município do IBGE e registra o consentimento `REGIAO_ALCANCE`. **O CEP não é guardado.**
+         *     Sem `autorizaRegiao = true`, ou sem CEP, é **revogação**: a localidade do perfil e a região de todas as reservas da conta
+         *     são apagadas e a conta sai do alcance; a linha de revogação fica no histórico. Versão diferente da vigente: `400
+         *     VALIDACAO_INVALIDA` em `versaoTextoRegiao`. CEP inexistente ou provedor fora **nunca** derrubam a chamada (R31).
+         */
+        put: operations["atualizarMinhaRegiao"];
         post?: never;
         /**
          * Excluir minha conta (LGPD)
@@ -272,6 +318,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/consentimentos/regiao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Aceita ou revoga o consentimento de região (1.9.0)
+         * @description No molde do de marketing (finalidade `REGIAO_ALCANCE`). `versaoTexto` precisa ser a vigente (`400 VALIDACAO_INVALIDA`).
+         *     **Revogar apaga** a localidade do perfil e a região de todas as reservas da conta (ela passa a "sem região" no alcance).
+         *     Cada mudança de estado é uma linha nova (R28). Aceitar por aqui só registra o aceite: a localidade vem de `PUT /me`.
+         */
+        put: operations["registrarConsentimentoRegiao"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/politica-pagamento": {
         parameters: {
             query?: never;
@@ -318,12 +386,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Cidades e bairros que a barbearia atende (só nomes, sem números)
-         * @description Rota pública (sem token), vitrine para quem vai agendar (E35). Cobre os atendimentos (`CONFIRMADO` e `CONCLUIDO`)
-         *     dos últimos 12 meses e lista só as cidades e os bairros com 5 ou mais atendimentos no recorte (k-anonimato, ADR 0009),
-         *     ordenados por volume, **sem contagens**. Nada de "Outras cidades" nem "Outros bairros" aqui. O resultado fica em cache
-         *     no servidor por 1 hora (`atualizadoEm` diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou,
-         *     `429` com `Retry-After`.
+         * Municípios e bairros que a barbearia atende (só nomes e faixas de porcentagem, nunca número)
+         * @description Rota pública (sem token), vitrine para quem vai agendar (E35, Fatia 11). Conta **pessoas diferentes** (não atendimentos)
+         *     dos últimos 12 meses, com `CONFIRMADO` e `CONCLUIDO`, e lista só os **municípios** com 5 ou mais pessoas e, dentro deles,
+         *     os bairros com 5 ou mais, por volume. Em município com **20 pessoas ou mais** cada bairro traz `faixaPercentual`: a
+         *     porcentagem sobre o município **arredondada para baixo em múltiplos de 5** (`"15"`), ou `"<5"`. Em município com menos
+         *     de 20, só os nomes (`comFaixas = false`). O "Outros bairros" só aparece com 5 ou mais, **sem faixa**. **Nunca** número,
+         *     total ou contagem de pessoas (`totalCidades` e `totalBairros` contam nomes, e `totalBairros` só os que passam no k).
+         *     `bairros` (só nomes) é o formato antigo, `deprecated` até a próxima major. Cache no servidor de 1 hora (`atualizadoEm`
+         *     diz quando foi calculado). Limite de 30 consultas por minuto por IP: passou, `429` com `Retry-After`.
          */
         get: operations["alcancePublico"];
         put?: never;
@@ -414,6 +485,28 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agendamentos/guest/{id}/regiao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * O visitante retira a autorização de região da reserva (1.9.0, LGPD art. 8º, § 5º)
+         * @description Com o `X-Guest-Token` da própria reserva. Apaga a região da reserva **na hora**; a reserva em si não muda. Idempotente:
+         *     retirar de novo também é `204`. Token errado, ausente ou de outra reserva: o mesmo `404` de "não existe" (R23), com o mesmo
+         *     corpo. Limite de 30 pedidos por minuto por IP (`429`).
+         */
+        delete: operations["retirarRegiaoDoGuest"];
         options?: never;
         head?: never;
         patch?: never;
@@ -658,10 +751,44 @@ export interface paths {
          * @description Só ADMIN. Substitui os campos (sem `usuarioId` o barbeiro fica sem conta; sem `whatsapp`, sem número) e exige a `version` que a tela viu.
          *     Inativar tira o barbeiro de `GET /barbeiros` e da disponibilidade, mas não cancela reserva futura.
          *     A conta ligada passa a ver a própria agenda em `GET /admin/agenda`.
+         *
+         *     **Inativar é o desligamento (ADR 0013, H31, H33): tira o acesso e mantém o histórico, não apaga nada.** O papel BARBEIRO sai
+         *     da conta e o token antigo para de valer na hora; o convite pendente é revogado e o WhatsApp comercial some. Se a conta é
+         *     também de cliente (ou do dono), ela continua ativa com os dados e as reservas. Se era só de equipe, é desativada e anonimizada
+         *     (sem senha, sessão ou identidade social; nome e e-mail viram uma lápide). As reservas e a auditoria continuam apontando para o
+         *     mesmo id. Reativar (`ativo: true`) sozinho não devolve o acesso (`acesso = DESLIGADO`): só um convite novo.
          */
         put: operations["alterarBarbeiro"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/barbeiros/{id}/convite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gera o convite de uso único do barbeiro (reenvia também: o anterior é revogado)
+         * @description Só ADMIN (o dono). **Sem corpo**: o dono não informa e-mail nenhum; o barbeiro digita o próprio ao aceitar (D-1). A resposta
+         *     traz o `codigo` **uma vez**, para montar o link `/convite#<codigo>` e o QR; o banco guarda só o SHA-256 e o código nunca
+         *     volta (nem em lista, nem em log, nem na auditoria). Vale por 48 horas (`app.conta.convite.validade`, de 1 hora a 7 dias).
+         *     Emitir de novo revoga o convite pendente e devolve um código novo. O barbeiro que já tem acesso ativo é
+         *     `409 USUARIO_JA_VINCULADO`. Com a senha inicial ainda em uso: `403 TROCA_DE_SENHA_OBRIGATORIA`.
+         */
+        post: operations["gerarConviteDoBarbeiro"];
+        /**
+         * Revoga o convite pendente do barbeiro
+         * @description Só ADMIN. Idempotente: sem convite pendente também responde `204`.
+         */
+        delete: operations["revogarConviteDoBarbeiro"];
         options?: never;
         head?: never;
         patch?: never;
@@ -859,17 +986,144 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * De onde vêm os atendimentos (cidades e bairros, com contagem e percentual)
-         * @description ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os próprios** atendimentos (o
-         *     `barbeiroId` da query é trocado pelo dele, E36). Conta só reservas `CONFIRMADO` e `CONCLUIDO` com `inicio` no
-         *     período (E31); reserva sem região entra em `semRegiao`. Período em dias civis no fuso da barbearia, inclusive nas
-         *     duas pontas; padrão: os últimos 30 dias (hoje e os 29 anteriores). Máximo de 366 dias. K-anonimato (E32): bairro
-         *     com menos de 5 atendimentos na cidade vira "Outros bairros"; cidade com menos de 5 vira "Outras cidades" (`uf`
-         *     nula). O `percentual` de cada linha é sobre o `total` do período (1 casa decimal). Nunca em cache.
+         * De onde vêm os clientes, por estado, região ou município (pessoas diferentes, com k = 5)
+         * @description ADMIN vê todos os barbeiros ou filtra por `barbeiroId`; BARBEIRO vê **sempre só os clientes dele** (o `barbeiroId` da
+         *     query é trocado pelo dele e **nada no corpo denuncia isso**, E15). Conta **pessoas diferentes** (uma pessoa com 5
+         *     atendimentos é 1 cliente) com reserva `CONFIRMADO` ou `CONCLUIDO` no período; a pessoa entra no lugar da reserva mais
+         *     recente com região. A reserva manual não conta (D127). Sem região: `semRegiao`.
+         *
+         *     **Nível** (`nivel`, padrão `MUNICIPIO`) escolhe o que aparece nas linhas: `ESTADO` (UF, com as regiões imediatas embaixo),
+         *     `REGIAO` (região imediata do IBGE, com os municípios embaixo) ou `MUNICIPIO` (com os bairros embaixo). **k = 5**
+         *     (`app.alcance.k`, nunca abaixo de 3) vale em cada recorte (barbeiro × período × nível): lugar com menos de 5 pessoas
+         *     **sobe de nível** (bairro → município → região imediata → UF → "Outros estados") em vez de sumir, e o "Outros" que
+         *     também ficar abaixo de 5 sobe junto. Nenhum valor entre 1 e k - 1 aparece como número, percentual, zero ou nulo com
+         *     sentido de contagem: abaixo de k só como `abaixoDoLimite = true` com `clientes` e `percentual` nulos.
+         *
+         *     **Contra a subtração**: em cada grupo, o que sobra depois dos filhos nomeados é 0 ou pelo menos k (o menor filho nomeado é
+         *     rebaixado para dentro do "Outros" se preciso); o total só aparece (`totalVisivel`) se o que ficou escondido no topo é 0
+         *     ou pelo menos k; e uma célula de um recorte menor (um barbeiro; uma janela padrão menor) só é publicada se a diferença
+         *     para a mesma célula do recorte maior é 0 ou pelo menos k, senão ela sobe de nível. `de` e `ate` seguem aceitos (D108) mas
+         *     **não têm essa proteção entre janelas**: valem só para quem já os usa (risco residual aceito para o dono autenticado, D-4).
+         *     `percentual` = `clientes` do grupo sobre o total do recorte, 1 casa decimal. Nunca em cache (`Cache-Control: no-store`).
          */
         get: operations["alcanceAdmin"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/chave-publica": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A chave pública VAPID, para o navegador criar a inscrição de Web Push
+         * @description ADMIN ou BARBEIRO. O navegador usa esta chave em `pushManager.subscribe`; **não existe cópia dela no front**, então o par
+         *     nunca fica dessincronizado. Sem o par VAPID configurado (ou com o canal `webpush` desligado) responde só
+         *     `{ "disponivel": false }` e a tela mostra "notificações indisponíveis". A chave **privada** nunca sai da API. Nunca em cache.
+         */
+        get: operations["chavePublicaDeNotificacao"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/inscricao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Guarda o aparelho do barbeiro para receber o Web Push
+         * @description ADMIN ou BARBEIRO. O aparelho fica na **conta do token**: nenhum corpo escolhe a conta. Idempotente por `endpoint`. O mesmo
+         *     `endpoint` chegando por outra conta (o mesmo aparelho, outro login) **passa para a conta nova**. No máximo 10 aparelhos por
+         *     conta: o 11º substitui o mais antigo. Só endereços de serviço de push são aceitos, em https (`fcm.googleapis.com`,
+         *     `updates.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`): qualquer outro host é
+         *     `400 VALIDACAO_INVALIDA` e **nunca é chamado** (contra SSRF). Os valores enviados nunca voltam nas mensagens de erro.
+         */
+        post: operations["inscreverAparelhoDePush"];
+        /**
+         * Remove o aparelho do barbeiro
+         * @description ADMIN ou BARBEIRO. O `endpoint` vai no **corpo**, não na URL, para não cair em log de acesso. Endpoint que não é da conta, ou
+         *     que não existe, responde `204` igual e **não apaga nada** (não revela de quem é).
+         */
+        delete: operations["removerAparelhoDePush"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Novidades: os avisos de horário novo da conta de quem chama
+         * @description ADMIN ou BARBEIRO. **Sempre a conta do token**: `usuarioId` ou `barbeiroId` na URL são ignorados, sem sinal. Do aviso mais
+         *     novo ao mais antigo; `limite` de 1 a 50 (padrão 20). Duas consultas ao banco (a página e a contagem), sem polling no front.
+         *     **Sem nome nem WhatsApp do cliente**: só serviço, dia e hora; o nome o barbeiro vê abrindo a agenda. Os avisos valem 30 dias.
+         *     Nunca em cache.
+         */
+        get: operations["novidadesDoPainel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/marcar-lidas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Marca como lidos todos os avisos da conta de quem chama
+         * @description ADMIN ou BARBEIRO. Sem corpo. Só os avisos da conta do token.
+         */
+        post: operations["marcarNovidadesComoLidas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notificacoes/teste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Manda um aviso de teste aos aparelhos da conta de quem chama
+         * @description ADMIN ou BARBEIRO. Entrega "Notificações ativadas neste aparelho" **só** aos aparelhos da conta do token; serve para conferir
+         *     o iPhone sem esperar um cliente real. Limite de 5 por hora por conta (`429 LIMITE_EXCEDIDO` com `Retry-After`).
+         */
+        post: operations["enviarNotificacaoDeTeste"];
         delete?: never;
         options?: never;
         head?: never;
@@ -908,7 +1162,7 @@ export interface components {
             }[];
         };
         /** @enum {string} */
-        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "ERRO_INTERNO";
+        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
         /** @enum {string} */
         StatusReserva: "AGUARDANDO_PAGAMENTO" | "CONFIRMADO" | "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO" | "EXPIRADO";
         /** @enum {string} */
@@ -969,6 +1223,33 @@ export interface components {
             /** Format: int64 */
             version: number;
             jornada?: components["schemas"]["IntervaloJornada"][];
+            /**
+             * @description em que pé está o login do barbeiro (só leitura, 1.8.0); o e-mail dele nunca volta aqui
+             * @enum {string}
+             */
+            readonly acesso: "SEM_CONTA" | "CONVITE_PENDENTE" | "ATIVO" | "DESLIGADO";
+            /**
+             * Format: date-time
+             * @description só quando acesso = CONVITE_PENDENTE
+             */
+            readonly conviteExpiraEm?: string | null;
+        };
+        ConviteAceiteRequest: {
+            /** @description 43 caracteres base64url (32 bytes de SecureRandom), do link /convite#<codigo> */
+            codigo: string;
+            /**
+             * Format: email
+             * @description o PRÓPRIO e-mail do barbeiro (vira o login)
+             */
+            email: string;
+            /** @description de 10 a 72 bytes em UTF-8 (a mesma regra do cadastro); só para conta nova: conta que já tem senha não manda */
+            senha?: string;
+        };
+        ConviteEmitido: {
+            /** @description aparece uma vez; o banco guarda só o SHA-256 */
+            codigo: string;
+            /** Format: date-time */
+            expiraEm: string;
         };
         BarbeiroRequest: {
             nomeExibicao: string;
@@ -1038,6 +1319,8 @@ export interface components {
             bairro?: string | null;
             cidade?: string | null;
             uf?: string | null;
+            /** @description código IBGE do município (1.9.0): do provedor ou, sem ele, da tabela embutida pelo nome e UF; nulo quando não se resolve (R31) */
+            municipioIbge?: string | null;
             /**
              * @description quem respondeu; CACHE quando veio da memória da API (7 dias se encontrado, 1 hora se inexistente)
              * @enum {string}
@@ -1054,9 +1337,21 @@ export interface components {
              */
             whatsapp: string;
             senha: string;
+            /** @description desde a 1.9.0 só vale com `autorizaRegiao = true`; sem isso é ignorado (nem consultado, nem guardado). Nunca é guardado */
             cep?: string;
             /** @default false */
             aceitaMarketing: boolean;
+            /** @description padrão false: a caixinha de consentimento de região (nasce desmarcada). Com `true`, `versaoTextoRegiao` precisa ser a vigente */
+            autorizaRegiao?: boolean;
+            /** @description a versão do texto da caixinha que a pessoa viu (a de `GET /politica-privacidade`); outra versão: `400 VALIDACAO_INVALIDA` */
+            versaoTextoRegiao?: string;
+        };
+        AtualizarPerfilRequest: {
+            /** @description só vale com `autorizaRegiao = true`; nunca é guardado */
+            cep?: string;
+            /** @description false ou ausente (ou sem CEP) = retirar a autorização */
+            autorizaRegiao?: boolean;
+            versaoTextoRegiao?: string;
         };
         Perfil: {
             /** Format: uuid */
@@ -1066,12 +1361,18 @@ export interface components {
             email: string;
             papeis: components["schemas"]["Papel"][];
             endereco?: {
+                /**
+                 * @deprecated
+                 * @description sempre nulo desde a 1.9.0 (o CEP não é guardado); sai na próxima major
+                 */
                 cep?: string | null;
                 bairro?: string | null;
                 cidade?: string | null;
                 uf?: string | null;
                 completo?: boolean;
             };
+            /** @description a conta autoriza o uso do bairro e da cidade no alcance (1.9.0) */
+            regiaoAutorizada?: boolean;
             /** @description true enquanto o admin usa a senha inicial; o front leva para a troca */
             deveTrocarSenha?: boolean;
         };
@@ -1123,12 +1424,17 @@ export interface components {
             email: string;
             whatsapp: string;
             /**
-             * @description Opcional (Fatia 6C). Formato errado: `400 CEP_INVALIDO`, nada é criado. CEP inexistente ou provedor de CEP
-             *     fora **nunca** impedem a reserva (R31): ela nasce sem região. Guardado só para a estatística de alcance e
-             *     apagado na anonimização do visitante (90 dias).
+             * @description Opcional. Formato errado: `400 CEP_INVALIDO`, nada é criado. Desde a 1.9.0 só vale com `autorizaRegiao = true`:
+             *     sem isso é ignorado (nem consultado, nem guardado). CEP inexistente ou provedor de CEP fora **nunca** impedem a
+             *     reserva (R31): ela nasce sem região. **O CEP nunca é guardado**: ficam bairro, município, UF e o código IBGE, e
+             *     a região some junto com o contato do visitante (90 dias) ou antes, se ele a retirar.
              * @example 01001-000
              */
             cep?: string | null;
+            /** @description padrão false: a caixinha de consentimento de região (1.9.0), desmarcada por padrão */
+            autorizaRegiao?: boolean | null;
+            /** @description obrigatória e vigente com `autorizaRegiao = true` (`400 VALIDACAO_INVALIDA`) */
+            versaoTextoRegiao?: string | null;
         };
         Agendamento: {
             /** Format: uuid */
@@ -1164,6 +1470,8 @@ export interface components {
             motivoCancelamento?: string | null;
             /** Format: int64 */
             version?: number;
+            /** @description só nas respostas do visitante (1.9.0): a reserva guarda a região com a prova do aceite; vira false depois de `DELETE /agendamentos/guest/{id}/regiao` */
+            regiaoAutorizada?: boolean;
         };
         /**
          * @description O Agendamento visto pelo painel: mais o contato de quem vem (nome e WhatsApp, nunca e-mail nem CPF) e o status
@@ -1396,7 +1704,7 @@ export interface components {
         };
         Consentimento: {
             /** @enum {string} */
-            finalidade: "MARKETING_CEP";
+            finalidade: "MARKETING_CEP" | "REGIAO_ALCANCE";
             aceito: boolean;
             versaoTexto: string;
             /** Format: date-time */
@@ -1414,8 +1722,15 @@ export interface components {
                 /** Format: email */
                 email: string;
                 whatsapp: string | null;
+                /** @description a conta autoriza o uso da região no alcance (1.9.0) */
+                regiaoAutorizada?: boolean;
                 endereco: {
-                    cep?: string;
+                    /**
+                     * @deprecated
+                     * @description sempre nulo desde a 1.9.0
+                     */
+                    cep?: string | null;
+                    municipioIbge?: string | null;
                     bairro?: string | null;
                     cidade?: string | null;
                     uf?: string | null;
@@ -1439,15 +1754,24 @@ export interface components {
             }[];
         };
         PoliticaPrivacidade: {
-            /** @example 1.1 */
+            /** @example 1.2 */
             versao: string;
             /** @description o texto da caixa de marketing do cadastro */
             textoConsentimento: string;
+            /** @description o texto da caixinha de região, desmarcada (1.9.0): cadastro, perfil e checkout do visitante */
+            textoConsentimentoRegiao: string;
             /** @description texto corrido em Markdown (rascunho técnico, não é parecer jurídico) */
             politica: string;
             /** Format: date-time */
             atualizadaEm: string;
+            /** @description o canal de contato sobre os dados (APP_PRIVACIDADE_CONTATO), que aparece ao lado da caixinha de região (1.9.0) */
+            canalDeContato?: string;
         };
+        /**
+         * @description o nível das linhas do painel; cada linha traz o nível de baixo em `filhos`
+         * @enum {string}
+         */
+        NivelDoAlcance: "ESTADO" | "REGIAO" | "MUNICIPIO";
         AlcancePainel: {
             periodo: {
                 /** Format: date */
@@ -1455,41 +1779,154 @@ export interface components {
                 /** Format: date */
                 ate: string;
             };
-            /** @description atendimentos CONFIRMADO e CONCLUIDO no período (inclui os sem região) */
-            total: number;
-            /** @description atendimentos cuja região não se conhece */
-            semRegiao: number;
-            /** @description por volume; "Outras cidades" (uf nula) por último */
-            cidades: {
+            nivel: components["schemas"]["NivelDoAlcance"];
+            /**
+             * @description o limite de pessoas (app.alcance.k); lugar abaixo dele sobe de nível
+             * @example 5
+             */
+            k: number;
+            /** @description falso quando a conta fecharia um número menor que k: aí `clientes` (total) e todos os `percentual` vêm nulos */
+            totalVisivel: boolean;
+            /** @description pessoas diferentes no recorte (inclui as sem região); nulo quando `totalVisivel = false` */
+            clientes: number | null;
+            /** @description quem não tem região (não autorizou, revogou ou o CEP não resolveu). Era um número até a 1.8.0; agora é objeto (única exceção da 1.9.0) */
+            semRegiao: {
+                /** @description nulo quando `abaixoDoLimite` */
+                clientes: number | null;
+                /** @description verdadeiro quando o número não é publicado (menos de k); a tela escreve "menos de k" */
+                abaixoDoLimite: boolean;
+            };
+            /** @description as linhas do nível pedido, por volume; as de tipo `OUTROS` são o que subiu de nível; "Outros estados" por último */
+            grupos: components["schemas"]["AlcanceGrupo"][];
+            /**
+             * @deprecated
+             * @description o mesmo que `clientes`; sai na próxima major
+             */
+            total?: number | null;
+            /**
+             * @deprecated
+             * @description o formato antigo (cidade e bairros), só preenchido com `nivel = MUNICIPIO`; sai na próxima major
+             */
+            cidades?: {
                 /** @example Osasco */
                 cidade: string;
                 /** @example SP */
                 uf: string | null;
-                /** @description nulo quando abaixoDoLimite */
+                /** @description agora conta clientes; nulo quando abaixoDoLimite */
                 atendimentos: number | null;
-                /**
-                 * Format: double
-                 * @description sobre o total do período, 1 casa decimal; nulo quando abaixoDoLimite
-                 * @example 66.7
-                 */
+                /** Format: double */
                 percentual: number | null;
-                /** @description verdadeiro só em "Outras cidades" com menos de 5 atendimentos (D114) */
                 abaixoDoLimite: boolean;
-                /** @description por volume; "Outros bairros" por último; vazio em "Outras cidades" */
                 bairros: {
                     /** @example Centro */
                     bairro: string;
-                    /** @description nulo quando abaixoDoLimite */
                     atendimentos: number | null;
-                    /**
-                     * Format: double
-                     * @example 66.7
-                     */
+                    /** Format: double */
                     percentual: number | null;
-                    /** @description verdadeiro só em "Outros bairros" com menos de 5 atendimentos (D114) */
                     abaixoDoLimite: boolean;
                 }[];
             }[];
+        };
+        AlcanceGrupo: {
+            /**
+             * @description o nível da linha, ou OUTROS (o que subiu)
+             * @enum {string}
+             */
+            tipo: "UF" | "REGIAO" | "MUNICIPIO" | "OUTROS";
+            /**
+             * @description sigla da UF, código da região imediata ou do município; em OUTROS, o do pai ("Outros bairros" traz o código do município)
+             * @example 3534401
+             */
+            codigo?: string | null;
+            /** @example Osasco */
+            nome: string;
+            /** @example SP */
+            uf?: string | null;
+            /** @description pessoas diferentes; nulo quando `abaixoDoLimite` (nunca um número entre 1 e k - 1) */
+            clientes: number | null;
+            /**
+             * Format: double
+             * @description sobre o total do recorte, 1 casa decimal; nulo quando `abaixoDoLimite` ou `totalVisivel = false`
+             * @example 66.7
+             */
+            percentual: number | null;
+            abaixoDoLimite: boolean;
+            /**
+             * @description até que nível um OUTROS subiu; nulo quando ficou no nível pedido
+             * @enum {string|null}
+             */
+            agrupadoEm?: "REGIAO" | "UF" | "PAIS" | null;
+            /** @description o nível de baixo (UF → regiões, região → municípios, município → bairros), mais um OUTROS com o resto; vazio em OUTROS */
+            filhos: components["schemas"]["AlcanceFilho"][];
+        };
+        AlcanceFilho: {
+            /** @enum {string} */
+            tipo: "REGIAO" | "MUNICIPIO" | "BAIRRO" | "OUTROS";
+            codigo?: string | null;
+            /** @example Centro */
+            nome: string;
+            clientes: number | null;
+            /** Format: double */
+            percentual: number | null;
+            abaixoDoLimite: boolean;
+        };
+        ChavePublicaPush: {
+            /** @description falso quando o par VAPID não está configurado ou o canal webpush está desligado */
+            disponivel: boolean;
+            /**
+             * @description a chave pública VAPID em base64url (65 bytes); ausente quando indisponível
+             * @example BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM
+             */
+            chavePublica?: string;
+        };
+        /** @description A inscrição como o navegador a entrega (`PushSubscription.toJSON()`). Nada daqui volta em resposta nem vai para log. */
+        InscricaoPush: {
+            /**
+             * @description https, só de serviço de push (fcm.googleapis.com, updates.push.services.mozilla.com, *.push.apple.com, *.notify.windows.com)
+             * @example https://fcm.googleapis.com/fcm/send/exemplo-de-endpoint
+             */
+            endpoint: string;
+            chaves: {
+                /** @description chave pública do aparelho, base64url (65 bytes) */
+                p256dh: string;
+                /** @description segredo de autenticação, base64url (16 bytes) */
+                auth: string;
+            };
+        };
+        RemocaoDeInscricaoPush: {
+            endpoint: string;
+        };
+        Novidades: {
+            /**
+             * @description avisos da conta ainda não lidos (todos, não só os desta página)
+             * @example 2
+             */
+            naoLidas: number;
+            itens: components["schemas"]["AvisoDoPainel"][];
+        };
+        /** @description Um horário novo confirmado pelo pagamento. Sem nome, WhatsApp, e-mail, CPF nem valor do cliente. */
+        AvisoDoPainel: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uuid
+             * @description para abrir a agenda do dia
+             */
+            reservaId: string;
+            /**
+             * @description nome do serviço no momento do aviso
+             * @example Corte Degradê
+             */
+            servico: string;
+            /**
+             * Format: date-time
+             * @description o horário marcado (fuso da barbearia)
+             * @example 2026-11-27T10:00:00-03:00
+             */
+            inicio: string;
+            /** Format: date-time */
+            criadoEm: string;
+            lido: boolean;
         };
         AlcancePublico: {
             /**
@@ -1497,15 +1934,36 @@ export interface components {
              * @description quando o resultado em cache foi calculado
              */
             atualizadoEm: string;
+            /** @description quantos municípios aparecem (conta nomes, não pessoas) */
             totalCidades: number;
+            /** @description quantos bairros passam no k (conta nomes, não pessoas) */
             totalBairros: number;
-            /** @description por volume, sem os números */
+            /** @description municípios por volume, sem números de pessoas */
             regioes: {
                 /** @example Osasco */
                 cidade: string;
                 /** @example SP */
                 uf: string;
+                /** @example 3534401 */
+                codigoIbge: string;
+                /** @description falso em município com menos de 20 pessoas (só nomes) */
+                comFaixas: boolean;
+                /**
+                 * @deprecated
+                 * @description só os nomes (o formato antigo); sai na próxima major
+                 */
                 bairros: string[];
+                bairrosComFaixa: {
+                    /** @example Centro */
+                    bairro: string;
+                    /**
+                     * @description a porcentagem sobre o município arredondada para baixo em múltiplos de 5 ("15"), ou "<5"; nulo em município com menos de 20 pessoas e no "Outros bairros"
+                     * @example 15
+                     */
+                    faixaPercentual?: string | null;
+                    /** @description verdadeiro no "Outros bairros" (só aparece com 5 ou mais, sem faixa) */
+                    outros: boolean;
+                }[];
             }[];
         };
         PaginaAuditoria: {
@@ -1782,6 +2240,33 @@ export interface operations {
             429: components["responses"]["Erro429"];
         };
     };
+    aceitarConvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConviteAceiteRequest"];
+            };
+        };
+        responses: {
+            /** @description Convite aceito; entre com o e-mail e a senha novos */
+            204: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Erro400"];
+            422: components["responses"]["Erro422"];
+            429: components["responses"]["Erro429"];
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -1878,6 +2363,32 @@ export interface operations {
             401: components["responses"]["Erro401"];
         };
     };
+    atualizarMinhaRegiao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtualizarPerfilRequest"];
+            };
+        };
+        responses: {
+            /** @description Perfil atualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Perfil"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+        };
+    };
     excluirConta: {
         parameters: {
             query?: never;
@@ -1969,6 +2480,32 @@ export interface operations {
         };
     };
     registrarConsentimentoMarketing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentimentoRequest"];
+            };
+        };
+        responses: {
+            /** @description Consentimento registrado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Consentimento"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+        };
+    };
+    registrarConsentimentoRegiao: {
         parameters: {
             query?: never;
             header?: never;
@@ -2189,6 +2726,28 @@ export interface operations {
                 };
             };
             404: components["responses"]["Erro404"];
+        };
+    };
+    retirarRegiaoDoGuest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Região apagada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Erro404"];
+            429: components["responses"]["Erro429"];
         };
     };
     criarCobranca: {
@@ -2572,6 +3131,59 @@ export interface operations {
             409: components["responses"]["Erro409"];
         };
     };
+    gerarConviteDoBarbeiro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convite gerado */
+            201: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteEmitido"];
+                };
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+            409: components["responses"]["Erro409"];
+        };
+    };
+    revogarConviteDoBarbeiro: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revogado (ou já não havia convite) */
+            204: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+        };
+    };
     substituirJornada: {
         parameters: {
             query?: never;
@@ -2869,9 +3481,15 @@ export interface operations {
     alcanceAdmin: {
         parameters: {
             query?: {
-                /** @description primeiro dia do período (padrão: 29 dias antes de `ate`) */
+                /** @description o nível das linhas (padrão MUNICIPIO) */
+                nivel?: components["schemas"]["NivelDoAlcance"];
+                /** @description restringe a uma UF (sigla) */
+                uf?: string;
+                /** @description as três janelas padrão, que a proteção entre janelas cobre */
+                periodo?: "ULTIMOS_30_DIAS" | "ULTIMOS_90_DIAS" | "ULTIMOS_12_MESES";
+                /** @description primeiro dia de uma janela livre (substitui `periodo`; sem a proteção entre janelas) */
                 de?: string;
-                /** @description último dia do período (padrão: hoje) */
+                /** @description último dia de uma janela livre (padrão: hoje) */
                 ate?: string;
                 /** @description só para ADMIN; BARBEIRO é sempre o próprio */
                 barbeiroId?: string;
@@ -2885,6 +3503,8 @@ export interface operations {
             /** @description Alcance do período */
             200: {
                 headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2895,6 +3515,146 @@ export interface operations {
             401: components["responses"]["Erro401"];
             403: components["responses"]["Erro403"];
             404: components["responses"]["Erro404"];
+        };
+    };
+    chavePublicaDeNotificacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chave pública, ou indisponível */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChavePublicaPush"];
+                };
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    inscreverAparelhoDePush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InscricaoPush"];
+            };
+        };
+        responses: {
+            /** @description Aparelho inscrito */
+            204: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    removerAparelhoDePush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemocaoDeInscricaoPush"];
+            };
+        };
+        responses: {
+            /** @description Aparelho removido (ou nada a remover) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    novidadesDoPainel: {
+        parameters: {
+            query?: {
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os avisos e quantos ainda não foram lidos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Novidades"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    marcarNovidadesComoLidas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Avisos marcados como lidos */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+        };
+    };
+    enviarNotificacaoDeTeste: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aviso de teste enviado (ou nenhum aparelho inscrito) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            429: components["responses"]["Erro429"];
         };
     };
 }

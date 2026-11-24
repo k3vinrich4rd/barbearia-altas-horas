@@ -41,6 +41,8 @@ export const barbeiroAdmin = (extra: Record<string, unknown> = {}) => ({
   usuarioId: null,
   ativo: true,
   version: 1,
+  acesso: "SEM_CONTA",
+  conviteExpiraEm: null,
   jornada: JORNADA_PADRAO,
   ...extra,
 });
