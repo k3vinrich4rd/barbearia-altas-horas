@@ -53,8 +53,9 @@ export interface paths {
         /**
          * Horários livres de um dia
          * @description Jornada menos folgas e reservas que ocupam horário (CONFIRMADO, ou AGUARDANDO_PAGAMENTO ainda no prazo),
-         *     em passos de granularidadeMin, a partir de agora + antecedenciaMinimaMin. `data` antes de hoje ou além
-         *     do horizonte: 422 FORA_DO_HORIZONTE. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
+         *     em passos de granularidadeMin, **depois de agora** (1.11.0, D197: não há antecedência mínima nem limite de dias à
+         *     frente). `data` anterior a hoje, no fuso da barbearia: `422 ANTECEDENCIA_INSUFICIENTE` ("o horário já passou");
+         *     qualquer data de hoje em diante é aceita. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
          *     inexistente (ou barbeiro inativo): 404. Resposta com Cache-Control no-store.
          */
         get: operations["consultarDisponibilidade"];
@@ -490,6 +491,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agendamentos/{id}/prorrogacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acrescenta 1 minuto ao prazo do Pix, uma vez por reserva (1.11.0, D188)
+         * @description Do dono da reserva (`sub` do token). **Sem corpo** (qualquer campo é `400 CAMPO_DESCONHECIDO`) e **sem**
+         *     `Idempotency-Key`: a prorrogação é um recurso único da reserva, então repetir devolve o que já existe.
+         *     Só vale no **último minuto** do prazo, `[expiraEm - 60 s, expiraEm)`, e só com a reserva `AGUARDANDO_PAGAMENTO`.
+         *     Soma 60 s (fixos, `prorrogacao.segundos`) ao prazo que está correndo. Primeira chamada: `201`; repetição com o
+         *     prazo ainda vivo: `200` com o mesmo corpo, **sem** somar. Ordem das checagens: `404` (não é dono, não existe, é
+         *     reserva manual) → `422 TRANSICAO_INVALIDA` (status final) → `200` (já prorrogada, no prazo) → `422 RESERVA_EXPIRADA`
+         *     (prazo vencido, sem carência e sem reabertura) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava.
+         *     O Pix já gerado **não muda**. Resposta com Cache-Control no-store.
+         */
+        post: operations["prorrogarPagamento"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agendamentos/guest/{id}/prorrogacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * O visitante acrescenta 1 minuto ao prazo do Pix (1.11.0, D188)
+         * @description As mesmas regras de `POST /agendamentos/{id}/prorrogacao`, com o `X-Guest-Token` da reserva no lugar do bearer.
+         *     Token errado, ausente ou de outra reserva: o mesmo `404` de "não existe" (R23). Rota pública só para `POST`.
+         */
+        post: operations["prorrogarPagamentoDoGuest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agendamentos/guest/{id}/regiao": {
         parameters: {
             query?: never;
@@ -610,8 +659,8 @@ export interface paths {
          * Trava um horário combinado por WhatsApp, fora do app (reserva manual)
          * @description ADMIN para qualquer barbeiro; BARBEIRO só para si (barbeiro alheio, inexistente ou conta sem vínculo: 404).
          *     A reserva nasce `CONFIRMADO`, com `origem = MANUAL`, sem cobrança, sem aceite de política e sem prazo. Respeita
-         *     jornada, almoço, folga, granularidade, serviço ativo e o horizonte; a antecedência mínima **não** vale, mas um
-         *     horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado (inclusive por corrida): `409
+         *     jornada, almoço, folga, granularidade e serviço ativo; desde a 1.11.0 (D197) não há antecedência mínima nem horizonte, e um
+         *     horário que já passou (início até agora, inclusive) é `422 ANTECEDENCIA_INSUFICIENTE`. Horário ocupado (inclusive por corrida): `409
          *     HORARIO_INDISPONIVEL`. Grava auditoria na mesma transação. Pode ser concluída ou marcada como falta por
          *     `PATCH /admin/agendamentos/{id}/status`; só o ADMIN cancela (sem cobrança, nada vai para devolução). Não guarda
          *     WhatsApp, e-mail nem CPF do cliente; `nomeCliente` e `observacao` são anonimizados 90 dias depois do fim da
@@ -1161,8 +1210,12 @@ export interface components {
                 message: string;
             }[];
         };
-        /** @enum {string} */
-        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
+        /**
+         * @description `FORA_DO_HORIZONTE` está **deprecated** desde a 1.11.0 (D197): a API não o devolve mais, e o nome fica no enum para o front
+         *     antigo e o texto genérico dele não quebrarem. `ANTECEDENCIA_INSUFICIENTE` continua, agora só para "o horário já passou".
+         * @enum {string}
+         */
+        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "PRORROGACAO_FORA_DA_JANELA" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
         /** @enum {string} */
         StatusReserva: "AGUARDANDO_PAGAMENTO" | "CONFIRMADO" | "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO" | "EXPIRADO";
         /** @enum {string} */
@@ -1472,6 +1525,29 @@ export interface components {
             version?: number;
             /** @description só nas respostas do visitante (1.9.0): a reserva guarda a região com a prova do aceite; vira false depois de `DELETE /agendamentos/guest/{id}/regiao` */
             regiaoAutorizada?: boolean;
+            /**
+             * @description Acrescentar tempo para pagar (1.11.0, D188). Nulo quando não se aplica: reserva manual ou reserva que não
+             *     está AGUARDANDO_PAGAMENTO dentro do prazo.
+             */
+            prorrogacao?: null | {
+                /** @description true depois da única prorrogação permitida */
+                usada: boolean;
+                /**
+                 * @description quanto tempo a prorrogação acrescenta (fixo em 60 na aplicação, D190)
+                 * @example 60
+                 */
+                segundos: number;
+                /**
+                 * Format: date-time
+                 * @description início do último minuto (expiraEm - 60 s)
+                 */
+                abreEm: string;
+                /**
+                 * Format: date-time
+                 * @description fim da janela, exclusivo: o próprio expiraEm
+                 */
+                fechaEm: string;
+            };
         };
         /**
          * @description O Agendamento visto pelo painel: mais o contato de quem vem (nome e WhatsApp, nunca e-mail nem CPF) e o status
@@ -1670,6 +1746,10 @@ export interface components {
                 status?: string;
             };
         };
+        /**
+         * @description 1.11.0 (D197): a antecedência mínima e o horizonte foram revogados e **saem da resposta**. No `PUT` os dois ficam
+         *     opcionais, `deprecated` e **ignorados** (um front antigo que ainda os envia não recebe `400` durante o deploy).
+         */
         ConfiguracaoAgenda: {
             /**
              * @description só leitura: mandar o campo no PUT é 400 CAMPO_DESCONHECIDO
@@ -1677,10 +1757,10 @@ export interface components {
              */
             readonly fuso?: string;
             /**
-             * @description H5: 2 horas
-             * @example 120
+             * @deprecated
+             * @description REVOGADA na 1.11.0 (H5, D197): ignorado no PUT e ausente da resposta
              */
-            antecedenciaMinimaMin: number;
+            antecedenciaMinimaMin?: number;
             /**
              * @description H4: sem intervalo
              * @example 0
@@ -1693,10 +1773,10 @@ export interface components {
              */
             granularidadeMin: 5 | 10 | 15 | 20 | 30 | 60;
             /**
-             * @description H12: 30 dias
-             * @example 30
+             * @deprecated
+             * @description REVOGADO na 1.11.0 (H12, D197): ignorado no PUT e ausente da resposta
              */
-            horizonteDias: number;
+            horizonteDias?: number;
             /** @example 3 */
             expiracaoPagamentoMin: number;
             /** Format: int64 */
@@ -2726,6 +2806,77 @@ export interface operations {
                 };
             };
             404: components["responses"]["Erro404"];
+        };
+    };
+    prorrogarPagamento: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agendamento"];
+                };
+            };
+            /** @description Prorrogada; `expiraEm` ganhou 60 s e `prorrogacao.usada` é `true` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agendamento"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            404: components["responses"]["Erro404"];
+            409: components["responses"]["Erro409Agendamento"];
+            422: components["responses"]["Erro422"];
+        };
+    };
+    prorrogarPagamentoDoGuest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agendamento"];
+                };
+            };
+            /** @description Prorrogada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agendamento"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            404: components["responses"]["Erro404"];
+            409: components["responses"]["Erro409Agendamento"];
+            422: components["responses"]["Erro422"];
         };
     };
     retirarRegiaoDoGuest: {

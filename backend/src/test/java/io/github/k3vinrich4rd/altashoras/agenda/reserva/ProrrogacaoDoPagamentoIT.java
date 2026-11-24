@@ -1,0 +1,268 @@
+package io.github.k3vinrich4rd.altashoras.agenda.reserva;
+
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.em;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.eventosDePrazo;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.expiraEm;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.prorrogadaEm;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.prorrogar;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.prorrogarComoVisitante;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.prorrogarSemToken;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.status;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.ProrrogacaoDeTeste.versao;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.as;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.corpo;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.corpoGuest;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.reservar;
+import static io.github.k3vinrich4rd.altashoras.agenda.reserva.Reservas.reservarComoVisitante;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
+import io.github.k3vinrich4rd.altashoras.ContaDeTeste;
+import io.github.k3vinrich4rd.altashoras.DadosDeTeste;
+import io.github.k3vinrich4rd.altashoras.admin.PainelBase;
+
+/**
+ * A1 a A3, A5, A9 a A11 e A17 da Fatia 14A: "Acrescentar 1 minuto" no Pix. Reserva de cliente criada às 10:00:00 de ter
+ * 01/12/2026 (horário 15:00), prazo de 3 minutos (expiraEm 10:03:00). Os tokens saem do EmissorDeToken com o relógio já em
+ * 10:00:00 (o JWT usa o mesmo Clock), então valem até 10:15.
+ */
+class ProrrogacaoDoPagamentoIT extends PainelBase {
+
+    private UUID barbeiro;
+    private UUID servico;
+    private Conta cliente;
+
+    @BeforeEach
+    void cenario() {
+        relogio.definir(em(10, 0, 0));
+        barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        servico = DadosDeTeste.servico(jdbc, 30);
+        cliente = conta("CLIENTE");
+    }
+
+    /** Reserva do cliente do teste, num horário só dela, criada no instante atual do relógio. */
+    private String reservaDoCliente(int hora) throws Exception {
+        String resposta = reservar(mvc, cliente.token(), corpo(servico, barbeiro, as(hora, 0)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        return JsonPath.read(resposta, "$.id");
+    }
+
+    private void inserirReservaManual(UUID id) {
+        jdbc.update("""
+                INSERT INTO reserva (id, barbeiro_id, servico_id, origem, inicio, fim, fim_ocupacao, status, preco_centavos)
+                VALUES (?, ?, ?, 'MANUAL', ?, ?, ?, 'CONFIRMADO', 5500)
+                """, id, barbeiro, servico, as(18, 0), as(18, 30), as(18, 30));
+    }
+
+    @Test
+    @DisplayName("A1: com o contador em 0:30 (10:02:30) acrescentar dá 201, expiraEm 10:04:00 (1:30), prorrogacao.usada = true, prorrogada_em = 10:02:30 e version + 1")
+    void acrescentaNoUltimoMinuto() throws Exception {
+        String id = reservaDoCliente(15);
+        long antes = versao(jdbc, id);
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 3, 0));
+
+        relogio.definir(em(10, 2, 30));
+        prorrogar(mvc, cliente.token(), id).andExpect(status().isCreated())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.status").value("AGUARDANDO_PAGAMENTO"))
+                .andExpect(jsonPath("$.expiraEm").value("2026-12-01T10:04:00-03:00"))
+                .andExpect(jsonPath("$.prorrogacao.usada").value(true))
+                .andExpect(jsonPath("$.prorrogacao.segundos").value(60))
+                .andExpect(jsonPath("$.prorrogacao.abreEm").value("2026-12-01T10:03:00-03:00"))
+                .andExpect(jsonPath("$.prorrogacao.fechaEm").value("2026-12-01T10:04:00-03:00"));
+
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 4, 0));
+        assertThat(prorrogadaEm(jdbc, id)).isEqualTo(em(10, 2, 30));
+        assertThat(versao(jdbc, id)).isEqualTo(antes + 1);
+    }
+
+    @Test
+    @DisplayName("A2: às 10:01:59 (o último minuto começa às 10:02:00) acrescentar dá 422 PRORROGACAO_FORA_DA_JANELA e nada muda")
+    void antesDoUltimoMinuto() throws Exception {
+        String id = reservaDoCliente(15);
+        long antes = versao(jdbc, id);
+
+        relogio.definir(em(10, 1, 59));
+        prorrogar(mvc, cliente.token(), id).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("PRORROGACAO_FORA_DA_JANELA"))
+                .andExpect(jsonPath("$.title").value("Fora da janela de prorrogação"));
+
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 3, 0));
+        assertThat(prorrogadaEm(jdbc, id)).isNull();
+        assertThat(versao(jdbc, id)).isEqualTo(antes);
+
+        relogio.definir(em(10, 2, 0));
+        prorrogar(mvc, cliente.token(), id).andExpect(status().isCreated());
+    }
+
+    @Test
+    @DisplayName("A3: acrescentar de novo às 10:02:40 dá 200 com o mesmo corpo, expiraEm continua 10:04:00 (não 10:05:00) e nenhum evento novo")
+    void repeticaoNaoSomaDeNovo() throws Exception {
+        String id = reservaDoCliente(15);
+        relogio.definir(em(10, 2, 30));
+        String primeiro = prorrogar(mvc, cliente.token(), id).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long versao = versao(jdbc, id);
+        assertThat(eventosDePrazo(jdbc, id)).isEqualTo(1);
+
+        relogio.definir(em(10, 2, 40));
+        String segundo = prorrogar(mvc, cliente.token(), id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiraEm").value("2026-12-01T10:04:00-03:00"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(segundo).isEqualTo(primeiro);
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 4, 0));
+        assertThat(versao(jdbc, id)).isEqualTo(versao);
+        assertThat(eventosDePrazo(jdbc, id)).as("nenhum evento novo").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("A5: às 10:03:00 (o job não passou) e com a reserva já EXPIRADO às 10:03:30 acrescentar dá 422 RESERVA_EXPIRADA nos dois, sem carência nem reabertura")
+    void depoisDoFimNaoHaNada() throws Exception {
+        String aguardando = reservaDoCliente(15);
+        String expirada = reservaDoCliente(16);
+        jdbc.update("UPDATE reserva SET status = 'EXPIRADO' WHERE id = ?::uuid", expirada);
+
+        relogio.definir(em(10, 3, 0));
+        prorrogar(mvc, cliente.token(), aguardando).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("RESERVA_EXPIRADA"));
+        relogio.definir(em(10, 3, 30));
+        prorrogar(mvc, cliente.token(), expirada).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("RESERVA_EXPIRADA"));
+
+        assertThat(status(jdbc, aguardando)).isEqualTo("AGUARDANDO_PAGAMENTO");
+        assertThat(status(jdbc, expirada)).isEqualTo("EXPIRADO");
+        assertThat(expiraEm(jdbc, aguardando)).isEqualTo(em(10, 3, 0));
+        assertThat(prorrogadaEm(jdbc, aguardando)).isNull();
+        assertThat(prorrogadaEm(jdbc, expirada)).isNull();
+    }
+
+    @Test
+    @DisplayName("A9: a reserva já prorrogada (prazo 10:04:00) que expirou, às 10:04:20, dá 422 RESERVA_EXPIRADA: não há segunda vez")
+    void naoHaSegundaVez() throws Exception {
+        String id = reservaDoCliente(15);
+        relogio.definir(em(10, 2, 30));
+        prorrogar(mvc, cliente.token(), id).andExpect(status().isCreated());
+        long versao = versao(jdbc, id);
+
+        relogio.definir(em(10, 4, 20));
+        prorrogar(mvc, cliente.token(), id).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("RESERVA_EXPIRADA"));
+
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 4, 0));
+        assertThat(versao(jdbc, id)).isEqualTo(versao);
+        assertThat(eventosDePrazo(jdbc, id)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("A10: reserva CONFIRMADO, CANCELADO ou CONCLUIDO dá 422 TRANSICAO_INVALIDA nas três e nada muda")
+    void soAguardandoPagamentoGanhaTempo() throws Exception {
+        String confirmada = reservaDoCliente(15);
+        String cancelada = reservaDoCliente(16);
+        String concluida = reservaDoCliente(17);
+        jdbc.update("""
+                UPDATE reserva SET status = 'CONFIRMADO', expira_em = NULL, aceite_politica_versao = 1,
+                                   aceite_politica_em = now() WHERE id = ?::uuid
+                """, confirmada);
+        jdbc.update("UPDATE reserva SET status = 'CANCELADO', expira_em = NULL WHERE id = ?::uuid", cancelada);
+        jdbc.update("""
+                UPDATE reserva SET status = 'CONCLUIDO', expira_em = NULL, aceite_politica_versao = 1,
+                                   aceite_politica_em = now() WHERE id = ?::uuid
+                """, concluida);
+
+        relogio.definir(em(10, 2, 30));
+        for (String id : new String[] {confirmada, cancelada, concluida}) {
+            long versao = versao(jdbc, id);
+            prorrogar(mvc, cliente.token(), id).andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.code").value("TRANSICAO_INVALIDA"));
+            assertThat(prorrogadaEm(jdbc, id)).isNull();
+            assertThat(versao(jdbc, id)).isEqualTo(versao);
+        }
+    }
+
+    @Test
+    @DisplayName("A11: reserva de outro cliente, id inexistente, reserva manual e visitante com token errado dão 404; sem token na rota do cliente dá 401")
+    void quemNaoEDonoNaoVe() throws Exception {
+        String minha = reservaDoCliente(15);
+        Conta outro = conta("CLIENTE");
+        UUID manual = UUID.randomUUID();
+        inserirReservaManual(manual);
+        String doVisitante = JsonPath.read(reservarComoVisitante(mvc, ContaDeTeste.ipNovo(),
+                corpoGuest(servico, barbeiro, as(16, 0))).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        relogio.definir(em(10, 2, 30));
+        prorrogar(mvc, outro.token(), minha).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RECURSO_NAO_ENCONTRADO"));
+        prorrogar(mvc, cliente.token(), UUID.randomUUID().toString()).andExpect(status().isNotFound());
+        prorrogar(mvc, cliente.token(), manual.toString()).andExpect(status().isNotFound());
+        prorrogarComoVisitante(mvc, manual.toString(), "g1_qualquer").andExpect(status().isNotFound());
+        prorrogarComoVisitante(mvc, doVisitante, "g1_token-errado").andExpect(status().isNotFound());
+        prorrogarComoVisitante(mvc, doVisitante, null).andExpect(status().isNotFound());
+        prorrogarSemToken(mvc, minha).andExpect(status().isUnauthorized());
+
+        assertThat(prorrogadaEm(jdbc, minha)).isNull();
+        assertThat(prorrogadaEm(jdbc, doVisitante)).isNull();
+        // O corpo é o mesmo do "não existe": a resposta não confirma que a reserva alheia existe (R23).
+        String alheia = prorrogar(mvc, outro.token(), minha).andReturn().getResponse().getContentAsString();
+        String inexistente = prorrogar(mvc, outro.token(), UUID.randomUUID().toString()).andReturn().getResponse()
+                .getContentAsString();
+        assertThat(JsonPath.<String>read(alheia, "$.code")).isEqualTo(JsonPath.<String>read(inexistente, "$.code"));
+        assertThat(JsonPath.<String>read(alheia, "$.detail")).isEqualTo(JsonPath.<String>read(inexistente, "$.detail"));
+    }
+
+    @Test
+    @DisplayName("A17: GET do agendamento às 10:01:00 traz prorrogacao {usada false, segundos 60, abreEm 10:02:00, fechaEm 10:03:00}; reserva EXPIRADO e reserva manual (no painel) trazem null")
+    void prorrogacaoNaLeitura() throws Exception {
+        String id = reservaDoCliente(15);
+        String expirada = reservaDoCliente(16);
+        jdbc.update("UPDATE reserva SET status = 'EXPIRADO' WHERE id = ?::uuid", expirada);
+        UUID manual = UUID.randomUUID();
+        inserirReservaManual(manual);
+
+        relogio.definir(em(10, 1, 0));
+        mvc.perform(MockMvcRequestBuilders.get("/agendamentos/" + id).header(HttpHeaders.AUTHORIZATION, "Bearer " + cliente.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.prorrogacao.usada").value(false))
+                .andExpect(jsonPath("$.prorrogacao.segundos").value(60))
+                .andExpect(jsonPath("$.prorrogacao.abreEm").value("2026-12-01T10:02:00-03:00"))
+                .andExpect(jsonPath("$.prorrogacao.fechaEm").value("2026-12-01T10:03:00-03:00"));
+        mvc.perform(MockMvcRequestBuilders.get("/agendamentos/" + expirada).header(HttpHeaders.AUTHORIZATION, "Bearer " + cliente.token()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("EXPIRADO"))
+                .andExpect(jsonPath("$.prorrogacao").value((Object) null));
+
+        Conta admin = comTokenNovo(conta("ADMIN", "BARBEIRO"), "ADMIN", "BARBEIRO");
+        String agenda = mvc.perform(MockMvcRequestBuilders.get("/admin/agenda?data=2026-12-01").header(HttpHeaders.AUTHORIZATION,
+                        "Bearer " + admin.token())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<List<String>>read(agenda, "$[?(@.id == '" + manual + "')].origem")).containsExactly("MANUAL");
+        assertThat(JsonPath.<List<Object>>read(agenda, "$[?(@.id == '" + manual + "')].prorrogacao"))
+                .containsExactly((Object) null);
+        assertThat(JsonPath.<List<Boolean>>read(agenda, "$[?(@.id == '" + id + "')].prorrogacao.usada"))
+                .containsExactly(false);
+    }
+
+    @Test
+    @DisplayName("Contrato: a prorrogação não tem corpo; qualquer campo dá 400 CAMPO_DESCONHECIDO e nada muda")
+    void corpoComCampoEhRecusado() throws Exception {
+        String id = reservaDoCliente(15);
+        relogio.definir(em(10, 2, 30));
+        mvc.perform(MockMvcRequestBuilders.post("/agendamentos/" + id + "/prorrogacao")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + cliente.token())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{ \"segundos\": 600 }"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CAMPO_DESCONHECIDO"));
+        assertThat(prorrogadaEm(jdbc, id)).isNull();
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 3, 0));
+    }
+}

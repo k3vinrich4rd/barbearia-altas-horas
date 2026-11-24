@@ -22,8 +22,9 @@ import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 
-const HORIZONTE = Number(process.env.NEXT_PUBLIC_HORIZONTE_DIAS ?? "30") || 30;
 const DIAS_DA_TIRA = 7;
+/** Quantos dias "Ver o próximo dia com horário" olha por vez. É o limite da BUSCA, não regra da agenda (D197): sem horário nesse trecho, a pessoa procura mais. */
+const DIAS_DA_BUSCA = 30;
 
 const buscarDisponibilidade = (servicoId: string, data: string, barbeiroId: string) =>
   chamar(
@@ -88,13 +89,14 @@ export function Agendar() {
   const [data, setData] = useState(busca.get("data") ?? "");
   const [escolhido, setEscolhido] = useState<{ chave: string; barbeiroId: string; inicio: string }>();
   const [procurando, setProcurando] = useState(false);
-  const [semProximo, setSemProximo] = useState(false);
+  /** Até que dia a busca já olhou, quando não achou horário ("Procurar mais 30 dias" continua dali). */
+  const [buscadoAte, setBuscadoAte] = useState<string | undefined>();
   const diaEscolhidoPelaPessoa = useRef(Boolean(busca.get("data")));
   const ocupado = busca.get("ocupado") ?? undefined;
 
   const hoje = diaNoFuso(new Date());
-  const limite = somarDias(hoje, HORIZONTE);
-  const dataValida = data !== "" && data >= hoje && data <= limite;
+  // D197: a agenda não tem antecedência mínima nem limite de dias à frente; o seletor só impede o que já passou.
+  const dataValida = data !== "" && data >= hoje;
   const tira = Array.from({ length: DIAS_DA_TIRA }, (_, i) => somarDias(hoje, i));
 
   const servicos = useConsulta(buscarServicos, []);
@@ -120,14 +122,15 @@ export function Agendar() {
 
   function escolherDia(dia: string) {
     diaEscolhidoPelaPessoa.current = true;
-    setSemProximo(false);
+    setBuscadoAte(undefined);
     setData(dia);
   }
 
-  async function verProximoDiaComHorario() {
+  async function procurarProximoDiaComHorario(depoisDe: string) {
     setProcurando(true);
-    setSemProximo(false);
-    for (let d = somarDias(dataValida ? data : hoje, 1); d <= limite; d = somarDias(d, 1)) {
+    setBuscadoAte(undefined);
+    const ultimo = somarDias(depoisDe, DIAS_DA_BUSCA);
+    for (let d = somarDias(depoisDe, 1); d <= ultimo; d = somarDias(d, 1)) {
       try {
         if (totalDeHorarios(await buscarDisponibilidade(servicoId, d, barbeiroEfetivo)) > 0) {
           setProcurando(false);
@@ -139,7 +142,7 @@ export function Agendar() {
       }
     }
     setProcurando(false);
-    setSemProximo(true);
+    setBuscadoAte(ultimo);
   }
 
   const servico = servicos.dados?.find((s) => s.id === servicoId);
@@ -238,12 +241,11 @@ export function Agendar() {
           })}
         </div>
         <div className="campo">
-          <label htmlFor="data">Outro dia (até {formatarDataCurta(`${limite}T12:00:00Z`)})</label>
+          <label htmlFor="data">Outro dia</label>
           <input
             id="data"
             type="date"
             min={hoje}
-            max={limite}
             value={data}
             onChange={(e) => escolherDia(e.target.value)}
             aria-describedby={data !== "" && !dataValida ? "data-erro" : undefined}
@@ -251,7 +253,7 @@ export function Agendar() {
           />
           {data !== "" && !dataValida && (
             <p id="data-erro" className="campo-erro">
-              Escolha um dia de hoje até {formatarDataCurta(`${limite}T12:00:00Z`)}.
+              Escolha um dia de hoje em diante.
             </p>
           )}
           {disponibilidade.erro && !disponibilidade.erro.acordando && (
@@ -273,13 +275,20 @@ export function Agendar() {
                 return (
                   <div>
                     <p role="status">Sem horários neste dia.</p>
-                    <Botao onClick={verProximoDiaComHorario} disabled={procurando}>
+                    <Botao onClick={() => void procurarProximoDiaComHorario(dataValida ? data : hoje)} disabled={procurando}>
                       {procurando ? "Procurando…" : "Ver o próximo dia com horário"}
                     </Botao>
-                    {semProximo && (
-                      <Aviso tipo="aviso">
-                        Não há horários livres nos próximos {HORIZONTE} dias. Tente mais tarde.
-                      </Aviso>
+                    {buscadoAte && (
+                      <>
+                        <Aviso tipo="aviso">
+                          Não achamos horário livre nos próximos {DIAS_DA_BUSCA} dias. Procure mais {DIAS_DA_BUSCA} dias ou
+                          escolha em Outro dia.
+                        </Aviso>
+                        <Botao onClick={() => void procurarProximoDiaComHorario(buscadoAte)} disabled={procurando}>
+                          Procurar mais {DIAS_DA_BUSCA} dias
+                        </Botao>{" "}
+                        <Botao onClick={() => document.getElementById("data")?.focus()}>Escolher em Outro dia</Botao>
+                      </>
                     )}
                   </div>
                 );
@@ -332,7 +341,7 @@ export function Agendar() {
       )}
 
       <p className="nota">
-        Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até {HORIZONTE} dias à frente.
+        Só aparecem os horários livres. Pode marcar para hoje ou para qualquer data futura.
       </p>
       <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
 

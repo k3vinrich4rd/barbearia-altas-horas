@@ -36,8 +36,6 @@ function erroDoCampo(erro: ErroApi): { campo: Campos; texto: string } | null {
       };
     case "ANTECEDENCIA_INSUFICIENTE":
       return { campo: "hora", texto: "Este horário já passou. Escolha um horário a partir de agora." };
-    case "FORA_DO_HORIZONTE":
-      return { campo: "data", texto: "Este dia está além do que a agenda aceita. Escolha uma data mais próxima." };
     case "SERVICO_INATIVO":
       return { campo: "servicoId", texto: mensagemDoErro(erro) };
     default:
@@ -164,7 +162,7 @@ export function PainelReservaManual() {
               value={hora}
               onChange={(e) => setHora(e.target.value)}
               erro={texto("hora")}
-              ajuda="Hora de início, no horário da barbearia, em horas cheias ou meias (ex.: 18:00, 18:30). A antecedência mínima não vale aqui, mas o horário não pode ter passado."
+              ajuda="Hora de início, no horário da barbearia, em horas cheias ou meias (ex.: 18:00, 18:30). O horário não pode ter passado."
             />
             <Campo
               id="m-nome"

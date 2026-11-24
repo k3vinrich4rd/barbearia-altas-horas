@@ -64,9 +64,9 @@ public class ConsultaDisponibilidade {
         }
 
         LocalDate hoje = LocalDate.ofInstant(agora, fuso);
-        if (data.isBefore(hoje) || data.isAfter(hoje.plusDays(config.getHorizonteDias()))) {
-            throw new ExcecaoDeNegocio(CodigoErro.FORA_DO_HORIZONTE,
-                    "A agenda aceita datas de hoje até " + config.getHorizonteDias() + " dias à frente.");
+        // D197: a única regra de data é não ser anterior a hoje (no fuso da barbearia); qualquer data futura é aceita.
+        if (data.isBefore(hoje)) {
+            throw new ExcecaoDeNegocio(CodigoErro.ANTECEDENCIA_INSUFICIENTE, "Este horário já passou.");
         }
 
         List<Barbeiro> ativos = barbeiros.listarAtivosComJornadas();
@@ -81,8 +81,7 @@ public class ConsultaDisponibilidade {
         Instant fimDoDia = data.plusDays(1).atStartOfDay(fuso).toInstant();
         Map<UUID, List<Bloqueio>> bloqueiosDoDia = bloqueios.noPeriodo(inicioDoDia, fimDoDia, agora);
 
-        Regras regras = new Regras(config.getIntervaloEntreAtendimentosMin(), config.getGranularidadeMin(),
-                config.getAntecedenciaMinimaMin());
+        Regras regras = new Regras(config.getIntervaloEntreAtendimentosMin(), config.getGranularidadeMin());
         int diaDaSemana = data.getDayOfWeek().getValue();
 
         List<HorariosDoBarbeiro> resposta = ativos.stream().map(barbeiro -> {

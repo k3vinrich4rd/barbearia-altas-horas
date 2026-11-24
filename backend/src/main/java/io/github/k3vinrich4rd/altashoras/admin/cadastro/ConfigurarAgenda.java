@@ -34,9 +34,8 @@ class ConfigurarAgenda {
     @Transactional
     ConfiguracaoAdmin alterar(Ator ator, ConfiguracaoRequest pedido) {
         PainelDaAgenda.Alterado<ConfiguracaoCadastrada> alterado = agenda.alterarConfiguracao(ator.id(),
-                new NovaConfiguracao(pedido.antecedenciaMinimaMin(), pedido.intervaloEntreAtendimentosMin(),
-                        pedido.granularidadeMin(), pedido.horizonteDias(), pedido.expiracaoPagamentoMin(),
-                        pedido.version()));
+                new NovaConfiguracao(pedido.intervaloEntreAtendimentosMin(), pedido.granularidadeMin(),
+                        pedido.expiracaoPagamentoMin(), pedido.version()));
         auditor.registrar(ator, "CONFIGURACAO_ALTERADA", "configuracao", null,
                 Map.of("campos", String.join(",", alterado.campos())));
         return ConfiguracaoAdmin.de(alterado.item());

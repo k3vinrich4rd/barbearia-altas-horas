@@ -148,13 +148,12 @@ class ReservaManualIT extends PainelBase {
     }
 
     @Test
-    @DisplayName("A17: almoço (12:00), antes da jornada (06:30), fora da granularidade (09:45), segunda-feira, folga, serviço inativo, horário que já passou e data além de 30 dias dão 422 com o código certo")
+    @DisplayName("A17: almoço (12:00), antes da jornada (06:30), fora da granularidade (09:45), segunda-feira, folga, serviço inativo, horário que já passou dão 422 com o código certo (não há mais horizonte, D197)")
     void respeitaADisponibilidade() throws Exception {
         Massa m = massa();
         UUID inativo = DadosDeTeste.servico(jdbc, "Serviço parado", 30, 4500, false);
         DadosDeTeste.folga(jdbc, m.barbeiroA(), as(17, 0), as(18, 0));
         OffsetDateTime segunda = DadosDeTeste.em(TERCA.plusDays(6), 10, 0);
-        OffsetDateTime longe = DadosDeTeste.em(TERCA.plusDays(40), 10, 0);
 
         for (OffsetDateTime inicio : List.of(as(12, 0), DadosDeTeste.em(TERCA.plusDays(1), 6, 30), as(9, 45), segunda, as(17, 0))) {
             criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), inicio, null, null))
@@ -165,8 +164,6 @@ class ReservaManualIT extends PainelBase {
                 .andExpect(jsonPath("$.code").value("SERVICO_INATIVO"));
         criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(8, 0), null, null)).andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("ANTECEDENCIA_INSUFICIENTE"));
-        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), longe, null, null)).andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("FORA_DO_HORIZONTE"));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM reserva WHERE origem = 'MANUAL'", Long.class)).isZero();
     }
 
@@ -190,7 +187,7 @@ class ReservaManualIT extends PainelBase {
     }
 
     @Test
-    @DisplayName("A18: a antecedência mínima de 2 h não vale para a reserva manual (10:30 com o relógio às 09:30 dá 201), mas vale para o cliente (a mesma hora dá 422 ANTECEDENCIA_INSUFICIENTE)")
+    @DisplayName("A18: sem antecedência mínima para ninguém (D197): com o relógio às 09:30, 10:30 dá 201 para o cliente e 11:00 dá 201 para a reserva manual; o horário que já passou (09:00) dá 422 ANTECEDENCIA_INSUFICIENTE nos dois")
     void semAntecedenciaMinima() throws Exception {
         Massa m = massa();
         Conta cliente = conta("CLIENTE");
@@ -198,9 +195,15 @@ class ReservaManualIT extends PainelBase {
         mvc.perform(MockMvcRequestBuilders.post("/agendamentos").contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + cliente.token())
                         .content(corpo(m.servico(), m.barbeiroA(), as(10, 30), null, null)))
+                .andExpect(status().isCreated());
+        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(11, 0), null, null)).andExpect(status().isCreated());
+        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(9, 0), null, null)).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("ANTECEDENCIA_INSUFICIENTE"));
+        mvc.perform(MockMvcRequestBuilders.post("/agendamentos").contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + cliente.token())
+                        .content(corpo(m.servico(), m.barbeiroA(), as(9, 0), null, null)))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("ANTECEDENCIA_INSUFICIENTE"));
-        criar(m.contaA(), corpo(m.servico(), m.barbeiroA(), as(10, 30), null, null)).andExpect(status().isCreated());
     }
 
     @Test

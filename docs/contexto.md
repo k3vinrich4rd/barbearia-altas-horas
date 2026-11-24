@@ -70,7 +70,7 @@ Cada regra vira pelo menos um teste que cita o número. "Origem" diz de onde vei
 | R2 | O intervalo de uma reserva é meio aberto `[inicio, fim_ocupacao)`: uma reserva que termina às 10h00 não conflita com outra que começa às 10h00. | A | `ReservaConstraintIT` (S01) |
 | R3 | `fim = inicio + duração do serviço`; `fim_ocupacao = fim + intervalo entre atendimentos` (**0 min**, H4 decidida). Serviço de 60 min ocupa 2 slots seguidos. | P, H4 | `CalculoHorarioTest` (S03) |
 | R4 | Só é possível reservar dentro da jornada (terça a sábado, 07h00 às 20h00, pausa de almoço 12h00 às 13h00 como intervalo editável da jornada), fora das folgas, começando em múltiplos de **30 min** (H1, H11). | P, H1, H11 | `DisponibilidadeTest` (S03) |
-| R5 | Só é possível reservar com antecedência mínima de **2 horas** (configurável, H5) e até **30 dias** à frente (configurável, H12). | H5, H12 | `AntecedenciaTest` (S07) |
+| R5 | **Reescrita em 24/11/2026 (D197, Fatia 14A):** não há antecedência mínima nem limite de dias à frente. A **única** regra de tempo é o início da reserva ser **depois de agora**, no fuso `America/Sao_Paulo`: dá para marcar para daqui a 5 minutos, para hoje mais tarde ou para qualquer data futura. (Antes: 2 horas de antecedência, H5, e 30 dias à frente, H12.) "Pagou, a agenda é sua e não pode cancelar, então o barbeiro não perde nunca." | ~~H5~~, ~~H12~~ (revogadas) | `AgendaSemLimitesIT` (14A) |
 | R6 | **Todo** agendamento, de cliente logado ou de guest, nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` com 100% do valor pago (decisão de 16/11/2026; substitui "cliente logado reserva direto em `CONFIRMADO`"). Única exceção: a reserva manual da barbearia (R33). | P | `AgendarClienteIT` (S07) |
 | R7 | A reserva `AGUARDANDO_PAGAMENTO` tem `expira_em = agora + 3 min` (configurável de 3 a 60; era 15 até 18/11/2026, D121) e ocupa o horário enquanto não expira. Sem pagamento no prazo, vira `EXPIRADO` e o horário volta. | P | `AgendarGuestIT` (S11) |
 | R8 | A cobrança é de **100%** do preço do serviço **no momento da reserva**, em centavos, por **Pix** ou **cartão de crédito** (checkout hospedado do gateway; o número do cartão nunca passa pela API). Mudar o preço depois não muda a cobrança. | P | `CobrancaValorTest` (S12) |
@@ -116,14 +116,14 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Candido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
 | H3 | Serviços, duração e preço | **decidida (16/11), duração revista em 18/11 (D94)**: todos os serviços duram **60 min** (2 slots) · Corte Clássico/Social R$ 45,00 · Corte Degradê/Fade/Navalhado R$ 55,00 · Corte Moderno/Visagismo (tesoura) R$ 60,00 · Barba Completa/Desenhada R$ 30,00 · Acabamento (pezinho)/Sobrancelha R$ 20,00 · sem combos | cadastro de serviços (painel) |
 | H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
-| H5 | Antecedência mínima para agendar | **decidida (16/11)**: 120 min | `configuracao_agenda.antecedencia_minima_min` |
+| H5 | Antecedência mínima para agendar | **revogada (24/11, D197)**: não existe; era 120 min | ~~`configuracao_agenda.antecedencia_minima_min`~~ (coluna apagada na V14) |
 | H6 | Janela para cancelar ou remarcar | **decidida (16/11)**: não existe; o cliente não cancela nem remarca (R18) | — |
 | H7 | Política de pagamento em falta ou cancelamento | **decidida (16/11)**: 100% antecipado; falta retém o valor; sem estorno por desistência | `politica_pagamento` (texto versionado) |
 | H8 | Pagamento que chega depois de a reserva expirar | **decidida (16/11)**: confirma se o horário estiver livre; senão, pendência administrativa (R14) | regra R14 |
 | H9 | O barbeiro vê só a própria agenda ou a de todos? | **sem efeito no beta** (1 barbeiro); a regra "só a própria" fica no código para o template | autorização do módulo `admin` |
 | H10 | Pacote raiz Java | **decidida (16/11)**: `io.github.k3vinrich4rd.altashoras` | ADR 0001 |
 | H11 | Granularidade dos horários oferecidos | **decidida (16/11)**: 30 min | `configuracao_agenda.granularidade_min` |
-| H12 | Até quantos dias à frente dá para agendar | **decidida (16/11)**: 30 dias | `configuracao_agenda.horizonte_dias` |
+| H12 | Até quantos dias à frente dá para agendar | **revogada (24/11, D197)**: sem limite; eram 30 dias | ~~`configuracao_agenda.horizonte_dias`~~ (coluna apagada na V14) |
 | H13 | Retenção dos dados do guest e do histórico do sinal | contato do guest: anonimizar 90 dias após o atendimento; registro financeiro da cobrança: 5 anos (**pendente de fonte legal**) | `app.privacidade.retencao-guest-dias` e ADR 0009 |
 | H14 | Limites de tentativas | **decidida (17/11)**: login 5 erros em 15 min por e-mail + IP e 20 por IP; cadastro 5 por hora por IP; reserva guest: 3 por hora por IP (Fatia 4) | `app.limites.*` |
 | H15 | Validade das sessões | **decidida (17/11)**: acesso 15 min; refresh 7 dias, renovado a cada uso | `app.seguranca.jwt.*`, `app.sessao.*` |

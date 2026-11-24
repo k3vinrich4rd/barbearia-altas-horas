@@ -11,7 +11,7 @@ ligarServidor();
 beforeEach(() => zerarNavegacao());
 
 describe("regras da agenda", () => {
-  test("A51: o fuso é só leitura e não vai no PUT; limites do contrato (granularidade, horizonte, prazo de 3 a 60); CONFLITO_DE_VERSAO recarrega; sucesso diz que vale a partir da próxima requisição", async () => {
+  test("A51: o fuso é só leitura e não vai no PUT; limites do contrato (granularidade, intervalo, prazo de 3 a 60; sem antecedência nem horizonte, D197); CONFLITO_DE_VERSAO recarrega; sucesso diz que vale a partir da próxima requisição", async () => {
     let atual = configuracaoAdmin({ version: 2 });
     let leituras = 0;
     const puts: Record<string, unknown>[] = [];
@@ -42,19 +42,18 @@ describe("regras da agenda", () => {
     // limites: prazo de pagamento de 3 a 60
     await user.clear(screen.getByLabelText("Prazo para pagar (minutos)"));
     await user.type(screen.getByLabelText("Prazo para pagar (minutos)"), "2");
-    await user.clear(screen.getByLabelText("Agenda aberta até (dias)"));
-    await user.type(screen.getByLabelText("Agenda aberta até (dias)"), "366");
     await user.clear(screen.getByLabelText("Intervalo entre atendimentos (minutos)"));
     await user.type(screen.getByLabelText("Intervalo entre atendimentos (minutos)"), "121");
     await user.click(screen.getByRole("button", { name: "Salvar regras" }));
-    expect(screen.getAllByText(/Informe um número de/)).toHaveLength(3);
+    expect(screen.getAllByText(/Informe um número de/)).toHaveLength(2);
+    // D197: a tela não tem mais os campos revogados
+    expect(screen.queryByLabelText(/Antecedência mínima/)).toBeNull();
+    expect(screen.queryByLabelText(/Agenda aberta até/)).toBeNull();
     expect(puts).toHaveLength(0);
 
     // 3 é o mínimo: o PUT sai sem `fuso` e com a version da tela
     await user.clear(screen.getByLabelText("Prazo para pagar (minutos)"));
     await user.type(screen.getByLabelText("Prazo para pagar (minutos)"), "3");
-    await user.clear(screen.getByLabelText("Agenda aberta até (dias)"));
-    await user.type(screen.getByLabelText("Agenda aberta até (dias)"), "45");
     await user.clear(screen.getByLabelText("Intervalo entre atendimentos (minutos)"));
     await user.type(screen.getByLabelText("Intervalo entre atendimentos (minutos)"), "10");
     await user.selectOptions(screen.getByLabelText("Grade de horários (minutos)"), "15");
@@ -64,10 +63,8 @@ describe("regras da agenda", () => {
     expect(await screen.findByText(/Alguém alterou as regras antes de você/)).toBeInTheDocument();
     await vi.waitFor(() => expect(leituras).toBe(2));
     expect(puts[0]).toEqual({
-      antecedenciaMinimaMin: 120,
       intervaloEntreAtendimentosMin: 10,
       granularidadeMin: 15,
-      horizonteDias: 45,
       expiracaoPagamentoMin: 3,
       version: 2,
     });

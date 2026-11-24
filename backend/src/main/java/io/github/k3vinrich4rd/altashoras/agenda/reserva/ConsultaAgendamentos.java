@@ -1,5 +1,7 @@
 package io.github.k3vinrich4rd.altashoras.agenda.reserva;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.github.k3vinrich4rd.altashoras.agenda.ConciliadorDePagamento;
+import io.github.k3vinrich4rd.altashoras.agenda.ProrrogacaoDoPagamento;
 import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
 import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
@@ -32,13 +35,25 @@ class ConsultaAgendamentos {
     private final ReservaGuestRepository visitantes;
     private final ObjectProvider<ConciliadorDePagamento> conciliador;
     private final ZoneId fuso;
+    private final Clock clock;
+    private final Duration prorrogacao;
 
     ConsultaAgendamentos(ReservaRepository reservas, ReservaGuestRepository visitantes,
-            ObjectProvider<ConciliadorDePagamento> conciliador, @Value("${app.fuso:America/Sao_Paulo}") String fuso) {
+            ObjectProvider<ConciliadorDePagamento> conciliador, @Value("${app.fuso:America/Sao_Paulo}") String fuso,
+            Clock clock, @Value("${app.agenda.prorrogacao-pagamento:PT60S}") Duration prorrogacao) {
         this.reservas = reservas;
         this.visitantes = visitantes;
         this.conciliador = conciliador;
         this.fuso = ZoneId.of(fuso);
+        this.clock = clock;
+        this.prorrogacao = prorrogacao;
+    }
+
+    /** A resposta do contrato com a janela do "Acrescentar 1 minuto" (E9), contada com o relógio injetado. */
+    private AgendamentoResposta resposta(LinhaAgendamento linha, @Nullable String tokenGuest) {
+        ProrrogacaoDoPagamento janela = ProrrogacaoDoPagamento.de(linha.status().name(), linha.origem().name(),
+                linha.expiraEm(), linha.prorrogadaEm(), clock.instant(), prorrogacao);
+        return AgendamentoResposta.de(linha, fuso, tokenGuest, janela);
     }
 
     Pagina meus(UUID clienteId, int pagina, int tamanho) {
@@ -47,7 +62,7 @@ class ConsultaAgendamentos {
                     "pagina deve ser >= 0 e tamanho de 1 a " + TAMANHO_MAXIMO + ".");
         }
         Page<LinhaAgendamento> resultado = reservas.doCliente(clienteId, PageRequest.of(pagina, tamanho));
-        return new Pagina(resultado.map(linha -> AgendamentoResposta.de(linha, fuso)).getContent(), pagina, tamanho,
+        return new Pagina(resultado.map(linha -> resposta(linha, null)).getContent(), pagina, tamanho,
                 resultado.getTotalElements());
     }
 
@@ -62,7 +77,20 @@ class ConsultaAgendamentos {
             conciliar(id);
             linha = reservas.doCliente(clienteId, id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
         }
-        return AgendamentoResposta.de(linha, fuso);
+        return resposta(linha, null);
+    }
+
+    /**
+     * O estado de agora, sem reconsultar o gateway: a resposta da prorrogação não pode disparar conciliação (E6: o pagamento
+     * só acompanha o prazo, e o gateway não é chamado).
+     */
+    AgendamentoResposta meuSemConciliar(UUID clienteId, UUID id) {
+        return resposta(reservas.doCliente(clienteId, id).orElseThrow(ConsultaAgendamentos::naoEncontrado), null);
+    }
+
+    AgendamentoResposta doVisitanteSemConciliar(UUID id) {
+        return resposta(reservas.doVisitante(id).orElseThrow(ConsultaAgendamentos::naoEncontrado), null)
+                .comRegiaoAutorizada(regiaoAutorizada(id));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -77,7 +105,7 @@ class ConsultaAgendamentos {
             conciliar(id);
             linha = reservas.doVisitante(id).orElseThrow(ConsultaAgendamentos::naoEncontrado);
         }
-        return AgendamentoResposta.de(linha, fuso).comRegiaoAutorizada(regiaoAutorizada(id));
+        return resposta(linha, null).comRegiaoAutorizada(regiaoAutorizada(id));
     }
 
     /** A reserva guarda hoje a região com a prova do aceite? Some quando o visitante retira a autorização. */
@@ -95,7 +123,7 @@ class ConsultaAgendamentos {
     }
 
     AgendamentoResposta criadaPeloVisitante(UUID id, String token) {
-        return reservas.doVisitante(id).map(linha -> AgendamentoResposta.de(linha, fuso, token)
+        return reservas.doVisitante(id).map(linha -> resposta(linha, token)
                 .comRegiaoAutorizada(regiaoAutorizada(id))).orElseThrow();
     }
 

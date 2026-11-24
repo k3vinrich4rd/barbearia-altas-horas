@@ -54,7 +54,7 @@ O navegador **só fala com o Next** (`/api/**`, o BFF). O BFF confere a rota con
 
 | Passo | Tela | O que o front faz | Chamada do BFF à API |
 |---|---|---|---|
-| escolher | `/agendar` | serviço, dia (limites de hoje até o horizonte) e horário, no **fuso da barbearia**, agrupados por barbeiro | `GET /servicos` · `GET /barbeiros` · `GET /disponibilidade` |
+| escolher | `/agendar` | serviço, dia (de hoje em diante, sem limite de dias à frente, D197) e horário, no **fuso da barbearia**, agrupados por barbeiro | `GET /servicos` · `GET /barbeiros` · `GET /disponibilidade` |
 | reservar | `/agendar/dados` | "Continuar sem conta", nome, e-mail, WhatsApp e CEP opcional (sem a chave `cep` se vazio); `409 HORARIO_INDISPONIVEL` volta à escolha sem o horário; `409 CONFLITO_CONCORRENTE` repete uma vez | `POST /agendamentos/guest` (o BFF guarda o código no cookie `ah_visitante`) |
 | pagar | `/agendar/pagamento/{id}` | política inteira, aceite desmarcado, CPF validado no navegador e limpo depois de enviar, Pix (copia e cola e QR gerado no navegador) ou link do cartão, contador a partir do `expiraEm`; `X-Idempotency-Key` reaproveitada nas repetições | `GET /politica-pagamento` · `POST /pagamentos/cobrancas` · `GET /agendamentos/guest/{id}` a cada 3 s · `POST /pagamentos/simulacao/{id}/confirmar` (só simulado) |
 | confirmar | `/agendar/confirmacao/{id}` | resumo, aviso sem cancelamento, **código da reserva** com Copiar e link `…/reserva#id=…&codigo=…` (o `#` não vai ao servidor) | `GET /agendamentos/guest/{id}` · `GET /api/visitante` (rota só do BFF) |
