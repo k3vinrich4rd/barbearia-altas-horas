@@ -32,6 +32,10 @@ jobs:
       - name: Conferir que os segredos existem
         run: |
           [ -n "$DB_URL_BACKUP" ] || { echo "::error::Falta o segredo DB_URL_BACKUP (veja docs/planejamento/ativar-deploy.md)"; exit 1; }
+          case "$DB_URL_BACKUP" in
+            postgres://*@*|postgresql://*@*) ;;
+            *) echo "::error::DB_URL_BACKUP em formato errado: use a Service URI do Aiven (postgres://avnadmin:SENHA@HOST:PORTA/defaultdb?sslmode=require), sem aspas, espaço nem o prefixo jdbc:"; exit 1 ;;
+          esac
           [ -n "$BACKUP_SENHA" ] || { echo "::error::Falta o segredo BACKUP_SENHA (veja docs/planejamento/ativar-deploy.md)"; exit 1; }
           [ "${#BACKUP_SENHA}" -ge 24 ] || { echo "::error::BACKUP_SENHA curta demais (use 24 caracteres ou mais)"; exit 1; }
 

@@ -30,6 +30,10 @@ jobs:
       - name: Conferir que o segredo existe
         run: |
           [ -n "$DB_URL_BACKUP" ] || { echo "::error::Falta o segredo DB_URL_BACKUP (veja docs/planejamento/ativar-deploy.md)"; exit 1; }
+          case "$DB_URL_BACKUP" in
+            postgres://*@*|postgresql://*@*) ;;
+            *) echo "::error::DB_URL_BACKUP em formato errado: use a Service URI do Aiven (postgres://avnadmin:SENHA@HOST:PORTA/defaultdb?sslmode=require), sem aspas, espaço nem o prefixo jdbc:"; exit 1 ;;
+          esac
 
       # psql da versão 18 (a mesma do banco). A URL entra por variável de ambiente e não é impressa.
       - name: select 1
