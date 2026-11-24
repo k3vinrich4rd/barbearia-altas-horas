@@ -672,6 +672,76 @@ Backup e restauração OK (A20).
 
 **Depois do deploy real** (só o Kevin, depois do guia): `GET https://SEU-SERVICO.onrender.com/actuator/health` deve dar `UP`; para conferir o IP real no ar, faça 31 consultas seguidas a `/alcance` e veja o `429` (a 31ª). Se um cabeçalho `X-Forwarded-For` inventado por você escapar do limite, é o risco D-2 da spec.
 
+## 5c. Deploy robusto: cache AOT, health, queda do banco e ping (Fatia 8B) ✅
+
+Tudo roda na sua máquina, com o Docker Desktop aberto e **variáveis falsas** (nenhuma conta nem serviço). Critérios na [spec da Fatia 8B](sdd/fatia-8b-deploy-robusto.md); decisões D179 a D187.
+
+```bash
+sh scripts/testar-imagem.sh                      # build + PostgreSQL 18 + API: A1 a A15 (Fatia 8) e 8B-A5 a 8B-A18
+MEDIR_ANTES=1 CPU_LIMITADA=1 sh scripts/testar-imagem.sh   # com a medição de cold start (~15 min) e a imagem da Fatia 8 para comparar
+sh scripts/horas-render.sh --conferir            # A19 e A20: conta de horas do ping (≤ 300 h/mês)
+sh scripts/verificar-no-ar.sh --local            # A26: prova o próprio script contra a imagem e um front falso
+sh scripts/verificar-no-ar.sh                    # no ar de verdade (só GET e OPTIONS, sem credencial)
+sh scripts/testar-backup.sh                      # A20 da Fatia 8 (dump sintético)
+cd backend && ./mvnw verify                      # 555 testes; os da 8B: HealthProbesIT, PoolProdIT, BancoForaIT, ArquivosDeImplantacao8bTest
+sh scripts/conferir-spec.sh 8b --exigir --exceto 3-12,14,15,18-21,23,26-31   # só os critérios de teste Java (ver abaixo)
+```
+
+### Saída real (24/11/2026, depois do merge com a develop de V1 a V13; Windows 10, Docker Desktop 28.3.2 com 2 CPUs e 3 GiB)
+
+```text
+  ✅ 8B-A5   jar extraído (-Djarmode=tools) em /app/app e cache AOT gerado no build (126 MiB), sem banco e sem segredo
+  ✅ 8B-A6   o cache AOT foi aceito e usado: 18650 de 22017 classes vieram do arquivo de cache
+  ✅ 8B-A7a  ENV da imagem: perfil prod e nenhuma menção a treino
+  ✅ 8B-A7b  o perfil treino nunca é ativado em execução (só no docker build)
+  ✅ 8B-A13-liveness   /actuator/health/liveness: 200 e {"status":"UP"} (sem components, sem detalhes)
+  ✅ 8B-A13-readiness  /actuator/health/readiness: 200 e {"status":"UP"} (sem components, sem detalhes)
+      memória depois de 20 requisições: 313.3MiB (limite do contêiner: 512 MiB; meta: até 400 MiB)
+  ✅ 8B-A9   contêiner com --memory=512m segue vivo e UP, com 313.3MiB em uso (≤ 400 MiB)
+  ✅ 8B-A14  PostgreSQL parado: liveness 200; health completo 503 {"groups":["liveness","readiness"],"status":"DOWN"} (sem URL nem usuário do banco)
+  ✅ 8B-A15a banco pendurado: GET /servicos = 503 em 11,2s, problem+json BANCO_INDISPONIVEL, sem dado do banco
+  ✅ 8B-A15b o mesmo processo seguiu (sem reinício) e o health completo voltou a UP em 1s
+  ✅ 8B-A18  SIGTERM com requisição em curso: ela terminou com HTTP 200 e o processo saiu com 143 em 5s
+  ✅ 8B-A8   cache AOT truncado (1 MB): a API subiu do mesmo jeito e ficou UP em 9s
+```
+
+### Cold start medido (A10, A11, A12): mediana de 3 subidas
+
+Rodada completa depois do merge com a develop (13 migrações), mesma máquina, do `docker run` até o health completo `UP` (inclui o Flyway e o contêiner limitado a 512 MiB):
+
+| Variante | Subidas | Mediana |
+|---|---|---|
+| **Fatia 8** (imagem antiga, sem cache, compilador completo; reconstruída com o código atual) | 13,3 s · 11,7 s · 12,1 s | **12,1 s** |
+| 8B sem cache, compilador completo (`AOT_OPTS=` vazio, `TieredStopAtLevel=4`) | 9,9 s · 10,6 s · 10,7 s | 10,6 s |
+| 8B **com cache**, compilador completo | 7,0 s · 7,5 s · 7,6 s | 7,5 s |
+| 8B sem cache, `TieredStopAtLevel=1` | 7,9 s · 7,9 s · 7,9 s | 7,9 s |
+| **8B como a imagem sobe** (cache + `TieredStopAtLevel=1`) | 5,4 s · 5,5 s · 5,6 s | **5,5 s** |
+
+- Ganho só do cache: **28%** (meta de 25%: passou); cache + `TieredStopAtLevel=1`: 47% sobre a 8B sem nada e **55% sobre a imagem da Fatia 8** (12,1 s para 5,5 s).
+- **A variação entre rodadas é grande quando a máquina está ocupada** (2 CPUs do Docker Desktop): em rodadas anteriores, antes do merge, o cache sozinho deu 9%, 20%, 23% e 35%, e o conjunto cache + C1 deu de 44% a 54% em todas. Por isso a imagem leva as duas coisas (D182). A rodada acima foi a mais limpa (as três subidas de cada variante ficaram a 0,3 s uma da outra).
+- **A11, com `--cpus=0,25`** (estimativa do Render, que tem ~0,1 CPU): 27,7 s com cache e C1 contra 39,4 s sem cache (os dois com C1); numa rodada anterior, 32,2 s contra 51,0 s sem cache e sem C1. Não entra no pass/fail.
+- **A12:** a imagem foi de 444 MB (Fatia 8, reconstruída) para 607 MB (**+163 MB**; o cache AOT tem **126 MiB**). A spec previa 120 MB: o limite do script passou a 200 MB (D183).
+- **A9:** 313 MiB de memória depois de 20 requisições (era ~232 MiB antes do merge: a develop trouxe mais beans). Meta de 400 MiB: passou.
+- Estes números são do Docker Desktop, não do Render: o primeiro deploy real e o painel do Render são a prova final.
+
+### O que se confere à mão (roteiros do Kevin, depois do primeiro deploy com `checksPass`)
+
+| Critério | Roteiro | Registre aqui |
+|---|---|---|
+| A3 | commit na `main` com check vermelho (num PR de teste) → Render → **Events** mostra "checks failed" e não publica | ⏳ |
+| A4 | Vercel → Settings → Git → Production Branch = `main` | ⏳ |
+| A20, A21 | aplicar [`ping-perfil.diff.md`](planejamento/ping-perfil.diff.md) no perfil; `gh workflow view` e `workflow_dispatch` com a API dormindo: verde em até 8 min | ⏳ |
+| A23 | `gh workflow run "Manter banco ligado"`: verde em menos de 2 min | ⏳ |
+| A27 | ensaio de rollback (Rollback no Render, que oferece só os 2 deploys anteriores; ou Manual Deploy de commit anterior) com `scripts/verificar-no-ar.sh` verde nos dois estados | ⏳ |
+| A28 | ping para uma URL inválida uma vez: chega e-mail do GitHub em até 10 min | ⏳ |
+| A29 a A31 | `DB_URL_BACKUP` e `BACKUP_SENHA` cadastrados, `gh workflow run "Backup do banco"`, baixar o artefato e `ARQUIVO=... sh scripts/testar-backup.sh --real` | ⏳ |
+
+O modo `--real` foi ensaiado aqui com um dump **sintético** (as migrações do repositório num PostgreSQL 18, mais uma `flyway_schema_history` simulada, criptografado com uma senha falsa): senha errada não abre, restaura `btree_gist`, a constraint `reserva_sem_sobreposicao` e as 7 migrações. O artefato real só o Kevin tem.
+
+### `conferir-spec.sh 8b`
+
+O script só reconhece um critério se a coluna "Teste" da spec citar **uma classe Java** com o `A<n>:` no `@DisplayName`. Os critérios provados por script (`scripts/testar-imagem.sh`, `horas-render.sh`, `verificar-no-ar.sh`) e por roteiro manual não têm classe, então precisam do `--exceto`. Com `--exceto 3-12,14,15,18-21,23,26-31` os 10 critérios de teste Java passam (A1, A2, A13, A16, A17, A22, A24, A25, A32, A33). Os demais estão na saída real acima.
+
 ## 6. Cenário do admin (o barbeiro)
 
 O admin **não** existe no repositório: ele nasce na subida a partir de duas variáveis que você define, só quando ainda não há nenhum admin.

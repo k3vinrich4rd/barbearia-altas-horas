@@ -4,6 +4,18 @@ spring:
     url: ${DB_URL}
     username: ${DB_USUARIO}
     password: ${DB_SENHA}
+    hikari:
+      # Fatia 8B (E6, E9): a API atende poucos barbeiros; 3 conexões bastam e sobra espaço no limite de 20 do Aiven
+      # (Flyway e ShedLock também usam). Timeouts curtos: banco fora vira 503 rápido, nunca um pedido pendurado.
+      maximum-pool-size: 3
+      minimum-idle: 1
+      connection-timeout: 10000
+      validation-timeout: 3000
+      max-lifetime: 600000
+      keepalive-time: 120000
+      data-source-properties:
+        connectTimeout: 10   # segundos (driver PostgreSQL); a URL secreta em DB_URL não muda
+        socketTimeout: 10   # segundos: banco pendurado vira 503 em ~10 s (A15); uma migração longa futura precisa de socketTimeout maior
 app:
   pagamento:
     # Sem valor padrão: sem o segredo da idempotência a API não sobe.

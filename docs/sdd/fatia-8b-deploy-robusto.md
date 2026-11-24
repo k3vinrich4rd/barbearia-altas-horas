@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | 📝 aguarda aprovação do Kevin · nenhuma linha de código, `render.yaml`, Dockerfile ou workflow foi alterada por esta spec |
+| **Status** | ✅ aprovada pelo Kevin (23/11/2026), com as 10 propostas (D-1 a D-10) como estão · implementada na branch `feat/fatia-8b-deploy-robusto` (decisões D179 a D187); faltam os roteiros do Kevin |
 | **Fatias do plano** | sucessora da [Fatia 8](fatia-8-deploy.md) (deploy grátis, já no ar em beta). Ela fecha o que a 8 deixou aberto: deploy só com CI verde, subida mais rápida, health que não derruba a API à toa, ping que cabe nas 750 h, rollback, alerta e backup de verdade |
 | **Branch** | `feat/fatia-8b-deploy-robusto` |
 | **Regras** | R30 (nada pessoal em log), H14/R26 (limite por IP), API8 do dossiê (health sem detalhes), D12 (pool pequeno para o Aiven), D38 e D66 (custo zero, banco free) |
@@ -73,8 +73,8 @@ As provas locais usam `scripts/testar-imagem.sh` (estendido) e `scripts/verifica
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A1 | `render.yaml` | ler | `autoDeployTrigger: checksPass`, **sem** `autoDeploy: true` e sem `autoDeployTrigger: commit`; `branch: main` | `ArquivosDeImplantacaoTest` |
-| A2 | `backend-ci.yml` e `frontend-ci.yml` | ler | ambos rodam em `push` na `main` (o que o `checksPass` espera) e **não** têm filtro `paths` que pule o commit de release | `ArquivosDeImplantacaoTest` |
+| A1 | `render.yaml` | ler | `autoDeployTrigger: checksPass`, **sem** `autoDeploy: true` e sem `autoDeployTrigger: commit`; `branch: main` | `ArquivosDeImplantacao8bTest` |
+| A2 | `backend-ci.yml` e `frontend-ci.yml` | ler | ambos rodam em `push` na `main` (o que o `checksPass` espera) e **não** têm filtro `paths` que pule o commit de release | `ArquivosDeImplantacao8bTest` |
 | A3 | commit da `main` com um check vermelho (simulado num PR de teste ou lido do histórico do Render) | o Render recebe o push | **não** publica; o evento "checks failed" aparece em Events | roteiro manual: Render → Events (registrado no [guia de testes](../guia-testes.md)) |
 | A4 | projeto Vercel | conferir em Settings → Git | **Production Branch = `main`**; `develop` e PRs só geram Preview | roteiro manual (print/descrição no guia); `ativar-deploy.md` lista o passo |
 
@@ -98,7 +98,7 @@ As provas locais usam `scripts/testar-imagem.sh` (estendido) e `scripts/verifica
 | A13 | API no perfil `prod` | `GET /actuator/health/liveness` e `/readiness` sem token | `200`, `{"status":"UP"}`, **sem** `components` nem detalhes | `scripts/testar-imagem.sh` + `HealthProbesIT` |
 | A14 | PostgreSQL parado (`docker stop`) com a API já no ar | `GET /actuator/health/liveness` e `GET /actuator/health` | liveness segue `200`; o health completo responde `503` com `DOWN`, **sem** URL nem usuário do banco no corpo | `scripts/testar-imagem.sh` |
 | A15 | o mesmo cenário, PostgreSQL parado por 25 s e religado | observar a API | o **mesmo processo** segue (uptime não zera, nenhum reinício) e o health completo volta a `UP` em até 60 s; durante a queda, `GET /servicos` responde `503` `problem+json` em até 12 s (nunca fica pendurado) e sem dado do banco no corpo | `scripts/testar-imagem.sh` |
-| A16 | `render.yaml` e `Dockerfile` | ler | `healthCheckPath: /actuator/health/liveness`; `HEALTHCHECK` do Docker idem; o `/actuator/health` completo **não** é o health do Render | `ArquivosDeImplantacaoTest` |
+| A16 | `render.yaml` e `Dockerfile` | ler | `healthCheckPath: /actuator/health/liveness`; `HEALTHCHECK` do Docker idem; o `/actuator/health` completo **não** é o health do Render | `ArquivosDeImplantacao8bTest` |
 | A17 | `application-prod.yml` carregado com variáveis falsas | ler as propriedades | `maximum-pool-size` 3, `minimum-idle` 1, `connection-timeout` 10000, `validation-timeout` 3000, `max-lifetime` 600000, `keepalive-time` 120000; `connectTimeout` e `socketTimeout` do driver definidos; `server.shutdown: graceful` | `PoolProdIT` |
 | A18 | a imagem no ar | `docker stop` (SIGTERM) durante uma requisição lenta simulada | a requisição em curso termina e o processo sai com 143 em até 25 s | `scripts/testar-imagem.sh` (estende A13 da Fatia 8) |
 
@@ -109,15 +109,15 @@ As provas locais usam `scripts/testar-imagem.sh` (estendido) e `scripts/verifica
 | A19 | `scripts/horas-render.sh` (novo): lê a janela e o intervalo do ping e calcula as horas de API acordada no mês (31 dias, 21,7 dias úteis da barbearia, 15 min de cauda por rodada) | rodar com a configuração proposta | imprime **≤ 300 h/mês** e a conta passo a passo; o número bate com a tabela da seção 8 | `scripts/horas-render.sh --conferir` |
 | A20 | workflow do ping (repositório do perfil, **fora deste repositório**: o Kevin aplica o diff que esta fatia entrega) | ler o `cron` | só `ter–sáb`, de `09:40` a `22:50` UTC; **nenhum** cron fora da janela chama a API | roteiro manual: `gh workflow view` no perfil + `scripts/horas-render.sh --conferir` |
 | A21 | o mesmo workflow, API hibernada | executar `workflow_dispatch` | acorda a API e termina verde em **até 8 min**; falha vermelha (e-mail) se não vier `UP`; cada tentativa dura no máximo 15 s de espera | roteiro manual: `gh run view` (tempo e conclusão no guia) |
-| A22 | `.github/workflows/manter-banco.yml` (novo, neste repositório) | ler | gatilhos só `schedule` e `workflow_dispatch`; `permissions: contents: read`; `if: github.repository == 'k3vinrich4rd/barbearia-altas-horas'`; usa `secrets.DB_URL_BACKUP`; roda `select 1` com `postgres:18-alpine`; **nunca** imprime a URL; `timeout-minutes: 5` | `ArquivosDeImplantacaoTest` |
+| A22 | `.github/workflows/manter-banco.yml` (novo, neste repositório) | ler | gatilhos só `schedule` e `workflow_dispatch`; `permissions: contents: read`; `if: github.repository == 'k3vinrich4rd/barbearia-altas-horas'`; usa `secrets.DB_URL_BACKUP`; roda `select 1` com `postgres:18-alpine`; **nunca** imprime a URL; `timeout-minutes: 5` | `ArquivosDeImplantacao8bTest` |
 | A23 | segredo cadastrado e `workflow_dispatch` | executar | termina verde em menos de 2 min e o Aiven mostra a conexão no painel de uso (**conferir**) | roteiro manual: `gh run view` |
 
 ### (e) Rollback e alerta
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A24 | `ativar-deploy.md` | ler a seção de rollback | traz os 3 degraus (Rollback no Render, Manual Deploy de commit anterior, `git revert` + PR), a regra "migração compatível com a versão anterior" e o comando `scripts/verificar-no-ar.sh` para confirmar | `ArquivosDeImplantacaoTest` |
-| A25 | `docs/sdd/checklist-pr.md` | ler | tem o item "migração nova é compatível com o código anterior (expandir → migrar → contrair)" | `ArquivosDeImplantacaoTest` |
+| A24 | `ativar-deploy.md` | ler a seção de rollback | traz os 3 degraus (Rollback no Render, Manual Deploy de commit anterior, `git revert` + PR), a regra "migração compatível com a versão anterior" e o comando `scripts/verificar-no-ar.sh` para confirmar | `ArquivosDeImplantacao8bTest` |
+| A25 | `docs/sdd/checklist-pr.md` | ler | tem o item "migração nova é compatível com o código anterior (expandir → migrar → contrair)" | `ArquivosDeImplantacao8bTest` |
 | A26 | `scripts/verificar-no-ar.sh` contra a imagem local (API + front falsos) e contra o ar | rodar | sai 0 só se: health completo `UP`; home do front `200`; CORS da origem do front permitido e de origem alheia `403`; `/pagamento-simulado/x` do front não é `404`; falha com a mensagem de qual checagem caiu | `scripts/verificar-no-ar.sh --local` (contra a imagem) e roteiro manual no ar |
 | A27 | o Kevin, uma vez | ensaiar: Manual Deploy do commit anterior da `main`, depois voltar ao atual | `verificar-no-ar.sh` verde nos dois estados; tempo gasto e o que o plano Free oferece de fato (Rollback sim/não) registrados no guia | roteiro manual (registrado no guia de testes) |
 | A28 | notificações ligadas (GitHub Actions "failed only", Render "Deploy failed" e "Service failed") | derrubar de propósito: apontar o ping do `workflow_dispatch` para uma URL inválida, uma vez | chega e-mail do GitHub em até 10 min | roteiro manual (print ou descrição no guia) |
@@ -129,13 +129,13 @@ As provas locais usam `scripts/testar-imagem.sh` (estendido) e `scripts/verifica
 | A29 | segredos `DB_URL_BACKUP` e `BACKUP_SENHA` cadastrados pelo Kevin | `gh secret list` | os dois nomes aparecem (valores nunca) | roteiro manual |
 | A30 | os segredos | `gh workflow run "Backup do banco"` e esperar | termina verde e o artefato `altashoras-AAAA-MM-DD.dump.gpg` existe, com tamanho > 0 | roteiro manual: `gh run list` e `gh run download` |
 | A31 | o artefato real baixado | `ARQUIVO=<arquivo> scripts/testar-backup.sh --real` (novo modo): descriptografa com a senha, `pg_restore` num PostgreSQL 18 local vazio | o banco restaurado tem `btree_gist`, a constraint `reserva_sem_sobreposicao` e as 7 migrações no `flyway_schema_history`; a senha errada **não** abre | `scripts/testar-backup.sh --real` (rodado pelo Kevin, ele é o dono da senha) |
-| A32 | `backup-banco.yml` | ler | continua como na Fatia 8 (A21 de lá) e a senha curta (< 24) é recusada; **inalterado** nesta fatia | `ArquivosDeImplantacaoTest` |
+| A32 | `backup-banco.yml` | ler | continua como na Fatia 8 (A21 de lá) e a senha curta (< 24) é recusada; **inalterado** nesta fatia | `ArquivosDeImplantacao8bTest` |
 
 ### (g) Custo
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A33 | `render.yaml`, `ativar-deploy.md` e workflows | ler | todo `plan:` é `free`; nenhum serviço pago (nada de `starter`); o guia traz a tabela de limites e o que acontece ao estourar (seção 8), com a data da conferência | `ArquivosDeImplantacaoTest` |
+| A33 | `render.yaml`, `ativar-deploy.md` e workflows | ler | todo `plan:` é `free`; nenhum serviço pago (nada de `starter`); o guia traz a tabela de limites e o que acontece ao estourar (seção 8), com a data da conferência | `ArquivosDeImplantacao8bTest` |
 
 ## 6. Entregas (quando aprovada)
 
@@ -149,7 +149,7 @@ As provas locais usam `scripts/testar-imagem.sh` (estendido) e `scripts/verifica
 | diff do workflow do ping, **para o Kevin aplicar** no repositório do perfil | janela de 06:40, sem chamada fora dela, laço de espera de 8 min (E12) |
 | `scripts/testar-imagem.sh`, `scripts/verificar-no-ar.sh`, `scripts/horas-render.sh`, `scripts/testar-backup.sh --real` | provas A5 a A19, A26, A31 |
 | `HealthProbesIT`, `PoolProdIT`, ajuste no `ArquivosDeImplantacaoTest` | provas A1, A2, A13, A16, A17, A22, A24, A25, A32, A33 |
-| `docs/planejamento/ativar-deploy.md`, `docs/sdd/checklist-pr.md`, `docs/guia-testes.md`, `decisoes.md` (D152 em diante), `docs/sdd/README.md` | rollback, alertas, limites, tabela de medição (com saída real) |
+| `docs/planejamento/ativar-deploy.md`, `docs/sdd/checklist-pr.md`, `docs/guia-testes.md`, `decisoes.md` (D179 em diante), `docs/sdd/README.md` | rollback, alertas, limites, tabela de medição (com saída real) |
 
 ## 7. Riscos e cuidados
 
@@ -203,7 +203,7 @@ O RKF Bank precisa ficar abaixo de **459 h/mês** para as duas APIs caberem (≈
 
 ## 10. Pronto quando
 
-- [ ] OK do Kevin nas D-1 a D-10
+- [x] OK do Kevin nas D-1 a D-10 (23/11/2026)
 - [ ] A1 a A12, A13 a A18, A22, A24 a A26, A32 e A33 verdes (saída real no [guia de testes](../guia-testes.md), com a tabela de tempos de subida de A10)
 - [ ] A19: `scripts/horas-render.sh --conferir` ≤ 300 h
 - [ ] roteiros do Kevin feitos e registrados: A3, A4, A20, A21, A23, A27, A28, A29 a A31

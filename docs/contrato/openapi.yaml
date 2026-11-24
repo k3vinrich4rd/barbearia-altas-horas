@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.10.0
+  version: 1.10.1
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     API da agenda online da Barbearia Altas Horas (Jardim Bonança, Osasco, desde 1997).
@@ -1540,7 +1540,7 @@ components:
              FORA_DO_HORIZONTE, ACEITE_POLITICA_OBRIGATORIO, TRANSICAO_INVALIDA, MOTIVO_OBRIGATORIO,
              RESERVA_EXPIRADA, COBRANCA_EM_ANDAMENTO, SERVICO_INATIVO, IDEMPOTENCIA_CONFLITO, JORNADA_SOBREPOSTA,
              FOLGA_COM_RESERVAS, USUARIO_JA_VINCULADO, LIMITE_EXCEDIDO, GATEWAY_INDISPONIVEL, CEP_INDISPONIVEL,
-             EXCLUSAO_BLOQUEADA_POR_RESERVA, CONVITE_INVALIDO, ERRO_INTERNO]
+             BANCO_INDISPONIVEL, EXCLUSAO_BLOQUEADA_POR_RESERVA, CONVITE_INVALIDO, ERRO_INTERNO]
     StatusReserva:
       type: string
       enum: [AGUARDANDO_PAGAMENTO, CONFIRMADO, CONCLUIDO, NAO_COMPARECEU, CANCELADO, EXPIRADO]
