@@ -116,4 +116,18 @@ class ContratoExemplosDeErroTest {
         assertThat(mapa(mapa(mapa(mapa(c, "components"), "schemas"), "BarbeiroAdmin").get("allOf") instanceof List<?> l ? (Map<String, Object>) l.get(1) : Map.of(), "properties"))
                 .containsKeys("acesso", "conviteExpiraEm");
     }
+
+    @Test
+    @DisplayName("A50: o contrato 1.10.0 declara as 6 operações de /admin/notificacoes e os 5 schemas novos, sem código de erro novo; o resto (lint do Redocly e conferir-spec.sh 13 --exigir) roda no CI")
+    @SuppressWarnings("unchecked")
+    void contratoDaNotificacao() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(10|1[1-9])\\.\\d+");
+        Map<String, Object> paths = mapa(c, "paths");
+        assertThat(paths).containsKeys("/admin/notificacoes", "/admin/notificacoes/chave-publica", "/admin/notificacoes/inscricao",
+                "/admin/notificacoes/marcar-lidas", "/admin/notificacoes/teste");
+        assertThat(mapa(paths, "/admin/notificacoes/inscricao")).containsKeys("post", "delete");
+        assertThat(mapa(mapa(c, "components"), "schemas")).containsKeys("ChavePublicaPush", "InscricaoPush", "RemocaoDeInscricaoPush",
+                "Novidades", "AvisoDoPainel");
+    }
 }
