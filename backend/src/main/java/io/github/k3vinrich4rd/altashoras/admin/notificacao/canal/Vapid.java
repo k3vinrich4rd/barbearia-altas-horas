@@ -34,14 +34,52 @@ public final class Vapid {
             if (pub.length != 65 || pub[0] != 4) {
                 throw new IllegalArgumentException("chave VAPID pública inválida: esperado um ponto não comprimido de 65 bytes");
             }
+            if (assunto == null || !(assunto.startsWith("mailto:") || assunto.startsWith("https:"))) {
+                throw new IllegalArgumentException("assunto do VAPID precisa começar com mailto: ou https:");
+            }
             this.privada = KeyFactory.getInstance("EC")
                     .generatePrivate(new ECPrivateKeySpec(new BigInteger(1, d), CriptografiaWebPush.CURVA));
             this.publica = publicaBase64Url;
             this.assunto = assunto;
+            conferirQueOParBate(pub);
         } catch (GeneralSecurityException | IllegalArgumentException falha) {
             // Nunca a mensagem original: ela pode trazer pedaço da chave.
             throw new IllegalArgumentException("par de chaves VAPID inválido (confira APP_NOTIFICACAO_VAPID_PUBLICA e _PRIVADA)");
         }
+    }
+
+    /** A pública tem de ser a da privada: assina um texto e confere com a pública. Par trocado seria 403 em todo envio. */
+    private void conferirQueOParBate(byte[] pub) throws GeneralSecurityException {
+        byte[] teste = "conferencia-do-par-vapid".getBytes(StandardCharsets.US_ASCII);
+        Signature assinatura = Signature.getInstance("SHA256withECDSAinP1363Format");
+        assinatura.initSign(privada);
+        assinatura.update(teste);
+        byte[] resultado = assinatura.sign();
+        Signature conferencia = Signature.getInstance("SHA256withECDSAinP1363Format");
+        conferencia.initVerify(CriptografiaWebPush.chavePublica(pub));
+        conferencia.update(teste);
+        if (!conferencia.verify(resultado)) {
+            throw new IllegalArgumentException("a chave pública não é a da chave privada");
+        }
+    }
+
+    /** Escapa o texto para dentro de um literal JSON (o assunto e a audiência vêm de configuração e de URL). */
+    private static String json(String valor) {
+        StringBuilder saida = new StringBuilder();
+        for (char c : valor.toCharArray()) {
+            switch (c) {
+                case '"' -> saida.append("\\\"");
+                case '\\' -> saida.append("\\\\");
+                default -> {
+                    if (c < 0x20) {
+                        saida.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        saida.append(c);
+                    }
+                }
+            }
+        }
+        return saida.toString();
     }
 
     public String publica() {
@@ -51,8 +89,8 @@ public final class Vapid {
     /** O valor do cabeçalho {@code Authorization} para o serviço de push dono do {@code endpoint}. */
     public String autorizacao(String audiencia, Instant agora) {
         String cabecalho = BASE64URL.encodeToString("{\"typ\":\"JWT\",\"alg\":\"ES256\"}".getBytes(StandardCharsets.US_ASCII));
-        String corpo = BASE64URL.encodeToString(("{\"aud\":\"" + audiencia + "\",\"exp\":" + agora.plus(VALIDADE).getEpochSecond()
-                + ",\"sub\":\"" + assunto + "\"}").getBytes(StandardCharsets.UTF_8));
+        String corpo = BASE64URL.encodeToString(("{\"aud\":\"" + json(audiencia) + "\",\"exp\":" + agora.plus(VALIDADE).getEpochSecond()
+                + ",\"sub\":\"" + json(assunto) + "\"}").getBytes(StandardCharsets.UTF_8));
         String assinado = cabecalho + "." + corpo;
         try {
             Signature assinatura = Signature.getInstance("SHA256withECDSAinP1363Format");

@@ -17,7 +17,13 @@ self.addEventListener("activate", (evento) => {
 
 /** Só um caminho do próprio site: nunca uma URL de fora (o payload vem do serviço de push). */
 function caminhoSeguro(valor) {
-  return typeof valor === "string" && valor.startsWith("/") && !valor.startsWith("//") ? valor : LINK_PADRAO;
+  if (typeof valor !== "string") return LINK_PADRAO;
+  try {
+    const url = new URL(valor, location.origin);
+    return url.origin === location.origin ? url.pathname + url.search + url.hash : LINK_PADRAO;
+  } catch {
+    return LINK_PADRAO;
+  }
 }
 
 /** Lê o corpo do push. Payload ilegível não derruba a notificação: vale o texto padrão. */

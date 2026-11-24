@@ -57,6 +57,9 @@ public final class CriptografiaWebPush {
     /** Versão com o par efêmero e o sal fixos, para conferir contra o vetor de teste da RFC 8291. */
     static Cifrado cifrar(byte[] texto, byte[] chavePublicaDoAparelho, byte[] segredoDeAutenticacao,
             KeyPair efemero, byte[] sal) {
+        if (segredoDeAutenticacao.length != 16) {
+            throw new IllegalArgumentException("segredo de autenticação do aparelho deve ter 16 bytes");
+        }
         try {
             byte[] minhaPublica = pontoNaoComprimido((ECPublicKey) efemero.getPublic());
             ECPublicKey deles = chavePublica(chavePublicaDoAparelho);

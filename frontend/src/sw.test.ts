@@ -75,6 +75,8 @@ describe("service worker do Web Push (Fatia 13)", () => {
   test("A40: o link só pode ser um caminho do próprio site (um link de fora vira /painel)", async () => {
     await empurrar(m.ouvintes, { json: () => ({ ...payloadDoA23, link: "https://exemplo.mal/phishing" }) });
     await empurrar(m.ouvintes, { json: () => ({ ...payloadDoA23, link: "//exemplo.mal" }) });
+    await empurrar(m.ouvintes, { json: () => ({ ...payloadDoA23, link: "javascript:alert(1)" }) });
+    await empurrar(m.ouvintes, { json: () => ({ ...payloadDoA23, link: "http://localhost:3000.exemplo.mal/x" }) });
     for (const chamada of m.self.registration.showNotification.mock.calls as unknown as [string, Record<string, unknown>][]) {
       expect(chamada[1].data).toEqual({ link: "/painel" });
     }
@@ -85,6 +87,15 @@ describe("service worker do Web Push (Fatia 13)", () => {
     m.abas.push(aba);
     await empurrar(m.ouvintes, { json: () => payloadDoA23 });
     expect(aba.postMessage).toHaveBeenCalledWith({ tipo: "novidade" });
+  });
+
+  test("A40: um link do próprio site (relativo ou absoluto na mesma origem) vira o caminho", async () => {
+    await empurrar(m.ouvintes, { json: () => ({ ...payloadDoA23, link: "/painel/novidades?x=1" }) });
+    await empurrar(m.ouvintes, { json: () => ({ ...payloadDoA23, link: "http://localhost:3000/painel#topo" }) });
+    const links = (m.self.registration.showNotification.mock.calls as unknown as [string, { data: { link: string } }][]).map(
+      (c) => c[1].data.link,
+    );
+    expect(links).toEqual(["/painel/novidades?x=1", "/painel#topo"]);
   });
 
   test("A40: o clique na notificação foca a aba do painel se existir", async () => {
