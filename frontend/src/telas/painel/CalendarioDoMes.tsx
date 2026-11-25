@@ -43,6 +43,16 @@ export function nomeDoMes(mes: string): string {
   return `${nome.charAt(0).toUpperCase()}${nome.slice(1)} de ${a}`;
 }
 
+/** As partes do nome do dia que só o leitor de tela ouve (o número e as marcas já estão visíveis). */
+function partesDoDia(dia: { data: string; reservas: number }) {
+  const [, m] = dia.data.split("-").map(Number);
+  return {
+    semana: SEMANA_POR_EXTENSO[diaIsoDaSemana(dia.data) - 1],
+    mes: `de ${MESES[m - 1]}`,
+    reservas: dia.reservas === 0 ? "sem reservas" : dia.reservas === 1 ? "reserva" : "reservas",
+  };
+}
+
 /** Nome completo do dia para o leitor de tela: "terça, 1 de dezembro, 3 reservas, folga". */
 export function nomeDoDia(dia: { data: string; reservas: number; folga: boolean; expediente: boolean }): string {
   const [, m, d] = dia.data.split("-").map(Number);
@@ -154,17 +164,33 @@ export function CalendarioDoMes({
                         data-hoje={dia.data === hoje || undefined}
                         data-folga={dia.folga || undefined}
                         data-fechado={!dia.expediente || undefined}
-                        aria-label={nomeDoDia(dia)}
                         aria-pressed={dia.data === selecionado}
                         aria-current={dia.data === hoje ? "date" : undefined}
                         tabIndex={dia.data === foco ? 0 : -1}
                         onKeyDown={(e) => mover(e, dia.data)}
                         onClick={() => aoEscolher(dia.data)}
                       >
-                        <span className="calendario-numero">{Number(dia.data.slice(8))}</span>
-                        {dia.reservas > 0 && <span className="calendario-contagem">{dia.reservas}</span>}
-                        {dia.folga && <span className="calendario-marca">Folga</span>}
-                        {!dia.expediente && <span className="calendario-marca">Fechado</span>}
+                        {/* o nome do botão é o texto visível mais o texto só do leitor, na ordem: "terça, 1 de dezembro, 3
+                            reservas, folga" (WCAG 2.5.3: o nome contém o que se vê) */}
+                        <span className="so-leitor">{partesDoDia(dia).semana},</span>{" "}
+                        <span className="calendario-numero">{Number(dia.data.slice(8))}</span>{" "}
+                        <span className="so-leitor">{partesDoDia(dia).mes},</span>{" "}
+                        {dia.reservas > 0 && (
+                          <>
+                            <span className="calendario-contagem">{dia.reservas}</span>{" "}
+                          </>
+                        )}
+                        <span className="so-leitor">{partesDoDia(dia).reservas}</span>
+                        {dia.folga && (
+                          <>
+                            <span className="so-leitor">,</span> <span className="calendario-marca">folga</span>
+                          </>
+                        )}
+                        {!dia.expediente && (
+                          <>
+                            <span className="so-leitor">,</span> <span className="calendario-marca">fechado</span>
+                          </>
+                        )}
                       </button>
                     </td>
                   ) : (

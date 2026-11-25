@@ -1668,3 +1668,8 @@ select[aria-invalid="true"] {
     animation: none !important;
   }
 }
+
+/* "folga" e "fechado" com a inicial maiúscula só na tela (o nome do botão continua "..., folga") */
+.calendario-marca::first-letter {
+  text-transform: uppercase;
+}
