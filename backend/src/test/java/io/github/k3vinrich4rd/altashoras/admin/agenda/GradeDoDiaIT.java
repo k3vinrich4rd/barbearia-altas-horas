@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class GradeDoDiaIT extends AgendaNovaBase {
 
     @Test
-    @DisplayName("A44: ter 01/12 do Eduardo: granularidade 30; 26 horários de 07:00 a 19:30; 09:00, 09:30, 10:00, 10:30, 15:00 e 15:30 OCUPADO com o agendamentoId; 12:00 e 12:30 ALMOCO; os outros 18 LIVRE (expirada e cancelada não ocupam); agendamentos com as 3 que ocupam")
+    @DisplayName("A44: ter 01/12 do Eduardo: granularidade 30; 26 horários de 07:00 a 19:30; 09:00, 09:30, 10:00, 10:30, 15:00 e 15:30 OCUPADO com o agendamentoId; 12:00 e 12:30 ALMOCO; os outros 18 LIVRE (expirada, cancelada e aguardando vencida não ocupam); agendamentos com as 3 que ocupam")
     void gradeDeTerca() throws Exception {
         MassaDaAgenda m = massaDaAgenda();
         String rota = "/admin/agenda/dia?data=2026-12-01&barbeiroId=" + m.barbeiroEduardo();
@@ -30,7 +30,7 @@ class GradeDoDiaIT extends AgendaNovaBase {
         assertThat(inicios(corpo, m.barbeiroEduardo(), "OCUPADO"))
                 .containsExactly("09:00", "09:30", "10:00", "10:30", "15:00", "15:30");
         assertThat(inicios(corpo, m.barbeiroEduardo(), "ALMOCO")).containsExactly("12:00", "12:30");
-        assertThat(inicios(corpo, m.barbeiroEduardo(), "LIVRE")).hasSize(18).contains("16:00", "17:00");
+        assertThat(inicios(corpo, m.barbeiroEduardo(), "LIVRE")).hasSize(18).contains("16:00", "17:00", "18:00"); // a aguardando vencida das 18:00 não ocupa
         assertThat(JsonPath.<List<String>>read(corpo, "$.colunas[0].horarios[?(@.inicio == '09:30')].agendamentoId"))
                 .containsExactly(m.r0900().toString());
         assertThat(JsonPath.<List<String>>read(corpo, "$.colunas[0].horarios[?(@.inicio == '15:00')].agendamentoId"))

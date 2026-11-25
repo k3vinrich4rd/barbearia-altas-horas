@@ -73,9 +73,9 @@ class VisaoDaAgenda {
         Map<LocalDate, Integer> porDia = new HashMap<>();
         comAlvo(jdbc.sql("""
                 SELECT (r.inicio AT TIME ZONE :fuso)::date AS dia, count(*) AS total
-                FROM reserva r
+                FROM reserva r JOIN barbeiro b ON b.id = r.barbeiro_id
                 WHERE r.inicio >= :de AND r.inicio < :ate AND
-                """ + OCUPA + filtro("r.barbeiro_id", alvo) + " GROUP BY 1")
+                """ + OCUPA + (alvo == null ? " AND b.ativo" : filtro("r.barbeiro_id", alvo)) + " GROUP BY 1")
                 .param("fuso", fuso.getId()).param("de", de).param("ate", ate).param("agora", utc(clock.instant())), alvo)
                 .query((rs, n) -> Map.entry(rs.getObject("dia", LocalDate.class), rs.getInt("total"))).list()
                 .forEach(e -> porDia.put(e.getKey(), e.getValue()));

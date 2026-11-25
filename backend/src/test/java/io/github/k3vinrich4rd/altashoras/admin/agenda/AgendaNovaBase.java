@@ -14,8 +14,8 @@ import io.github.k3vinrich4rd.altashoras.admin.PainelBase;
 /**
  * A massa da agenda nova do painel (Fatia 14C, seção 9 da spec). Eduardo (ADMIN e BARBEIRO) e Bruno (BARBEIRO convidado),
  * os dois com a jornada padrão (ter a sáb, 07:00–12:00 e 13:00–20:00). Reservas do Eduardo em dezembro de 2026: ter 01/12
- * às 09:00 Corte 60 min CONFIRMADO, às 10:00 CONCLUIDO, às 15:00 AGUARDANDO_PAGAMENTO no prazo, às 16:00 EXPIRADO e às
- * 17:00 CANCELADO; qui 31/12 às 22:00 (01:00 UTC de 01/01/2027) CONFIRMADO, direto no banco. Folga do Eduardo qua 02/12
+ * às 09:00 Corte 60 min CONFIRMADO, às 10:00 CONCLUIDO, às 15:00 AGUARDANDO_PAGAMENTO no prazo, às 16:00 EXPIRADO, às
+ * 17:00 CANCELADO e às 18:00 AGUARDANDO_PAGAMENTO vencida (09:25, sem o job ter passado); qui 31/12 às 22:00 (01:00 UTC de 01/01/2027) CONFIRMADO, direto no banco. Folga do Eduardo qua 02/12
  * das 14:00 às 16:00. Bruno: ter 01/12 às 11:00 CONFIRMADO. O relógio fica na terça 01/12/2026, 09:30 (PainelBase).
  * Nomes, contas e WhatsApp são fictícios.
  */
@@ -40,6 +40,9 @@ abstract class AgendaNovaBase extends PainelBase {
         UUID r1500 = reserva60(barbeiroEduardo, servico, as(15, 0), "AGUARDANDO_PAGAMENTO", null);
         UUID r1600 = reserva60(barbeiroEduardo, servico, as(16, 0), "EXPIRADO", null);
         UUID r1700 = reserva60(barbeiroEduardo, servico, as(17, 0), "CANCELADO", cliente);
+        // aguardando com o prazo já vencido (09:25) que o job ainda não passou: não ocupa nem conta (E14)
+        UUID vencida = reserva60(barbeiroEduardo, servico, as(18, 0), "AGUARDANDO_PAGAMENTO", null);
+        jdbc.update("UPDATE reserva SET expira_em = ? WHERE id = ?", as(9, 25), vencida);
         UUID r3112 = reserva60(barbeiroEduardo, servico, DadosDeTeste.em(LocalDate.of(2026, 12, 31), 22, 0), "CONFIRMADO",
                 cliente);
         UUID rBruno = reserva60(barbeiroBruno, servico, as(11, 0), "CONFIRMADO", cliente);

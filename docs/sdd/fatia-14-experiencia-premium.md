@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | **14A ✅ implementada em 24/11/2026** (A1 a A27 com teste; ver guia de testes 5d) · 14B, 14C e 14D a implementar · ✅ **APROVADA em 24/11/2026** pelo Kevin, com as respostas da seção 10 (mais 1 minuto só no último minuto, tempo extra fixo, e agenda sem antecedência mínima nem horizonte) |
+| **Status** | **✅ implementada em 24/11/2026**: 14A (A1 a A27) e 14B, 14C e 14D (A28 a A62), todos com teste (guia de testes 5d e 5e; D199 e D200) · ✅ **APROVADA em 24/11/2026** pelo Kevin, com as respostas da seção 10 (mais 1 minuto só no último minuto, tempo extra fixo, e agenda sem antecedência mínima nem horizonte) |
 | **Origem** | pedidos do Kevin em 24/11/2026: (1) **mais 1 minuto no Pix**, uma vez por reserva · (2) **olhinho** em todo campo de senha · (3) **mensagens** no padrão de uma barbearia de excelência · (4) **história do Eduardo** reescrita só com fatos do repositório · (5) site **mais fluido e interativo** (no máximo 8 melhorias) · (6) **agenda do painel nova**, com a grade do dia e o calendário do mês, no lugar do filtro "Dia anterior · Hoje · Próximo dia · Dia · Semana" |
 | **Não muda** | as 3 formas de agendar (com cadastro, sem cadastro e WhatsApp com reserva manual, R33) · o pagamento 100% antecipado (R6 a R8) · o prazo vindo do `expiraEm` (D121, 3 a 60 min) · o horário confirmado não é cancelado pelo cliente · a paleta, a tipografia e os tokens (`frontend/design/tokens.json`) · as regras de fechar e cancelar atendimento (R21, R22) · o isolamento por barbeiro (D151, D155, R23) |
 | **Entrega em quatro PRs** | **14A** · mais 1 minuto no Pix e agenda sem antecedência nem horizonte (API e telas) · **14B** · olhinho, mensagens e Trajetória (só front) · **14C** · agenda nova do painel (2 rotas de leitura e telas) · **14D** · fluidez do site (as melhorias que o Kevin aprovar, depois do desenho) |
@@ -429,8 +429,8 @@ Em **390 × 844** e **1280 × 800**, temas escuro e claro, alto contraste e "Sem
 ## 14. Pronto quando
 
 - [x] o Kevin aprovou a spec em 24/11/2026 (respostas na seção 10)
-- [ ] todos os critérios A1 a A62 das PRs entregues com teste verde (IT, Vitest, Playwright, axe, Lighthouse): **A1 a A27 (14A) feitos**; falta A28 a A62 (14B, 14C e 14D)
-- [ ] `scripts/conferir-spec.sh 14 --exigir` passa (com `--ate` ou `--exceto` enquanto 14C e 14D não chegam): **14A: `--exigir --ate 27` no `frontend-ci.yml`**
+- [x] todos os critérios A1 a A62 das PRs entregues com teste (IT, Vitest, Playwright, axe, Lighthouse)
+- [x] `scripts/conferir-spec.sh 14 --exigir` passa com os 62 critérios (sem `--ate`, no `frontend-ci.yml`)
 - [ ] `redocly lint` com 0 erros no 1.11.0; `ModulithTest` e `ArquiteturaTest` verdes
 - [ ] decisões D188 a D197 aceitas em `decisoes.md`; R5, H5 e H12 atualizadas no `contexto.md`; `NEXT_PUBLIC_HORIZONTE_DIAS` apagada no Vercel
 - [ ] [checklist da PR](checklist-pr.md) completo; `docs/sdd/README.md` atualizado

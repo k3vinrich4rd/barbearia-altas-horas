@@ -121,7 +121,7 @@ jobs:
       # Fatia 14, parte 14A (mais 1 minuto no Pix e agenda sem limites): A1 a A27 têm teste com o número deles.
       # 14B, 14C e 14D (A28 a A62) entram nas próximas PRs e ampliam o --ate.
       - name: Conferir spec × testes (fatia 14, parte 14A)
-        run: sh scripts/conferir-spec.sh 14 --exigir --ate 27
+        run: sh scripts/conferir-spec.sh 14 --exigir
 
       - name: Publicar relatórios (Playwright e cobertura)
         if: always()

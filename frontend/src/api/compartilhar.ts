@@ -18,7 +18,14 @@ const emUtc = (iso: string) =>
 
 /** Texto do iCalendar (RFC 5545), com as quebras CRLF que a norma pede. */
 export function gerarIcs(r: Horario, agora = new Date()): string {
-  const escapar = (t: string) => t.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
+  const escapar = (t: string) =>
+    t
+      .replace(/\\/g, "\\\\")
+      .replace(/;/g, "\\;")
+      .replace(/,/g, "\\,")
+      .replace(/\r?\n/g, "\\n");
+  // RFC 5545 3.1: linha com mais de 75 caracteres continua na de baixo, começando com um espaço
+  const dobrar = (linha: string) => linha.match(/.{1,74}/gu)?.join("\r\n ") ?? linha;
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -33,7 +40,9 @@ export function gerarIcs(r: Horario, agora = new Date()): string {
     "END:VEVENT",
     "END:VCALENDAR",
     "",
-  ].join("\r\n");
+  ]
+    .map(dobrar)
+    .join("\r\n");
 }
 
 /** Baixa o .ics (um link temporário com o arquivo gerado aqui mesmo). */
