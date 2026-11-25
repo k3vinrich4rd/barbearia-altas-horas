@@ -205,8 +205,8 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 | Fato | Fonte |
 |---|---|
-| Nome: Eduardo Candido (o Kevin decidiu "Candido" sem acento) | `README.md`, `frontend/src/conteudo/historia.ts` |
-| Começou no ofício em **1995**, com o primeiro mestre | `README.md` ("O caminho do Eduardo..."), `historia.ts` (`MARCOS`) |
+| Nome completo: **Carlos Eduardo Candido** (sem acento), "o Eduardo" nas outras menções; o nome de exibição no catálogo segue "Eduardo Candido" (fonte: o Kevin, em 25/11/2026) | `README.md`, `frontend/src/conteudo/historia.ts` |
+| Começou no ofício em **1994**, com o primeiro mestre (fonte: o Kevin, em 25/11/2026, que corrige o 1995 anterior) | `README.md` ("O caminho do Eduardo..."), `historia.ts` (`MARCOS`) |
 | Abriu a Barbearia Altas Horas em **1997**, no **Jardim Bonança, Osasco** | `README.md`, `historia.ts` |
 | Atende de **terça a sábado, 7h às 20h**, almoço de 12h às 13h | `README.md` (rodapé do "Onde estamos"), `FATOS_DA_HOME` |
 | Do **corte social clássico ao degradê navalhado**; a galeria mostra também platinado, corte infantil e barba | `README.md`, `GALERIA` (Fatia 12) |
@@ -221,7 +221,7 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 **Trajetória** (substitui `HISTORIA` em `historia.ts`; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
 
-> O Eduardo Candido começou no ofício em 1995, aprendendo com o primeiro mestre. Dois anos depois, em 1997, abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e de lá não saiu mais: são quase 30 anos na mesma cadeira, de terça a sábado.
+> O Carlos Eduardo Candido (o Eduardo) começou no ofício em 1994, aprendendo com o primeiro mestre. Três anos depois, em 1997, abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e de lá não saiu mais: são quase 30 anos na mesma cadeira, de terça a sábado.
 >
 > Do corte social clássico ao degradê navalhado, passando pelo platinado e pelo corte das crianças, o trabalho fala por ele. Em 2017 veio o reconhecimento em dobro: o Prêmio Barbeiros do Brasil, que ele fez questão de trazer para Osasco, e o Prêmio Master Barber · Êxito Profissional. Ao receber o primeiro, resumiu tudo numa frase: "Amor na ponta da tesoura!".
 >
@@ -229,7 +229,7 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 **Texto do barbeiro** (`BarbeiroDaHome`, hoje "Barbeiro e professor, na cadeira desde 1995."):
 
-> Barbeiro desde 1995 e dono da Altas Horas desde 1997. Professor na Academy e duas vezes premiado em 2017.
+> Barbeiro desde 1994 e dono da Altas Horas desde 1997. Professor na Academy e duas vezes premiado em 2017.
 
 **Marco "Hoje"** (linha do tempo): "Barbeiro na cadeira e professor na Altas Horas Barbearia Academy. A agenda sai do caderno e vem para a internet." (só troca "vai" por "vem", ponto de vista do site).
 
