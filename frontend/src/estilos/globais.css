@@ -865,7 +865,8 @@ dd {
 
 .dia-chip[data-livre="nao"] {
   border-style: dashed;
-  color: var(--texto-apagado);
+  /* --texto-suave: o --texto-apagado não passa no contraste AA do tema escuro (axe A54) */
+  color: var(--texto-suave);
 }
 
 .dia-chip-nota {
