@@ -77,6 +77,10 @@ function comIndisponiveis(horarios: string[]): { inicio: string; livre: boolean 
   return saida;
 }
 
+/** M1 (Fatia 14D): Manhã antes das 12:00, Tarde de 12:00 a 17:59, Noite a partir das 18:00. */
+const PERIODOS = ["Manhã", "Tarde", "Noite"] as const;
+const periodoDe = (hhmm: string) => (hhmm < "12:00" ? "Manhã" : hhmm < "18:00" ? "Tarde" : "Noite");
+
 const rotuloDoDia = (dia: string) => {
   const meio = `${dia}T12:00:00Z`;
   return `${formatarDiaDaSemana(meio, "UTC").slice(0, 3)} ${Number(dia.slice(8, 10))}`;
@@ -94,6 +98,9 @@ export function Agendar() {
   const [buscadoAte, setBuscadoAte] = useState<string | undefined>();
   const diaEscolhidoPelaPessoa = useRef(Boolean(busca.get("data")));
   const ocupado = busca.get("ocupado") ?? undefined;
+  /** M3: "Alterar" no resumo de /agendar/dados volta com o horário já marcado. */
+  const inicioDaUrl = useRef(busca.get("inicio"));
+  const [proximo, setProximo] = useState<{ chave: string; dia: string; barbeiroId: string; inicio: string }>();
 
   const hoje = diaNoFuso(new Date());
   // D197: a agenda não tem antecedência mínima nem limite de dias à frente; o seletor só impede o que já passou.
@@ -118,6 +125,28 @@ export function Agendar() {
     if (diaEscolhidoPelaPessoa.current || data || !semana) return;
     const primeiro = tira.find((d) => (semana[d] ?? 0) > 0);
     if (primeiro) setData(primeiro);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semana]);
+
+  // M2 (Fatia 14D): o primeiro horário livre do primeiro dia da tira com horário, para marcar em um toque
+  const chaveDoProximo = `${servicoId}|${barbeiroEfetivo}`;
+  useEffect(() => {
+    if (!servicoId || !semana) return;
+    const dia = tira.find((d) => (semana[d] ?? 0) > 0);
+    if (!dia) return;
+    let vivo = true;
+    buscarDisponibilidade(servicoId, dia, barbeiroEfetivo).then(
+      (r) => {
+        const primeiro = r.barbeiros
+          .flatMap((b) => b.horarios.map((inicio) => ({ barbeiroId: b.barbeiroId, inicio })))
+          .sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime())[0];
+        if (vivo && primeiro) setProximo({ chave: chaveDoProximo, dia, ...primeiro });
+      },
+      () => undefined,
+    );
+    return () => {
+      vivo = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [semana]);
 
@@ -152,6 +181,26 @@ export function Agendar() {
   const barbeiroEscolhido = barbeiros.dados?.find((b) => b.id === barbeiroId);
   const fusoDoDia = disponibilidade.dados?.fuso ?? FUSO_PADRAO;
 
+  useEffect(() => {
+    const inicio = inicioDaUrl.current;
+    if (!inicio || !disponibilidade.dados) return;
+    const dono = disponibilidade.dados.barbeiros.find((b) => b.horarios.includes(inicio));
+    if (dono) setEscolhido({ chave, barbeiroId: dono.barbeiroId, inicio });
+    inicioDaUrl.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disponibilidade.dados]);
+
+  const proximoLivre = proximo?.chave === chaveDoProximo ? proximo : undefined;
+  function marcarProximo() {
+    if (!proximoLivre) return;
+    escolherDia(proximoLivre.dia);
+    setEscolhido({
+      chave: `${servicoId}|${proximoLivre.dia}|${barbeiroEfetivo}`,
+      barbeiroId: proximoLivre.barbeiroId,
+      inicio: proximoLivre.inicio,
+    });
+  }
+
   function continuar() {
     if (!sel) return;
     const p = new URLSearchParams({ servicoId, barbeiroId: sel.barbeiroId, inicio: sel.inicio });
@@ -162,6 +211,15 @@ export function Agendar() {
     <>
       <p className="sobretitulo">Agenda · Eduardo Candido</p>
       <h1>Agende seu horário</h1>
+      {proximoLivre && (
+        <p className="proximo-livre">
+          <Botao onClick={marcarProximo}>
+            Próximo livre: {formatarDiaDaSemana(proximoLivre.inicio, fusoDoDia).slice(0, 3)}{" "}
+            {formatarDataCurta(proximoLivre.inicio, fusoDoDia).slice(0, 5)} às{" "}
+            {formatarHora(proximoLivre.inicio, fusoDoDia)}
+          </Botao>
+        </p>
+      )}
       {ocupado && <Aviso tipo="aviso">{mensagemDoErro({ code: "HORARIO_INDISPONIVEL", status: 409 })}</Aviso>}
 
       <section aria-labelledby="passo-servico">
@@ -306,32 +364,43 @@ export function Agendar() {
                       aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}
                     >
                       <h3>{b.nomeExibicao}</h3>
-                      <div className="horarios horarios-chips">
-                        {comIndisponiveis(b.horarios).map((h) =>
-                          h.livre ? (
-                            <button
-                              key={h.inicio}
-                              type="button"
-                              className="botao botao-secundario horario chip-horario"
-                              aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
-                              onClick={() => setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })}
-                            >
-                              {formatarHora(h.inicio, fusoDoDia)}
-                            </button>
-                          ) : (
-                            <button
-                              key={h.inicio}
-                              type="button"
-                              className="botao botao-secundario horario chip-horario chip-indisponivel"
-                              aria-disabled="true"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              {formatarHora(h.inicio, fusoDoDia)}
-                              <span className="so-leitor"> indisponível</span>
-                            </button>
-                          ),
-                        )}
-                      </div>
+                      {PERIODOS.map((periodo) => {
+                        const chips = comIndisponiveis(b.horarios).filter(
+                          (h) => periodoDe(formatarHora(h.inicio, fusoDoDia)) === periodo,
+                        );
+                        if (!chips.some((h) => h.livre)) return null;
+                        return (
+                          <div key={periodo} role="group" aria-label={periodo} className="periodo-horarios">
+                            <h4>{periodo}</h4>
+                            <div className="horarios horarios-chips">
+                              {chips.map((h) =>
+                                h.livre ? (
+                                  <button
+                                    key={h.inicio}
+                                    type="button"
+                                    className="botao botao-secundario horario chip-horario"
+                                    aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
+                                    onClick={() => setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })}
+                                  >
+                                    {formatarHora(h.inicio, fusoDoDia)}
+                                  </button>
+                                ) : (
+                                  <button
+                                    key={h.inicio}
+                                    type="button"
+                                    className="botao botao-secundario horario chip-horario chip-indisponivel"
+                                    aria-disabled="true"
+                                    onClick={(e) => e.preventDefault()}
+                                  >
+                                    {formatarHora(h.inicio, fusoDoDia)}
+                                    <span className="so-leitor"> indisponível</span>
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>

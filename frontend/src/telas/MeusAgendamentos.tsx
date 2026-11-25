@@ -85,6 +85,14 @@ export function MeusAgendamentos() {
                                 </Link>
                               )}
                             {a.status === "CANCELADO" && a.motivoCancelamento && <p>Motivo: {a.motivoCancelamento}</p>}
+                            {a.servico?.id && a.barbeiro && (
+                              <Link
+                                href={`/agendar?${new URLSearchParams({ servicoId: a.servico.id ?? "", barbeiroId: a.barbeiro.id })}`}
+                                className="botao botao-secundario"
+                              >
+                                Agendar de novo<span className="so-leitor">: {a.servico.nome}</span>
+                              </Link>
+                            )}
                           </li>
                         ))}
                       </ul>
