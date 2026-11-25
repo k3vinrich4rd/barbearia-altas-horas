@@ -33,7 +33,7 @@
 | entender em 30 segundos | [⚡ Em 30 segundos](#-em-30-segundos) · [🗓 As 3 formas de agendar](#-as-3-formas-de-agendar) · [👥 Quem faz o quê](#-quem-faz-o-quê) |
 | ver o produto | [📖 A história](#-a-história) · [🎬 O site no ar](#-o-site-no-ar-beta) · [🏆 Trajetória e prêmios](#-trajetória-e-prêmios) · [💈 A barbearia](#-a-barbearia) |
 | saber por que a agenda ajuda | [✂ O que a agenda resolve](#-o-que-a-agenda-resolve) · [💳 Pagamento antecipado](#-pagamento-100-antecipado) · [🔐 Segurança e LGPD](#-segurança-e-lgpd) · [🛠 Painel admin](#-painel-admin) |
-| ver como é por dentro | [🧱 Arquitetura](#-arquitetura) · [🧭 Decisões (ADRs)](#-decisões-de-arquitetura-adrs) · [🤖 IA no projeto](#-ia-no-projeto) · [📐 SDD](#-como-o-projeto-é-feito-sdd--ia) |
+| ver como é por dentro | [🧱 Arquitetura](#-arquitetura) · [🧭 Decisões (ADRs)](#-decisões-de-arquitetura-adrs) · [🤖 Como foi feito com IA](#-como-foi-desenvolvido-com-ia) |
 | rodar e acompanhar | [🧪 Rodar e testar](#-rodar-e-testar) · [🚀 Deploy](#-deploy-grátis-fatia-8) · [📊 Status das fatias](#-status-das-fatias) · [📚 Documentação](#-documentação) |
 
 </details>
@@ -164,7 +164,7 @@ O catálogo do beta publicado ainda está vazio, então estes prints são do mes
 | Lock otimista e pessimista | `@Version` em `Reserva`, `Cobranca` e outras; `FOR UPDATE`/`FOR SHARE` em `ReservarHorario` e `CadastrosDoPainel` | duas telas ou reserva e folga ao mesmo tempo |
 | Idempotência com HMAC | `CriarCobranca` (`X-Idempotency-Key` + hash HMAC-SHA256 do corpo) | repetir o pedido não cobra duas vezes |
 
-- 🤖 **IA no projeto:** SDD, agentes, RAG da documentação e recuperação por identificador, tudo em [IA no projeto](#-ia-no-projeto).
+- 🤖 **Desenvolvido com IA:** SDD, agentes, RAG da documentação e recuperação por identificador, tudo em [Como foi desenvolvido com IA](#-como-foi-desenvolvido-com-ia).
 - 🗺 **Status das fatias:** 1 a 7B, 6D e 8 **no ar em beta** (pagamento simulado); 8B aprovada e em implementação; convite do barbeiro (Fatia 10) implementado na branch `feat/fatia-10-convite-do-barbeiro`, aguardando a PR e o desenho das telas novas; alcance por nível em especificação; notificação ao barbeiro (Fatia 13) implementada na branch `feat/fatia-13-notificacao-ao-barbeiro`; 9 (assistente) pós-beta. Tabela completa em [Status das fatias](#-status-das-fatias).
 
 ## 🏆 Trajetória e prêmios
@@ -334,7 +334,7 @@ O primeiro acesso do Eduardo nasce de variáveis de ambiente na hora em que a AP
 
 </details>
 
-**Em uma linha, para quem avalia código:** concorrência resolvida no banco, pagamento idempotente, máquina de estados explícita, erros em RFC 9457, LGPD desde a primeira linha e testes com PostgreSQL real, tudo especificado antes de ser escrito ([Spec-Driven Development](#-como-o-projeto-é-feito-sdd--ia)). Stack: Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js; deploy planejado em Vercel, Render e Aiven.
+**Em uma linha, para quem avalia código:** concorrência resolvida no banco, pagamento idempotente, máquina de estados explícita, erros em RFC 9457, LGPD desde a primeira linha e testes com PostgreSQL real, tudo especificado antes de ser escrito ([Spec-Driven Development](#-como-foi-desenvolvido-com-ia)). Stack: Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js; deploy planejado em Vercel, Render e Aiven.
 
 ## 💳 Pagamento 100% antecipado
 
@@ -642,95 +642,111 @@ A Fatia 8B (deploy robusto) mediu, no Docker Desktop, a subida da API em **5,5 s
 
 Está no ar em beta desde 18/11/2026: a API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)) e o front na Vercel ([site](https://barbearia-altas-horas.vercel.app)), ainda com pagamento simulado. No plano grátis, a API dorme sem uso e a primeira chamada pode passar de um minuto (em 20/11/2026 levou cerca de 90 segundos). Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
 
-## 🤖 IA no projeto
+## 🤖 Como foi desenvolvido com IA
 
-Quatro frentes diferentes, todas com arquivo para conferir. O que **não** existe ainda está dito como tal.
+Projeto individual: o Kevin (backend Java) usa IA como par de programação, e o que impede a IA de "inventar" é o **método**, não o prompt. Cada peça abaixo é um arquivo que você pode abrir. O que **não** existe ainda está dito como tal.
 
-| | O que é | Onde está | Situação |
-|:-:|---|---|:-:|
-| 📐 | **SDD**: nada entra sem spec aprovada, e cada critério `A#` vira um teste que o CI cobra | [`docs/sdd/`](docs/sdd/README.md) · [`scripts/conferir-spec.sh`](scripts/conferir-spec.sh) | ✅ |
-| 🧑‍💻 | **Agentes do projeto**, cada um com um papel e permissões limitadas | [`.claude/agents/`](.claude/agents/) | ✅ |
-| 🔎 | **RAG da documentação** (Spring AI 2.0.2 + pgvector + embeddings locais, busca híbrida) | [`ferramentas/rag`](ferramentas/rag/README.md) · [detalhes](docs/ia/rag-vetorial.md) | ✅ ferramenta de desenvolvimento |
-| 🏷 | **Recuperação por identificador** (`R15`, `D40`, `A7`, ADR): traz a regra, a decisão, a spec e o teste | [`scripts/buscar-contexto.sh`](scripts/buscar-contexto.sh) | ✅ |
-| 💬 | **Assistente de dúvidas para clientes** (Fatia 9): nasce desligado, reaproveitando o RAG | [spec](docs/sdd/fatia-9-assistente-de-duvidas.md) | 📝 pós-beta, sem código ainda |
+<div align="center">
 
-<details>
-<summary><b>🧑‍💻 Os agentes do projeto</b> (quem faz o quê)</summary>
+| 📐 Fatias com spec | ✅ Critérios `A#` nas specs | 🧪 Testes do backend | 🧭 ADRs | 🧑‍💻 Agentes | 🛠 Skills |
+|:-:|:-:|:-:|:-:|:-:|:-:|
+| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **581** (`./mvnw verify`) | **14** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
 
-<br/>
+</div>
 
-| Agente | Papel |
-|---|---|
-| [`alicerce-arquiteto`](.claude/agents/alicerce-arquiteto.md) | escreve e revisa spec, ADR, contrato e decisões, antes de qualquer código |
-| [`quarteto-dev`](.claude/agents/quarteto-dev.md) | implementa a partir de spec aprovada: testes `A#` primeiro, código, docs com saída real |
-| [`revisor-de-fatia`](.claude/agents/revisor-de-fatia.md) | segundo par de olhos, só leitura: confere o diff contra a spec, o contrato e as camadas |
-| [`prova-real-qa`](.claude/agents/prova-real-qa.md) | sobe a API e o front e executa os critérios `A#` à mão |
-| [`sentinela-appsec`](.claude/agents/sentinela-appsec.md) | segurança de aplicação: sessão, cookies, CORS, pagamento, webhook, dependências |
-| [`cautelar-lgpd`](.claude/agents/cautelar-lgpd.md) | análise de dado pessoal, consentimento, retenção e alcance por região |
-| [`decolagem-operacao`](.claude/agents/decolagem-operacao.md) | deploy e operação nos planos grátis: Render, Aiven, Vercel, ping e backup |
+<sub>Contados no repositório em 25/11/2026: 17 arquivos `fatia-*.md`; 701 linhas de tabela `| A<n> |` nessas specs; 557 `@DisplayName("A…")` no backend e 105 arquivos `*.test.ts(x)` e `*.spec.ts` no frontend; 581 é o resultado de `./mvnw verify` registrado no [guia de testes](docs/guia-testes.md) (24/11/2026).</sub>
 
-</details>
-
-<details>
-<summary><b>🔎 O que o RAG mediu</b> (17 perguntas, 17/11/2026)</summary>
-
-<br/>
-
-| Busca | Acertos em 17 perguntas |
-|---|:-:|
-| só vetor | 10 |
-| híbrida (vetor + texto) | **15** |
-
-Para cerca de 40 documentos com identificadores estáveis, o `buscar-contexto.sh` costuma ser mais preciso que um RAG vetorial ([por quê](docs/sdd/README.md#por-que-não-um-rag-com-banco-vetorial)). Os dois convivem: o script para o que tem ID, o RAG para a pergunta solta.
-
-</details>
-
-## 📐 Como o projeto é feito: SDD + IA
-
-<details>
-<summary><b>📐 Abrir o método</b> (SDD, ferramentas e como a qualidade é garantida)</summary>
-
-<br/>
-
-O backend é escrito em Java e Spring com IA como par de programação, e o frontend é gerado com IA a partir do contrato da API. O que mantém a qualidade com tanta IA no processo é o método: nada entra sem especificação, e cada critério da especificação vira um teste que o CI cobra.
-
-| Parte | Como é feita | Como a qualidade é garantida |
-|---|---|---|
-| **Especificação** | escrita antes de qualquer código, com as decisões de desenho e os critérios de aceite | cada fatia tem uma [spec](docs/sdd/README.md) com critérios numerados; nada de código antes da aprovação |
-| **Backend** (Java 25 + Spring Boot 4) | escrito à mão, com IA como par de programação | um teste por critério da spec, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CI com CodeQL e gitleaks |
-| **Frontend** (Next.js) | gerado com IA a partir do contrato OpenAPI e das specs de tela, com revisão humana | tipos gerados do contrato, testes das telas críticas (checkout com aceite obrigatório), checagem de acessibilidade |
-| **Deploy** | Vercel + Render + Aiven, com IA apoiando os passos de infraestrutura | o guia de testes rodado contra o ambiente publicado |
-
-### Por que Spec-Driven Development
-
-Quando a IA escreve boa parte do código, quem garante a qualidade é a **especificação**, não o prompt. Sem spec, a IA preenche as lacunas com suposições; com spec, ela implementa critérios que viram testes, e a revisão é feita **contra a spec**.
+### O fluxo de uma fatia, da spec ao deploy
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
 flowchart LR
-    R[Regra R#] --> S[📐 Spec<br/>Dado / Quando / Então]
-    S --> OK{aprovação}
-    OK --> C[📜 Contrato]
-    C --> T[🔴 Testes]
-    T --> I[🟢 Código<br/>dev + IA em par]
-    I --> V[✅ CI]
-    V --> D[📚 Docs com saída real]
+    B["🔎 Contexto<br/>buscar-contexto.sh · RAG"] --> E["📐 /especificar-fatia<br/>spec com critérios A#"]
+    E --> OK{"✋ OK do dono<br/>(Kevin)"}
+    OK -- "não" --> E
+    OK -- "sim" --> I["🛠 /implementar-fatia<br/>contrato → testes A# → código → docs"]
+    I --> R["🧐 revisor-de-fatia<br/>só leitura"]
+    R --> PR["🔀 PR para a develop"]
+    PR --> CI["✅ CI<br/>testes · conferir-spec.sh · CodeQL · gitleaks"]
+    PR --> CP["🤝 Revisão do Copilot"]
+    CI --> M{"tudo verde?"}
+    CP --> M
+    M -- "sim" --> D["🚀 merge na develop<br/>release → main → deploy<br/>(Vercel + Render)"]
+    M -- "não" --> I
 ```
 
-| Ferramenta | Para quê |
-|---|---|
-| [Specs das fatias](docs/sdd/README.md) | a fonte da verdade de cada entrega ([modelo](docs/sdd/modelo-de-spec.md), [Fatia 1](docs/sdd/fatia-1-esqueleto.md), [Fatia 2](docs/sdd/fatia-2-catalogo-disponibilidade.md)) |
-| [`CLAUDE.md`](CLAUDE.md) | o índice que a IA lê antes de mexer: onde está cada regra, decisão e padrão |
-| [Skills do projeto](.claude/skills/) | receitas repetíveis: `/especificar-fatia`, `/implementar-fatia`, `/verificar-contrato` |
-| [`scripts/conferir-spec.sh`](scripts/conferir-spec.sh) | *eval* do processo: todo critério da spec precisa de um teste com o número dele (roda no CI) |
-| [GitHub Copilot + Actions](docs/automacao.md) | o Copilot lê as mesmas regras ([instruções](.github/copilot-instructions.md)), revisa PRs e pega tarefas pequenas; as Actions barram o que não cumpre spec, teste ou segurança |
-| [Agente revisor](.claude/agents/revisor-de-fatia.md) | segundo par de olhos, só leitura: confere o código contra a spec antes da PR |
-| [RAG vetorial](docs/ia/rag-vetorial.md) | busca semântica na documentação com **Spring AI + pgvector** e embeddings locais. Medido: só vetor acerta 10 de 17 perguntas (nenhum identificador); a busca **híbrida**, 15 de 17 |
-| [`scripts/buscar-contexto.sh`](scripts/buscar-contexto.sh) | recuperação por identificador (`R15`, `D40`, `A7`): traz a regra, a decisão, a spec e o teste ligados a ela. Para ~40 documentos com IDs estáveis, isso é mais preciso que um RAG vetorial ([por quê](docs/sdd/README.md#por-que-não-um-rag-com-banco-vetorial)) |
+1. **Contexto barato.** Antes de escrever, a IA busca o que já foi decidido (regra, decisão, ADR, spec, teste) em vez de reler tudo.
+2. **Spec.** `/especificar-fatia` escreve `docs/sdd/fatia-N-*.md` com objetivo, contrato, decisões e critérios *Dado/Quando/Então*. **Para aí.** Nenhuma linha de produção sem o OK do Kevin.
+3. **Implementação.** `/implementar-fatia` segue a ordem contrato, testes (um por critério), código, docs com saída real. Número só de execução real.
+4. **Revisão.** O agente `revisor-de-fatia` (só leitura) confere o diff contra a spec; depois o Copilot revisa a PR.
+5. **CI.** A PR só entra com testes, `conferir-spec.sh`, CodeQL e gitleaks verdes.
+6. **Deploy.** Merge na `develop`, release `develop → main` e publicação (front na Vercel, API no Render, banco na Aiven); o [guia de testes](docs/guia-testes.md) é rodado contra o ambiente publicado.
 
-<sub>Ferramentas de IA usadas: Claude Code (backend, specs e revisão) e outras ferramentas de IA no frontend. Números e respostas no README sempre saem de execução real, nunca de estimativa da IA.</sub>
+### 📐 SDD: Spec-Driven Development
+
+Quando a IA escreve boa parte do código, quem garante a qualidade é a **especificação**. Sem spec, a IA preenche lacunas com suposição; com spec, ela implementa critérios que viram testes.
+
+- **Uma spec por fatia** em [`docs/sdd/`](docs/sdd/README.md) (17 arquivos, [modelo](docs/sdd/modelo-de-spec.md) e [checklist de PR](docs/sdd/checklist-pr.md)).
+- **Critérios `A#`** em tabela, cada um com o arquivo e o teste que o prova. Ex.: a [Fatia 2](docs/sdd/fatia-2-catalogo-disponibilidade.md) tem 29 critérios e 29 testes.
+- **`conferir-spec.sh`** ([`scripts/conferir-spec.sh`](scripts/conferir-spec.sh)): um "eval" determinístico. Para cada linha `| A<n> |`, procura um teste com o número dentro de `@DisplayName("A7…")`, `test("A7…")` ou `it("A7…")`; comentário não conta. Com `--exigir`, falha o CI se faltar algum. Roda em [`backend-ci.yml`](.github/workflows/backend-ci.yml) e [`frontend-ci.yml`](.github/workflows/frontend-ci.yml), e o próprio script tem teste ([`testar-conferir-spec.sh`](scripts/testar-conferir-spec.sh)).
+- **OK do dono antes do código.** A spec é aprovada pelo Kevin; só então a skill de implementação roda. Algo que a spec não decide? A IA para e pergunta, e a resposta vira decisão registrada na spec.
+
+### 🔎 RAG e recuperação de contexto
+
+Duas ferramentas, para dois tipos de pergunta, ambas medidas.
+
+| Ferramenta | Para que serve | Como funciona |
+|---|---|---|
+| [`scripts/buscar-contexto.sh`](scripts/buscar-contexto.sh) `R15` | achar **por identificador** (`R15`, `D40`, `A7`, código de erro): regra, decisão, spec, contrato, ADR e código/teste, com arquivo e linha | `grep` em `docs/` e `backend/src`, com palavra inteira (`R1` não traz `R15`). Sem dependência, instantâneo |
+| [`ferramentas/rag`](ferramentas/rag/README.md) | achar **por pergunta solta** ("o cliente pode cancelar depois de pagar?") | Spring AI 2.0.2 + pgvector + embeddings locais (ONNX, sem chave de API). Divide os `.md` por título (390 trechos de 37 arquivos), gera vetores, busca por distância de cosseno; identificador vai para busca exata (**híbrida**) |
+
+Medido em 17 perguntas (17/11/2026): só vetor acerta 10; a busca híbrida, **15**. O vetor errou todos os identificadores (`R15` e `R16` são quase o mesmo texto para o modelo). Por isso o script é a primeira escolha para ID e o RAG fica para a linguagem natural. Os dois erros que sobraram estão registrados, sem maquiar a avaliação ([detalhes](docs/ia/rag-vetorial.md)). O RAG é ferramenta de desenvolvimento, fora da API; o [assistente para clientes](docs/sdd/fatia-9-assistente-de-duvidas.md) (Fatia 9) é spec, sem código ainda.
+
+### 🛠 Skills do Claude Code
+
+Receitas repetíveis em [`.claude/skills/`](.claude/skills/):
+
+| Skill | O que faz |
+|---|---|
+| [`/especificar-fatia N`](.claude/skills/especificar-fatia/SKILL.md) | escreve a spec SDD da fatia (objetivo, contrato, decisões, critérios `A#` com o teste de cada um) e **para** no OK do Kevin, sem código de produção |
+| [`/implementar-fatia N`](.claude/skills/implementar-fatia/SKILL.md) | a partir da spec aprovada: contrato, testes (um por `A#`), código, docs com saída real e PR para a `develop`, explicando os conceitos |
+| [`/verificar-contrato`](.claude/skills/verificar-contrato/SKILL.md) | compara controllers, DTOs e códigos de erro com o `openapi.yaml` e lista divergências de rota, campo, tipo, status e erro; só lê e relata |
+
+### 🧑‍💻 Agentes de IA
+
+<details>
+<summary><b>Abrir os 7 agentes</b> (papel, limite e ligação com os agentes do Grok)</summary>
+
+<br/>
+
+Cada agente é um arquivo em [`.claude/agents/`](.claude/agents/) com papel e **permissões limitadas** (ferramentas liberadas no cabeçalho). O Kevin também usa o **Grok** como outra IA de apoio: seis destes agentes se declaram "réplica" de um agente de mesmo nome do Grok (está no cabeçalho de cada arquivo). O papel é o mesmo nas duas ferramentas; o que vale para o projeto é o que está nestes arquivos. O `revisor-de-fatia` nasceu aqui.
+
+| Agente | Papel | Pode |
+|---|---|---|
+| [`alicerce-arquiteto`](.claude/agents/alicerce-arquiteto.md) | escreve e revisa spec, ADR, contrato e decisões, antes de qualquer código | ler e escrever docs; não implementa nem mergeia |
+| [`quarteto-dev`](.claude/agents/quarteto-dev.md) | implementa a partir de spec aprovada e roteiro fechado: testes `A#` primeiro, código, docs com saída real | escrever código e dar push; não abre PR nem mergeia |
+| [`revisor-de-fatia`](.claude/agents/revisor-de-fatia.md) | segundo par de olhos: diff contra spec, contrato, camadas, segurança e LGPD | só leitura |
+| [`prova-real-qa`](.claude/agents/prova-real-qa.md) | sobe API e front e executa os critérios `A#` à mão, gravando a saída real no guia de testes | rodar e documentar |
+| [`sentinela-appsec`](.claude/agents/sentinela-appsec.md) | segurança de aplicação: sessão, cookies, CORS, pagamento, webhook, dependências, OWASP | só leitura |
+| [`cautelar-lgpd`](.claude/agents/cautelar-lgpd.md) | dado pessoal, consentimento, retenção e alcance por região | só leitura e pesquisa |
+| [`decolagem-operacao`](.claude/agents/decolagem-operacao.md) | deploy e operação nos planos grátis: Render, Aiven, Vercel, ping e backup | só leitura |
 
 </details>
+
+### 🤝 O revisor do Copilot
+
+O GitHub Copilot lê as mesmas regras do `CLAUDE.md` por [`.github/copilot-instructions.md`](.github/copilot-instructions.md) e entra de três formas ([`docs/automacao.md`](docs/automacao.md)): sugestões no editor; **revisor de PR**, uma segunda opinião de quem não escreveu o código (não aprova nem mergeia); e agente de código para tarefa pequena e fechada, nunca em pagamento, concorrência ou segurança. O [`copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) deixa JDK 25 e PostgreSQL prontos para ele. Qualquer PR, de quem for, passa pelo mesmo CI.
+
+### Como a qualidade é garantida
+
+| Parte | Como é feita | Como a qualidade é garantida |
+|---|---|---|
+| **Especificação** | escrita antes de qualquer código | critérios numerados; nada de código antes do OK |
+| **Backend** (Java 25 + Spring Boot 4) | IA como par de programação | um teste por critério, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CodeQL e gitleaks |
+| **Frontend** (Next.js) | gerado com IA a partir do contrato OpenAPI e das specs de tela, com revisão humana | tipos gerados do contrato, testes das telas críticas, `conferir-spec.sh` das Fatias 7, 12 e 14 |
+| **Deploy** | Vercel + Render + Aiven, IA apoiando os passos | guia de testes rodado contra o ambiente publicado |
+
+<sub>Números e saídas do README vêm de execução real, nunca de estimativa da IA. Mais: [como foi construído](docs/como-foi-construido.md) · [automação](docs/automacao.md) · [`CLAUDE.md`](CLAUDE.md).</sub>
 
 ## 📊 Status das fatias
 
