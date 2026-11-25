@@ -7,7 +7,7 @@ import { useConsulta, useEnvio } from "@/api/hooks";
 import { MENSAGEM_SENHA, senhaValida } from "@/api/validacao";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
-import { Campo } from "@/componentes/Campo";
+import { CampoSenha } from "@/componentes/CampoSenha";
 import { useSessao } from "@/componentes/Sessao";
 
 export function TrocarSenha() {
@@ -45,18 +45,16 @@ export function TrocarSenha() {
       <h1>Trocar senha</h1>
       {perfil.dados?.deveTrocarSenha && <Aviso tipo="aviso">Antes de continuar, troque a senha inicial.</Aviso>}
       <form onSubmit={aoEnviar} noValidate aria-label="Trocar senha">
-        <Campo
+        <CampoSenha
           id="senha-atual"
           rotulo="Senha atual"
-          type="password"
           autoComplete="current-password"
           value={atual}
           onChange={(e) => setAtual(e.target.value)}
         />
-        <Campo
+        <CampoSenha
           id="nova-senha"
           rotulo="Nova senha"
-          type="password"
           autoComplete="new-password"
           ajuda="De 10 a 72 caracteres."
           value={nova}

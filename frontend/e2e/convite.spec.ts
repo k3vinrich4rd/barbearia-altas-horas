@@ -35,7 +35,8 @@ test("A36: convite de ponta a ponta: gerar, abrir sem consumir, criar a senha, e
   const pedidosComCodigo: string[] = [];
   const codigo = link.split("#")[1];
   barbeiro.on("request", (r) => {
-    if (r.url().includes(codigo) || (r.postData() ?? "").includes(codigo)) pedidosComCodigo.push(r.method() + " " + r.url());
+    if (r.url().includes(codigo) || (r.postData() ?? "").includes(codigo))
+      pedidosComCodigo.push(r.method() + " " + r.url());
   });
   const resposta = await barbeiro.goto(link);
   expect(resposta?.headers()["referrer-policy"]).toBe("no-referrer");
@@ -80,7 +81,9 @@ test("A36: convite de ponta a ponta: gerar, abrir sem consumir, criar a senha, e
   await outraAba.getByLabel("Senha", { exact: true }).fill(SENHA_DE_TESTE);
   await outraAba.getByLabel("Repita a senha").fill(SENHA_DE_TESTE);
   await outraAba.getByRole("button", { name: "Criar minha senha" }).click();
-  await expect(outraAba.getByRole("form", { name: "Criar minha senha" }).getByRole("alert")).toContainText("Este link não vale mais ou não pode ser usado aqui.");
+  await expect(outraAba.getByRole("form", { name: "Criar minha senha" }).getByRole("alert")).toContainText(
+    "Este link não vale mais ou não pode ser usado aqui.",
+  );
   await expect(outraAba.getByRole("link", { name: "Já tenho conta no site: entrar" })).toBeVisible();
 
   // 5. o dono vê "Acesso ativo", desliga (com confirmação) e a sessão do barbeiro cai na hora

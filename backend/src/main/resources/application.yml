@@ -44,6 +44,10 @@ spring:
 
 app:
   fuso: America/Sao_Paulo
+  agenda:
+    # Fatia 14A (E10): quanto "Acrescentar 1 minuto" soma ao prazo do Pix, uma vez por reserva, só no último trecho desse tamanho.
+    # É regra de produto (fixa), não configuração do painel; a propriedade deixa o teste trocar o valor sem mexer no código.
+    prorrogacao-pagamento: PT60S
   seguranca:
     jwt:
       # Sem valor padrão de propósito: sem JWT_SEGREDO (32 bytes ou mais) a API não sobe.

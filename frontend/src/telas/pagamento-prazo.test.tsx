@@ -35,7 +35,7 @@ describe("prazo do pagamento", () => {
     expect(screen.getByText(/Faltam 2 minutos para pagar/)).toBeInTheDocument();
 
     await avancar(PRAZO_MS - 60_000 + 1000);
-    expect(await screen.findByText(/O tempo acabou e o horário voltou para a agenda/)).toBeInTheDocument();
+    expect(await screen.findByText(/O tempo para pagar acabou e o horário voltou para a agenda/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Escolher outro horário" })).toHaveAttribute("href", "/agendar");
     expect(screen.queryByRole("button", { name: "Pagar" })).toBeNull();
     expect(leituras).toBe(2); // uma consulta ao zerar
@@ -59,7 +59,7 @@ describe("prazo do pagamento", () => {
     await avancar(PRAZO_MS + 1000);
     expect(await screen.findByText("00:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Pagar" })).toBeInTheDocument();
-    expect(screen.queryByText(/O tempo acabou e o horário voltou/)).toBeNull();
+    expect(screen.queryByText(/O tempo para pagar acabou e o horário voltou/)).toBeNull();
   });
 
   test("A19: o prazo mostrado vem só do expiraEm: com 3 min a tela mostra 03:00 e, mudando o expiraEm para 10 min, mostra 10:00", async () => {

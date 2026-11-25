@@ -21,9 +21,11 @@ import { Botao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
+import { TEXTOS } from "@/conteudo/textos";
 
-const HORIZONTE = Number(process.env.NEXT_PUBLIC_HORIZONTE_DIAS ?? "30") || 30;
 const DIAS_DA_TIRA = 7;
+/** Quantos dias "Ver o próximo dia com horário" olha por vez. É o limite da BUSCA, não regra da agenda (D197): sem horário nesse trecho, a pessoa procura mais. */
+const DIAS_DA_BUSCA = 30;
 
 const buscarDisponibilidade = (servicoId: string, data: string, barbeiroId: string) =>
   chamar(
@@ -75,6 +77,10 @@ function comIndisponiveis(horarios: string[]): { inicio: string; livre: boolean 
   return saida;
 }
 
+/** M1 (Fatia 14D): Manhã antes das 12:00, Tarde de 12:00 a 17:59, Noite a partir das 18:00. */
+const PERIODOS = ["Manhã", "Tarde", "Noite"] as const;
+const periodoDe = (hhmm: string) => (hhmm < "12:00" ? "Manhã" : hhmm < "18:00" ? "Tarde" : "Noite");
+
 const rotuloDoDia = (dia: string) => {
   const meio = `${dia}T12:00:00Z`;
   return `${formatarDiaDaSemana(meio, "UTC").slice(0, 3)} ${Number(dia.slice(8, 10))}`;
@@ -88,13 +94,17 @@ export function Agendar() {
   const [data, setData] = useState(busca.get("data") ?? "");
   const [escolhido, setEscolhido] = useState<{ chave: string; barbeiroId: string; inicio: string }>();
   const [procurando, setProcurando] = useState(false);
-  const [semProximo, setSemProximo] = useState(false);
+  /** Até que dia a busca já olhou, quando não achou horário ("Procurar mais 30 dias" continua dali). */
+  const [buscadoAte, setBuscadoAte] = useState<string | undefined>();
   const diaEscolhidoPelaPessoa = useRef(Boolean(busca.get("data")));
   const ocupado = busca.get("ocupado") ?? undefined;
+  /** M3: "Alterar" no resumo de /agendar/dados volta com o horário já marcado. */
+  const inicioDaUrl = useRef(busca.get("inicio"));
+  const [proximo, setProximo] = useState<{ chave: string; dia: string; barbeiroId: string; inicio: string }>();
 
   const hoje = diaNoFuso(new Date());
-  const limite = somarDias(hoje, HORIZONTE);
-  const dataValida = data !== "" && data >= hoje && data <= limite;
+  // D197: a agenda não tem antecedência mínima nem limite de dias à frente; o seletor só impede o que já passou.
+  const dataValida = data !== "" && data >= hoje;
   const tira = Array.from({ length: DIAS_DA_TIRA }, (_, i) => somarDias(hoje, i));
 
   const servicos = useConsulta(buscarServicos, []);
@@ -118,16 +128,39 @@ export function Agendar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [semana]);
 
+  // M2 (Fatia 14D): o primeiro horário livre do primeiro dia da tira com horário, para marcar em um toque
+  const chaveDoProximo = `${servicoId}|${barbeiroEfetivo}`;
+  useEffect(() => {
+    if (!servicoId || !semana) return;
+    const dia = tira.find((d) => (semana[d] ?? 0) > 0);
+    if (!dia) return;
+    let vivo = true;
+    buscarDisponibilidade(servicoId, dia, barbeiroEfetivo).then(
+      (r) => {
+        const primeiro = r.barbeiros
+          .flatMap((b) => b.horarios.map((inicio) => ({ barbeiroId: b.barbeiroId, inicio })))
+          .sort((a, b) => new Date(a.inicio).getTime() - new Date(b.inicio).getTime())[0];
+        if (vivo && primeiro) setProximo({ chave: chaveDoProximo, dia, ...primeiro });
+      },
+      () => undefined,
+    );
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semana]);
+
   function escolherDia(dia: string) {
     diaEscolhidoPelaPessoa.current = true;
-    setSemProximo(false);
+    setBuscadoAte(undefined);
     setData(dia);
   }
 
-  async function verProximoDiaComHorario() {
+  async function procurarProximoDiaComHorario(depoisDe: string) {
     setProcurando(true);
-    setSemProximo(false);
-    for (let d = somarDias(dataValida ? data : hoje, 1); d <= limite; d = somarDias(d, 1)) {
+    setBuscadoAte(undefined);
+    const ultimo = somarDias(depoisDe, DIAS_DA_BUSCA);
+    for (let d = somarDias(depoisDe, 1); d <= ultimo; d = somarDias(d, 1)) {
       try {
         if (totalDeHorarios(await buscarDisponibilidade(servicoId, d, barbeiroEfetivo)) > 0) {
           setProcurando(false);
@@ -139,7 +172,7 @@ export function Agendar() {
       }
     }
     setProcurando(false);
-    setSemProximo(true);
+    setBuscadoAte(ultimo);
   }
 
   const servico = servicos.dados?.find((s) => s.id === servicoId);
@@ -147,6 +180,26 @@ export function Agendar() {
   const sel = escolhido?.chave === chave ? escolhido : undefined;
   const barbeiroEscolhido = barbeiros.dados?.find((b) => b.id === barbeiroId);
   const fusoDoDia = disponibilidade.dados?.fuso ?? FUSO_PADRAO;
+
+  useEffect(() => {
+    const inicio = inicioDaUrl.current;
+    if (!inicio || !disponibilidade.dados) return;
+    const dono = disponibilidade.dados.barbeiros.find((b) => b.horarios.includes(inicio));
+    if (dono) setEscolhido({ chave, barbeiroId: dono.barbeiroId, inicio });
+    inicioDaUrl.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disponibilidade.dados]);
+
+  const proximoLivre = proximo?.chave === chaveDoProximo ? proximo : undefined;
+  function marcarProximo() {
+    if (!proximoLivre) return;
+    escolherDia(proximoLivre.dia);
+    setEscolhido({
+      chave: `${servicoId}|${proximoLivre.dia}|${barbeiroEfetivo}`,
+      barbeiroId: proximoLivre.barbeiroId,
+      inicio: proximoLivre.inicio,
+    });
+  }
 
   function continuar() {
     if (!sel) return;
@@ -158,6 +211,15 @@ export function Agendar() {
     <>
       <p className="sobretitulo">Agenda · Eduardo Candido</p>
       <h1>Agende seu horário</h1>
+      {proximoLivre && (
+        <p className="proximo-livre">
+          <Botao onClick={marcarProximo}>
+            Próximo livre: {formatarDiaDaSemana(proximoLivre.inicio, fusoDoDia).slice(0, 3)}{" "}
+            {formatarDataCurta(proximoLivre.inicio, fusoDoDia).slice(0, 5)} às{" "}
+            {formatarHora(proximoLivre.inicio, fusoDoDia)}
+          </Botao>
+        </p>
+      )}
       {ocupado && <Aviso tipo="aviso">{mensagemDoErro({ code: "HORARIO_INDISPONIVEL", status: 409 })}</Aviso>}
 
       <section aria-labelledby="passo-servico">
@@ -238,12 +300,11 @@ export function Agendar() {
           })}
         </div>
         <div className="campo">
-          <label htmlFor="data">Outro dia (até {formatarDataCurta(`${limite}T12:00:00Z`)})</label>
+          <label htmlFor="data">Outro dia</label>
           <input
             id="data"
             type="date"
             min={hoje}
-            max={limite}
             value={data}
             onChange={(e) => escolherDia(e.target.value)}
             aria-describedby={data !== "" && !dataValida ? "data-erro" : undefined}
@@ -251,7 +312,7 @@ export function Agendar() {
           />
           {data !== "" && !dataValida && (
             <p id="data-erro" className="campo-erro">
-              Escolha um dia de hoje até {formatarDataCurta(`${limite}T12:00:00Z`)}.
+              Escolha um dia de hoje em diante.
             </p>
           )}
           {disponibilidade.erro && !disponibilidade.erro.acordando && (
@@ -272,14 +333,21 @@ export function Agendar() {
               if (grupos.length === 0)
                 return (
                   <div>
-                    <p role="status">Sem horários neste dia.</p>
-                    <Botao onClick={verProximoDiaComHorario} disabled={procurando}>
+                    <p role="status">{TEXTOS.diaCheio}</p>
+                    <Botao
+                      onClick={() => void procurarProximoDiaComHorario(dataValida ? data : hoje)}
+                      disabled={procurando}
+                    >
                       {procurando ? "Procurando…" : "Ver o próximo dia com horário"}
                     </Botao>
-                    {semProximo && (
-                      <Aviso tipo="aviso">
-                        Não há horários livres nos próximos {HORIZONTE} dias. Tente mais tarde.
-                      </Aviso>
+                    {buscadoAte && (
+                      <>
+                        <Aviso tipo="aviso">{TEXTOS.buscaSemHorario}</Aviso>
+                        <Botao onClick={() => void procurarProximoDiaComHorario(buscadoAte)} disabled={procurando}>
+                          Procurar mais {DIAS_DA_BUSCA} dias
+                        </Botao>{" "}
+                        <Botao onClick={() => document.getElementById("data")?.focus()}>Escolher em Outro dia</Botao>
+                      </>
                     )}
                   </div>
                 );
@@ -296,32 +364,43 @@ export function Agendar() {
                       aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}
                     >
                       <h3>{b.nomeExibicao}</h3>
-                      <div className="horarios horarios-chips">
-                        {comIndisponiveis(b.horarios).map((h) =>
-                          h.livre ? (
-                            <button
-                              key={h.inicio}
-                              type="button"
-                              className="botao botao-secundario horario chip-horario"
-                              aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
-                              onClick={() => setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })}
-                            >
-                              {formatarHora(h.inicio, fusoDoDia)}
-                            </button>
-                          ) : (
-                            <button
-                              key={h.inicio}
-                              type="button"
-                              className="botao botao-secundario horario chip-horario chip-indisponivel"
-                              aria-disabled="true"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              {formatarHora(h.inicio, fusoDoDia)}
-                              <span className="so-leitor"> indisponível</span>
-                            </button>
-                          ),
-                        )}
-                      </div>
+                      {PERIODOS.map((periodo) => {
+                        const chips = comIndisponiveis(b.horarios).filter(
+                          (h) => periodoDe(formatarHora(h.inicio, fusoDoDia)) === periodo,
+                        );
+                        if (!chips.some((h) => h.livre)) return null;
+                        return (
+                          <div key={periodo} role="group" aria-label={periodo} className="periodo-horarios">
+                            <h4>{periodo}</h4>
+                            <div className="horarios horarios-chips">
+                              {chips.map((h) =>
+                                h.livre ? (
+                                  <button
+                                    key={h.inicio}
+                                    type="button"
+                                    className="botao botao-secundario horario chip-horario"
+                                    aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
+                                    onClick={() => setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })}
+                                  >
+                                    {formatarHora(h.inicio, fusoDoDia)}
+                                  </button>
+                                ) : (
+                                  <button
+                                    key={h.inicio}
+                                    type="button"
+                                    className="botao botao-secundario horario chip-horario chip-indisponivel"
+                                    aria-disabled="true"
+                                    onClick={(e) => e.preventDefault()}
+                                  >
+                                    {formatarHora(h.inicio, fusoDoDia)}
+                                    <span className="so-leitor"> indisponível</span>
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
@@ -331,9 +410,7 @@ export function Agendar() {
         </section>
       )}
 
-      <p className="nota">
-        Só aparecem os horários livres, com pelo menos 2 horas de antecedência e até {HORIZONTE} dias à frente.
-      </p>
+      <p className="nota">{TEXTOS.notaAgendar}</p>
       <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
 
       <div className="resumo-fixo-espaco" aria-hidden="true" />

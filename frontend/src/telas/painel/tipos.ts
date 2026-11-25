@@ -13,6 +13,8 @@ export type EventoWebhookAdmin = Esquemas["EventoWebhookAdmin"];
 export type PaginaAuditoria = Esquemas["PaginaAuditoria"];
 export type AlcancePainel = Esquemas["AlcancePainel"];
 export type MinhaJornada = Esquemas["MinhaJornada"];
+export type ResumoDoMes = Esquemas["ResumoDoMes"];
+export type GradeDoDia = Esquemas["GradeDoDia"];
 
 /** Texto de cada status de cobrança (nunca só o código do contrato). */
 export const STATUS_DA_COBRANCA: Record<string, string> = {

@@ -40,7 +40,7 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await pagarComPixESimular(page);
 
   // confirmação com o código
-  await expect(page.getByRole("heading", { name: "Horário confirmado" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(codigo.length).toBeGreaterThan(10);
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
@@ -79,6 +79,6 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await p2.getByLabel("WhatsApp").fill("11900000004");
   await p2.getByRole("button", { name: "Reservar" }).click();
   await expect(p2).toHaveURL(/\/agendar\?/);
-  await expect(p2.getByText("Esse horário acabou de ser reservado por outra pessoa. Escolha outro.")).toBeVisible();
+  await expect(p2.getByText("Alguém pegou esse horário agorinha. Escolha outro logo abaixo.")).toBeVisible();
   await segundo.close();
 });

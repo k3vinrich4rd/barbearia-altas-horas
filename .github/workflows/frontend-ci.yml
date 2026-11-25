@@ -30,7 +30,6 @@ jobs:
       APP_LIMITES_CEP_MAX: "10000"
       APP_LIMITES_EXPORTACAO_MAX: "10000"
       NEXT_PUBLIC_PAGAMENTO_SIMULADO: "true"
-      NEXT_PUBLIC_HORIZONTE_DIAS: "30"
       API_URL: http://localhost:8080
     steps:
       - name: Checkout do código
@@ -118,6 +117,11 @@ jobs:
       # Fatia 12: os 27 critérios do site mais fluido têm teste com o número deles.
       - name: Conferir spec × testes (fatia 12)
         run: sh scripts/conferir-spec.sh 12 --exigir
+
+      # Fatia 14, parte 14A (mais 1 minuto no Pix e agenda sem limites): A1 a A27 têm teste com o número deles.
+      # 14B, 14C e 14D (A28 a A62) entram nas próximas PRs e ampliam o --ate.
+      - name: Conferir spec × testes (fatia 14, parte 14A)
+        run: sh scripts/conferir-spec.sh 14 --exigir
 
       - name: Publicar relatórios (Playwright e cobertura)
         if: always()

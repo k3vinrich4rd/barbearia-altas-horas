@@ -1,5 +1,6 @@
 // Texto da história na home (D-10). Só fatos que já estão no repositório (README, contexto e design system).
 // O Kevin revisa o texto. A voz: o Eduardo pelo nome quando é sobre a barbearia; o Kevin em primeira pessoa sobre o projeto.
+import { TEXTOS } from "./textos";
 export const TITULO_DA_HOME = "Seu horário com o Eduardo, garantido.";
 
 export const SUBTITULO_DA_HOME =
@@ -18,11 +19,17 @@ export const PASSOS_DA_FAIXA: readonly { titulo: string; texto: string }[] = [
   { titulo: "3 · Confirmado", texto: "o horário fica garantido na agenda" },
 ];
 
+// Trajetória (Fatia 14B, seção 6.2 da spec): só os fatos da tabela 6.1, cada um com fonte no repositório (A39).
+// Fatos novos (primeiro mestre, ano da Academy, alunos, corte preferido) são melhoria futura (seção 10.1).
 export const HISTORIA: readonly string[] = [
-  "O Eduardo Candido começou no ofício em 1995, com o primeiro mestre. Em 1997 abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e desde então atende de terça a sábado, do corte social clássico ao degradê navalhado.",
-  "Na prateleira do salão, os troféus dividem espaço com fotos antigas. Para o Eduardo, cada um marca uma etapa do caminho, e cada dia na cadeira carrega um pouco da dedicação de quase 30 anos.",
-  "Instrutor formado pela Ibel Formação, hoje ele também ensina na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e foi para a internet.",
+  "O Eduardo Candido começou no ofício em 1995, aprendendo com o primeiro mestre. Dois anos depois, em 1997, abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e de lá não saiu mais: são quase 30 anos na mesma cadeira, de terça a sábado.",
+  'Do corte social clássico ao degradê navalhado, passando pelo platinado e pelo corte das crianças, o trabalho fala por ele. Em 2017 veio o reconhecimento em dobro: o Prêmio Barbeiros do Brasil, que ele fez questão de trazer para Osasco, e o Prêmio Master Barber · Êxito Profissional. Ao receber o primeiro, resumiu tudo numa frase: "Amor na ponta da tesoura!".',
+  "Instrutor formado pela Ibel Formação, hoje ele também ensina o ofício na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e do WhatsApp e veio para cá, feita pelo filho dele, o Kevin: você escolhe, paga e o horário é seu.",
 ];
+
+/** Texto do barbeiro na home (BarbeiroDaHome, seção 6.2). */
+export const TEXTO_DO_BARBEIRO =
+  "Barbeiro desde 1995 e dono da Altas Horas desde 1997. Professor na Academy e duas vezes premiado em 2017.";
 
 export const MARCOS: readonly { ano: string; titulo: string; texto: string }[] = [
   {
@@ -45,7 +52,7 @@ export const MARCOS: readonly { ano: string; titulo: string; texto: string }[] =
     ano: "Hoje",
     titulo: "Cadeira e Academy",
     texto:
-      "Barbeiro na cadeira e professor na Altas Horas Barbearia Academy. A agenda sai do caderno e vai para a internet.",
+      "Barbeiro na cadeira e professor na Altas Horas Barbearia Academy. A agenda sai do caderno e vem para a internet.",
   },
 ];
 
@@ -71,7 +78,7 @@ export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
   },
   {
     pergunta: "Com quanta antecedência posso agendar?",
-    resposta: "Com pelo menos 2 horas de antecedência e até 30 dias à frente.",
+    resposta: TEXTOS.duvidaAntecedencia,
   },
 ];
 

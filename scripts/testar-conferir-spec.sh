@@ -16,6 +16,7 @@ cat > "$t/docs/sdd/fatia-9-exemplo.md" <<'EOF'
 | A3 | x | y | z | `com-crase` |
 | A10 | x | y | z | `so-no-node-modules` |
 | A11 | x | y | z | `inexistente` |
+| A16 | x | y | z | `com-extensao.test.ts` (Vitest) |
 | A12 | x | y | z | `so-em-comentario` |
 | A13 | x | y | z | `titulo-na-linha-de-baixo` |
 | A14 | x | y | z | `com-it` |
@@ -42,6 +43,8 @@ printf 'it("A14: com it", () => {});
 ' > "$t/frontend/src/com-it.test.ts"
 printf 'const texto = "A15: so uma string";
 ' > "$t/frontend/src/numero-em-string-solta.test.ts"
+printf 'test("A16: nome com extensao na coluna", () => {});
+' > "$t/frontend/src/com-extensao.test.ts"
 printf 'test("A10: ignorado", () => {});\n' > "$t/frontend/node_modules/x/so-no-node-modules.test.ts"
 
 # critério substituído por outra fatia: vale se o critério da outra fatia tem teste
@@ -63,7 +66,8 @@ confere "A10 só existe em node_modules e conta como sem teste" 1 $c --exigir --
 confere "número só em comentário não conta (A12)" 1 $c --exigir --exceto 1-11,13-15
 confere "título na linha de baixo e it( contam (A13 e A14)" 0 $c --exigir --exceto 1-12,15
 confere "número em string solta, fora de test( e DisplayName, não conta (A15)" 1 $c --exigir --exceto 1-14
-confere "--exceto pula faixa e número" 0 $c --exigir --exceto 10-15
+confere "nome com a extensão na coluna Teste (Fatia 14) acha o arquivo (A16)" 0 $c --exigir --exceto 1-15
+confere "--exceto pula faixa e número" 0 $c --exigir --exceto 10-16
 grep -q "Critérios: 3 · com teste: 3" "$t/saida.txt" || { echo "  FALHOU contagem do --exceto"; falhas=$((falhas + 1)); }
 confere "substituído por critério da outra fatia COM teste passa" 0 sh "$t/scripts/conferir-spec.sh" 6 --exigir
 confere "substituído por critério da outra fatia SEM teste derruba" 1 sh "$t/scripts/conferir-spec.sh" 5 --exigir

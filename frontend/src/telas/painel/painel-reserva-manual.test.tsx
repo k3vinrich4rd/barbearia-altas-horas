@@ -122,6 +122,6 @@ describe("reserva manual", () => {
 
     resposta = () => erro(404, "RECURSO_NAO_ENCONTRADO");
     await user.click(screen.getByRole("button", { name: "Criar reserva" }));
-    expect(await screen.findByText("Não encontramos o que você procura.")).toBeInTheDocument();
+    expect(await screen.findByText("Não encontramos o que você procura. Volte para o início.")).toBeInTheDocument();
   });
 });

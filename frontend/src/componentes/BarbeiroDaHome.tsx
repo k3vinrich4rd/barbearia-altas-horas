@@ -10,6 +10,7 @@ import { IMAGENS } from "@/conteudo/historia";
 import { linkDoWhatsapp } from "./ContatoWhatsapp";
 import { EstadoDaConsulta } from "./EstadoDaConsulta";
 import { Icone } from "./Icone";
+import { TEXTO_DO_BARBEIRO } from "@/conteudo/historia";
 
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const ehOEduardo = (nome: string) => semAcento(nome).includes("eduardo candido");
@@ -43,9 +44,7 @@ export function BarbeiroDaHome() {
                     )}
                     <div className="cartao-barbeiro-texto">
                       <h3>{b.nomeExibicao}</h3>
-                      {ehOEduardo(b.nomeExibicao) && (
-                        <p className="destaque">Barbeiro e professor, na cadeira desde 1995.</p>
-                      )}
+                      {ehOEduardo(b.nomeExibicao) && <p className="destaque">{TEXTO_DO_BARBEIRO}</p>}
                       <p className="acoes">
                         <Link href={`/agendar?barbeiroId=${b.id}`} className="botao botao-principal">
                           Agendar com {primeiroNome}

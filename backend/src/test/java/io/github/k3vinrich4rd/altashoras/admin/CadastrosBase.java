@@ -46,8 +46,8 @@ public abstract class CadastrosBase extends PainelBase {
     protected void restaurarConfiguracao() {
         jdbc.update("""
                 UPDATE configuracao_agenda
-                SET antecedencia_minima_min = 120, intervalo_entre_atendimentos_min = 0, granularidade_min = 30,
-                    horizonte_dias = 30, expiracao_pagamento_min = 3, atualizado_por = NULL, version = 0
+                SET intervalo_entre_atendimentos_min = 0, granularidade_min = 30, expiracao_pagamento_min = 3,
+                    atualizado_por = NULL, version = 0
                 WHERE id = 1
                 """);
     }

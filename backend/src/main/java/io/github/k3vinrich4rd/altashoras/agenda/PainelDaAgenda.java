@@ -1,11 +1,14 @@
 package io.github.k3vinrich4rd.altashoras.agenda;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
@@ -56,12 +59,29 @@ public class PainelDaAgenda {
     public record Item(UUID id, String status, String origem, UUID servicoId, String servicoNome, int duracaoMin,
             UUID barbeiroId, String barbeiroNome, Instant inicio, Instant fim, long precoCentavos,
             @Nullable Instant expiraEm, @Nullable String motivoCancelamento, long version, @Nullable String clienteNome,
-            @Nullable String clienteWhatsapp, @Nullable String observacao) {
+            @Nullable String clienteWhatsapp, @Nullable String observacao, @Nullable Instant prorrogadaEm) {
 
         @Override
         public String toString() {
             return "Item[" + id + ", " + status + "]";
         }
+    }
+
+    /** Um dia do calendário do mês (Fatia 14C, E14): reservas que ocupam, se há folga e se há expediente. */
+    public record DiaDoMes(LocalDate data, int reservas, boolean folga, boolean expediente) {
+    }
+
+    public record ResumoDoMes(YearMonth mes, List<DiaDoMes> dias) {
+    }
+
+    /** Um horário da grade (E15): LIVRE, OCUPADO, ALMOCO ou FOLGA; o id da reserva só em OCUPADO. */
+    public record HorarioDoDia(LocalTime inicio, String situacao, @Nullable UUID agendamentoId) {
+    }
+
+    public record ColunaDoDia(UUID barbeiroId, String nomeExibicao, List<HorarioDoDia> horarios, List<Item> agendamentos) {
+    }
+
+    public record GradeDoDia(LocalDate data, int granularidadeMin, List<ColunaDoDia> colunas) {
     }
 
     /** O resultado do fechamento: o status de antes (a auditoria guarda de/para) e a reserva já atualizada. */
@@ -123,22 +143,22 @@ public class PainelDaAgenda {
         }
     }
 
-    public record NovaConfiguracao(int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin, int granularidadeMin,
-            int horizonteDias, int expiracaoPagamentoMin, long version) {
+    public record NovaConfiguracao(int intervaloEntreAtendimentosMin, int granularidadeMin, int expiracaoPagamentoMin,
+            long version) {
     }
 
-    public record ConfiguracaoCadastrada(String fuso, int antecedenciaMinimaMin, int intervaloEntreAtendimentosMin,
-            int granularidadeMin, int horizonteDias, int expiracaoPagamentoMin, long version) {
+    public record ConfiguracaoCadastrada(String fuso, int intervaloEntreAtendimentosMin, int granularidadeMin,
+            int expiracaoPagamentoMin, long version) {
     }
 
     private static final int MOTIVO_MAXIMO = 300;
 
-    private static final String SELECIONAR = """
+    static final String SELECIONAR = """
             SELECT r.id, r.status, r.origem, r.servico_id, s.nome AS servico_nome, s.duracao_min,
                    r.barbeiro_id, b.nome_exibicao AS barbeiro_nome, r.inicio, r.fim, r.preco_centavos, r.expira_em,
                    r.motivo_cancelamento, r.version,
                    COALESCE(g.nome, u.nome, r.nome_cliente) AS cliente_nome,
-                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao
+                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao, r.prorrogada_em
             FROM reserva r
             JOIN servico s ON s.id = r.servico_id
             JOIN barbeiro b ON b.id = r.barbeiro_id
@@ -146,7 +166,10 @@ public class PainelDaAgenda {
             LEFT JOIN reserva_guest g ON g.reserva_id = r.id
             """;
 
-    private static final RowMapper<Item> LINHA = (rs, n) -> {
+    private static final RowMapper<Item> LINHA = PainelDaAgenda::linha;
+
+    /** Uma linha do {@link #SELECIONAR} (a grade do dia usa a mesma, com a coluna do fim da ocupação a mais). */
+    static Item linha(ResultSet rs, int n) throws SQLException {
         String status = rs.getString("status");
         StatusReserva estado = StatusReserva.valueOf(status);
         boolean esperando = estado == StatusReserva.AGUARDANDO_PAGAMENTO || estado == StatusReserva.EXPIRADO;
@@ -158,8 +181,10 @@ public class PainelDaAgenda {
                 rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getLong("preco_centavos"),
                 esperando && expiraEm != null ? expiraEm.toInstant() : null, rs.getString("motivo_cancelamento"),
                 rs.getLong("version"), rs.getString("cliente_nome"), rs.getString("cliente_whatsapp"),
-                rs.getString("observacao"));
-    };
+                rs.getString("observacao"),
+                rs.getObject("prorrogada_em", OffsetDateTime.class) == null ? null
+                        : rs.getObject("prorrogada_em", OffsetDateTime.class).toInstant());
+    }
 
     private final JdbcClient jdbc;
     private final EntityManager em;
@@ -169,11 +194,13 @@ public class PainelDaAgenda {
     private final CadastrosDoPainel cadastros;
     private final ReservarHorario reservas;
     private final AcessoAgenda acesso;
+    private final VisaoDaAgenda visao;
 
     PainelDaAgenda(JdbcClient jdbc, EntityManager em, ConfiguracaoAgendaRepository configuracoes,
             ApplicationEventPublisher eventos, Clock clock, CadastrosDoPainel cadastros, ReservarHorario reservas,
-            AcessoAgenda acesso) {
+            AcessoAgenda acesso, VisaoDaAgenda visao) {
         this.acesso = acesso;
+        this.visao = visao;
         this.cadastros = cadastros;
         this.reservas = reservas;
         this.jdbc = jdbc;
@@ -206,6 +233,19 @@ public class PainelDaAgenda {
             consulta = consulta.param("barbeiro", alvo);
         }
         return consulta.query(LINHA).list();
+    }
+
+    /**
+     * O calendário do mês (Fatia 14C): por dia civil no fuso, quantas reservas ocupam a cadeira, se há folga e se há
+     * expediente. Mesmo escopo de {@link #agenda}: o convidado nunca vê a agenda do Eduardo (E16, R23).
+     */
+    public ResumoDoMes resumoDoMes(Escopo escopo, YearMonth mes, @Nullable UUID barbeiroId) {
+        return visao.mes(escopo, mes, barbeiroId);
+    }
+
+    /** A grade do dia (Fatia 14C, E15): uma coluna por barbeiro visível, com LIVRE, OCUPADO, ALMOCO e FOLGA. */
+    public GradeDoDia gradeDoDia(Escopo escopo, LocalDate data, @Nullable UUID barbeiroId) {
+        return visao.dia(escopo, data, barbeiroId);
     }
 
     /**
