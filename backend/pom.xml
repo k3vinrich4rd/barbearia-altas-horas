@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.2</version>
+		<version>4.2.0</version>
 		<relativePath/>
 	</parent>
 
@@ -23,7 +23,7 @@
 		<argLine></argLine>
 		<!-- Spring Modulith 2.1.x é a linha do Boot 4.1 (2.1.2 compilado contra o Boot 4.1.2). O Boot não gerencia
 		     o Modulith: o BOM abaixo fixa todos os artefatos dele juntos. Por que modular: ADR 0001. -->
-		<spring-modulith.version>2.1.2</spring-modulith.version>
+		<spring-modulith.version>2.2.0</spring-modulith.version>
 		<shedlock.version>7.11.0</shedlock.version>
 	</properties>
 
