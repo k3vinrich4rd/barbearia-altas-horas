@@ -41,9 +41,9 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     expect(within(grupo).getByRole("button", { pressed: true })).toHaveTextContent("2017");
     expect(detalhe).toHaveTextContent(`2017 · ${MARCOS[2].titulo}.`);
 
-    within(grupo).getByRole("button", { name: /1995/ }).focus();
+    within(grupo).getByRole("button", { name: /1994/ }).focus();
     await user.keyboard("{Enter}");
-    expect(detalhe).toHaveTextContent(`1995 · ${MARCOS[0].titulo}.`);
+    expect(detalhe).toHaveTextContent(`1994 · ${MARCOS[0].titulo}.`);
   });
 
   test("'Ouvir a trajetória' lê em pt-BR, vira 'Parar leitura' e avisa o estado numa região de status", async () => {
