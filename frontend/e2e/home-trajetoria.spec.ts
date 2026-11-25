@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// A home conta a história da barbearia (1995, 1997, 2017, hoje) com interações que precisam funcionar no navegador
+// A home conta a história da barbearia (1994, 1997, 2017, hoje) com interações que precisam funcionar no navegador
 // de verdade e só com o teclado: linha do tempo, dúvidas em <details>, galeria (visualizador) e o painel de acessibilidade.
 test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no navegador de verdade", async ({ page }) => {
   await page.goto("/");
