@@ -12,7 +12,6 @@ import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao, LinkBotao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
 import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
-import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { useSessao } from "@/componentes/Sessao";
 import { TEXTOS } from "@/conteudo/textos";
@@ -124,22 +123,27 @@ export function ReservaDados() {
   return (
     <>
       <h1>Seus dados</h1>
-      <section aria-labelledby="resumo-reserva">
-        <h2 id="resumo-reserva">Resumo</h2>
-        <EstadoDaConsulta consulta={servicos}>
-          {() => (
-            <p>
-              {servico ? `${servico.nome} · ${formatarPreco(servico)}` : "Serviço escolhido"}
-              <br />
-              {barbeiro ? `com ${barbeiro.nomeExibicao} · ` : ""}
-              {formatarDataEHora(inicio)}
-            </p>
-          )}
-        </EstadoDaConsulta>
-        <p>
-          <Link href={voltarParaEscolha()}>Trocar horário</Link>
-        </p>
-      </section>
+
+      <div className="resumo-fixo-espaco" aria-hidden="true" />
+      <aside aria-labelledby="t-resumo-dados" className="resumo-fixo">
+        <h2 id="t-resumo-dados" className="so-leitor">
+          Resumo
+        </h2>
+        <dl>
+          <dt>Serviço</dt>
+          <dd>{servico?.nome ?? "Serviço escolhido"}</dd>
+          <dt>Quando</dt>
+          <dd>
+            {formatarDataEHora(inicio)}
+            {barbeiro ? ` · com ${barbeiro.nomeExibicao}` : ""}
+          </dd>
+          <dt>Total</dt>
+          <dd>{servico ? formatarPreco(servico) : "-"}</dd>
+        </dl>
+        <Link href={voltarParaEscolha({ inicio })} className="botao botao-secundario">
+          Alterar
+        </Link>
+      </aside>
 
       {!sessao.autenticado && !semConta && (
         <section aria-labelledby="como-reservar">

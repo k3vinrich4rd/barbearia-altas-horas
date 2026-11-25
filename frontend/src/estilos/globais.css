@@ -1602,3 +1602,69 @@ select[aria-invalid="true"] {
     display: none;
   }
 }
+
+
+/*
+ * Fluidez (Fatia 14D). AGUARDA DESENHO (seção 11 da spec): só tokens que já existem, nenhuma cor nova.
+ * Microanimações só em transform e opacity, de 150 a 200 ms, zeradas pelo "Sem animação" e por prefers-reduced-motion
+ * (as regras do fim do arquivo vencem por virem depois e por !important).
+ */
+.esqueleto {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.esqueleto-bloco {
+  display: block;
+  height: var(--space-8);
+  border-radius: var(--radius-sm);
+  background: var(--superficie);
+  border: var(--traco-1) solid var(--borda);
+}
+
+.periodo-horarios h4 {
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.chip-horario,
+.dia-chip {
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.chip-horario[aria-pressed="true"],
+.dia-chip[aria-pressed="true"] {
+  transform: scale(1.04);
+}
+
+.aviso {
+  animation: entrar 0.2s ease;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+:root[data-movimento="reduzido"] *,
+:root[data-movimento="reduzido"] *::before,
+:root[data-movimento="reduzido"] *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
