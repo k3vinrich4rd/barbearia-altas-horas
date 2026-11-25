@@ -114,9 +114,14 @@ describe("página do convite do barbeiro", () => {
     await user.click(screen.getByRole("button", { name: "Criar minha senha" }));
 
     const alerta = await screen.findByRole("alert");
-    expect(alerta).toHaveTextContent("Este link não vale mais ou não pode ser usado aqui.");
+    expect(alerta).toHaveTextContent(
+      "Este link não vale mais ou não pode ser usado aqui. Peça outro convite ao dono da barbearia.",
+    );
     expect(alerta).not.toHaveTextContent(/vencid|revogad|inexistent|já foi usado|e-mail não/i);
-    expect(screen.getByRole("link", { name: "Já tenho conta no site: entrar" })).toHaveAttribute("href", "/entrar?voltar=%2Fconvite");
+    expect(screen.getByRole("link", { name: "Já tenho conta no site: entrar" })).toHaveAttribute(
+      "href",
+      "/entrar?voltar=%2Fconvite",
+    );
 
     resposta = () => erro(429, "LIMITE_EXCEDIDO", {}, { "retry-after": "30" });
     await user.type(screen.getByLabelText("Senha"), SENHA); // o envio apaga as senhas da tela
@@ -156,14 +161,18 @@ describe("página do convite do barbeiro", () => {
     expect(confirmacao).toHaveAttribute("autocomplete", "new-password");
     expect(senha).toHaveAttribute("type", "password");
 
-    const mostrar = screen.getByRole("button", { name: "Mostrar a senha" });
+    // Fatia 14B: cada campo de senha tem o seu botão (o primeiro é o da Senha)
+    const mostrar = screen.getAllByRole("button", { name: "Mostrar a senha" })[0];
+    expect(mostrar).toHaveAttribute("aria-controls", "convite-senha");
     expect(mostrar).toHaveAttribute("aria-pressed", "false");
     await user.click(mostrar);
     expect(senha).toHaveAttribute("type", "text");
     expect(screen.getByRole("button", { name: "Esconder a senha" })).toHaveAttribute("aria-pressed", "true");
 
     await user.click(screen.getByRole("button", { name: "Criar minha senha" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Confira os campos marcados.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Falta ajustar os campos marcados. Confira e envie de novo.",
+    );
     expect(email).toHaveAttribute("aria-invalid", "true");
     expect(email).toHaveAccessibleDescription(/Digite o seu e-mail/);
     await waitFor(() => expect(email).toHaveFocus());

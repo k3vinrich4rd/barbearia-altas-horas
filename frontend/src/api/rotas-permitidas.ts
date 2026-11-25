@@ -7,6 +7,8 @@ export const ROTAS_PERMITIDAS: readonly string[] = [
   "DELETE /agendamentos/guest/{id}/regiao",
   "DELETE /me",
   "GET /admin/agenda",
+  "GET /admin/agenda/dia",
+  "GET /admin/agenda/mes",
   "GET /admin/alcance",
   "GET /admin/auditoria",
   "GET /admin/barbeiros",

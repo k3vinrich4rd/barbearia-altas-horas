@@ -58,7 +58,7 @@ describe("rotas protegidas", () => {
       CLIENTE,
     );
     expect(screen.getByRole("heading", { name: "Acesso negado" })).toBeInTheDocument();
-    expect(screen.getByText("Você não tem acesso a esta área.")).toBeInTheDocument();
+    expect(screen.getByText("Esta área é só da equipe da barbearia. Volte para o início.")).toBeInTheDocument();
     expect(screen.queryByText("Painel secreto")).toBeNull();
     c.unmount();
     renderizar(

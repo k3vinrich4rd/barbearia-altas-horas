@@ -15,7 +15,8 @@
 #      scripts/conferir-spec.sh 1 --exigir               (sai com erro se faltar algum; usado no CI)
 #      scripts/conferir-spec.sh 7 --exigir --ate 43      (só os critérios A1 a A43)
 #      scripts/conferir-spec.sh 7 --exigir --exceto 44-53,59   (pula faixas e números; a 7A não cobre o painel)
-# A coluna "Teste" pode trazer o nome com a extensão (`pagamento-prorrogacao.test.tsx`, Fatia 14): a extensão é tirada antes de procurar o arquivo.
+# A coluna "Teste" pode trazer o nome com a extensão (`pagamento-prorrogacao.test.tsx`, Fatia 14): aí vale o arquivo exato
+# (o mesmo nome pode existir como .test.tsx e .spec.ts, como `painel-agenda-nova`).
 # Critério trocado por outra fatia: a linha leva "substituído pela Fatia N (A<m>)" e vale se o A<m> da fatia N tem teste.
 # Só linhas "| A<n> |" contam; os critérios V# (aguarda design) ficam de fora de propósito.
 set -eu
@@ -59,6 +60,12 @@ excluido() {
 # Procura o arquivo de teste de um nome da coluna "Teste" (Java no back, .test.ts/.test.tsx/.spec.ts no front).
 achar_arquivo() {
   nome="$1"
+  # Nome com extensão (Fatia 14): procura o arquivo exato, porque o mesmo nome pode ter .test.tsx e .spec.ts.
+  case "$nome" in
+    *.test.ts|*.test.tsx|*.spec.ts)
+      [ -d frontend ] && find frontend \( -name node_modules -o -name .next -o -name playwright-report -o -name test-results \) -prune -o         -type f -name "$nome" -print 2>/dev/null | head -1
+      return 0 ;;
+  esac
   find backend/src/test -name "$nome.java" 2>/dev/null | head -1
   [ -d frontend ] && find frontend \
     \( -name node_modules -o -name .next -o -name playwright-report -o -name test-results \) -prune -o \
@@ -103,7 +110,7 @@ while IFS= read -r linha; do
     fi
     continue
   fi
-  classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_.-]+`' | tr -d '`' | sed -E 's/\.(test\.tsx|test\.ts|spec\.ts)$//' || true)"
+  classes="$(printf '%s' "$linha" | awk -F'|' '{print $(NF-1)}' | grep -oE '`[A-Za-z0-9_.-]+`' | tr -d '`' || true)"
   total=$((total + 1))
   achou=""
   for classe in $classes; do

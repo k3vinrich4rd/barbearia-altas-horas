@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { BFF, delay, erro, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { definirBusca, zerarNavegacao } from "@/testes/navegacao";
-import { agendamentoAdmin, SESSAO_BARBEIRO } from "@/testes/painel";
+import { agendamentoAdmin, colunaDoDia, gradeDoDia, resumoDoMes, SESSAO_BARBEIRO } from "@/testes/painel";
 import { fixarRelogio, renderizar } from "@/testes/render";
 import { PainelAgenda } from "./PainelAgenda";
 
@@ -19,9 +19,13 @@ const RESERVA = agendamentoAdmin({ id: "a2", version: 3 });
 
 function agenda(leituras: { n: number }) {
   servidor.use(
-    http.get(`${BFF}/admin/agenda`, () => {
+    http.get(`${BFF}/admin/agenda/mes`, ({ request }) =>
+      HttpResponse.json(resumoDoMes(new URL(request.url).searchParams.get("mes") ?? "2026-11")),
+    ),
+    // Fatia 14C: a agenda do dia vem da grade nova; a contagem é das leituras da grade
+    http.get(`${BFF}/admin/agenda/dia`, () => {
       leituras.n++;
-      return HttpResponse.json([RESERVA]);
+      return HttpResponse.json(gradeDoDia("2026-11-24", [colunaDoDia([RESERVA])]));
     }),
     http.get(`${BFF}/admin/minha-jornada`, () =>
       HttpResponse.json({ barbeiroId: "b", nomeExibicao: "B", intervalos: [] }),
@@ -42,7 +46,7 @@ describe("fechar atendimento", () => {
       }),
     );
     const { user, unmount } = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
 
     // sucesso: PATCH com status e version = 3; durante o envio os botões ficam desabilitados
     await user.click(within(item).getByRole("button", { name: "Concluído" }));
@@ -58,7 +62,7 @@ describe("fechar atendimento", () => {
     // antes do início: 422 TRANSICAO_INVALIDA vira texto claro
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(422, "TRANSICAO_INVALIDA")));
     const segundo = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item2 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item2 = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
     await segundo.user.click(within(item2).getByRole("button", { name: "Concluído" }));
     expect(await screen.findByText("Só dá para fechar o atendimento depois do horário de início.")).toBeInTheDocument();
     segundo.unmount();
@@ -68,7 +72,7 @@ describe("fechar atendimento", () => {
     agenda(leiturasConflito);
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(409, "CONFLITO_DE_VERSAO")));
     const terceiro = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item3 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item3 = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
     await terceiro.user.click(within(item3).getByRole("button", { name: "Concluído" }));
     expect(await screen.findByText(/Alguém mexeu neste agendamento antes de você/)).toBeInTheDocument();
     await vi.waitFor(() => expect(leiturasConflito.n).toBe(2));
@@ -84,7 +88,7 @@ describe("fechar atendimento", () => {
       }),
     );
     const quarto = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    const item4 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item4 = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
     await quarto.user.click(within(item4).getByRole("button", { name: "Não compareceu" }));
     const dialogo = screen.getByRole("dialog");
     expect(dialogo).toHaveTextContent("O valor pago fica retido");

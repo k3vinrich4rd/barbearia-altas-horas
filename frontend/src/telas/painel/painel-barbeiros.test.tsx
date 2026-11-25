@@ -51,7 +51,7 @@ describe("barbeiros, jornada e folgas", () => {
     await vi.waitFor(() =>
       expect(screen.getByLabelText("Conta de login (opcional)")).toHaveAttribute("aria-invalid", "true"),
     );
-    expect(screen.getByText("Esta conta já está ligada a outro barbeiro.")).toBeInTheDocument();
+    expect(screen.getByText("Esta conta já está ligada a outro barbeiro. Use outro e-mail.")).toBeInTheDocument();
     expect(posts[0]).toEqual({ nomeExibicao: "Novo Barbeiro", usuarioId: "u-eduardo", whatsapp: "11912345678" });
   });
 

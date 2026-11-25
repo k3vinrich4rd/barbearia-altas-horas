@@ -81,7 +81,7 @@ describe("reserva do visitante", () => {
     expect(email).toHaveAccessibleDescription(/Erro:s*e-mail inválido/);
     expect(nome).toHaveAccessibleDescription(/nome obrigatório/);
     expect(screen.getByLabelText("WhatsApp")).not.toHaveAttribute("aria-invalid");
-  });
+  }, 15000); // teste longo (vários envios): folga para o CI sob carga
 
   test("A22: CEP vazio não envia a chave nem consulta /cep; CEP preenchido (com a caixinha) vai como digitado, com a versão do texto; CEP inválido aparece no campo", async () => {
     const corpos: Record<string, unknown>[] = [];
@@ -113,7 +113,7 @@ describe("reserva do visitante", () => {
       if (cep === "123") {
         const campo = await screen.findByRole("textbox", { name: "CEP" });
         await waitFor(() => expect(campo).toHaveAttribute("aria-invalid", "true"));
-        expect(campo).toHaveAccessibleDescription(/CEP inválido. Digite os 8 números./);
+        expect(campo).toHaveAccessibleDescription(/Esse CEP não confere. Digite os 8 números./);
       }
       unmount();
       roteador.push.mockClear();

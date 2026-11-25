@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { textoDoCodigo } from "@/api/mensagens";
 import { useSessao } from "@/componentes/Sessao";
+import { TEXTOS } from "@/conteudo/textos";
 
 export function AcessoNegado() {
   return (
@@ -19,7 +20,7 @@ export function AcessoNegado() {
 /** Guarda de papel no navegador. A autorização de verdade continua na API (403). */
 export function ExigePapel({ papeis, children }: { papeis: string[]; children: ReactNode }) {
   const sessao = useSessao();
-  if (sessao.carregando) return <p role="status">Carregando…</p>;
+  if (sessao.carregando) return <p role="status">{TEXTOS.carregando}</p>;
   if (!sessao.autenticado) {
     return (
       <p>

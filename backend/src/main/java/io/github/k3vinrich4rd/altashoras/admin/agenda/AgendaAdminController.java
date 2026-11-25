@@ -2,6 +2,8 @@ package io.github.k3vinrich4rd.altashoras.admin.agenda;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.github.k3vinrich4rd.altashoras.admin.Ator;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda;
+import io.github.k3vinrich4rd.altashoras.comum.erro.CodigoErro;
+import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 
 /**
  * Rotas da agenda do painel: ADMIN ou BARBEIRO (o SegurancaConfig já barra CLIENTE e senha inicial). Quem pode ver ou
@@ -62,6 +66,36 @@ class AgendaAdminController {
             @RequestParam(required = false) UUID barbeiroId) {
         return ResponseEntity.ok().cacheControl(SEM_CACHE)
                 .body(consultar.consultar(Ator.de(token, request), data, visao, barbeiroId));
+    }
+
+    /**
+     * O calendário do mês (Fatia 14C, contrato 1.11.0). O escopo vem do token; {@code barbeiroId} só filtra o que o ADMIN
+     * pode ver (o BARBEIRO só vê o próprio; outro é 404, R23). Mês fora de {@code AAAA-MM}: 400.
+     */
+    @GetMapping("/admin/agenda/mes")
+    ResponseEntity<AgendaDoMes> mes(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+            @RequestParam String mes, @RequestParam(required = false) UUID barbeiroId) {
+        return ResponseEntity.ok().cacheControl(SEM_CACHE)
+                .body(consultar.mes(Ator.de(token, request), mes(mes), barbeiroId));
+    }
+
+    /** A grade do dia (Fatia 14C): LIVRE, OCUPADO, ALMOCO e FOLGA por horário, uma coluna por barbeiro visível. */
+    @GetMapping("/admin/agenda/dia")
+    ResponseEntity<GradeDoDia> dia(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(required = false) UUID barbeiroId) {
+        return ResponseEntity.ok().cacheControl(SEM_CACHE).body(consultar.dia(Ator.de(token, request), data, barbeiroId));
+    }
+
+    private static YearMonth mes(String texto) {
+        if (!texto.matches("[0-9]{4}-[0-9]{2}")) {
+            throw new ExcecaoDeNegocio(CodigoErro.VALIDACAO_INVALIDA, "O mês deve estar no formato AAAA-MM.");
+        }
+        try {
+            return YearMonth.parse(texto);
+        } catch (DateTimeParseException e) {
+            throw new ExcecaoDeNegocio(CodigoErro.VALIDACAO_INVALIDA, "O mês deve estar no formato AAAA-MM.");
+        }
     }
 
     /**

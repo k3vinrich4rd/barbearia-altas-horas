@@ -86,3 +86,65 @@ export const configuracaoAdmin = (extra: Record<string, unknown> = {}) => ({
   version: 2,
   ...extra,
 });
+
+// ---- agenda nova do painel (Fatia 14C) ----------------------------------------------------------------------------
+
+type Agendamento = ReturnType<typeof agendamentoAdmin>;
+
+const hhmm = (minutos: number) =>
+  `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
+const minutosDe = (iso: string) => {
+  const [h, m] = iso.slice(11, 16).split(":").map(Number);
+  return h * 60 + m;
+};
+
+/**
+ * Uma coluna da `GradeDoDia` com a jornada padrão (07:00–12:00 e 13:00–20:00, de 30 em 30 min): OCUPADO nos horários
+ * das reservas (até o fim), ALMOCO no vão, FOLGA nos `folgas` ("HH:mm") e LIVRE no resto. Dia sem expediente: `vazio`.
+ */
+export function colunaDoDia(
+  agendamentos: Agendamento[],
+  extra: { barbeiroId?: string; nomeExibicao?: string; folgas?: string[]; vazio?: boolean } = {},
+) {
+  const horarios = extra.vazio
+    ? []
+    : Array.from({ length: 26 }, (_, i) => {
+        const minutos = 7 * 60 + i * 30;
+        const inicio = hhmm(minutos);
+        const reserva = agendamentos.find((a) => minutos >= minutosDe(a.inicio) && minutos < minutosDe(a.fim));
+        if (reserva) return { inicio, situacao: "OCUPADO" as const, agendamentoId: reserva.id };
+        if (extra.folgas?.includes(inicio)) return { inicio, situacao: "FOLGA" as const, agendamentoId: null };
+        if (minutos >= 12 * 60 && minutos < 13 * 60)
+          return { inicio, situacao: "ALMOCO" as const, agendamentoId: null };
+        return { inicio, situacao: "LIVRE" as const, agendamentoId: null };
+      });
+  return {
+    barbeiroId: extra.barbeiroId ?? BARBEIRO.id,
+    nomeExibicao: extra.nomeExibicao ?? BARBEIRO.nomeExibicao,
+    horarios,
+    agendamentos,
+  };
+}
+
+export const gradeDoDia = (data: string, colunas: ReturnType<typeof colunaDoDia>[]) => ({
+  data,
+  granularidadeMin: 30,
+  colunas,
+});
+
+/** `ResumoDoMes` de "AAAA-MM": domingo e segunda fechados; `extra` muda dias pelo "AAAA-MM-DD". */
+export function resumoDoMes(
+  mes: string,
+  extra: Record<string, Partial<{ reservas: number; folga: boolean; expediente: boolean }>> = {},
+) {
+  const [a, m] = mes.split("-").map(Number);
+  const total = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  return {
+    mes,
+    dias: Array.from({ length: total }, (_, i) => {
+      const data = `${mes}-${String(i + 1).padStart(2, "0")}`;
+      const semana = new Date(Date.UTC(a, m - 1, i + 1)).getUTCDay(); // 0 = domingo
+      return { data, reservas: 0, folga: false, expediente: semana !== 0 && semana !== 1, ...extra[data] };
+    }),
+  };
+}
