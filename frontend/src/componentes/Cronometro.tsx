@@ -82,7 +82,9 @@ export function Cronometro({
     !!prorrogacao &&
     !prorrogacao.usada &&
     restante > 0 &&
-    agora >= new Date(prorrogacao.abreEm).getTime() &&
+    // +1 s: a API manda o abreEm em segundos inteiros (sem milissegundos), mas decide com o instante exato. Sem a folga, um toque
+    // no primeiro segundo da janela podia chegar antes da abertura real e voltar 422 PRORROGACAO_FORA_DA_JANELA (o botão sumia).
+    agora >= new Date(prorrogacao.abreEm).getTime() + 1000 &&
     agora < new Date(prorrogacao.fechaEm).getTime();
   const porcento = Math.min(100, Math.round((restante / total) * 100));
   // sem animação: a barra anda em degraus de 10 segundos
