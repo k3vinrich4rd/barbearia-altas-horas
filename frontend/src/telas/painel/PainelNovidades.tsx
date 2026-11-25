@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { diaNoFuso, formatarDataEHora } from "@/api/formato";
 import { Aviso } from "@/componentes/Aviso";
 import { useNovidades } from "@/componentes/Novidades";
+import { TEXTOS } from "@/conteudo/textos";
 
 /** "há 5 min", "há 2 h", "há 3 dias". */
 export function haQuantoTempo(iso: string, agora: Date): string {
@@ -38,7 +39,7 @@ export function PainelNovidades() {
       <h1>Novidades</h1>
       <p>Horários novos com pagamento confirmado. Os avisos ficam aqui por 30 dias.</p>
       {!carregado ? (
-        <p role="status">Carregando…</p>
+        <p role="status">{TEXTOS.carregando}</p>
       ) : itens.length === 0 ? (
         <p>Nenhuma novidade por enquanto.</p>
       ) : (

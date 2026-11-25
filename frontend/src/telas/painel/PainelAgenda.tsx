@@ -1,47 +1,34 @@
 "use client";
-// Agenda do painel (A45 a A47, V7): lista ordenada por horário com o almoço intercalado, fechar o atendimento e cancelar.
-// Cada item sai com data-estado E com o status em texto; a forma de cada estado é do CSS (README, "Padrões da agenda").
+// Agenda do painel (Fatia 14C, seção 8 da spec; antes A45 a A47 da Fatia 7): barra com Hoje, data e barbeiro; calendário do
+// mês com a contagem por dia; grade do dia (LIVRE, OCUPADO, ALMOCO, FOLGA) e, abaixo, os agendamentos com as ações de
+// fechar e cancelar (as mesmas da 7B). O estado fica na URL (/painel?data=2026-12-01&barbeiro=<id>) para o Voltar e para
+// compartilhar entre abas. Cada item sai com data-estado E com o status em texto (README, "Padrões da agenda").
+// AGUARDA DESENHO (seção 11 da spec): só componentes e tokens que já existem.
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useId, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { ErroApi } from "@/api/erro";
-import { diaNoFuso, formatarHora, somarDias } from "@/api/formato";
-import {
-  diaIsoDaSemana,
-  formatarDiaCurto,
-  formatarDiaPorExtenso,
-  mascararWhatsapp,
-  segundaDaSemana,
-} from "@/api/formato-painel";
+import { diaNoFuso, formatarHora } from "@/api/formato";
+import { formatarDiaPorExtenso, mascararWhatsapp } from "@/api/formato-painel";
 import { useConsulta, useEnvio } from "@/api/hooks";
 import { mensagemDoErro } from "@/api/mensagens";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
+import { Campo } from "@/componentes/Campo";
 import { AreaDeTexto, Selecao } from "@/componentes/CamposDoPainel";
 import { Dialogo } from "@/componentes/Dialogo";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
 import { useSessao } from "@/componentes/Sessao";
-import {
-  almocosDoDia,
-  emMinutos,
-  horaCurta,
-  STATUS_DA_COBRANCA,
-  type AgendamentoAdmin,
-  type IntervaloJornada,
-} from "./tipos";
+import { TEXTOS } from "@/conteudo/textos";
+import { CalendarioDoMes, mesDoDia } from "./CalendarioDoMes";
+import { ESTADO_DO_STATUS } from "./estados";
+import { GradeDoDiaPainel } from "./GradeDoDiaPainel";
+import { STATUS_DA_COBRANCA, type AgendamentoAdmin, type GradeDoDia } from "./tipos";
 
-export const ESTADO_DO_STATUS: Record<string, string> = {
-  CONFIRMADO: "confirmado",
-  AGUARDANDO_PAGAMENTO: "aguardando",
-  CONCLUIDO: "concluido",
-  NAO_COMPARECEU: "nao-compareceu",
-  CANCELADO: "cancelado",
-  EXPIRADO: "expirado",
-};
+export { ESTADO_DO_STATUS };
 
-type Visao = "DIA" | "SEMANA";
 const MOTIVO_MAXIMO = 300;
 
 /** Texto próprio das falhas de fechar e cancelar (A46, A47); o resto vem do catálogo pelo `code`. */
@@ -53,41 +40,40 @@ function textoDaFalha(erro: ErroApi): string {
   return mensagemDoErro(erro);
 }
 
-type Entrada =
-  | { tipo: "agendamento"; minutos: number; item: AgendamentoAdmin }
-  | { tipo: "almoco"; minutos: number; inicio: string; fim: string };
+const DIA_VALIDO = /^\d{4}-\d{2}-\d{2}$/;
 
-function entradasDoDia(dia: string, itens: AgendamentoAdmin[], jornada: IntervaloJornada[] | null): Entrada[] {
-  const lista: Entrada[] = itens.map((item) => ({
-    tipo: "agendamento",
-    minutos: emMinutos(formatarHora(item.inicio)),
-    item,
-  }));
-  if (jornada)
-    for (const a of almocosDoDia(jornada, diaIsoDaSemana(dia)))
-      lista.push({ tipo: "almoco", minutos: emMinutos(a.inicio), inicio: a.inicio, fim: a.fim });
-  // estável: na mesma hora o agendamento (ordem da API) vem antes do almoço
-  return lista.sort((a, b) => a.minutos - b.minutos);
+/** A grade com as reservas que mudaram aqui (fechar ou cancelar): cancelada deixa o horário livre, sem ler de novo. */
+function comSubstituidos(grade: GradeDoDia, substituidos: Record<string, AgendamentoAdmin>): GradeDoDia {
+  return {
+    ...grade,
+    colunas: grade.colunas.map((c) => ({
+      ...c,
+      agendamentos: c.agendamentos.map((a) => substituidos[a.id] ?? a),
+      horarios: c.horarios.map((h) =>
+        h.agendamentoId && substituidos[h.agendamentoId]?.status === "CANCELADO"
+          ? { inicio: h.inicio, situacao: "LIVRE" as const, agendamentoId: null }
+          : h,
+      ),
+    })),
+  };
 }
 
 /**
- * O dia vem do endereço (`?data=`) ou é hoje no fuso da barbearia. Entre `/painel?data=X` e `/painel` o Next mantém a
- * mesma tela montada, e o `useState` só olha o valor inicial: sem a `key`, o dia de X ficava preso e o painel abria
- * num dia que não era hoje. A `key` remonta a agenda a cada mudança do `?data=`.
+ * O dia vem do endereço (`?data=`) ou é hoje no fuso da barbearia; o barbeiro do filtro, de `?barbeiro=`. Entre
+ * `/painel?data=X` e `/painel` o Next mantém a mesma tela montada: o efeito abaixo traz o dia do endereço de volta.
  */
 export function PainelAgenda() {
-  const doEndereco = useSearchParams().get("data");
-  const valido = doEndereco && /^\d{4}-\d{2}-\d{2}$/.test(doEndereco) ? doEndereco : null;
-  return <AgendaDoPainel key={valido ?? "hoje"} diaDoEndereco={valido} />;
-}
-
-function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
+  const roteador = useRouter();
+  const busca = useSearchParams();
+  const doEndereco = busca.get("data");
+  const diaDoEndereco = doEndereco && DIA_VALIDO.test(doEndereco) ? doEndereco : null;
+  const barbeiroDoEndereco = busca.get("barbeiro") ?? "";
   const sessao = useSessao();
   const admin = !!sessao.papeis?.includes("ADMIN");
   const hoje = diaNoFuso(new Date());
   const [data, setData] = useState(diaDoEndereco ?? hoje);
-  const [visao, setVisao] = useState<Visao>("DIA");
-  const [barbeiroId, setBarbeiroId] = useState("");
+  const [foco, setFoco] = useState(diaDoEndereco ?? hoje);
+  const [barbeiroId, setBarbeiroId] = useState(admin ? barbeiroDoEndereco : "");
   const [mensagem, setMensagem] = useState("");
   const [substituidos, setSubstituidos] = useState<Record<string, AgendamentoAdmin>>({});
   const [cancelando, setCancelando] = useState<AgendamentoAdmin | null>(null);
@@ -96,35 +82,33 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
   const envio = useEnvio();
   const tituloId = useId();
 
-  const agenda = useConsulta(
-    () =>
-      chamar(
-        api().GET("/admin/agenda", {
-          params: { query: { data, visao, ...(admin && barbeiroId ? { barbeiroId } : {}) } },
-        }),
-      ),
-    [data, visao, barbeiroId, admin],
+  useEffect(() => {
+    const dia = diaDoEndereco ?? diaNoFuso(new Date());
+    setData(dia);
+    setFoco(dia);
+  }, [diaDoEndereco]);
+
+  const filtro = admin && barbeiroId ? { barbeiroId } : {};
+  const mes = mesDoDia(foco);
+  const resumo = useConsulta(
+    () => chamar(api().GET("/admin/agenda/mes", { params: { query: { mes, ...filtro } } })),
+    [mes, barbeiroId, admin],
   );
-  // jornada para listrar o almoço: ADMIN pela lista de barbeiros (com o filtro escolhido), BARBEIRO pela rota própria (D142)
+  const grade = useConsulta(
+    () => chamar(api().GET("/admin/agenda/dia", { params: { query: { data, ...filtro } } })),
+    [data, barbeiroId, admin],
+  );
   const barbeiros = useConsulta(() => chamar(api().GET("/admin/barbeiros")), [], admin);
-  const minha = useConsulta(() => chamar(api().GET("/admin/minha-jornada")), [], !admin && sessao.autenticado);
-  const jornada: IntervaloJornada[] | null = admin
-    ? barbeiroId
-      ? (barbeiros.dados?.find((b) => b.id === barbeiroId)?.jornada ?? null)
-      : null
-    : (minha.dados?.intervalos ?? null);
 
-  useEffect(() => setSubstituidos({}), [agenda.dados]);
+  useEffect(() => setSubstituidos({}), [grade.dados]);
 
-  const dias = useMemo(() => {
-    if (visao === "DIA") return [data];
-    const segunda = segundaDaSemana(data);
-    return Array.from({ length: 7 }, (_, i) => somarDias(segunda, i));
-  }, [data, visao]);
-
-  function andar(passo: number) {
-    setData((d) => somarDias(d, passo * (visao === "SEMANA" ? 7 : 1)));
+  /** Guarda o estado na URL (Voltar e compartilhar entre abas, E18). */
+  function irPara(dia: string, barbeiro = barbeiroId) {
+    setData(dia);
+    setFoco(dia);
     setMensagem("");
+    const consulta = new URLSearchParams({ data: dia, ...(admin && barbeiro ? { barbeiro } : {}) });
+    roteador.replace(`/painel?${consulta}`, { scroll: false });
   }
 
   async function mudar(item: AgendamentoAdmin, status: "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO", texto?: string) {
@@ -137,6 +121,7 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
           }),
         );
         setSubstituidos((s) => ({ ...s, [novo.id]: novo }));
+        resumo.recarregar(); // a contagem do mês muda (cancelar tira do dia); a grade muda aqui mesmo
         setMensagem(
           status === "CONCLUIDO"
             ? "Atendimento concluído."
@@ -146,7 +131,7 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
         );
         return novo;
       } catch (e) {
-        if (e instanceof ErroApi && e.code === "CONFLITO_DE_VERSAO") agenda.recarregar();
+        if (e instanceof ErroApi && e.code === "CONFLITO_DE_VERSAO") grade.recarregar();
         throw e;
       }
     });
@@ -166,11 +151,6 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
       setMotivo("");
     }
   }
-
-  const titulo =
-    visao === "DIA"
-      ? formatarDiaPorExtenso(data)
-      : `Semana de ${formatarDiaCurto(dias[0]).slice(0, 5)} a ${formatarDiaCurto(dias[6]).slice(0, 5)}`;
 
   function itemDaAgenda(item: AgendamentoAdmin) {
     const atual = substituidos[item.id] ?? item;
@@ -245,27 +225,25 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
     <>
       <h1>Agenda</h1>
       <div className="agenda-controles">
-        <div className="acoes" role="group" aria-label="Navegar no calendário">
-          <Botao onClick={() => andar(-1)}>{visao === "DIA" ? "Dia anterior" : "Semana anterior"}</Botao>
-          <Botao onClick={() => setData(hoje)} disabled={visao === "DIA" ? data === hoje : dias.includes(hoje)}>
-            Hoje
-          </Botao>
-          <Botao onClick={() => andar(1)}>{visao === "DIA" ? "Próximo dia" : "Próxima semana"}</Botao>
-        </div>
-        <div className="acoes" role="group" aria-label="Visão">
-          <Botao aria-pressed={visao === "DIA"} onClick={() => setVisao("DIA")}>
-            Dia
-          </Botao>
-          <Botao aria-pressed={visao === "SEMANA"} onClick={() => setVisao("SEMANA")}>
-            Semana
-          </Botao>
-        </div>
+        <Botao onClick={() => irPara(hoje)} disabled={data === hoje}>
+          Hoje
+        </Botao>
+        <Campo
+          id="agenda-data"
+          rotulo="Data"
+          type="date"
+          value={data}
+          onChange={(e) => DIA_VALIDO.test(e.target.value) && irPara(e.target.value)}
+        />
         {admin && (
           <Selecao
             id="filtro-barbeiro"
             rotulo="Barbeiro"
             value={barbeiroId}
-            onChange={(e) => setBarbeiroId(e.target.value)}
+            onChange={(e) => {
+              setBarbeiroId(e.target.value);
+              irPara(data, e.target.value);
+            }}
           >
             <option value="">Todos</option>
             {barbeiros.dados?.map((b) => (
@@ -280,7 +258,19 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
         </Link>
       </div>
 
-      <h2>{titulo}</h2>
+      <details className="agenda-mes" open>
+        <summary>Ver o mês</summary>
+        <CalendarioDoMes
+          resumo={resumo.dados}
+          foco={foco}
+          selecionado={data}
+          hoje={hoje}
+          aoFocar={setFoco}
+          aoEscolher={(dia) => irPara(dia)}
+        />
+      </details>
+
+      <h2 id={`${tituloId}-dia`}>{formatarDiaPorExtenso(data)}</h2>
       <div aria-live="polite">{mensagem && <Aviso tipo="sucesso">{mensagem}</Aviso>}</div>
       {envio.erro && !cancelando && !confirmandoFalta && (
         <Aviso tipo="erro" focar>
@@ -288,30 +278,25 @@ function AgendaDoPainel({ diaDoEndereco }: { diaDoEndereco: string | null }) {
         </Aviso>
       )}
 
-      <EstadoDaConsulta consulta={agenda}>
-        {(itens) => {
-          const porDia = (dia: string) => itens.filter((i) => diaNoFuso(new Date(i.inicio)) === dia);
-          const comConteudo = dias.filter((d) => porDia(d).length > 0);
-          if (comConteudo.length === 0)
-            return <p>{visao === "DIA" ? "Sem agendamentos neste dia." : "Sem agendamentos nesta semana."}</p>;
+      <EstadoDaConsulta consulta={grade}>
+        {(dia) => {
+          const atual = comSubstituidos(dia, substituidos);
+          const itens = atual.colunas
+            .flatMap((c) => c.agendamentos)
+            .sort((a, b) => a.inicio.localeCompare(b.inicio) || a.id.localeCompare(b.id));
           return (
             <>
-              {(visao === "DIA" ? dias : comConteudo).map((dia) => (
-                <section key={dia} aria-label={visao === "DIA" ? "Agendamentos do dia" : formatarDiaPorExtenso(dia)}>
-                  {visao === "SEMANA" && <h3>{formatarDiaPorExtenso(dia)}</h3>}
-                  <ul className="lista agenda-lista">
-                    {entradasDoDia(dia, porDia(dia), jornada).map((e) =>
-                      e.tipo === "almoco" ? (
-                        <li key={`almoco-${e.inicio}`} className="agenda-almoco" data-estado="almoco">
-                          Almoço · {horaCurta(e.inicio)} às {horaCurta(e.fim)}
-                        </li>
-                      ) : (
-                        itemDaAgenda(e.item)
-                      ),
-                    )}
-                  </ul>
-                </section>
-              ))}
+              <section aria-labelledby={`${tituloId}-dia`} className="agenda-grade">
+                <GradeDoDiaPainel grade={atual} admin={admin} />
+              </section>
+              <section aria-label="Agendamentos do dia">
+                <h3>Agendamentos do dia</h3>
+                {itens.length === 0 ? (
+                  <p>{TEXTOS.painelSemClientes}</p>
+                ) : (
+                  <ul className="lista agenda-lista">{itens.map((item) => itemDaAgenda(item))}</ul>
+                )}
+              </section>
             </>
           );
         }}

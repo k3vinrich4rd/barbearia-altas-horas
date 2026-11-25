@@ -91,7 +91,7 @@ describe("serviços do painel", () => {
     await user.type(screen.getByLabelText("Preço (R$)"), "55,90");
     await user.click(screen.getByRole("button", { name: "Salvar serviço" }));
     await vi.waitFor(() => expect(screen.getByLabelText("Nome")).toHaveAttribute("aria-invalid", "true"));
-    expect(screen.getByText("Já existe um item com este nome.")).toBeInTheDocument();
+    expect(screen.getByText("Já existe um item com este nome. Escolha outro nome.")).toBeInTheDocument();
     expect(posts[0]).toEqual({ nome: "Corte Degradê / Fade / Navalhado", duracaoMin: 30, precoCentavos: 5590 });
 
     // criar de verdade: centavos inteiros no corpo e a lista é lida de novo

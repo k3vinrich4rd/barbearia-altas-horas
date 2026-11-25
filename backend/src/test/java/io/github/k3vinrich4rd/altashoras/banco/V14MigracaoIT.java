@@ -42,13 +42,19 @@ class V14MigracaoIT {
     }
 
     @Test
-    @DisplayName("A13: com a API no ar a V14 foi aplicada: configuracao_agenda não tem mais antecedencia_minima_min nem horizonte_dias nem coluna de prorrogação; reserva.prorrogada_em existe e o CHECK recusa prorrogação em reserva MANUAL")
+    @DisplayName("A13: com a API no ar a V14 foi aplicada: antecedencia_minima_min e horizonte_dias continuam com DEFAULT e sem uso (expandir → contrair, D199), sem coluna de prorrogação na configuração; reserva.prorrogada_em existe e o CHECK recusa prorrogação em reserva MANUAL")
     void v14AplicadaNaSubida() {
         assertThat(jdbc.queryForObject("SELECT success FROM flyway_schema_history WHERE version = '14'", Boolean.class))
                 .isTrue();
-        assertThat(colunas(jdbc, "configuracao_agenda")).doesNotContain("antecedencia_minima_min", "horizonte_dias")
+        // Rollback seguro (D199): a API anterior ainda lê as duas colunas, então elas ficam, com DEFAULT.
+        assertThat(colunas(jdbc, "configuracao_agenda")).contains("antecedencia_minima_min", "horizonte_dias")
                 .noneMatch(coluna -> coluna.contains("prorrog"))
                 .contains("intervalo_entre_atendimentos_min", "granularidade_min", "expiracao_pagamento_min", "fuso");
+        assertThat(jdbc.queryForList("""
+                SELECT column_default FROM information_schema.columns
+                WHERE table_name = 'configuracao_agenda' AND column_name IN ('antecedencia_minima_min', 'horizonte_dias')
+                ORDER BY column_name
+                """, String.class)).containsExactly("120", "30");
         assertThat(colunas(jdbc, "reserva")).contains("prorrogada_em");
 
         UUID barbeiro = ReservaSql.novoBarbeiro(jdbc);
@@ -67,7 +73,7 @@ class V14MigracaoIT {
     }
 
     @Test
-    @DisplayName("A13: partindo da V13 com antecedência 60, horizonte 45, intervalo 10, granularidade 15 e expiração 7, a V14 tira os dois campos e as outras colunas mantêm os valores (o CHECK volta sem eles)")
+    @DisplayName("A13: partindo da V13 com antecedência 60, horizonte 45, intervalo 10, granularidade 15 e expiração 7, a V14 não apaga nada (a API anterior ainda lê os dois campos, D199) e todas as colunas mantêm os valores, com o CHECK de antes")
     void v14MantemOsOutrosValores() {
         try (PostgreSQLContainer banco = new PostgreSQLContainer("postgres:18-alpine")) {
             banco.start();
@@ -83,9 +89,10 @@ class V14MigracaoIT {
 
             Flyway.configure().dataSource(dados).locations("classpath:db/migration").load().migrate();
 
-            assertThat(colunas(velho, "configuracao_agenda")).doesNotContain("antecedencia_minima_min", "horizonte_dias");
             Map<String, Object> config = velho.queryForMap("SELECT * FROM configuracao_agenda WHERE id = 1");
-            assertThat(config).containsEntry("intervalo_entre_atendimentos_min", 10).containsEntry("granularidade_min", 15)
+            // O que a API anterior lê continua lá, com o valor que o admin tinha (rollback sem perda).
+            assertThat(config).containsEntry("antecedencia_minima_min", 60).containsEntry("horizonte_dias", 45)
+                    .containsEntry("intervalo_entre_atendimentos_min", 10).containsEntry("granularidade_min", 15)
                     .containsEntry("expiracao_pagamento_min", 7).containsEntry("fuso", "America/Sao_Paulo");
             assertThat(colunas(velho, "reserva")).contains("prorrogada_em");
             assertThatThrownBy(() -> velho.update("UPDATE configuracao_agenda SET granularidade_min = 25 WHERE id = 1"))

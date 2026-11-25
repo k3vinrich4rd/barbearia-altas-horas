@@ -2,7 +2,14 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { BFF, erro, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { definirBusca, zerarNavegacao } from "@/testes/navegacao";
-import { agendamentoAdmin, barbeiroAdmin, SESSAO_BARBEIRO } from "@/testes/painel";
+import {
+  agendamentoAdmin,
+  barbeiroAdmin,
+  colunaDoDia,
+  gradeDoDia,
+  resumoDoMes,
+  SESSAO_BARBEIRO,
+} from "@/testes/painel";
 import { ADMIN, fixarRelogio, renderizar } from "@/testes/render";
 import { PainelAgenda } from "./PainelAgenda";
 
@@ -19,7 +26,10 @@ const RESERVA = agendamentoAdmin({ id: "a2", version: 3 });
 
 function agenda() {
   servidor.use(
-    http.get(`${BFF}/admin/agenda`, () => HttpResponse.json([RESERVA])),
+    http.get(`${BFF}/admin/agenda/mes`, ({ request }) =>
+      HttpResponse.json(resumoDoMes(new URL(request.url).searchParams.get("mes") ?? "2026-11")),
+    ),
+    http.get(`${BFF}/admin/agenda/dia`, () => HttpResponse.json(gradeDoDia("2026-11-24", [colunaDoDia([RESERVA])]))),
     http.get(`${BFF}/admin/barbeiros`, () => HttpResponse.json([barbeiroAdmin()])),
     http.get(`${BFF}/admin/minha-jornada`, () =>
       HttpResponse.json({ barbeiroId: "b", nomeExibicao: "B", intervalos: [] }),
@@ -32,7 +42,7 @@ describe("cancelar pela barbearia", () => {
     agenda();
     // BARBEIRO não vê "Cancelar pela barbearia"
     const barbeiro = renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
-    await screen.findByText(/Rafael Souza/);
+    await screen.findByText(/Rafael Souza/, { selector: "li *" });
     expect(screen.queryByRole("button", { name: /Cancelar pela barbearia/ })).toBeNull();
     barbeiro.unmount();
 
@@ -49,7 +59,7 @@ describe("cancelar pela barbearia", () => {
       }),
     );
     const { user } = renderizar(<PainelAgenda />, ADMIN);
-    const item = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
     await user.click(within(item).getByRole("button", { name: "Cancelar pela barbearia" }));
 
     const dialogo = screen.getByRole("dialog");
@@ -79,7 +89,7 @@ describe("cancelar pela barbearia", () => {
     agenda();
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(422, "MOTIVO_OBRIGATORIO")));
     const { user, unmount } = renderizar(<PainelAgenda />, ADMIN);
-    const item = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
     await user.click(within(item).getByRole("button", { name: "Cancelar pela barbearia" }));
     await user.type(within(screen.getByRole("dialog")).getByLabelText("Motivo do cancelamento"), "Imprevisto");
     await user.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
@@ -90,7 +100,7 @@ describe("cancelar pela barbearia", () => {
 
     servidor.use(http.patch(`${BFF}/admin/agendamentos/:id/status`, () => erro(403, "ACESSO_NEGADO")));
     const outro = renderizar(<PainelAgenda />, ADMIN);
-    const item2 = (await screen.findByText(/Rafael Souza/)).closest("li") as HTMLElement;
+    const item2 = (await screen.findByText(/Rafael Souza/, { selector: "li *" })).closest("li") as HTMLElement;
     await outro.user.click(within(item2).getByRole("button", { name: "Cancelar pela barbearia" }));
     await outro.user.type(within(screen.getByRole("dialog")).getByLabelText("Motivo do cancelamento"), "Imprevisto");
     await outro.user.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));

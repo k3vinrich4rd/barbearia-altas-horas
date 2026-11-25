@@ -55,7 +55,7 @@ test("A27: o visitante reserva, gera o Pix, espera o último minuto, acrescenta 
   // o Pix que já estava na tela continua valendo: simular o pagamento confirma a reserva
   await page.getByRole("button", { name: "Simular pagamento" }).click();
   await expect(page).toHaveURL(/\/agendar\/confirmacao\//, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "Horário confirmado" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
 });

@@ -23,6 +23,7 @@
 | [5. Cenário do cliente](#5-cenário-do-cliente-com-conta) | cadastro, login, sessão, reservar, listar e pagar (simulado) | ✅ C1 a C12 · ⏳ Fatia 6 |
 | [6. Cenário do admin](#6-cenário-do-admin-o-barbeiro) | entrar e trocar a senha inicial, agenda, fechar, cancelar com motivo, devolver, auditoria, serviços, jornada, folga e configuração | ✅ AD1 a AD14 (AD14: pagamento tardio, coberto por teste automatizado) · ⏳ AL1 (alcance por região, Fatia 6C: saída real a preencher no fluxo manual) |
 | [5d. Mais 1 minuto no Pix e agenda sem limites](#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-) | botão "Acrescentar 1 minuto" no último minuto, uma vez, e agenda sem antecedência nem horizonte | ✅ Fatia 14A |
+| [5e. Senha, voz da barbearia, agenda nova e fluidez](#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-) | olhinho na senha, mensagens novas, Trajetória, calendário do mês e grade do dia no painel, e as 8 melhorias de fluidez | ✅ Fatias 14B, 14C e 14D |
 | [5b. Deploy grátis](#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-) | imagem Docker no perfil prod, IP real, CORS, hibernação, backup e restauração | ✅ A1 a A22 (ativação: só com o OK do Kevin) |
 | [6D. WhatsApp, reserva manual e prazo de 3 min](#d1--fatia-6d-whatsapp-reserva-manual-e-prazo-de-3-min) | WhatsApp do barbeiro, reserva manual pelo painel e expiração em 3 min | ✅ D1 |
 | [7. As telas](#7-as-telas-frontend) | Next.js com checkout e aceite | ⏳ Fatia 7 |
@@ -67,7 +68,7 @@ Para parar: `Ctrl+C` na API e `docker compose stop`. Para **zerar o banco**: `do
 cd backend && ./mvnw verify
 ```
 
-✅ Resultado real mais recente (Windows + Docker Desktop, 24/11/2026, Fatia 14A): **581 testes, 0 falhas, 0 erros, 0 pulados** (ver [5d](#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-)), `BUILD SUCCESS`.
+✅ Resultado real mais recente (Windows + Docker Desktop, 24/11/2026, Fatias 14B, 14C e 14D): **588 testes, 0 falhas, 0 erros, 0 pulados**, cobertura de instruções 95% (JaCoCo), `BUILD SUCCESS` (ver [5e](#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-)).
 
 Resultado anterior (Linux + Docker, 20/11/2026): **387 testes, 0 falhas, 0 pulados** (322 em classes `*IT` e 65 de unidade; os 385 anteriores, todos mantidos, + 2 do `ContratoExemplosDeErroTest`, que confere se cada exemplo de erro do `openapi.yaml` usa um `code` do `CodigoErro` com o mesmo status e título, e se o enum do contrato é igual ao do Java), `BUILD SUCCESS`.
 
@@ -817,6 +818,30 @@ Saída real contra a API no perfil `dev` (PostgreSQL 18 isolado), 24/11/2026. Re
 **O que prova:** a resposta de `/admin/configuracao` não tem mais `antecedenciaMinimaMin` nem `horizonteDias`; o `PUT` de um front antigo (com os dois) dá `200` e os dois são ignorados (a disponibilidade de hoje continua mostrando os horários de daqui a minutos); a reserva manual daqui a minutos vale e o horário que já passou é `422 ANTECEDENCIA_INSUFICIENTE`. A `prorrogacao` de uma reserva manual é `null`.
 
 **Para o Kevin conferir à mão (celular):** com a API e o front no ar, reserve um horário, gere o Pix e espere o contador chegar a 1:00: o botão **Acrescentar 1 minuto** aparece, o contador vai de 0:30 para 1:30 e a mensagem "Pronto, mais 1 minuto no contador." recebe o foco. Com o leitor de tela ligado, o tempo novo é anunciado ("Faltam 2 minutos para pagar."). Com "Sem animação" ligado nada se move (o botão não tem animação). **Depois do deploy, apague `NEXT_PUBLIC_HORIZONTE_DIAS` no Vercel** (o código não a lê mais).
+
+## 5e. Senha, voz da barbearia, agenda nova e fluidez (Fatia 14B, 14C e 14D) ✅
+
+Spec: [fatia-14-experiencia-premium.md](sdd/fatia-14-experiencia-premium.md), critérios A28 a A62; decisões D199 e D200.
+
+### Testes automatizados
+
+| Parte | Critérios | Onde |
+|---|---|---|
+| 14B · olhinho na senha | A28 a A32, A33 (axe) | `campo-senha.test.tsx`, `e2e/senha-visivel.spec.ts` |
+| 14B · voz e Trajetória | A34 a A39 | `mensagens-voz.test.ts`, `trajetoria-texto.test.tsx` |
+| 14C · API da agenda nova | A40 a A46 | `AgendaDoMesIT`, `AgendaIsolamentoIT`, `GradeDoDiaIT`, `AgendaSemNMaisUmIT` (PostgreSQL real) |
+| 14C · telas | A47 a A52, A53 (axe e teclado) | `painel-agenda-nova.test.tsx`, `painel-agenda-mes.test.tsx`, `painel-agenda-dia.test.tsx`, `e2e/painel-agenda-nova.spec.ts` |
+| 14D · fluidez | A54 a A62 (A58 no E2E) | `agendar-periodos`, `agendar-proximo-livre`, `agendar-resumo-dados`, `skeleton`, `confirmacao-ics`, `confirmacao-whatsapp`, `agendar-de-novo`, `lighthouse-14`, `e2e/movimento-reduzido.spec.ts` |
+
+Rodada real de 24/11/2026: backend `./mvnw verify` **588 testes, 0 falhas** (cobertura 95%); front **206 testes Vitest**, `tsc`, `lint` e `build` limpos; `redocly lint` válido; `scripts/conferir-spec.sh 14 --exigir` **62 de 62**.
+
+### Na mão (perfil `dev`)
+
+1. **Olhinho:** abra `/entrar`, digite uma senha e toque **Mostrar a senha**: o campo mostra o texto e o botão vira **Esconder a senha**. Envie com a senha visível: ela volta a ficar escondida antes do envio. Repita em `/cadastro`, `/conta/trocar-senha` (dois campos) e no convite (dois campos).
+2. **Voz:** erre a senha em `/entrar`: "E-mail ou senha não conferem. Confira e tente de novo; o botão Mostrar a senha ajuda."
+3. **Agenda nova:** entre como admin e abra `/painel`. Em cima, **Hoje**, **Data** e **Barbeiro**; o calendário do mês mostra a contagem de cada dia, "Folga" e "Fechado". Toque um dia: a URL vira `/painel?data=AAAA-MM-DD` e a grade mostra **Livre** (com **Marcar aqui**, que abre a reserva manual já marcada), a reserva, **Almoço** e **Folga**. No calendário, as setas movem o foco, `Home`/`End` vão ao início e ao fim da semana e `PageDown` troca o mês.
+4. **Isolamento:** com a conta de um barbeiro convidado, `GET /admin/agenda/mes?mes=2026-12&barbeiroId=<id do Eduardo>` responde `404`; sem o `barbeiroId`, só aparece a agenda dele.
+5. **Fluidez:** em `/agendar`, os horários vêm em **Manhã**, **Tarde** e **Noite**; **Próximo livre** marca dia e horário em um toque; em `/agendar/dados` o resumo fixo tem **Alterar**. Na confirmação, **Adicionar à minha agenda** baixa o `.ics`, **Mandar no WhatsApp** abre o `wa.me` sem destinatário e **Agendar de novo** volta para `/agendar` com o serviço e o barbeiro marcados. Com "Sem animação" ligado, nada se mexe.
 
 ## 6. Cenário do admin (o barbeiro)
 

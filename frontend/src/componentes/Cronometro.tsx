@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatarContagem } from "@/api/formato";
 import type { components } from "@/api/schema";
 import { Botao } from "./Botao";
+import { TEXTOS } from "@/conteudo/textos";
 
 export type Prorrogacao = NonNullable<components["schemas"]["Agendamento"]["prorrogacao"]>;
 
@@ -19,7 +20,7 @@ export function descreverTempo(segundos: number): string {
 }
 
 function anuncio(restante: number): string {
-  if (restante <= 0) return "Conferindo o prazo com o servidor.";
+  if (restante <= 0) return TEXTOS.prazoZerado;
   if (restante <= 30) return "Faltam 30 segundos para pagar.";
   const minutos = Math.ceil(restante / 60);
   return `Faltam ${minutos} ${minutos === 1 ? "minuto" : "minutos"} para pagar.`;
@@ -100,8 +101,8 @@ export function Cronometro({
       {ultimoMinuto && (
         <p className="cronometro-ultimo">
           {janelaAberta && prorrogacao
-            ? `Menos de 1 minuto. Se precisar, toque em Acrescentar ${descreverTempo(prorrogacao.segundos)}.`
-            : "Falta menos de 1 minuto."}
+            ? TEXTOS.ultimoMinutoComBotao(`Acrescentar ${descreverTempo(prorrogacao.segundos)}`)
+            : TEXTOS.ultimoMinuto}
         </p>
       )}
       {janelaAberta && prorrogacao && aoAcrescentar && (

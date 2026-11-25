@@ -6,6 +6,8 @@ import { codigoDoVisitante } from "@/api/bff";
 import { api, chamar } from "@/api/cliente";
 import { formatarDataEHora, formatarPreco } from "@/api/formato";
 import { useConsulta } from "@/api/hooks";
+import { baixarIcs, linkDoWhatsapp } from "@/api/compartilhar";
+import { Botao } from "@/componentes/Botao";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { CopiarTexto } from "@/componentes/CopiarTexto";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
@@ -14,6 +16,7 @@ import { useSessao } from "@/componentes/Sessao";
 import { LinkBotao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
+import { TEXTOS } from "@/conteudo/textos";
 
 export function Confirmacao({ reservaId }: { reservaId: string }) {
   const sessao = useSessao();
@@ -58,7 +61,7 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
   return (
     <>
       <p className="sobretitulo">Etapa 3 · Confirmação</p>
-      <h1>Horário confirmado</h1>
+      <h1>{TEXTOS.confirmado}</h1>
       <EstadoDaConsulta consulta={reserva}>
         {(r) => (
           <>
@@ -75,6 +78,22 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
                 Situação: <EtiquetaDeStatus status={r.status} />
               </p>
             </section>
+            <div className="acoes">
+              <Botao onClick={() => baixarIcs(r)}>Adicionar à minha agenda</Botao>
+              <a
+                className="botao botao-secundario"
+                href={linkDoWhatsapp(r, formatarDataEHora(r.inicio))}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Mandar no WhatsApp
+              </a>
+              <LinkBotao
+                href={`/agendar?${new URLSearchParams({ servicoId: r.servico?.id ?? "", barbeiroId: r.barbeiro?.id ?? "" })}`}
+              >
+                Agendar de novo
+              </LinkBotao>
+            </div>
             {politica.dados && <p className="nota">{politica.dados.texto}</p>}
             <section aria-labelledby="t-depois">
               <h2 id="t-depois">E agora?</h2>

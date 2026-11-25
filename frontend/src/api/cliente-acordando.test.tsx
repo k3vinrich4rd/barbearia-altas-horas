@@ -39,17 +39,17 @@ describe("servidor acordando", () => {
       }),
     );
     tela();
-    await screen.findByText(/servidor está acordando/i);
+    await screen.findByText(/A agenda estava descansando e já está acordando/);
     expect(chamadas).toBe(1);
     await avancar(2900);
     expect(chamadas).toBe(1);
     await avancar(200);
     await vi.waitFor(() => expect(chamadas).toBe(2));
-    await screen.findByText(/servidor está acordando/i);
+    await screen.findByText(/A agenda estava descansando e já está acordando/);
     await avancar(3100);
     await screen.findByText("Corte Clássico / Social");
     expect(chamadas).toBe(3);
-    expect(screen.queryByText(/servidor está acordando/i)).toBeNull();
+    expect(screen.queryByText(/A agenda estava descansando e já está acordando/)).toBeNull();
   });
 
   test("A14: se a API nunca volta, depois de 70 s mostra a mensagem final com 'Tentar de novo', sem laço e sem requisições em paralelo", async () => {
@@ -67,7 +67,7 @@ describe("servidor acordando", () => {
       }),
     );
     tela();
-    await screen.findByText(/servidor está acordando/i);
+    await screen.findByText(/A agenda estava descansando e já está acordando/);
     for (let i = 0; i < 30; i++) await avancar(3000);
     await screen.findByText(/não respondeu/i);
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();

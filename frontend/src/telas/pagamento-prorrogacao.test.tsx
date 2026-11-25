@@ -117,20 +117,21 @@ describe("acrescentar 1 minuto", () => {
 
     await user.click(await screen.findByRole("button", { name: "Acrescentar 1 minuto" }));
 
-    await vi.waitFor(() => expect(screen.getByRole("timer")).toHaveTextContent("01:30"));
+    // o contador só redesenha no próximo tique (setInterval real, até 1 s): folga para o CI lento
+    await vi.waitFor(() => expect(screen.getByRole("timer")).toHaveTextContent("01:30"), { timeout: 4000 });
     expect(screen.getByText("Faltam 2 minutos para pagar.")).toBeInTheDocument();
     expect(screen.getByText("Faltam 2 minutos para pagar.")).toHaveAttribute("aria-live", "polite");
     // continua correndo: um segundo depois do relógio do aparelho, o contador anda
     vi.setSystemTime(new Date("2026-12-01T10:02:35-03:00"));
-    await vi.waitFor(() => expect(screen.getByRole("timer")).toHaveTextContent("01:25"), { timeout: 3000 });
-  });
+    await vi.waitFor(() => expect(screen.getByRole("timer")).toHaveTextContent("01:25"), { timeout: 4000 });
+  }, 15000);
 
   test("A25: 422 RESERVA_EXPIRADA mostra o texto de expirado com 'Escolher outro horário'; 422 PRORROGACAO_FORA_DA_JANELA faz o botão sumir", async () => {
     fixarRelogio("2026-12-01T10:02:59-03:00");
     servir({ prorrogacao: janela(), resposta: () => erro(422, "RESERVA_EXPIRADA") });
     let tela = montar();
     await tela.user.click(await screen.findByRole("button", { name: "Acrescentar 1 minuto" }));
-    expect(await screen.findByText(/O tempo acabou e o horário voltou para a agenda/)).toBeInTheDocument();
+    expect(await screen.findByText(/O tempo para pagar acabou e o horário voltou para a agenda/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Escolher outro horário" })).toHaveAttribute("href", "/agendar");
     expect(botao()).toBeNull();
     tela.unmount();

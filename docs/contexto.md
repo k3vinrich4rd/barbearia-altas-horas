@@ -116,14 +116,14 @@ Perguntas enviadas ao Kevin em 13/11/2026. Até a resposta, vale o **valor provi
 | H2 | Quantos barbeiros atendem | **decidida (16/11)**: 1, Carlos Eduardo Candido (ADMIN e BARBEIRO); a entidade `Barbeiro` continua no modelo | seed + painel |
 | H3 | Serviços, duração e preço | **decidida (16/11), duração revista em 18/11 (D94)**: todos os serviços duram **60 min** (2 slots) · Corte Clássico/Social R$ 45,00 · Corte Degradê/Fade/Navalhado R$ 55,00 · Corte Moderno/Visagismo (tesoura) R$ 60,00 · Barba Completa/Desenhada R$ 30,00 · Acabamento (pezinho)/Sobrancelha R$ 20,00 · sem combos | cadastro de serviços (painel) |
 | H4 | Intervalo entre atendimentos | **decidida (16/11)**: 0 min | `configuracao_agenda.intervalo_entre_atendimentos_min` |
-| H5 | Antecedência mínima para agendar | **revogada (24/11, D197)**: não existe; era 120 min | ~~`configuracao_agenda.antecedencia_minima_min`~~ (coluna apagada na V14) |
+| H5 | Antecedência mínima para agendar | **revogada (24/11, D197)**: não existe; era 120 min | ~~`configuracao_agenda.antecedencia_minima_min`~~ (coluna sem uso desde a V14; remoção depois de uma release estável, D199) |
 | H6 | Janela para cancelar ou remarcar | **decidida (16/11)**: não existe; o cliente não cancela nem remarca (R18) | — |
 | H7 | Política de pagamento em falta ou cancelamento | **decidida (16/11)**: 100% antecipado; falta retém o valor; sem estorno por desistência | `politica_pagamento` (texto versionado) |
 | H8 | Pagamento que chega depois de a reserva expirar | **decidida (16/11)**: confirma se o horário estiver livre; senão, pendência administrativa (R14) | regra R14 |
 | H9 | O barbeiro vê só a própria agenda ou a de todos? | **sem efeito no beta** (1 barbeiro); a regra "só a própria" fica no código para o template | autorização do módulo `admin` |
 | H10 | Pacote raiz Java | **decidida (16/11)**: `io.github.k3vinrich4rd.altashoras` | ADR 0001 |
 | H11 | Granularidade dos horários oferecidos | **decidida (16/11)**: 30 min | `configuracao_agenda.granularidade_min` |
-| H12 | Até quantos dias à frente dá para agendar | **revogada (24/11, D197)**: sem limite; eram 30 dias | ~~`configuracao_agenda.horizonte_dias`~~ (coluna apagada na V14) |
+| H12 | Até quantos dias à frente dá para agendar | **revogada (24/11, D197)**: sem limite; eram 30 dias | ~~`configuracao_agenda.horizonte_dias`~~ (coluna sem uso desde a V14; remoção depois de uma release estável, D199) |
 | H13 | Retenção dos dados do guest e do histórico do sinal | contato do guest: anonimizar 90 dias após o atendimento; registro financeiro da cobrança: 5 anos (**pendente de fonte legal**) | `app.privacidade.retencao-guest-dias` e ADR 0009 |
 | H14 | Limites de tentativas | **decidida (17/11)**: login 5 erros em 15 min por e-mail + IP e 20 por IP; cadastro 5 por hora por IP; reserva guest: 3 por hora por IP (Fatia 4) | `app.limites.*` |
 | H15 | Validade das sessões | **decidida (17/11)**: acesso 15 min; refresh 7 dias, renovado a cada uso | `app.seguranca.jwt.*`, `app.sessao.*` |

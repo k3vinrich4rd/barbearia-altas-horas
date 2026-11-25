@@ -38,7 +38,7 @@ describe("política de privacidade", () => {
 
     servidor.use(http.get(`${BFF}/politica-privacidade`, () => erro(500, "ERRO_INTERNO")));
     renderizar(<Privacidade />);
-    expect(await screen.findByText(/Algo deu errado do nosso lado/)).toBeInTheDocument();
+    expect(await screen.findByText(/Deu um problema do nosso lado, não foi você/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
 });

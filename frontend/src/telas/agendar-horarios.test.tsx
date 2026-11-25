@@ -88,7 +88,7 @@ describe("horários", () => {
 
     // dia sem horários
     fireEvent.change(dia, { target: { value: "2026-11-25" } });
-    expect(await screen.findByText(/Sem horários neste dia/)).toBeInTheDocument();
+    expect(await screen.findByText(/Esse dia já está cheio/)).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: /Horários de/ })).toBeNull();
   });
 
@@ -163,11 +163,11 @@ describe("horários", () => {
     const { user } = renderizar(<Agendar />);
     const dia = await screen.findByLabelText(/Outro dia/);
     fireEvent.change(dia, { target: { value: "2026-11-25" } });
-    expect(await screen.findByText("Sem horários neste dia.")).toBeInTheDocument();
+    expect(await screen.findByText("Esse dia já está cheio. Veja o próximo dia com horário.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ver o próximo dia com horário" }));
     expect(await screen.findByRole("button", { name: "09:00" })).toBeInTheDocument();
     expect(dia).toHaveValue("2026-11-27");
-    expect(screen.queryByText("Sem horários neste dia.")).toBeNull();
+    expect(screen.queryByText("Esse dia já está cheio. Veja o próximo dia com horário.")).toBeNull();
   });
 });

@@ -865,7 +865,8 @@ dd {
 
 .dia-chip[data-livre="nao"] {
   border-style: dashed;
-  color: var(--texto-apagado);
+  /* --texto-suave: o --texto-apagado não passa no contraste AA do tema escuro (axe A54) */
+  color: var(--texto-suave);
 }
 
 .dia-chip-nota {
@@ -1518,4 +1519,158 @@ select[aria-invalid="true"] {
 .regiao-retirar {
   display: grid;
   gap: var(--space-2);
+}
+
+/*
+ * Agenda nova do painel (Fatia 14C). AGUARDA DESENHO (seção 11 da spec): só layout, com os tokens que já existem; nenhuma
+ * cor nova. O estado de cada dia e de cada horário está em texto (Folga, Fechado, Livre, Almoço), nunca só na forma.
+ */
+.agenda-mes > summary {
+  cursor: pointer;
+  font-weight: var(--tipo-rotulo-peso);
+  margin-block: var(--space-2);
+}
+
+.calendario {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.calendario td {
+  padding: var(--space-1);
+  vertical-align: top;
+}
+
+.calendario-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: var(--space-16);
+  padding: var(--space-2);
+  border: var(--traco-1) solid var(--borda);
+  border-radius: var(--radius-sm);
+  background: var(--superficie);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendario-dia[aria-pressed="true"] {
+  border: var(--traco-2) solid var(--borda-forte);
+}
+
+.calendario-dia[data-hoje] .calendario-numero {
+  text-decoration: underline;
+}
+
+.calendario-contagem,
+.calendario-marca {
+  font-size: var(--tipo-nota-tamanho);
+}
+
+.calendario-contagem {
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.grade-do-dia {
+  width: 100%;
+}
+
+.grade-do-dia td,
+.grade-do-dia th {
+  padding: var(--space-2);
+  vertical-align: top;
+}
+
+.grade-do-dia td[data-estado="folga"],
+.grade-do-dia td[data-estado="fora"] {
+  color: var(--texto-suave);
+}
+
+/* No celular, com "Todos", uma coluna por vez (o seletor escolhe); a partir de 1024 px, lado a lado. */
+@media (max-width: 63.99rem) {
+  .grade-do-dia[data-varias-colunas] th[scope="col"]:not(:first-child):not([data-visivel]),
+  .grade-do-dia[data-varias-colunas] td:not([data-visivel]) {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) {
+  .grade-um-por-vez {
+    display: none;
+  }
+}
+
+
+/*
+ * Fluidez (Fatia 14D). AGUARDA DESENHO (seção 11 da spec): só tokens que já existem, nenhuma cor nova.
+ * Microanimações só em transform e opacity, de 150 a 200 ms, zeradas pelo "Sem animação" e por prefers-reduced-motion
+ * (as regras do fim do arquivo vencem por virem depois e por !important).
+ */
+.esqueleto {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.esqueleto-bloco {
+  display: block;
+  height: var(--space-8);
+  border-radius: var(--radius-sm);
+  background: var(--superficie);
+  border: var(--traco-1) solid var(--borda);
+}
+
+.periodo-horarios h4 {
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.chip-horario,
+.dia-chip {
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.chip-horario[aria-pressed="true"],
+.dia-chip[aria-pressed="true"] {
+  transform: scale(1.04);
+}
+
+.aviso {
+  animation: entrar 0.2s ease;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-1) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+:root[data-movimento="reduzido"] *,
+:root[data-movimento="reduzido"] *::before,
+:root[data-movimento="reduzido"] *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* "folga" e "fechado" com a inicial maiúscula só na tela (o nome do botão continua "..., folga") */
+.calendario-marca::first-letter {
+  text-transform: uppercase;
 }
