@@ -46,9 +46,9 @@ Uma barbearia de bairro que atende por caderno e WhatsApp ganhou uma **agenda on
 
 | 🌐 No ar | 💳 Pagamento | ⏱ Prazo | 🔒 Conflito de horário | 🧪 Testes |
 |:-:|:-:|:-:|:-:|:-:|
-| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (simulado no beta) | 3 min para pagar | impossível, garantido pelo banco | **581** no backend, 0 falhas |
+| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (simulado no beta) | 3 min para pagar | impossível, garantido pelo banco | **588** no backend, 0 falhas |
 
-<sub>Os 581 testes vêm do [guia de testes](docs/guia-testes.md#5d-mais-1-minuto-no-pix-e-agenda-sem-limites-fatia-14a-) (24/11/2026, `./mvnw verify` com PostgreSQL real, na PR da Fatia 14A). Nenhum número desta página é estimativa.</sub>
+<sub>Os 588 testes vêm do [guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-) (rodada final de 24/11/2026, `./mvnw verify` com PostgreSQL real, depois da Fatia 14). Nenhum número desta página é estimativa.</sub>
 
 ## 🗓 As 3 formas de agendar
 
@@ -90,7 +90,7 @@ flowchart LR
 
 <img align="right" src="docs/assets/eduardo-candido-avatar.png" width="190" alt="Eduardo Candido, barbeiro e professor da Altas Horas, de camisa branca e gravata"/>
 
-O caminho do **Eduardo Candido**, meu pai, na barbearia começou em **1995**, com o primeiro mestre. Dois anos depois, em **1997**, ele abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então comanda a cadeira: quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Em 2017, esse trabalho foi reconhecido duas vezes, com o **Prêmio Barbeiros do Brasil**, que ele fez questão de trazer para Osasco, e o **Prêmio Master Barber · Êxito Profissional**. Instrutor formado pela Ibel Formação, hoje ele também ensina na **Altas Horas Barbearia Academy**, preparando a próxima geração de barbeiros.
+O caminho do **Carlos Eduardo Candido** (o Eduardo), meu pai, na barbearia começou em **1994**, com o primeiro mestre. Três anos depois, em **1997**, ele abriu a **Barbearia Altas Horas** no Jardim Bonança, em Osasco, e desde então comanda a cadeira: quase 30 anos atendendo de terça a sábado, das 7h às 20h, do corte social clássico ao degradê navalhado. Em 2017, esse trabalho foi reconhecido duas vezes, com o **Prêmio Barbeiros do Brasil**, que ele fez questão de trazer para Osasco, e o **Prêmio Master Barber · Êxito Profissional**. Instrutor formado pela Ibel Formação, hoje ele também ensina na **Altas Horas Barbearia Academy**, preparando a próxima geração de barbeiros.
 
 Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no caderno e no WhatsApp. É aí que aparece um problema clássico da barbearia de bairro: o cliente marca, não aparece, e aquele horário não volta mais. Para quem atende sozinho, cadeira vazia é tempo perdido e dinheiro que deixa de entrar.
 
@@ -122,7 +122,7 @@ Prints reais de [barbearia-altas-horas.vercel.app](https://barbearia-altas-horas
 
 | A história desde 1997 | Como funciona | No celular | Dúvidas |
 |:-:|:-:|:-:|:-:|
-| <img src="docs/midia/prints/site-secao-historia.png" width="260" alt="Seção da história da barbearia com a linha do tempo de 1995 a hoje"/> | <img src="docs/midia/prints/site-secao-como-funciona.png" width="220" alt="Seção Como funciona: escolher, pagar e chegar"/> | <img src="docs/midia/prints/site-home-celular.png" width="120" alt="Home do site em tela de celular"/> | <img src="docs/midia/prints/site-secao-duvidas.png" width="220" alt="Seção de dúvidas com perguntas que abrem e fecham"/> |
+| <img src="docs/midia/prints/site-secao-historia.png" width="260" alt="Seção da história da barbearia com a linha do tempo de 1994 a hoje"/> | <img src="docs/midia/prints/site-secao-como-funciona.png" width="220" alt="Seção Como funciona: escolher, pagar e chegar"/> | <img src="docs/midia/prints/site-home-celular.png" width="120" alt="Home do site em tela de celular"/> | <img src="docs/midia/prints/site-secao-duvidas.png" width="220" alt="Seção de dúvidas com perguntas que abrem e fecham"/> |
 
 As três formas de marcar estão no [diagrama do topo](#-as-3-formas-de-agendar). O fluxo de quem não tem conta, passo a passo:
 
@@ -185,7 +185,7 @@ O catálogo do beta publicado ainda está vazio, então estes prints são do mes
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#FFFFFF','lineColor':'#7A7A7A','fontFamily':'Georgia, serif'}}}%%
 timeline
-    1995 : começa no ofício, com o primeiro mestre
+    1994 : começa no ofício, com o primeiro mestre
     1997 : abre a Barbearia Altas Horas no Jardim Bonança, Osasco
     2017 : Prêmio Barbeiros do Brasil
          : Prêmio Master Barber · Êxito Profissional
@@ -573,7 +573,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```bash
-cd backend && ./mvnw verify      # 581 testes com PostgreSQL real via Testcontainers (24/11/2026, Fatia 14A)
+cd backend && ./mvnw verify      # 588 testes com PostgreSQL real via Testcontainers (24/11/2026, depois da Fatia 14)
 ```
 
 O contrato da API ([`docs/contrato/openapi.yaml`](docs/contrato/openapi.yaml)) descreve cada rota, com os erros em pt-BR no formato RFC 9457. Para validar:
@@ -650,11 +650,11 @@ Projeto individual: o Kevin (backend Java) usa IA como par de programação, e o
 
 | 📐 Fatias com spec | ✅ Critérios `A#` nas specs | 🧪 Testes do backend | 🧭 ADRs | 🧑‍💻 Agentes | 🛠 Skills |
 |:-:|:-:|:-:|:-:|:-:|:-:|
-| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **581** (`./mvnw verify`) | **14** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
+| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **588** (`./mvnw verify`) | **14** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
 
 </div>
 
-<sub>Contados no repositório em 25/11/2026: 17 arquivos `fatia-*.md`; 701 linhas de tabela `| A<n> |` nessas specs; 557 `@DisplayName("A…")` no backend e 105 arquivos `*.test.ts(x)` e `*.spec.ts` no frontend; 581 é o resultado de `./mvnw verify` registrado no [guia de testes](docs/guia-testes.md) (24/11/2026).</sub>
+<sub>Contados no repositório em 25/11/2026: 17 arquivos `fatia-*.md`; 701 linhas de tabela `| A<n> |` nessas specs; 557 `@DisplayName("A…")` no backend e 105 arquivos `*.test.ts(x)` e `*.spec.ts` no frontend; 588 é o resultado de `./mvnw verify` registrado no [guia de testes](docs/guia-testes.md) (24/11/2026, seção 5e).
 
 ### O fluxo de uma fatia, da spec ao deploy
 

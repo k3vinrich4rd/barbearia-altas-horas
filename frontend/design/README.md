@@ -186,7 +186,7 @@ A meta é **WCAG 2.2 nível AA** e a **ABNT NBR 17225**, a norma brasileira de a
 - **Mudanças anunciadas.** Seleções que mudam conteúdo (ano da linha do tempo, foto da galeria, resumo do agendamento) atualizam uma região `aria-live="polite"`.
 - **Agendamento.** Grupos de opções com rótulo (`role="group"` + `aria-labelledby`), escolha marcada por forma (bloco invertido) e por `aria-pressed`, contagem de horários livres, e a política de não cancelamento num checkbox obrigatório antes de pagar, como exige a regra R18 do projeto.
 
-**Interações da página** (todas funcionam por teclado): linha do tempo clicável (1995, 1997, 2017, hoje), galeria com miniaturas e setas anterior/próxima, perguntas frequentes em `<details>` e cartões de serviço com botão de agendar. O estilo segue as tendências atuais sem trair a marca: tipografia grande, blocos em grade e microinterações, sem 3D, gradientes ou cores novas.
+**Interações da página** (todas funcionam por teclado): linha do tempo clicável (1994, 1997, 2017, hoje), galeria com miniaturas e setas anterior/próxima, perguntas frequentes em `<details>` e cartões de serviço com botão de agendar. O estilo segue as tendências atuais sem trair a marca: tipografia grande, blocos em grade e microinterações, sem 3D, gradientes ou cores novas.
 
 ## Logo
 
