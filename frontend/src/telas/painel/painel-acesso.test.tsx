@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import PainelLayout from "@/app/painel/layout";
 import PaginaAuditoria from "@/app/painel/auditoria/page";
 import PaginaCadastros from "@/app/painel/cadastros/page";
+import PaginaFolgas from "@/app/painel/folgas/page";
 import PaginaPendencias from "@/app/painel/pendencias/page";
 import { BFF, erro, http, ligarServidor, servidor } from "@/testes/msw";
 import { definirCaminho, zerarNavegacao } from "@/testes/navegacao";
@@ -57,7 +58,7 @@ describe("acesso ao painel", () => {
     barbeiro.unmount();
 
     // abrir a URL do item escondido mostra acesso negado
-    for (const Pagina of [PaginaPendencias, PaginaCadastros, PaginaAuditoria]) {
+    for (const Pagina of [PaginaPendencias, PaginaCadastros, PaginaFolgas, PaginaAuditoria]) {
       const escondida = renderizar(<Pagina />, SESSAO_BARBEIRO);
       expect(screen.getByRole("heading", { name: "Acesso negado" })).toBeInTheDocument();
       escondida.unmount();
@@ -75,6 +76,7 @@ describe("acesso ao painel", () => {
       "Reserva manual",
       "Pendências",
       "Cadastros",
+      "Férias e folgas",
       "Auditoria",
       "Alcance",
       "Novidades",
