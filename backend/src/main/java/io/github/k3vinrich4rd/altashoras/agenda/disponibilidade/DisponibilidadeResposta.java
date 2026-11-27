@@ -7,6 +7,8 @@ import java.util.UUID;
 public record DisponibilidadeResposta(String data, String fuso, UUID servicoId, int duracaoMin,
         List<HorariosDoBarbeiro> barbeiros) {
 
-    public record HorariosDoBarbeiro(UUID barbeiroId, String nomeExibicao, List<String> horarios) {
+    /** {@code expediente} desde a 1.12.0: sempre enviado, por barbeiro (E16). */
+    public record HorariosDoBarbeiro(UUID barbeiroId, String nomeExibicao, List<String> horarios,
+            ExpedienteDoDia expediente) {
     }
 }
