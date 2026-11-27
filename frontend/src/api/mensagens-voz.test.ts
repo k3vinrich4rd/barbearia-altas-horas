@@ -128,7 +128,7 @@ describe("mensagens com a voz da barbearia (Fatia 14B)", () => {
       // também revistos
       [MENSAGENS.ACESSO_NEGADO, "Esta área é só da equipe da barbearia. Volte para o início."],
       [MENSAGENS.NAO_AUTENTICADO, "Entre na sua conta para continuar."],
-      [TEXTOS.confirmado, "Fechado! Seu horário está garantido."],
+      [TEXTOS.confirmado, "Agendado! Seu horário está garantido."],
       [TEXTOS.painelSemClientes, "Nenhum cliente marcado neste dia ainda."],
       [
         MENSAGENS.PRORROGACAO_FORA_DA_JANELA,
@@ -149,7 +149,7 @@ describe("mensagens com a voz da barbearia (Fatia 14B)", () => {
     for (const [chave, texto] of CATALOGO) expect(texto, chave).not.toContain("!");
   });
 
-  test("MT-7: os textos da Fatia 15 são os aprovados, palavra por palavra (pedidos restantes, tempo extra esgotado e dia fechado)", () => {
+  test("MT-7: os textos da Fatia 15 são os propostos, palavra por palavra (pedidos restantes, tempo extra esgotado e dia fechado)", () => {
     expect(TEXTOS.pedidosRestantes(9)).toBe("Restam 9 pedidos.");
     expect(TEXTOS.pedidosRestantes(2)).toBe("Restam 2 pedidos.");
     expect(TEXTOS.pedidosRestantes(1)).toBe("Resta 1 pedido.");
@@ -167,5 +167,10 @@ describe("mensagens com a voz da barbearia (Fatia 14B)", () => {
       // o ERRO_INTERNO é, de propósito, o mesmo texto do genérico (linha 20 da seção 5)
       if (code !== "ERRO_INTERNO") expect(MENSAGENS[code], `${code} caiu no genérico`).not.toBe(MENSAGEM_GENERICA);
     }
+  });
+  test("FF-11: o texto final do FOLGA_COM_RESERVAS (D214) é o aprovado, palavra por palavra", () => {
+    expect(MENSAGENS.FOLGA_COM_RESERVAS).toBe(
+      "Há clientes marcados nesse período. Confira a lista abaixo: você pode manter essas reservas ou cancelar uma por uma antes de salvar a folga.",
+    );
   });
 });

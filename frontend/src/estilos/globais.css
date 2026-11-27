@@ -1757,3 +1757,20 @@ select[aria-invalid="true"] {
   max-width: var(--medida-leitura);
   margin-top: var(--space-3);
 }
+
+/* Férias e folgas (Fatia 15, C13): no celular, lista e formulário um embaixo do outro; a partir de 64rem, lado a lado. */
+.folgas-painel {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.folgas-previa [role="status"]:empty {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .folgas-painel {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}

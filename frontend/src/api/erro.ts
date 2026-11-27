@@ -17,6 +17,8 @@ export class ErroApi extends Error {
   readonly traceId?: string;
   readonly erros: ErroCampo[];
   readonly retryAfter?: number;
+  /** As extensões do problema (RFC 9457) além dos campos acima, como o `conflitos[]` do FOLGA_COM_RESERVAS (1.12.0). */
+  readonly extensoes: Record<string, unknown>;
 
   constructor(dados: {
     status: number;
@@ -26,6 +28,7 @@ export class ErroApi extends Error {
     traceId?: string;
     erros?: ErroCampo[];
     retryAfter?: number;
+    extensoes?: Record<string, unknown>;
   }) {
     super(dados.code);
     this.name = "ErroApi";
@@ -36,6 +39,7 @@ export class ErroApi extends Error {
     this.traceId = dados.traceId;
     this.erros = dados.erros ?? [];
     this.retryAfter = dados.retryAfter;
+    this.extensoes = dados.extensoes ?? {};
   }
 
   /** A API está fora do ar ou acordando (rede, timeout, 502/503 sem problem+json, HTML). */
@@ -54,6 +58,8 @@ function segundos(valor: string | number | null | undefined): number | undefined
   const n = Number(valor);
   return Number.isFinite(n) && n >= 0 ? Math.ceil(n) : undefined;
 }
+
+const CAMPOS_DO_PROBLEMA = new Set(["type", "title", "status", "detail", "instance", "code", "traceId", "errors"]);
 
 /** Monta o ErroApi a partir do status, do corpo já lido (objeto ou texto) e do Retry-After. */
 export function montarErro(status: number, corpo: unknown, retryAfter?: string | null): ErroApi {
@@ -76,6 +82,7 @@ export function montarErro(status: number, corpo: unknown, retryAfter?: string |
     traceId: typeof p!.traceId === "string" ? p!.traceId : undefined,
     erros,
     retryAfter: segundos(retryAfter),
+    extensoes: Object.fromEntries(Object.entries(p!).filter(([k]) => !CAMPOS_DO_PROBLEMA.has(k))),
   });
 }
 

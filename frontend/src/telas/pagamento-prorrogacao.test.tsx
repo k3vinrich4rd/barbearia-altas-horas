@@ -201,7 +201,7 @@ describe("até 10 pedidos de mais tempo (Fatia 15)", () => {
     expect(screen.queryByText(/pedidos?\.$/)).toBeNull();
   });
 
-  test("MT-4c: 422 PRORROGACAO_ESGOTADA mostra 'Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário.' e o botão some", async () => {
+  test("MT-4c: 422 PRORROGACAO_ESGOTADA mostra 'Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário.' como aviso, sem 'Erro:' nem código de suporte, e o botão some", async () => {
     fixarRelogio("2026-12-01T10:02:10-03:00");
     servir({ prorrogacao: janela(usadasAte(9)), resposta: () => erro(422, "PRORROGACAO_ESGOTADA") });
     const { user } = montar();
@@ -209,6 +209,13 @@ describe("até 10 pedidos de mais tempo (Fatia 15)", () => {
     expect(
       await screen.findByText("Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário."),
     ).toBeInTheDocument();
+    const aviso = screen
+      .getAllByRole("status")
+      .find((n) => n.textContent?.includes("Você já usou todo o tempo extra."));
+    expect(aviso).toHaveTextContent(
+      /^Você já usou todo o tempo extra\. Conclua o pagamento agora ou escolha outro horário\.$/,
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(botao()).toBeNull();
     expect(screen.getByRole("timer")).toBeInTheDocument();
   });

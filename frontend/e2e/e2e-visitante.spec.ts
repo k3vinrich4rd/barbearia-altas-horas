@@ -40,7 +40,7 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await pagarComPixESimular(page);
 
   // confirmação com o código
-  await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agendado! Seu horário está garantido." })).toBeVisible();
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(codigo.length).toBeGreaterThan(10);
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
