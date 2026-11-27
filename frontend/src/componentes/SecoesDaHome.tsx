@@ -61,8 +61,9 @@ export function Trajetoria() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [falando, setFalando] = useState(false);
   const [aviso, setAviso] = useState("");
-  const [usarFala, setUsarFala] = useState(false);
   const [fontesNoAr, setFontesNoAr] = useState(false);
+  const [oferecerLeitura, setOferecerLeitura] = useState(false);
+  const [leituraPeloAparelho, setLeituraPeloAparelho] = useState(false);
   const [marco, setMarco] = useState(1);
   useRedirecionarHistoria();
 
@@ -110,9 +111,8 @@ export function Trajetoria() {
           setAviso("Lendo a trajetória em voz alta.");
         })
         .catch(() => {
-          setUsarFala(true);
+          setOferecerLeitura(true);
           setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
-          falarComAparelho(true);
         });
       return;
     }
@@ -120,26 +120,33 @@ export function Trajetoria() {
     setAviso("Lendo a trajetória em voz alta.");
   }
 
+  function iniciarLeituraPeloAparelho() {
+    setLeituraPeloAparelho(true);
+    setOferecerLeitura(false);
+    falarComAparelho();
+  }
+
   function alternarVoz() {
-    if (usarFala) {
-      falarComAparelho();
-      return;
-    }
-    const audio = audioRef.current;
-    if (!audio) {
-      setUsarFala(true);
+    if (leituraPeloAparelho) {
       falarComAparelho();
       return;
     }
     if (falando) {
-      audio.pause();
+      audioRef.current?.pause();
       setFalando(false);
       setAviso("Leitura parada.");
       return;
     }
-    // Fontes e legenda só entram no DOM ao apertar Ouvir (VZ-1: o .vtt com default era baixado no carregamento).
+    // Fontes, legenda e controles nativos só entram no DOM ao apertar Ouvir
+    // (VZ-1: o .vtt com default era baixado no carregamento; controles vazios não tocavam).
     if (!fontesNoAr) {
       flushSync(() => setFontesNoAr(true));
+    }
+    const audio = audioRef.current;
+    if (!audio) {
+      setOferecerLeitura(true);
+      setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+      return;
     }
     tocar(audio);
   }
@@ -153,38 +160,48 @@ export function Trajetoria() {
         <div>
           <p className="sobretitulo">Trajetória</p>
           <h2 id="t-trajetoria">Quase três décadas na mesma cadeira</h2>
-          {HISTORIA.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
           <div className="player-trajetoria">
             <p>
-              <button type="button" className="botao botao-secundario" onClick={alternarVoz} aria-pressed={falando}>
+              <button type="button" className="botao botao-secundario" onClick={alternarVoz}>
                 <Icone nome="voz" /> {falando ? "Pausar" : `Ouvir a trajetória · ${DURACAO_DA_NARRACAO}`}
               </button>
             </p>
-            <audio
-              ref={audioRef}
-              controls
-              preload="none"
-              onPlay={() => setFalando(true)}
-              onPause={() => setFalando(false)}
-              onEnded={() => {
-                setFalando(false);
-                setAviso("Leitura terminada.");
-              }}
-            >
-              {fontesNoAr && (
-                <>
-                  <source src={AUDIO_OPUS} type="audio/opus" />
-                  <source src={AUDIO_MP3} type="audio/mpeg" />
-                  <track kind="captions" srcLang="pt-BR" label="Português" src={AUDIO_VTT} default />
-                </>
-              )}
-            </audio>
+            {fontesNoAr && (
+              <audio
+                ref={audioRef}
+                controls
+                preload="none"
+                onPlay={() => setFalando(true)}
+                onPause={() => setFalando(false)}
+                onEnded={() => {
+                  setFalando(false);
+                  setAviso("Leitura terminada.");
+                }}
+                onError={() => {
+                  setOferecerLeitura(true);
+                  setFalando(false);
+                  setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+                }}
+              >
+                <source src={AUDIO_OPUS} type="audio/ogg; codecs=opus" />
+                <source src={AUDIO_MP3} type="audio/mpeg" />
+                <track kind="captions" srcLang="pt-BR" label="Português" src={AUDIO_VTT} default />
+              </audio>
+            )}
+            {oferecerLeitura && (
+              <p>
+                <button type="button" className="botao botao-secundario" onClick={iniciarLeituraPeloAparelho}>
+                  Ler com a voz do aparelho
+                </button>
+              </p>
+            )}
             <p role="status" className="nota">
               {aviso}
             </p>
           </div>
+          {HISTORIA.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
           <blockquote>
             <p>“Amor na ponta da tesoura!”</p>
             <footer>Eduardo Candido, ao receber o Prêmio Barbeiros do Brasil</footer>
