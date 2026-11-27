@@ -171,7 +171,7 @@ class CriarCobranca {
         }
         if (resposta == null) {
             resposta = gateway.criar(new NovaCobranca(cobranca.getId(), cobranca.getMetodo(), cobranca.getValorCentavos(),
-                    cpf, reserva.nomePagador(), reserva.expiraEm() == null ? clock.instant() : reserva.expiraEm()));
+                    cpf, reserva.nomePagador(), validadeNoGateway(reserva)));
         }
         CobrancaNoGateway gravar = resposta;
         Cobranca atual = transacao.execute(status -> {
@@ -180,6 +180,17 @@ class CriarCobranca {
             return c;
         });
         return CobrancaResposta.de(atual, fuso, resposta.pixQrCodeBase64(), cpf.mascarado());
+    }
+
+    /**
+     * E23 (Fatia 15, D191): o Pix nasce valendo pelo prazo máximo que a reserva pode alcançar com os pedidos de mais tempo,
+     * para continuar pagável depois de cada pedido sem trocar o copia e cola. Quem prende o horário é o expiraEm da reserva.
+     */
+    private Instant validadeNoGateway(DadosParaCobranca reserva) {
+        if (reserva.validadeMaxima() != null) {
+            return reserva.validadeMaxima();
+        }
+        return reserva.expiraEm() == null ? clock.instant() : reserva.expiraEm();
     }
 
     private static ExcecaoDeNegocio emAndamento(Cobranca viva) {
