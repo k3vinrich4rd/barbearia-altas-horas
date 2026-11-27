@@ -39,7 +39,10 @@ public enum CodigoErro {
     FORA_DO_EXPEDIENTE(422, "Fora do horário de atendimento", "A barbearia não atende neste horário."),
     /** Desde a 1.11.0 (D197) é a única regra de tempo: o horário já passou. O nome não mudou para não quebrar o front. */
     ANTECEDENCIA_INSUFICIENTE(422, "Horário já passou", "Este horário já passou. Escolha um horário mais à frente."),
-    /** Deprecated na 1.11.0 (D197): a API não devolve mais; o nome fica no enum para o front antigo e o contrato. */
+    /**
+     * Deprecated desde a D197 (1.11.0), sem efeito: nenhum código lança este valor e a API não o devolve. O nome fica
+     * no enum só para o front antigo e o contrato (sai na próxima versão maior).
+     */
     FORA_DO_HORIZONTE(422, "Data além do permitido", "A agenda ainda não está aberta para esta data."),
     ACEITE_POLITICA_OBRIGATORIO(422, "Aceite da política obrigatório", "Aceite a política de pagamento para continuar."),
     TRANSICAO_INVALIDA(422, "Mudança de status não permitida", "Esta mudança de status não é permitida."),

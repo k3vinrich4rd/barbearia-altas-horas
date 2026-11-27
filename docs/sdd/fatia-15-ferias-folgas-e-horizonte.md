@@ -36,7 +36,7 @@ Campos novos:
 
 - `FolgaRequest.tipo`: `FERIAS` ou `FOLGA`, opcional, padrão `FOLGA`.
 - `FolgaRequest.manterReservas`: booleano, opcional, padrão `false`, só na escrita; nunca é guardado.
-- `Folga.tipo` (sempre presente) e `Folga.atualizadaEm` (nulo até a primeira edição).
+- `Folga.tipo` e `Folga.atualizadaEm` (nulo até a primeira edição). *1.12.1 (D206): `tipo` e `FolgaSalva.reservasMantidas` são opcionais na resposta até este código estar em produção; ausentes = `FOLGA` e lista vazia.*
 - `FolgaSalva` = `Folga` + `reservasMantidas: ConflitoDeFolga[]`.
 - `ConflitoDeFolga`: `reservaId`, `inicio`, `fim`, `servico { id, nome }`, `clienteNome`, `origem` (`CLIENTE`, `GUEST`, `MANUAL`), `status` (`CONFIRMADO` ou `AGUARDANDO_PAGAMENTO`).
 - `Problema.conflitos[]`: extensão RFC 9457 opcional, só no `FOLGA_COM_RESERVAS`.
@@ -86,7 +86,7 @@ Exemplo do `422` (dados fictícios):
 |---|---|---|
 | `ConsultaDisponibilidade.java:69`, `ReservarHorario.java:316` | a única recusa por tempo é `422 ANTECEDENCIA_INSUFICIENTE` (início até agora) | sem data máxima |
 | `openapi.yaml:120-122` (`/disponibilidade`), `openapi.yaml:835-836` (reserva manual), `contrato-api.md:167` e `:347` | "não há antecedência mínima nem limite de dias à frente" (D197) | contrato já certo |
-| `rg -i horizonte backend/src/main/java` | nenhum resultado | o código não lê horizonte |
+| `rg -i horizonte backend/src/main/java` | só `CodigoErro.java` (`FORA_DO_HORIZONTE`) e `ConfiguracaoRequest.java` (javadoc e o campo `horizonteDias`), as duas sobras marcadas "deprecated desde a D197, sem efeito"; nenhum código lança o erro nem lê o campo (corrigido em 27/11, ressalva de QA da PR #118) | o código não aplica horizonte |
 | `V1__agenda.sql:104,113`, `V14__prorrogacao_e_agenda_sem_limites.sql:7,20` | coluna `horizonte_dias` sem uso, `DEFAULT 30`, CHECK 1 a 365 | sobra de propósito (D199); remoção física depois |
 | `openapi.yaml:1646-1653`, `contrato-api.md:443` | `FORA_DO_HORIZONTE` `deprecated`, a API não devolve | sai na próxima versão maior |
 | `openapi.yaml:2211`, `ConfiguracaoRequest.java:23` | `horizonteDias` `deprecated`, `writeOnly`, ignorado no `PUT` | sai na próxima versão maior |
@@ -114,6 +114,7 @@ Exemplo do `422` (dados fictícios):
 | E12 | Prévia trava algo? | **não**: só lê, sem trava e sem gravar | o resultado pode mudar até o `POST`; quem decide é a gravação, que relê dentro da trava |
 | E13 | Versão no `PUT`? | **não** nesta fatia | há um único dono; a última gravação vale |
 | E14 | Período válido | `fim` depois de `inicio` e não todo no passado; senão `400 VALIDACAO_INVALIDA`. Vale para `POST`, `PUT` e prévia | as mesmas regras de hoje |
+| E15 | Erros com dado pessoal | o nome do cliente vai no `422` e na prévia, só para o `ADMIN`, com `Cache-Control: no-store`; o tratador de erros **não** loga `conflitos` | é o mesmo dado do `AgendamentoAdmin`; R30 |
 | E16 | Onde fica o `expediente`? | **por barbeiro**, em `barbeiros[]`, não na raiz | jornada e folgas são de cada barbeiro; um pode estar de férias e o outro atendendo |
 | E17 | Como se calcula | `inicio` = início do primeiro intervalo da jornada no dia da semana; `fim` = fim do último; `almoco` = vão entre os dois primeiros intervalos (`null` com um só). Fechado: os três `null` | os mesmos dados e o mesmo critério do `ALMOCO` da grade do painel (`VisaoDaAgenda.java:173`) |
 | E18 | Quando o dia fecha | sem intervalo na jornada: `FORA_DO_EXPEDIENTE`; folgas ou férias cobrindo **todo** o expediente do dia: `FECHADO`. Folga parcial não fecha o dia | folga parcial pública revelaria compromisso pessoal; só os horários somem |
@@ -123,7 +124,6 @@ Exemplo do `422` (dados fictícios):
 | E22 | Ordem das checagens | `404` → `422 TRANSICAO_INVALIDA` → `200` (mesma chave) → `422 RESERVA_EXPIRADA` → **`422 PRORROGACAO_ESGOTADA`** → `422 PRORROGACAO_FORA_DA_JANELA` → grava | a de hoje, com o código novo logo depois do `RESERVA_EXPIRADA` |
 | E23 | Pix e cobrança | o copia e cola não muda; na criação, a validade enviada ao gateway = início do prazo + `expiracaoPagamentoMin` + `maximo` × `segundos` (hoje 23 min), **calculada das propriedades**; o horário continua preso pelo `expiraEm` da reserva; pagamento depois de expirar segue o fluxo de hoje (reconfirma ou `PAGA_APOS_EXPIRACAO`) | o Pix tem de continuar pagável durante todo o tempo que a pessoa pode pedir (D191) |
 | E24 | Prévia de conflitos no painel | o painel chama `GET /folgas/conflitos` **assim que o dono escolhe as datas, antes de salvar**, e mostra quem está marcado. O `422 FOLGA_COM_RESERVAS` com a lista continua como **rede de segurança** para a corrida (alguém marca entre a prévia e o salvar) | a decisão fica com o dono, antes de qualquer gravação; a gravação relê dentro da trava e é quem decide |
-| E15 | Erros com dado pessoal | o nome do cliente vai no `422` e na prévia, só para o `ADMIN`, com `Cache-Control: no-store`; o tratador de erros **não** loga `conflitos` | é o mesmo dado do `AgendamentoAdmin`; R30 |
 
 ## 5. Critérios de aceite
 
