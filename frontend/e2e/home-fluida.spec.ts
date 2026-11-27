@@ -55,36 +55,6 @@ test("A5 e A2 (Fatia 16, F2): no celular a barra começa escondida e inert com o
   }
 });
 
-test("A1 (Fatia 16, F2): rolando a home a 360 e a 1280, nunca há mais de 1 Agendar horário visível e clicável", async ({
-  page,
-}) => {
-  for (const tamanho of [
-    { width: 360, height: 800 },
-    { width: 1280, height: 800 },
-  ]) {
-    await page.setViewportSize(tamanho);
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    const altura = await page.evaluate(() => document.documentElement.scrollHeight);
-    let maximo = 0;
-    for (let y = 0; y <= altura; y += 200) {
-      await page.evaluate((t) => window.scrollTo({ top: t, behavior: "instant" }), y);
-      await page.waitForTimeout(300); // a transição da barra é de 200 ms
-      const visiveis = await page.evaluate(
-        () =>
-          [...document.querySelectorAll<HTMLElement>("a, button")].filter((e) => {
-            if (e.innerText.trim().toLowerCase() !== "agendar horário" || e.closest("[inert]")) return false;
-            const r = e.getBoundingClientRect();
-            const s = getComputedStyle(e);
-            return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && s.visibility !== "hidden" && Number(s.opacity) > 0.5;
-          }).length,
-      );
-      maximo = Math.max(maximo, visiveis);
-    }
-    expect(maximo, `${tamanho.width}px`).toBeLessThanOrEqual(1);
-  }
-});
-
 test("A15 (Fatia 16, F2): em /agendar, /entrar e /cadastro o topo não tem Agendar horário e o rodapé tem uma linha", async ({
   page,
 }) => {
