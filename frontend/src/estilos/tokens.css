@@ -30,6 +30,10 @@
   --traco-1: 1px;
   --traco-2: 2px;
   --traco-3: 3px;
+  --mov-rapido: 150ms;
+  --mov-medio: 200ms;
+  --mov-lento: 250ms;
+  --mov-curva: cubic-bezier(0.2, 0.7, 0.2, 1);
   --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-serif: Georgia, "Times New Roman", serif;
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
