@@ -82,135 +82,28 @@ export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
   },
 ];
 
-// Galeria da home (Fatia 12, E2 a E4): 3 fotos que já estavam em docs/assets/galeria e 15 novas dos Instagrams do Eduardo
-// e da barbearia, com a autorização de imagem confirmada pelo Kevin (D158). Largura e altura são as reais do arquivo
-// (o next/image reserva o espaço, sem salto de layout). Sem nome de cliente em legenda ou texto alternativo.
-export const GALERIA: readonly { src: string; legenda: string; alt: string; largura: number; altura: number }[] = [
+// Galeria da home: só fotos sem rosto identificável e sem criança (privacidade, 27/11/2026). As fotos de clientes saíram
+// do site e da versão atual do repositório. Hoje fica só o salão, recortado sem as TVs e sem reflexo de pessoa.
+// Largura e altura são as reais do arquivo (o next/image reserva o espaço, sem salto de layout).
+export type FotoDaGaleria = {
+  src: string;
+  legenda: string;
+  alt: string;
+  largura: number;
+  altura: number;
+  /** Foto sem pessoa (salão, ferramentas): a miniatura pode preencher o quadro (cover), como pede o design system. */
+  semPessoas?: boolean;
+};
+
+/** As únicas fotos aprovadas para a galeria (critério: nenhum rosto, nenhuma criança, nenhuma TV com gente). */
+export const GALERIA: readonly FotoDaGaleria[] = [
   {
-    src: "/assets/galeria/eduardo-em-atendimento.jpg",
-    legenda: "O Eduardo em atendimento",
-    alt: "Eduardo Candido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo",
-    largura: 480,
-    altura: 480,
-  },
-  {
-    src: "/assets/galeria/corte-topete-parede-do-logo.jpg",
-    legenda: "A parede xadrez do logo",
-    alt: "Cliente de perfil com topete alto e degradê, em frente à parede xadrez preta e branca com o logo da barbearia",
-    largura: 480,
-    altura: 480,
-  },
-  {
-    src: "/assets/galeria/corte-degrade-com-desenho.jpg",
-    legenda: "Degradê com desenho na navalha",
-    alt: "Cliente de costas com cabelo crespo em degradê, pontas descoloridas e um desenho feito na navalha na nuca",
-    largura: 480,
-    altura: 480,
-  },
-  {
-    src: "/assets/galeria/corte-social-grisalho-na-regua.jpg",
-    legenda: "Social na régua",
-    alt: "Eduardo, de camiseta preta e óculos, ajeitando com os dedos o cabelo grisalho de um cliente sentado, de capa preta com o logo da barbearia, no salão com espelho, bancada de ferramentas e uma TV ao fundo",
-    largura: 608,
-    altura: 1080,
-  },
-  {
-    src: "/assets/galeria/corte-infantil-cacheado-com-degrade.jpg",
-    legenda: "Corte infantil",
-    alt: "Menino de cabelo cacheado volumoso no topo e degradê nas laterais, de capa preta, com o Eduardo sorrindo atrás dele, de tesoura na mão, e o logo da barbearia na parede",
-    largura: 608,
-    altura: 1080,
-  },
-  {
-    src: "/assets/galeria/corte-franja-curta-jovem.jpg",
-    legenda: "Franja curta e laterais baixas",
-    alt: "Rapaz de cabelo liso preto com franja curta e laterais baixas, de capa preta, com o Eduardo penteando atrás dele e o logo redondo da barbearia na parede",
-    largura: 608,
-    altura: 1080,
-  },
-  {
-    src: "/assets/galeria/platinado-cliente-de-oculos.jpg",
-    legenda: "Platinado",
-    alt: "Cliente de cabelo curto platinado e óculos de armação fina, de capa verde, olhando de lado, com o Eduardo sorrindo atrás e tocando o cabelo",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/corte-infantil-risca-lateral.jpg",
-    legenda: "Corte infantil com risca",
-    alt: "Menino de cabelo liso penteado com risca lateral marcada e laterais baixas, de capa preta, com o Eduardo sorrindo atrás dele e o logo na parede",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/corte-cacheado-volume.jpg",
-    legenda: "Volume e definição",
-    alt: "Cliente de cabelo cacheado volumoso e curto, sorrindo, de capa cinza, com o Eduardo atrás dele segurando a tesoura e sorrindo",
-    largura: 640,
-    altura: 1136,
-  },
-  {
-    src: "/assets/galeria/platinado-cliente-e-eduardo.jpg",
-    legenda: "Descoloração e platinado",
-    alt: "Cliente de cabelo curto platinado e óculos, sorrindo, com o Eduardo sorrindo atrás, de camiseta com o logo da barbearia",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/corte-topo-volumoso-com-degrade.jpg",
-    legenda: "Topo volumoso e degradê",
-    alt: "Rapaz de cabelo crespo com topo alto e volumoso e laterais em degradê, de capa preta, com o Eduardo atrás dele, de tesoura na mão, e o logo na parede",
-    largura: 640,
-    altura: 1136,
-  },
-  {
-    src: "/assets/galeria/fade-perfil-capa-altas-horas.jpg",
-    legenda: "Fade de perfil",
-    alt: "Cliente de perfil com cabelo crespo e degradê baixo, de capa preta com o nome Barbearia estampado, no salão com o logo na parede ao fundo",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/barba-cheia-desenhada.jpg",
-    legenda: "Barba desenhada",
-    alt: "Cliente de frente, de cabelo escuro penteado para o lado e barba cheia bem desenhada, de capa preta, com o logo da barbearia ao fundo",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/degrade-parede-do-logo.jpg",
-    legenda: "Degradê e logo",
-    alt: "Cliente de perfil com cabelo liso penteado para trás em topete e degradê baixo na nuca, sob o logo redondo da barbearia na parede",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/degrade-baixo-alinhamento-na-cadeira.jpg",
-    legenda: "Alinhamento",
-    alt: "Cliente de cabelo crespo curto com degradê baixo, de capa cinza, com o Eduardo atrás dele passando a mão sobre o topo para conferir o alinhamento",
-    largura: 640,
-    altura: 1136,
-  },
-  {
-    src: "/assets/galeria/franja-reta-alinhada.jpg",
-    legenda: "Franja alinhada",
-    alt: "Rapaz de franja reta e comprida, com as laterais baixas, olhando para a câmera, com o logo redondo da barbearia na parede ao fundo",
-    largura: 480,
-    altura: 854,
-  },
-  {
-    src: "/assets/galeria/salao-vitrine-com-logo.jpg",
+    src: "/assets/galeria/salao-vitrine-sem-tv.jpg",
     legenda: "O salão",
-    alt: "Vitrine de vidro da barbearia com dois adesivos redondos do logo Altas Horas 1997 e, ao fundo, as cadeiras, a bancada, uma TV e prateleiras de produtos",
-    largura: 1440,
-    altura: 1440,
-  },
-  {
-    src: "/assets/galeria/degrade-grisalho-penteado-para-tras.jpg",
-    legenda: "Degradê grisalho",
-    alt: "Cliente grisalho de perfil, com o cabelo penteado para trás em topete e degradê nas laterais, de camiseta preta",
-    largura: 1080,
-    altura: 1080,
+    alt: "Porta de vidro da barbearia com dois adesivos redondos do logo Altas Horas 1997 e, atrás do vidro, a cadeira preta, a bancada de ferramentas e um troféu na prateleira",
+    largura: 1100,
+    altura: 619,
+    semPessoas: true,
   },
 ];
 
@@ -230,8 +123,8 @@ export const IMAGENS = {
     altura: 480,
   },
   fachada: {
-    src: "/assets/fachada.jpg",
-    alt: "Fachada de vidro da Barbearia Altas Horas com dois adesivos redondos do logo e, ao fundo, as cadeiras, o balcão e os troféus",
+    src: "/assets/fachada-sem-tv.jpg",
+    alt: "Porta de vidro da Barbearia Altas Horas com dois adesivos redondos do logo e, atrás do vidro, a cadeira preta, a bancada e um troféu na prateleira",
   },
   premios: [
     {

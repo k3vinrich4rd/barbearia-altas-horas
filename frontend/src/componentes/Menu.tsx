@@ -9,7 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { desativarNoAparelho, tirarAparelhoNoLogout } from "@/api/push";
-import { IMAGENS } from "@/conteudo/historia";
+import { GALERIA, IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
 
 /** Itens do menu (Fatia 12, A2): as seções da home na ordem em que o cliente decide e "Onde estamos", que aponta para o rodapé
@@ -17,7 +17,8 @@ import { useSessao } from "./Sessao";
 export const SECOES_DA_HOME: { href: string; texto: string }[] = [
   { href: "/servicos", texto: "Serviços" }, // página com a lista completa e os preços (decisão do Kevin, 23/11, opção B)
   { href: "/#barbeiro", texto: "Barbeiro" },
-  { href: "/#galeria", texto: "Galeria" },
+  // Sem foto aprovada, a seção da galeria não aparece; o link sai junto para não apontar para o nada.
+  ...(GALERIA.length > 0 ? [{ href: "/#galeria", texto: "Galeria" }] : []),
   { href: "/#trajetoria", texto: "Trajetória" },
   { href: "/#duvidas", texto: "Dúvidas" },
   { href: "#onde-estamos", texto: "Onde estamos" },
