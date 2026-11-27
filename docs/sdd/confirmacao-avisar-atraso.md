@@ -66,13 +66,13 @@ Testes: Vitest (`confirmacao-whatsapp.test.tsx`: CA-1 a CA-4), Playwright (`e2e/
 Sem medição hoje. O barbeiro diz se os avisos de atraso passam a chegar pelo WhatsApp.
 
 ## Riscos e perguntas abertas
-- Título da confirmação (**decisão de 27/11**): "Fechado! Seu horário está garantido." vira "Agendado! Seu horário está garantido." (`textos.ts:28`, `mensagens-voz.test.ts:131` e os e2e que procuram o título, entre eles `e2e/e2e-visitante.spec.ts:43`). Vai em PR próprio; esta spec não muda o título, mas o e2e dela deve procurar o texto que estiver na `develop`.
+- Título da confirmação (**decisão de 27/11**, já na `develop`): "Agendado! Seu horário está garantido." (`textos.ts:28`, `mensagens-voz.test.ts:131` e os e2e que procuram o título, entre eles `e2e/e2e-visitante.spec.ts`). O e2e desta melhoria procura esse texto.
 - A consulta da reserva (`/reserva`, PDF p.14) tem a mesma frase curta ("Avise o Eduardo."). Fica para depois, se o Kevin quiser igualar.
 - Arquivos prováveis: `frontend/src/telas/Confirmacao.tsx` (98-106), `frontend/src/componentes/ContatoWhatsapp.tsx`, `frontend/src/telas/confirmacao-whatsapp.test.tsx`, `frontend/e2e/e2e-visitante.spec.ts`.
 
 ## Decisões de implementação
 
-- O título da confirmação permanece o que está na `develop` ("Fechado! Seu horário está garantido."). A troca para "Agendado! Seu horário está garantido." fica em PR próprio.
+- O título da confirmação é o que está na `develop`: "Agendado! Seu horário está garantido."
 - A consulta da reserva em `/reserva` não foi alterada (fica para depois, se o Kevin quiser igualar).
 - A confirmação usa `linkDoWhatsapp` de `ContatoWhatsapp` direto, sem `?text=`. O componente `ContatoWhatsapp` (e o "Prefere combinar pelo WhatsApp?") sai desta tela; nas outras, o convite continua igual.
 - O primeiro nome e o número vêm de `GET /barbeiros` pelo `r.barbeiro.id`. Nenhum número está escrito no código. Nos testes unitários o número fictício é `11900000001`.
