@@ -10,13 +10,19 @@ export const CABECALHOS_DO_SERVICE_WORKER = [
   { key: "Content-Type", value: "application/javascript; charset=utf-8" },
 ];
 
+/** O .opus sem este header saía como application/octet-stream; o type da tag <source> sozinho não basta em todos os navegadores. */
+export const CABECALHOS_DO_AUDIO_OPUS = [{ key: "Content-Type", value: "audio/ogg" }];
+
 const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   // Fotos pelo otimizador do next/image (Fatia 12, A12 e A26): WebP, tamanhos por `sizes`, carregamento preguiçoso.
   images: { formats: ["image/webp"] },
   async headers() {
-    return [{ source: "/sw.js", headers: CABECALHOS_DO_SERVICE_WORKER }];
+    return [
+      { source: "/sw.js", headers: CABECALHOS_DO_SERVICE_WORKER },
+      { source: "/assets/audio/:arquivo.opus", headers: CABECALHOS_DO_AUDIO_OPUS },
+    ];
   },
 };
 

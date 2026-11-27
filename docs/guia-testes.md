@@ -1248,7 +1248,7 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 **Passos à mão (visitante, no celular ou numa janela estreita):**
 
 1. Abra a home: a ordem é herói (com a faixa "Escolha · Pague · Confirmado"), **Serviços** (6 cartões, o último é **Descoloração / Platinado (química), 60 min, R$ 80,00**), **Barbeiro**, **Galeria**, **Trajetória**, "De onde vêm nossos clientes" e **Dúvidas**. ✅
-2. Em **Galeria** toque numa foto: abre inteira, com legenda; `←` e `→` trocam, `Esc` fecha e o foco volta à miniatura. ✅
+2. Em **Galeria** aparece uma foto larga só, a do salão (`salao-vitrine-sem-tv.jpg`), com a legenda "O salão", sem botão e sem visualizador. O visualizador (`←`, `→`, `Esc`) só existe quando a galeria tem 2 fotos ou mais. *(Alterado em 27/11/2026 pela galeria sem rostos, PR #133 e D218.)* ✅
 3. Abra `/#historia`: a janela vai para a **Trajetória** e o endereço vira `/#trajetoria`. ✅
 4. Role até o rodapé: a barra **Agendar horário** continua visível (só abaixo de 768 px) e não cobre o último link. Em `/agendar`, `/entrar`, `/cadastro` e `/painel` ela não existe. ✅
 5. Toque em **Agendar este serviço** no platinado: `/agendar` abre com ele marcado, o próximo dia com horário já escolhido e, com um só barbeiro, sem seletor de barbeiro. Escolha um chip de horário e toque em **Continuar** (4 toques desde a home). ✅
@@ -1271,7 +1271,7 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 | `/agendar` | 94, 96, 97 | 100 | 2,46 a 2,57 s | 0,002 | 106 a 197 ms |
 
   O **LCP** fica entre 2,46 e 2,63 s, **até 130 ms acima** do orçamento de 2,5 s em parte das execuções (o título repinta quando a fonte Playfair troca, `display: swap`, D-1 do design system). Com `display: optional` o mesmo teste deu 2,44 a 2,51 s; não foi aplicado porque muda o desenho. Antes de reservar espaço para a lista de serviços e fixar o resumo, o `/agendar` tinha CLS 0,141; hoje 0,002.
-- Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada).
+- Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada). **Atualização (27/11/2026):** a galeria passou a ter só a foto do salão, sem pessoas; as fotos com clientes saíram do site e da versão atual do repositório, e a fachada do herói virou `fachada-sem-tv.jpg` (sem as TVs e sem reflexo).
 ### 7.4 Convite do barbeiro (Fatia 10)
 
 O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a senha; o convidado só mexe na própria agenda. As telas ainda **aguardam desenho** (layout neutro). Para repetir à mão: API no perfil `dev`, front em `http://localhost:3000`, o admin do `ADMIN_EMAIL`. O teste de ponta a ponta de verdade é `frontend/e2e/convite.spec.ts` (A36), que faz tudo isso contra a API real.
@@ -1305,6 +1305,30 @@ Quando o **pagamento confirma** uma reserva (de cliente com cadastro ou de visit
 **Como ativar no Android e no iPhone (guia curto):** *Android (Chrome):* abra o painel, vá em Notificações, toque em Ativar e em Permitir; confira com "Enviar um teste". *iPhone (iOS 16.4 ou mais novo):* no Safari, toque em Compartilhar, depois em **Adicionar à Tela de Início**; abra o Altas Horas pelo **ícone novo** (não pelo Safari), entre no painel, Notificações, Ativar. Se negou por engano: Ajustes do aparelho, Notificações, Altas Horas.
 
 **Números (24/11/2026, Windows, Node 22, Java 25, PostgreSQL 18 real):** `./mvnw verify`: **542 testes, 0 falhas** (depois do merge com a Fatia 11 e das correções da revisão de segurança) (eram 387 em 20/11; a Fatia 13 soma os A1 a A50 do backend, incluindo a criptografia conferida contra o exemplo da RFC 8291) · front: `eslint` e `tsc --noEmit` sem erro, `vitest`: **72 arquivos, 171 testes verdes**, `next build` ok (rotas `/manifest.webmanifest`, `/painel/novidades` e `/painel/notificacoes`) · `npx playwright test` contra a API real no perfil `dev` (banco isolado, removido no fim): **22 de 22 verdes em 3,3 min** (entra `notificacao.spec.ts`, A43) · `scripts/conferir-spec.sh 13 --exigir`: **50 de 50** · `redocly lint` 2.78.0 no contrato 1.10.0: 0 erros. O que **não** se prova em teste automático: a notificação chegando num iPhone e num Android de verdade (passos N1 a N3).
+### 7.7 Mais tempo para pagar e agenda com expediente (Fatia 15, telas) ✅
+
+O que a Fatia 15 mudou na tela pública (contrato 1.12.1, ADR 0015). As férias e folgas do painel estão em outra seção, no PR das folgas.
+
+| # | Tela | O que fazer | O que deve acontecer | Onde está provado |
+|---|---|---|---|---|
+| MT-1 | Pagamento | reservar como visitante, gerar o Pix e esperar o último minuto | aparece **Acrescentar 2 minutos** (o número vem de `prorrogacao.segundos`) e ainda **não** aparece "Restam N pedidos." | `pagamento-prorrogacao.test.tsx` (A22, MT-1) e `e2e/prorrogacao-pix.spec.ts` (A27) |
+| MT-1b | Pagamento | depois do 1º pedido, esperar o último minuto de novo | o botão volta e, discreto, "Restam 9 pedidos." (com 1: "Resta 1 pedido.") | `pagamento-prorrogacao.test.tsx` (MT-1 e MT-1b) |
+| MT-2 | Pagamento | tocar em Acrescentar 2 minutos | o contador ganha 120 s na hora, "Pronto, mais 2 minutos no contador." recebe o foco e o Pix não muda | A23, A24 e A27 |
+| MT-3 | Pagamento | pedir o 10º | funciona; no último minuto seguinte só "Menos de 1 minuto para pagar.", sem botão | MT-3 |
+| MT-4c | Pagamento | a API responde `422 PRORROGACAO_ESGOTADA` | "Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário." e o botão some | MT-4c |
+| MT-4d | Pagamento | a rede cai no meio do pedido | o front repete uma vez sozinho com a **mesma** `X-Idempotency-Key`; um toque novo manda outra (UUID) | MT-4d e A27 (o cabeçalho chega no BFF) |
+| AF-10 | /agendar | abrir a agenda | domingo e segunda dizem **Fechado** na tira, com contorno tracejado, e não se escolhem; o motivo (folga, férias) nunca aparece | `agendar-expediente.test.tsx` e `e2e/agenda-expediente.spec.ts` |
+| E18 | /agendar | um dia aberto em que uma folga de parte do dia tirou todos os horários | o dia diz "sem horário" (não "Fechado"); escolhido, "Esse dia já está cheio. Veja o próximo dia com horário." | `agendar-expediente.test.tsx` |
+| AF-11 | /agendar | ver os horários de um dia aberto | "Atende das 7h às 20h" e a faixa **Fechado · 12h às 13h** entre Manhã e Tarde, sem a palavra almoço e sem chip "12:00 indisponível" | `agendar-expediente.test.tsx` e `e2e/agenda-expediente.spec.ts` |
+| AF-12 | /agendar | API antiga, sem `expediente` | a tira fica como antes ("sem horário") | `agendar-expediente.test.tsx` |
+| AF-13 | /agendar | axe em 360×800 e 1280×800 | 0 violações | `e2e/agenda-expediente.spec.ts` |
+| AF-15 | /agendar | folga das 14h às 16h numa terça | o dia não fecha; os horários dentro da folga aparecem "indisponível", sem motivo | `agendar-expediente.test.tsx` |
+| MT-7 | textos | `mensagens-voz.test.ts` | "Restam N pedidos.", "Resta 1 pedido.", o texto do `PRORROGACAO_ESGOTADA` e "Fechado nesse dia. Veja o próximo dia com horário." travados palavra por palavra | `mensagens-voz.test.ts` (MT-7) |
+
+No painel, a reserva que pediu mais tempo mostra "Mais tempo pedido N vezes" (era "Mais 1 minuto usado").
+
+**Números (27/11/2026, Linux, Node 22):** `eslint` e `tsc --noEmit` sem erro; `vitest`: **90 arquivos, 227 testes verdes**. O A24 voltou a ser exato (relógio e `setInterval` falsos: 02:30 depois do toque e 02:25 cinco tiques depois). O E2E contra a API real roda no CI.
+
 ### 7.5 Alcance por nível e consentimento de região (Fatia 11)
 
 | # | O que fazer | Esperado | Situação |
@@ -1320,6 +1344,24 @@ Quando o **pagamento confirma** uma reserva (de cliente com cadastro ou de visit
 | 9 | Nenhuma subtração revela um número menor que k | 200 sementes, k = 3, 5 e 8; sem as defesas o teste falha | ✅ `AlcancePropriedadeTest` (A43, A44) |
 
 Roteiro do painel com dado real: com o banco do `docker compose`, crie 6 contas em Osasco/Centro com a caixinha e uma reserva cada (ver o fluxo ponta a ponta), entre como Dono e abra "Alcance".
+
+### 7.8 Férias e folgas no painel (Fatia 15, C13) ✅
+
+Página própria **Painel → Férias e folgas** (`/painel/folgas`), só para o ADMIN (contrato 1.12.1, ADR 0015, E1 a E15 e E24). Em Cadastros → Barbeiros → "Jornada e folgas" fica só o atalho "Ver férias e folgas de …".
+
+| # | O que fazer | O que deve acontecer | Onde está provado |
+|---|---|---|---|
+| FF-1 | abrir a página sem folgas | "Nenhuma folga de hoje em diante." e o botão **Marcar férias ou folga**; remover pede confirmação | `painel-folgas.test.tsx` |
+| FF-2 | entrar como BARBEIRO | o item não aparece no menu e a URL mostra acesso negado | `painel-acesso.test.tsx` (A44) |
+| FF-3 e FF-10 | escolher as datas | **antes de salvar**, o painel chama `GET …/folgas/conflitos` e mostra quem está marcado (horário, serviço, nome, origem, status) | `painel-folgas.test.tsx` e `e2e/painel-folgas.spec.ts` |
+| FF-4 | tocar em **Salvar e manter os horários** | vai `manterReservas: true`; "Folga lançada. N clientes continuam marcados nesse período." com a lista e "Ver na agenda"; nenhuma reserva muda | `painel-folgas.test.tsx` e `e2e/painel-folgas.spec.ts` |
+| FF-5 | **Cancelar um a um** → "Cancelar pela barbearia" com motivo | só aquela reserva é cancelada (com a versão lida na grade do dia) e a prévia passa a mostrar uma a menos | `painel-folgas.test.tsx` |
+| FF-6 | "Dia inteiro" de 25/11 a 27/11, tipo Férias | vai `inicio` 25/11 00:00 e `fim` 28/11 00:00 (BRT), `tipo: FERIAS`; a tela diz "até sexta, 27/11 (o dia inteiro)" | `painel-folgas.test.tsx` |
+| FF-7 | **Editar**, mudar o fim e salvar | `PUT` com `inicio`, `fim`, `motivo` e `tipo`; "Folga alterada." e a lista com o fim novo | `painel-folgas.test.tsx` |
+| FF-8 | colar 201 caracteres no motivo | o campo para em 200 (contador "200/200") e lembra "Não escreva dado de cliente aqui." | `painel-folgas.test.tsx` |
+| FF-9 | axe em 360×800 | 0 violações na lista e na prévia com clientes | `e2e/painel-folgas.spec.ts` |
+| FF-11 | alguém marca entre a prévia e o salvar | `422 FOLGA_COM_RESERVAS`: "Há clientes marcados nesse período. Confira a lista abaixo: você pode manter essas reservas ou cancelar uma por uma antes de salvar a folga.", a lista do `conflitos[]` e as 3 saídas; nada gravado | `painel-folgas.test.tsx` e `mensagens-voz.test.ts` |
+| FF-12 | uma folga do tipo FERIAS e o público em /agendar | só "Fechado", nunca "Férias" nem "Folga" | `agendar-expediente.test.tsx` (AF-10, no PR das telas públicas) |
 
 ## 8. Jornada completa
 

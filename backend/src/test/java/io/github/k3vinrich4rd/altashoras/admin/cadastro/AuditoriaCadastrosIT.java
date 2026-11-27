@@ -80,7 +80,7 @@ class AuditoriaCadastrosIT extends CadastrosBase {
         assertThat(detalhes).doesNotContain("Bruno").doesNotContain("Sobrenome").doesNotContain("Hidratação")
                 .doesNotContain("Consulta").doesNotContain("médica").doesNotContain("@");
         assertThat(jdbc.queryForList("SELECT DISTINCT k FROM auditoria_admin, jsonb_object_keys(detalhe) AS k ORDER BY k",
-                String.class)).isSubsetOf("campos", "intervalos", "barbeiroId");
+                String.class)).isSubsetOf("campos", "intervalos", "barbeiroId", "tipo", "reservasMantidas", "reservasMantidasIds");
         assertThat(jdbc.queryForObject("SELECT detalhe->>'campos' FROM auditoria_admin WHERE acao = 'SERVICO_ALTERADO'",
                 String.class)).isEqualTo("precoCentavos");
         assertThat(jdbc.queryForObject("SELECT detalhe->>'campos' FROM auditoria_admin WHERE acao = 'BARBEIRO_ALTERADO'",

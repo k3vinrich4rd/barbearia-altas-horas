@@ -14,8 +14,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import io.github.k3vinrich4rd.altashoras.RelogioFixoDeTeste;
 
 /**
- * Atalhos da Fatia 14A. O cenário da spec: reserva criada às 10:00:00 de terça 01/12/2026 para as 15:00, prazo de 3
- * minutos (expiraEm 10:03:00). O relógio é do teste: cada teste o coloca no instante que quer e o devolve no fim.
+ * Atalhos da Fatia 14A e da Fatia 15. O cenário das specs: reserva criada às 10:00:00 de terça 01/12/2026 para as 15:00,
+ * prazo de 3 minutos (expiraEm 10:03:00). Desde a Fatia 15 (ADR 0015) cada pedido soma 120 s, até 10 vezes. O relógio é do teste: cada teste o coloca no instante que quer e o devolve no fim.
  */
 final class ProrrogacaoDeTeste {
 
@@ -29,6 +29,21 @@ final class ProrrogacaoDeTeste {
 
     static ResultActions prorrogar(MockMvc mvc, String acesso, String id) throws Exception {
         return mvc.perform(post("/agendamentos/" + id + "/prorrogacao").header(HttpHeaders.AUTHORIZATION, "Bearer " + acesso));
+    }
+
+    /** O pedido com a X-Idempotency-Key opcional (Fatia 15, E21): repetir com a mesma chave é 200 sem somar. */
+    static ResultActions prorrogar(MockMvc mvc, String acesso, String id, String chave) throws Exception {
+        return mvc.perform(post("/agendamentos/" + id + "/prorrogacao").header(HttpHeaders.AUTHORIZATION, "Bearer " + acesso)
+                .header("X-Idempotency-Key", chave));
+    }
+
+    static ResultActions prorrogarComoVisitante(MockMvc mvc, String id, String token, String chave) throws Exception {
+        return mvc.perform(post("/agendamentos/guest/" + id + "/prorrogacao").header("X-Guest-Token", token)
+                .header("X-Idempotency-Key", chave));
+    }
+
+    static int prorrogacoes(JdbcTemplate jdbc, String id) {
+        return jdbc.queryForObject("SELECT prorrogacoes FROM reserva WHERE id = ?::uuid", Integer.class, id);
     }
 
     static ResultActions prorrogarSemToken(MockMvc mvc, String id) throws Exception {

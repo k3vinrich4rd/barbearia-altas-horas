@@ -1,10 +1,10 @@
 "use client";
-// Barbeiros, jornada e folgas do painel (A50). WhatsApp comercial com máscara (6D); a conta vinculada é opcional.
+// Barbeiros, jornada e folgas do painel (A50). As folgas ficam na página "Férias e folgas" (Fatia 15, C13). WhatsApp comercial com máscara (6D); a conta vinculada é opcional.
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { api, chamar } from "@/api/cliente";
 import { ErroApi } from "@/api/erro";
-import { formatarDataEHora } from "@/api/formato";
-import { instanteNoFuso, mascararWhatsapp, soNumeros } from "@/api/formato-painel";
+import { mascararWhatsapp, soNumeros } from "@/api/formato-painel";
 import { useConsulta, useEnvio } from "@/api/hooks";
 import { mensagemDoErro } from "@/api/mensagens";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
@@ -14,168 +14,13 @@ import { Dialogo } from "@/componentes/Dialogo";
 import { EditorDeJornada } from "@/componentes/EditorDeJornada";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
 import { AcoesDeConvite, EtiquetaDeAcesso } from "./PainelConvite";
-import { almocosDoDia, horaCurta, type BarbeiroAdmin, type Folga } from "./tipos";
+import { almocosDoDia, horaCurta, type BarbeiroAdmin } from "./tipos";
 
 function resumoDoAlmoco(b: BarbeiroAdmin): string {
   const almocos = almocosDoDia(b.jornada ?? [], 2); // terça: o dia de referência do resumo
   const dias = new Set((b.jornada ?? []).map((j) => j.diaSemana)).size;
   if (dias === 0) return "Sem expediente cadastrado";
   return `${dias} dia(s) por semana${almocos[0] ? ` · almoço ${horaCurta(almocos[0].inicio)} às ${horaCurta(almocos[0].fim)}` : ""}`;
-}
-
-function Folgas({ barbeiro }: { barbeiro: BarbeiroAdmin }) {
-  const lista = useConsulta(
-    () => chamar(api().GET("/admin/barbeiros/{id}/folgas", { params: { path: { id: barbeiro.id } } })),
-    [barbeiro.id],
-  );
-  const [dia, setDia] = useState("");
-  const [horaIni, setHoraIni] = useState("");
-  const [diaFim, setDiaFim] = useState("");
-  const [horaFim, setHoraFim] = useState("");
-  const [motivo, setMotivo] = useState("");
-  const [removendo, setRemovendo] = useState<Folga | null>(null);
-  const [mensagem, setMensagem] = useState("");
-  const [incompleto, setIncompleto] = useState("");
-  const envio = useEnvio();
-
-  async function criar(e: FormEvent) {
-    e.preventDefault();
-    if (!dia || !horaIni || !diaFim || !horaFim) {
-      setIncompleto("Informe o início e o fim da folga.");
-      return;
-    }
-    setIncompleto("");
-    const inicio = instanteNoFuso(dia, horaIni);
-    const fim = instanteNoFuso(diaFim, horaFim);
-    if (new Date(fim) <= new Date(inicio)) {
-      setIncompleto("O fim da folga deve ser depois do início.");
-      return;
-    }
-    const criada = await envio.executar(() =>
-      chamar(
-        api().POST("/admin/barbeiros/{id}/folgas", {
-          params: { path: { id: barbeiro.id } },
-          body: { inicio, fim, ...(motivo.trim() ? { motivo: motivo.trim() } : {}) },
-        }),
-      ),
-    );
-    if (criada) {
-      setMensagem("Folga lançada.");
-      setMotivo("");
-      lista.recarregar();
-    }
-  }
-
-  async function remover() {
-    if (!removendo) return;
-    const alvo = removendo;
-    const feito = await envio.executar(async () => {
-      await chamar(
-        api().DELETE("/admin/barbeiros/{id}/folgas/{folgaId}", {
-          params: { path: { id: barbeiro.id, folgaId: alvo.id } },
-        }),
-      );
-      return true;
-    });
-    if (feito) {
-      setMensagem("Folga removida.");
-      setRemovendo(null);
-      lista.recarregar();
-    }
-  }
-
-  return (
-    <section aria-labelledby={`t-folgas-${barbeiro.id}`}>
-      <h4 id={`t-folgas-${barbeiro.id}`}>Folgas de {barbeiro.nomeExibicao}</h4>
-      {mensagem && <Aviso tipo="sucesso">{mensagem}</Aviso>}
-      <EstadoDaConsulta consulta={lista}>
-        {(folgas) =>
-          folgas.length === 0 ? (
-            <p>Nenhuma folga de hoje em diante.</p>
-          ) : (
-            <ul className="lista">
-              {folgas.map((f) => (
-                <li key={f.id} className="item">
-                  <p>
-                    {formatarDataEHora(f.inicio)} até {formatarDataEHora(f.fim)}
-                    {f.motivo ? ` · ${f.motivo}` : ""}
-                  </p>
-                  <Botao
-                    aria-label={`Remover a folga de ${formatarDataEHora(f.inicio)}`}
-                    onClick={() => {
-                      envio.limparErro();
-                      setRemovendo(f);
-                    }}
-                  >
-                    Remover folga
-                  </Botao>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </EstadoDaConsulta>
-      <form onSubmit={criar} noValidate aria-label="Lançar folga">
-        <fieldset>
-          <legend>Lançar folga</legend>
-          <Campo id="f-dia" rotulo="Dia do início" type="date" value={dia} onChange={(e) => setDia(e.target.value)} />
-          <Campo
-            id="f-hora"
-            rotulo="Hora do início"
-            type="time"
-            value={horaIni}
-            onChange={(e) => setHoraIni(e.target.value)}
-          />
-          <Campo
-            id="f-dia-fim"
-            rotulo="Dia do fim"
-            type="date"
-            value={diaFim}
-            onChange={(e) => setDiaFim(e.target.value)}
-          />
-          <Campo
-            id="f-hora-fim"
-            rotulo="Hora do fim"
-            type="time"
-            value={horaFim}
-            onChange={(e) => setHoraFim(e.target.value)}
-            erro={incompleto || undefined}
-          />
-          <Campo
-            id="f-motivo"
-            rotulo="Motivo (opcional)"
-            maxLength={200}
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-          />
-          {envio.erro && !removendo && (
-            <Aviso tipo="erro">
-              {envio.erro.code === "FOLGA_COM_RESERVAS"
-                ? "Há agendamentos neste período. Cancele-os antes ou escolha outro período."
-                : mensagemDoErro(envio.erro)}
-            </Aviso>
-          )}
-          <Botao type="submit" variante="principal" disabled={envio.enviando}>
-            Lançar folga
-          </Botao>
-        </fieldset>
-      </form>
-      {removendo && (
-        <Dialogo titulo="Remover folga" aoFechar={() => setRemovendo(null)}>
-          <p>O horário volta a aceitar reservas. Remover a folga de {formatarDataEHora(removendo.inicio)}?</p>
-          {envio.erro && <AvisoDeErro erro={envio.erro} focar={false} />}
-          <div className="acoes">
-            <Botao variante="principal" disabled={envio.enviando} onClick={remover}>
-              Remover folga
-            </Botao>
-            <Botao disabled={envio.enviando} onClick={() => setRemovendo(null)}>
-              Voltar
-            </Botao>
-          </div>
-        </Dialogo>
-      )}
-    </section>
-  );
 }
 
 export function CadastroDeBarbeiros() {
@@ -358,7 +203,10 @@ export function CadastroDeBarbeiros() {
                     }
                     aoSalvar={(j) => salvarJornada(b, j)}
                   />
-                  <Folgas barbeiro={b} />
+                  {/* Fatia 15 (C13): férias e folgas têm página própria; aqui fica só o atalho */}
+                  <p>
+                    <Link href={`/painel/folgas?barbeiro=${b.id}`}>Ver férias e folgas de {b.nomeExibicao}</Link>
+                  </p>
                 </div>
               ))}
           </>
@@ -368,12 +216,17 @@ export function CadastroDeBarbeiros() {
       {desligando && editando !== null && editando !== "novo" && (
         <Dialogo titulo={`Desligar ${editando.nomeExibicao}`} aoFechar={() => setDesligando(false)}>
           <p>
-            Desligar tira o acesso dele ao painel agora e mantém o histórico: as reservas e a auditoria continuam. Se a conta for
-            só de barbeiro, ela é desativada e anonimizada (nome e e-mail apagados); se ele também é cliente, a conta de cliente
-            segue como está. O WhatsApp comercial some. Para ele voltar a ter acesso, gere um convite novo.
+            Desligar tira o acesso dele ao painel agora e mantém o histórico: as reservas e a auditoria continuam. Se a
+            conta for só de barbeiro, ela é desativada e anonimizada (nome e e-mail apagados); se ele também é cliente,
+            a conta de cliente segue como está. O WhatsApp comercial some. Para ele voltar a ter acesso, gere um convite
+            novo.
           </p>
           <div className="acoes">
-            <Botao variante="principal" disabled={envio.enviando} onClick={(e) => salvar(e as unknown as FormEvent, true)}>
+            <Botao
+              variante="principal"
+              disabled={envio.enviando}
+              onClick={(e) => salvar(e as unknown as FormEvent, true)}
+            >
               Desligar barbeiro
             </Botao>
             <Botao disabled={envio.enviando} onClick={() => setDesligando(false)}>
@@ -425,7 +278,9 @@ export function CadastroDeBarbeiros() {
             </div>
           )}
           {editando !== "novo" && editando.ativo && !ativo && (
-            <p className="campo-ajuda">Desmarcar e salvar desliga o barbeiro: o acesso ao painel sai e o histórico fica.</p>
+            <p className="campo-ajuda">
+              Desmarcar e salvar desliga o barbeiro: o acesso ao painel sai e o histórico fica.
+            </p>
           )}
           <div className="acoes">
             <Botao type="submit" variante="principal" disabled={envio.enviando}>

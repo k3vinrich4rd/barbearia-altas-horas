@@ -58,6 +58,7 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await pagarComPixESimular(page);
 
   // confirmação com o código
+<<<<<<< HEAD
   await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
   await conferirPasso(page, 3);
   // CA-1: aviso de atraso pelo WhatsApp do barbeiro, sem mensagem pronta
@@ -90,6 +91,9 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   expect(caixaBotao && caixaTitulo).toBeTruthy();
   expect(Math.abs(caixaBotao!.x - caixaTitulo!.x)).toBeLessThan(8);
 
+=======
+  await expect(page.getByRole("heading", { name: "Agendado! Seu horário está garantido." })).toBeVisible();
+>>>>>>> origin/develop
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(codigo.length).toBeGreaterThan(10);
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");

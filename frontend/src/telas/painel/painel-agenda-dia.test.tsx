@@ -80,7 +80,15 @@ const RESERVA_1500 = agendamentoAdmin({
   expiraEm: "2026-12-01T12:04:00-03:00",
   cobrancaStatus: "PENDENTE",
   cliente: { nome: "Visitante Teste", whatsapp: "11988880002" },
-  prorrogacao: { usada: true, segundos: 60, abreEm: "2026-12-01T12:03:00-03:00", fechaEm: "2026-12-01T12:04:00-03:00" },
+  prorrogacao: {
+    usada: true,
+    usadas: 3,
+    maximo: 10,
+    restantes: 7,
+    segundos: 120,
+    abreEm: "2026-12-01T12:07:00-03:00",
+    fechaEm: "2026-12-01T12:08:00-03:00",
+  },
 });
 
 function agendaDe(colunas: ReturnType<typeof colunaDoDia>[], leituras = { mes: 0, dia: 0 }) {
@@ -105,7 +113,7 @@ describe("grade do dia do painel (Fatia 14C)", () => {
     fixarRelogio("2026-12-01T12:00:00-03:00"); // a reserva das 09:00 já começou
   });
 
-  test("A50: Livre com Marcar aqui (reserva manual com barbeiro, dia e hora), a reserva com nome, serviço e etiqueta de status, Mais 1 minuto usado, Almoço e Folga", async () => {
+  test("A50: Livre com Marcar aqui (reserva manual com barbeiro, dia e hora), a reserva com nome, serviço e etiqueta de status, quantas vezes pediu mais tempo, Almoço e Folga", async () => {
     agendaDe([colunaDoDia([RESERVA_0900, RESERVA_1500], { folgas: ["17:00", "17:30"] })]);
     const { unmount } = renderizar(<PainelAgenda />, ADMIN);
 
@@ -127,7 +135,7 @@ describe("grade do dia do painel (Fatia 14C)", () => {
     expect(within(await linhaDa("09:30")).getByText("Maria Souza")).toBeInTheDocument();
     const as1500 = await linhaDa("15:00");
     expect(as1500).toHaveTextContent("Aguardando pagamento");
-    expect(as1500).toHaveTextContent("Mais 1 minuto usado");
+    expect(as1500).toHaveTextContent("Mais tempo pedido 3 vezes");
     expect(await linhaDa("12:00")).toHaveTextContent("Almoço");
     expect(await linhaDa("17:00")).toHaveTextContent("Folga");
     expect(within(await linhaDa("17:00")).queryByRole("link")).toBeNull();

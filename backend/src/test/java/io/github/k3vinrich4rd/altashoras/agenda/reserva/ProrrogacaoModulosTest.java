@@ -65,10 +65,11 @@ class ProrrogacaoModulosTest {
         String texto = Files.readString(CONTRATO.resolve("contrato-api.md"), StandardCharsets.UTF_8);
         assertThat(texto.lines().filter(l -> l.startsWith("| 422 |") && l.contains("`PRORROGACAO_FORA_DA_JANELA`")))
                 .as("linha do código na tabela de erros").hasSize(1);
-        assertThat(texto).contains("# 📑 Contrato da API · v1.11.0");
+        // A 1.11.0 introduziu o código; versões menores seguintes só acrescentam (1.12.0, ADR 0015).
+        assertThat(texto).containsPattern("# 📑 Contrato da API · v1\\.(1[1-9])\\.\\d+");
 
         Map<String, Object> contrato = openapi();
-        assertThat(mapa(contrato, "info").get("version")).isEqualTo("1.11.0");
+        assertThat(String.valueOf(mapa(contrato, "info").get("version"))).matches("1\\.(1[1-9])\\.\\d+");
         assertThat((List<String>) mapa(contrato, "components", "schemas", "CodigoErro").get("enum"))
                 .contains("PRORROGACAO_FORA_DA_JANELA", "FORA_DO_HORIZONTE");
     }

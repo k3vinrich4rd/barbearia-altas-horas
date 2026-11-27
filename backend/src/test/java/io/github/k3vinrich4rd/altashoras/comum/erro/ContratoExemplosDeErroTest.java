@@ -143,4 +143,54 @@ class ContratoExemplosDeErroTest {
         assertThat(esquemas).containsKeys("AlcancePainel", "AlcanceGrupo", "AlcanceFilho", "NivelDoAlcance", "AtualizarPerfilRequest");
         assertThat(mapa(mapa(esquemas, "AlcancePainel"), "properties")).containsKeys("grupos", "totalVisivel", "semRegiao", "k");
     }
+
+    @Test
+    @DisplayName("A25: o contrato 1.12.x declara o PUT e a prévia de folgas, FolgaSalva, ConflitoDeFolga e TipoFolga, e o exemplo do 422 FOLGA_COM_RESERVAS traz conflitos[] com os campos do schema e o código do enum")
+    @SuppressWarnings("unchecked")
+    void contratoDasFolgas() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(1[2-9])\\.\\d+");
+        Map<String, Object> paths = mapa(c, "paths");
+        assertThat(paths).containsKeys("/admin/barbeiros/{id}/folgas", "/admin/barbeiros/{id}/folgas/conflitos",
+                "/admin/barbeiros/{id}/folgas/{folgaId}");
+        assertThat(mapa(paths, "/admin/barbeiros/{id}/folgas/{folgaId}")).containsKeys("put", "delete");
+        assertThat(mapa(paths, "/admin/barbeiros/{id}/folgas/conflitos")).containsKey("get");
+        Map<String, Object> schemas = mapa(mapa(c, "components"), "schemas");
+        assertThat(schemas).containsKeys("FolgaSalva", "ConflitoDeFolga", "TipoFolga");
+        assertThat((List<String>) mapa(schemas, "TipoFolga").get("enum")).containsExactlyInAnyOrder("FOLGA", "FERIAS");
+        assertThat(mapa(mapa(schemas, "FolgaRequest"), "properties")).containsKeys("tipo", "manterReservas");
+
+        List<String> camposDoConflito = (List<String>) mapa(schemas, "ConflitoDeFolga").get("required");
+        assertThat(exemplos(c)).filteredOn(ex -> "FOLGA_COM_RESERVAS".equals(ex.valor().get("code"))).isNotEmpty()
+                .allSatisfy(ex -> {
+                    List<Map<String, Object>> conflitos = (List<Map<String, Object>>) ex.valor().get("conflitos");
+                    assertThat(conflitos).as("%s: conflitos[]", ex.onde()).isNotEmpty();
+                    conflitos.forEach(item -> assertThat(item).containsKeys(camposDoConflito.toArray(String[]::new))
+                            .doesNotContainKeys("email", "cpf", "whatsapp", "observacao"));
+                });
+        assertThat(CodigoErro.FOLGA_COM_RESERVAS.status()).isEqualTo(422);
+    }
+
+    @Test
+    @DisplayName("A43: PRORROGACAO_ESGOTADA está no enum do Java (422, \"Prorrogações esgotadas\") e no do contrato, com o exemplo de 422 e a linha na tabela de erros do contrato-api.md")
+    @SuppressWarnings("unchecked")
+    void prorrogacaoEsgotadaNoContrato() throws IOException {
+        CodigoErro codigo = CodigoErro.PRORROGACAO_ESGOTADA;
+        assertThat(codigo.status()).isEqualTo(422);
+        assertThat(codigo.titulo()).isEqualTo("Prorrogações esgotadas");
+
+        Map<String, Object> c = contrato();
+        assertThat((List<String>) mapa(mapa(mapa(c, "components"), "schemas"), "CodigoErro").get("enum"))
+                .contains("PRORROGACAO_ESGOTADA");
+        assertThat(exemplos(c)).filteredOn(ex -> "PRORROGACAO_ESGOTADA".equals(ex.valor().get("code"))).isNotEmpty()
+                .allSatisfy(ex -> {
+                    assertThat(ex.valor().get("status")).as(ex.onde()).isEqualTo(422);
+                    assertThat(ex.valor().get("title")).as(ex.onde()).isEqualTo("Prorrogações esgotadas");
+                    assertThat(ex.valor().get("detail")).as(ex.onde()).isEqualTo(codigo.detalhePadrao());
+                });
+
+        String tabela = Files.readString(OPENAPI.getParent().resolve("contrato-api.md"), StandardCharsets.UTF_8);
+        assertThat(tabela.lines().filter(l -> l.startsWith("| 422 |") && l.contains("`PRORROGACAO_ESGOTADA`")
+                && l.contains("Prorrogações esgotadas"))).as("linha do código na tabela de erros").hasSize(1);
+    }
 }
