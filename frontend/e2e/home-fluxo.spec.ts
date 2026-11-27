@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 import { API_URL } from "./apoio";
 
 // Fluxo sem repetição (Fatia 16). Links antigos já divulgados (ou do menu de antes) continuam chegando ao lugar certo.
-test("A28: /#trajetoria, /#historia e /#barbeiro vão para quem-somos; /#duvidas vai para como-marcar", async ({ page }) => {
+test("A28: /#trajetoria, /#historia e /#barbeiro vão para quem-somos; /#duvidas vai para como-marcar", async ({
+  page,
+}) => {
   for (const antigo of ["#trajetoria", "#historia", "#barbeiro"]) {
     await page.goto(`/${antigo}`);
     await expect(page, antigo).toHaveURL(/\/#quem-somos$/);
@@ -61,28 +63,36 @@ test("A27: /servicos vai para /#servicos, direto ou por um link de dentro do sit
   await expect(page.locator("#servicos").getByRole("heading", { level: 2 })).toBeInViewport();
 });
 
-test("A28 no celular (360 px): tocar no menu um link para âncora antiga (/#barbeiro, /#trajetoria) com a home aberta rola até quem-somos e leva o foco ao título", async ({
+test("A28 no celular (360 px): com a home aberta, o 01 · Quem somos do menu e um link para âncora antiga (/#barbeiro, /#trajetoria) levam a quem-somos", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  // os itens do menu mudam com o F2; vale para qualquer link do menu que aponte para uma âncora antiga
-  await page.getByRole("button", { name: "Menu" }).click();
   const principal = page.getByRole("navigation", { name: "Principal" });
-  const hrefs = await principal
-    .locator("a")
-    .evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? "").filter((h) => /^\/#(barbeiro|trajetoria|historia)$/.test(h)));
-  expect(hrefs.length, "o menu tem ao menos um link para âncora antiga").toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Menu" }).click(); // fecha; cada volta reabre
-
   const titulo = page.locator("#t-quem-somos");
-  for (const href of hrefs) {
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+
+  // o menu do F2 aponta direto para /#quem-somos
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(principal.getByRole("link", { name: "Quem somos" })).toHaveAttribute("href", "/#quem-somos");
+  await principal.getByRole("link", { name: "Quem somos" }).click();
+  await expect(page).toHaveURL(/\/#quem-somos$/);
+  await expect(titulo).toBeInViewport();
+
+  // links antigos já divulgados ou guardados (o menu de antes): o clique no mesmo documento também vai para quem-somos
+  for (const href of ["/#barbeiro", "/#trajetoria", "/#historia"]) {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate((h) => {
+      const a = document.createElement("a");
+      a.href = h;
+      a.id = "link-antigo-de-teste";
+      a.textContent = "link antigo";
+      document.querySelector("main")!.prepend(a);
+    }, href);
     await expect(titulo, href).not.toBeInViewport();
-    await page.getByRole("button", { name: "Menu" }).click();
-    await principal.locator(`a[href="${href}"]`).click();
+    await page.locator("#link-antigo-de-teste").click();
     await expect(page, href).toHaveURL(/\/#quem-somos$/);
     await expect(titulo, href).toBeInViewport();
     await expect(titulo, href).toBeFocused();
