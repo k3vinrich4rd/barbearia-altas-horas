@@ -246,7 +246,22 @@ test.describe("resumo fixo não cobre o foco", () => {
       });
       const overflow = await page.evaluate(() => {
         const raiz = document.documentElement;
-        return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
+        const cliente = raiz.clientWidth;
+        const largos = [...document.querySelectorAll("body *")]
+          .map((el) => {
+            const caixa = el.getBoundingClientRect();
+            const cls = typeof el.className === "string" ? el.className : "";
+            return {
+              tag: el.tagName,
+              cls: cls.slice(0, 80),
+              sw: el.scrollWidth,
+              rw: Math.round(caixa.width),
+            };
+          })
+          .filter((e) => e.sw > cliente || e.rw > cliente)
+          .sort((a, b) => b.sw - a.sw)
+          .slice(0, 12);
+        return { scroll: raiz.scrollWidth, cliente, largos };
       });
       await page.evaluate(() => {
         document.body.style.zoom = "";

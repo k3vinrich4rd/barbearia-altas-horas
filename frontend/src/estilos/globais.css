@@ -1425,6 +1425,19 @@ caption {
 /* Celular: barra compacta e scroll-padding para o foco não ficar atrás dela (WCAG 2.4.11).
  * O padding usa a altura ampliada (teto com A+) para cobrir o zoom sem JavaScript. */
 @media (max-width: 47.999rem) {
+  /* RF-7: com zoom no body, o recorte do html não reduz o scrollWidth; a largura destes
+   * blocos não pode depender da min-content dos filhos (notas da tira, 16 rem, botões). */
+  .cabecalho,
+  main,
+  .rodape,
+  .resumo-fixo {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+    contain: inline-size;
+  }
+
   html:has(.resumo-fixo) {
     scroll-padding-bottom: calc(var(--resumo-fixo-altura-ampliada) + var(--space-4));
   }
