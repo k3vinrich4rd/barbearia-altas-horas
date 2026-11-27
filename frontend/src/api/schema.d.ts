@@ -57,6 +57,11 @@ export interface paths {
          *     frente). `data` anterior a hoje, no fuso da barbearia: `422 ANTECEDENCIA_INSUFICIENTE` ("o horário já passou");
          *     qualquer data de hoje em diante é aceita. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
          *     inexistente (ou barbeiro inativo): 404. Resposta com Cache-Control no-store.
+         *     Desde a 1.12.0 (ADR 0015) cada barbeiro traz também o `expediente` do dia, para a tela mostrar "fechado" em vez de
+         *     "sem horário": `aberto: false` com `motivoFechado` `FORA_DO_EXPEDIENTE` (a jornada não tem intervalo neste dia da
+         *     semana) ou `FECHADO` (folga ou férias cobrem o expediente inteiro do dia). O tipo (`FOLGA` ou `FERIAS`) e o `motivo`
+         *     da folga **nunca** saem aqui: só no `/admin`. Folga que cobre só parte do dia não aparece: o dia continua `aberto` e
+         *     só os horários somem.
          */
         get: operations["consultarDisponibilidade"];
         put?: never;
@@ -501,15 +506,21 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Acrescenta 1 minuto ao prazo do Pix, uma vez por reserva (1.11.0, D188)
-         * @description Do dono da reserva (`sub` do token). **Sem corpo** (qualquer campo é `400 CAMPO_DESCONHECIDO`) e **sem**
-         *     `Idempotency-Key`: a prorrogação é um recurso único da reserva, então repetir devolve o que já existe.
-         *     Só vale no **último minuto** do prazo, `[expiraEm - 60 s, expiraEm)`, e só com a reserva `AGUARDANDO_PAGAMENTO`.
-         *     Soma 60 s (fixos, `prorrogacao.segundos`) ao prazo que está correndo. Primeira chamada: `201`; repetição com o
-         *     prazo ainda vivo: `200` com o mesmo corpo, **sem** somar. Ordem das checagens: `404` (não é dono, não existe, é
-         *     reserva manual) → `422 TRANSICAO_INVALIDA` (status final) → `200` (já prorrogada, no prazo) → `422 RESERVA_EXPIRADA`
-         *     (prazo vencido, sem carência e sem reabertura) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava.
-         *     O Pix já gerado **não muda**. Resposta com Cache-Control no-store.
+         * Acrescenta 2 minutos ao prazo do Pix, até 10 vezes por reserva (1.12.0, ADR 0015; antes 1 minuto uma vez, D188)
+         * @description Do dono da reserva (`sub` do token). **Sem corpo** (qualquer campo é `400 CAMPO_DESCONHECIDO`).
+         *     **1.12.0 (ADR 0015, revoga a D190 e altera a D188):** cada pedido soma `prorrogacao.segundos` (120 s, propriedade
+         *     `app.agenda.prorrogacao-pagamento`) ao prazo que está correndo, até `prorrogacao.maximo` (10, propriedade
+         *     `app.agenda.prorrogacao-maximo`) pedidos por reserva (WCAG 2.2.1, "Extend": pelo menos 10). A janela continua o
+         *     **último minuto** do prazo, `[expiraEm - 60 s, expiraEm)`, e só com a reserva `AGUARDANDO_PAGAMENTO`; depois de
+         *     somar, o prazo volta a ter mais de 60 s, então a janela fecha até o próximo último minuto.
+         *     `X-Idempotency-Key` (UUID, **opcional**, o mesmo cabeçalho da cobrança): repetir o **último** pedido com a mesma chave devolve `200` com o mesmo corpo,
+         *     **sem** somar nem contar. Sem a chave, uma repetição logo depois de somar cai fora da janela (`422
+         *     PRORROGACAO_FORA_DA_JANELA`) e também não soma. Ordem das checagens: `404` (não é dono, não existe, é reserva
+         *     manual) → `422 TRANSICAO_INVALIDA` (status final) → `200` (mesma `X-Idempotency-Key` do último pedido, prazo vivo) →
+         *     `422 RESERVA_EXPIRADA` (prazo vencido, sem carência e sem reabertura) → `422 PRORROGACAO_ESGOTADA` (já usou os
+         *     `maximo` pedidos; o 11º) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava (`201`).
+         *     O Pix já gerado **não muda** (o mesmo copia e cola); a cobrança nasce no gateway com validade do prazo máximo possível
+         *     (ADR 0015) e `cobranca.expira_em` acompanha o `expiraEm` da reserva (D191). Resposta com Cache-Control no-store.
          */
         post: operations["prorrogarPagamento"];
         delete?: never;
@@ -528,8 +539,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * O visitante acrescenta 1 minuto ao prazo do Pix (1.11.0, D188)
-         * @description As mesmas regras de `POST /agendamentos/{id}/prorrogacao`, com o `X-Guest-Token` da reserva no lugar do bearer.
+         * O visitante acrescenta 2 minutos ao prazo do Pix, até 10 vezes (1.12.0, ADR 0015)
+         * @description As mesmas regras de `POST /agendamentos/{id}/prorrogacao` (120 s por pedido, até 10, `X-Idempotency-Key` opcional,
+         *     `422 PRORROGACAO_ESGOTADA` no 11º), com o `X-Guest-Token` da reserva no lugar do bearer.
          *     Token errado, ausente ou de outra reserva: o mesmo `404` de "não existe" (R23). Rota pública só para `POST`.
          */
         post: operations["prorrogarPagamentoDoGuest"];
@@ -926,12 +938,39 @@ export interface paths {
         get: operations["listarFolgas"];
         put?: never;
         /**
-         * Cria folga
+         * Cria folga ou férias (tipo FOLGA ou FERIAS)
          * @description Só ADMIN. Período meio aberto [inicio, fim): `fim` depois de `inicio` e não toda no passado (`400`); `motivo` até 200 caracteres.
-         *     Com reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) no período: `422 FOLGA_COM_RESERVAS`.
-         *     Folga e reserva simultâneas nunca passam juntas: a transação trava a linha do barbeiro.
+         *     `tipo` (1.12.0, ADR 0015) é `FOLGA` (padrão) ou `FERIAS`; os dois bloqueiam a agenda do mesmo jeito.
+         *     Com reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) no período: `422 FOLGA_COM_RESERVAS`, nada
+         *     gravado, e desde a 1.12.0 o corpo traz a extensão `conflitos[]`. Com `manterReservas: true` o período é gravado mesmo
+         *     assim: as reservas **continuam como estão** (nada é cancelado sozinho; cancelar continua sendo uma ação do ADMIN, uma a
+         *     uma), os horários novos no período ficam bloqueados e a resposta lista as mantidas em `reservasMantidas[]`.
+         *     Folga e reserva simultâneas nunca passam juntas: a transação trava a linha do barbeiro. Auditoria `FOLGA_CRIADA` na mesma transação.
          */
         post: operations["criarFolga"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/barbeiros/{id}/folgas/conflitos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Prévia dos agendamentos ativos que um período de folga ou férias atingiria
+         * @description 1.12.0 (ADR 0015). Só ADMIN. Só lê: não grava nem trava nada (quem decide é o `POST` ou o `PUT`, que relê dentro da
+         *     trava). Lista as reservas ativas do barbeiro (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) que se sobrepõem a
+         *     [inicio, fim), em ordem de início; encostar não é conflito. Lista vazia = sem conflito. Período inválido (`fim` não
+         *     depois de `inicio`, ou todo no passado): `400`. Barbeiro inexistente: `404`. Sem e-mail, CPF, WhatsApp nem observação.
+         */
+        get: operations["listarConflitosDaFolga"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -946,9 +985,20 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Edita folga ou férias (substitui início, fim, motivo e tipo)
+         * @description 1.12.0 (ADR 0015). Só ADMIN. Substitui o período inteiro, com as mesmas validações e a mesma trava do `POST`: `fim`
+         *     depois de `inicio` e não todo no passado (`400`); conflito com reserva ativa no período novo é
+         *     `422 FOLGA_COM_RESERVAS` com `conflitos[]`, a folga continua como era; com `manterReservas: true` grava e lista as
+         *     mantidas. Folga de outro barbeiro ou inexistente: `404`. Sem controle de versão (um único dono; a última gravação
+         *     vale). Auditoria `FOLGA_ALTERADA` na mesma transação.
+         */
+        put: operations["alterarFolga"];
         post?: never;
-        /** Remove folga */
+        /**
+         * Remove folga ou férias
+         * @description Só ADMIN. Libera os horários (sem trava: remover nunca cria conflito). Folga de outro barbeiro ou inexistente: `404`. Auditoria `FOLGA_REMOVIDA`.
+         */
         delete: operations["removerFolga"];
         options?: never;
         head?: never;
@@ -1259,13 +1309,15 @@ export interface components {
                 field: string;
                 message: string;
             }[];
+            /** @description 1.12.0 (ADR 0015): só no `422 FOLGA_COM_RESERVAS`, as reservas ativas que impedem gravar o período */
+            conflitos?: components["schemas"]["ConflitoDeFolga"][];
         };
         /**
          * @description `FORA_DO_HORIZONTE` está **deprecated** desde a 1.11.0 (D197): a API não o devolve mais, e o nome fica no enum para o front
          *     antigo e o texto genérico dele não quebrarem. `ANTECEDENCIA_INSUFICIENTE` continua, agora só para "o horário já passou".
          * @enum {string}
          */
-        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "PRORROGACAO_FORA_DA_JANELA" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
+        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "PRORROGACAO_FORA_DA_JANELA" | "PRORROGACAO_ESGOTADA" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
         /** @enum {string} */
         StatusReserva: "AGUARDANDO_PAGAMENTO" | "CONFIRMADO" | "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO" | "EXPIRADO";
         /** @enum {string} */
@@ -1389,16 +1441,68 @@ export interface components {
             /** @example 19:00 */
             horaFim: string;
         };
+        /**
+         * @description 1.12.0 (ADR 0015): só um rótulo para o painel; os dois bloqueiam a agenda do mesmo jeito
+         * @enum {string}
+         */
+        TipoFolga: "FOLGA" | "FERIAS";
         FolgaRequest: {
             /** Format: date-time */
             inicio: string;
             /** Format: date-time */
             fim: string;
+            /** @description pode ser pessoal: nunca vai para log nem auditoria (R30) */
             motivo?: string;
+            /** @description 1.12.0: opcional; sem o campo, a API grava `FOLGA` (sem `default` no schema para o cliente gerado não exigir o campo) */
+            tipo?: components["schemas"]["TipoFolga"];
+            /**
+             * @description 1.12.0 (ADR 0015): opcional; sem o campo, `false`. `true` grava o período mesmo com reservas ativas nele; elas continuam como estão (nada é
+             *     cancelado sozinho) e voltam em `reservasMantidas`. Nunca é guardado.
+             */
+            manterReservas?: boolean;
         };
-        Folga: components["schemas"]["FolgaRequest"] & {
+        Folga: {
             /** Format: uuid */
             id: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fim: string;
+            motivo?: string;
+            tipo: components["schemas"]["TipoFolga"];
+            /**
+             * Format: date-time
+             * @description 1.12.0: nulo até a primeira edição
+             */
+            atualizadaEm?: string | null;
+        };
+        /** @description Resposta do `POST` e do `PUT` de folga (1.12.0) */
+        FolgaSalva: components["schemas"]["Folga"] & {
+            /** @description reservas ativas que ficaram dentro do período por `manterReservas: true`; vazio quando não houve conflito */
+            reservasMantidas: components["schemas"]["ConflitoDeFolga"][];
+        };
+        /**
+         * @description 1.12.0 (ADR 0015). Reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) que se sobrepõe a um período
+         *     de folga ou férias. Só para o ADMIN; sem e-mail, CPF, WhatsApp nem observação; nunca vai para o log (R30).
+         */
+        ConflitoDeFolga: {
+            /** Format: uuid */
+            reservaId: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fim: string;
+            servico: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+            /** @description nome de exibição; `Sem nome` na reserva manual sem nome ou já anonimizada */
+            clienteNome: string;
+            /** @enum {string} */
+            origem: "CLIENTE" | "GUEST" | "MANUAL";
+            /** @enum {string} */
+            status: "CONFIRMADO" | "AGUARDANDO_PAGAMENTO";
         };
         Disponibilidade: {
             /** Format: date */
@@ -1414,7 +1518,40 @@ export interface components {
                 nomeExibicao: string;
                 /** @description inícios livres em ordem crescente, sempre com segundos e offset; vazio quando não há horário */
                 horarios: string[];
+                expediente?: components["schemas"]["ExpedienteDoDia"];
             }[];
+        };
+        /**
+         * @description 1.12.0 (ADR 0015). O expediente do barbeiro no dia consultado, tirado da jornada semanal e das folgas. Sempre enviado
+         *     desde a 1.12.0 (opcional no schema só para não quebrar quem lê a 1.11.0). Datas com segundos e offset, no fuso da
+         *     barbearia, como `horarios`. Fechado (`aberto: false`): `inicio`, `fim` e `almoco` são `null`. Folga que cobre só
+         *     parte do dia não fecha o dia. Nem o tipo nem o texto do `motivo` da folga aparecem aqui.
+         */
+        ExpedienteDoDia: {
+            /** @description false: fora do expediente, ou folga ou férias cobrindo o expediente inteiro do dia */
+            aberto: boolean;
+            /**
+             * @description `null` quando aberto. `FORA_DO_EXPEDIENTE`: a jornada não tem intervalo neste dia da semana. `FECHADO`: folga ou
+             *     férias cobrem o expediente inteiro; o tipo não é público (só no `/admin`). A tela mostra "Fechado" nos dois.
+             */
+            motivoFechado: ("FORA_DO_EXPEDIENTE" | "FECHADO") | null;
+            /**
+             * Format: date-time
+             * @description início do primeiro intervalo da jornada no dia
+             */
+            inicio: string | null;
+            /**
+             * Format: date-time
+             * @description fim do último intervalo da jornada no dia
+             */
+            fim: string | null;
+            /** @description o vão entre os dois primeiros intervalos da jornada no dia; `null` com um intervalo só, ou fechado */
+            almoco: {
+                /** Format: date-time */
+                inicio: string;
+                /** Format: date-time */
+                fim: string;
+            } | null;
         };
         Endereco: {
             cep: string;
@@ -1576,15 +1713,34 @@ export interface components {
             /** @description só nas respostas do visitante (1.9.0): a reserva guarda a região com a prova do aceite; vira false depois de `DELETE /agendamentos/guest/{id}/regiao` */
             regiaoAutorizada?: boolean;
             /**
-             * @description Acrescentar tempo para pagar (1.11.0, D188). Nulo quando não se aplica: reserva manual ou reserva que não
-             *     está AGUARDANDO_PAGAMENTO dentro do prazo.
+             * @description Acrescentar tempo para pagar (1.11.0, D188; 1.12.0, ADR 0015: 120 s por pedido, até 10). Nulo quando não se
+             *     aplica: reserva manual ou reserva que não está AGUARDANDO_PAGAMENTO dentro do prazo. Com os pedidos esgotados o
+             *     objeto continua presente, com `restantes: 0`.
              */
             prorrogacao?: null | {
-                /** @description true depois da única prorrogação permitida */
+                /**
+                 * @deprecated
+                 * @description deprecated na 1.12.0: `true` quando `usadas > 0`. Use `usadas` e `restantes`
+                 */
                 usada: boolean;
                 /**
-                 * @description quanto tempo a prorrogação acrescenta (fixo em 60 na aplicação, D190)
-                 * @example 60
+                 * @description 1.12.0: quantos pedidos de mais tempo esta reserva já usou
+                 * @example 0
+                 */
+                usadas?: number;
+                /**
+                 * @description 1.12.0: quantos pedidos a reserva pode fazer (propriedade `app.agenda.prorrogacao-maximo`, 10)
+                 * @example 10
+                 */
+                maximo?: number;
+                /**
+                 * @description 1.12.0: `maximo - usadas`; com 0 o botão some
+                 * @example 10
+                 */
+                restantes?: number;
+                /**
+                 * @description quanto cada pedido acrescenta (120 desde a 1.12.0, propriedade `app.agenda.prorrogacao-pagamento`; era 60, D190 revogada)
+                 * @example 120
                  */
                 segundos: number;
                 /**
@@ -2257,6 +2413,21 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problema"];
             };
         };
+        /**
+         * @description Regra de negócio. Na folga (1.12.0, ADR 0015): `FOLGA_COM_RESERVAS` traz a extensão `conflitos[]` com as reservas ativas
+         *     do período; nada é gravado. Para gravar mesmo assim, o painel repete com `manterReservas: true`. Corpo com
+         *     `Cache-Control: no-store`; a extensão nunca vai para o log (R30).
+         */
+        Erro422FolgaComReservas: {
+            headers: {
+                /** @example no-store */
+                "Cache-Control"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
         /** @description Limite de tentativas */
         Erro429: {
             headers: {
@@ -2280,6 +2451,11 @@ export interface components {
     };
     parameters: {
         Id: string;
+        /**
+         * @description 1.12.0 (ADR 0015). Opcional, mesmo nome do cabeçalho da cobrança. Repetir o último pedido de mais tempo com a mesma
+         *     chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova (ou nenhuma) é um pedido novo.
+         */
+        IdempotencyKeyProrrogacao: string;
         Pagina: number;
         Tamanho: number;
     };
@@ -2904,7 +3080,13 @@ export interface operations {
     prorrogarPagamento: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description 1.12.0 (ADR 0015). Opcional, mesmo nome do cabeçalho da cobrança. Repetir o último pedido de mais tempo com a mesma
+                 *     chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova (ou nenhuma) é um pedido novo.
+                 */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKeyProrrogacao"];
+            };
             path: {
                 id: components["parameters"]["Id"];
             };
@@ -2912,7 +3094,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado */
+            /** @description Repetição do último pedido com a mesma `X-Idempotency-Key`; o mesmo corpo, nada somado nem contado */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2921,7 +3103,7 @@ export interface operations {
                     "application/json": components["schemas"]["Agendamento"];
                 };
             };
-            /** @description Prorrogada; `expiraEm` ganhou 60 s e `prorrogacao.usada` é `true` */
+            /** @description Prorrogada; `expiraEm` ganhou `prorrogacao.segundos` (120 s) e `prorrogacao.usadas` subiu 1 */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -2940,7 +3122,13 @@ export interface operations {
     prorrogarPagamentoDoGuest: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description 1.12.0 (ADR 0015). Opcional, mesmo nome do cabeçalho da cobrança. Repetir o último pedido de mais tempo com a mesma
+                 *     chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova (ou nenhuma) é um pedido novo.
+                 */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKeyProrrogacao"];
+            };
             path: {
                 id: components["parameters"]["Id"];
             };
@@ -2948,7 +3136,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado */
+            /** @description Repetição do último pedido com a mesma `X-Idempotency-Key`; o mesmo corpo, nada somado nem contado */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3553,7 +3741,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Folga criada */
+            /** @description Folga criada (com `reservasMantidas` vazio, ou com as reservas mantidas por `manterReservas`) */
             201: {
                 headers: {
                     /** @description /admin/barbeiros/{id}/folgas/{folgaId} */
@@ -3561,14 +3749,79 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Folga"];
+                    "application/json": components["schemas"]["FolgaSalva"];
                 };
             };
             400: components["responses"]["Erro400"];
             401: components["responses"]["Erro401"];
             403: components["responses"]["Erro403"];
             404: components["responses"]["Erro404"];
-            422: components["responses"]["Erro422"];
+            422: components["responses"]["Erro422FolgaComReservas"];
+        };
+    };
+    listarConflitosDaFolga: {
+        parameters: {
+            query: {
+                /** @example 2026-12-21T00:00:00-03:00 */
+                inicio: string;
+                /** @example 2027-01-03T00:00:00-03:00 */
+                fim: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reservas ativas no período (vazio quando não há) */
+            200: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflitoDeFolga"][];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+        };
+    };
+    alterarFolga: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+                folgaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolgaRequest"];
+            };
+        };
+        responses: {
+            /** @description Folga alterada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolgaSalva"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+            422: components["responses"]["Erro422FolgaComReservas"];
         };
     };
     removerFolga: {
