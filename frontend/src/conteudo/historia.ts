@@ -14,6 +14,8 @@ export type JeitoDeMarcar = {
   titulo: string;
   texto: string;
   acao: { href: string; texto: string; principal?: boolean };
+  /** Com sessão (Fatia 16, decisão 6, A29): a ação troca por esta, no mesmo lugar e com o mesmo estilo. */
+  acaoComSessao?: { href: string; texto: string };
 };
 
 export const TRES_JEITOS: readonly JeitoDeMarcar[] = [
@@ -22,6 +24,7 @@ export const TRES_JEITOS: readonly JeitoDeMarcar[] = [
     titulo: "Criar conta e agendar",
     texto: "Pague no app e acompanhe seus horários em Meus agendamentos.",
     acao: { href: "/entrar", texto: "Criar conta ou entrar" },
+    acaoComSessao: { href: "/meus-agendamentos", texto: "Meus agendamentos" },
   },
   {
     numero: "2 · Sem cadastro",

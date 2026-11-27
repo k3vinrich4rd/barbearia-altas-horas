@@ -50,7 +50,7 @@ export const cadastrarConta = (corpo: Record<string, unknown>) => postar<Respost
 export const aceitarConvite = (codigo: string, email: string, senha?: string) =>
   postar<void>("/api/convite", { codigo, email, ...(senha === undefined ? {} : { senha }) });
 export const sair = () => postar<void>("/api/auth/logout");
-export const lerSessao = () => pedir<EstadoDaSessao>("/api/sessao");
+export const lerSessao = () => pedir<EstadoDaSessao>("/api/sessao", { cache: "no-store" });
 export const codigoDoVisitante = (reservaId: string) =>
   pedir<{ reservaId: string; codigo: string }>(`/api/visitante?reservaId=${encodeURIComponent(reservaId)}`);
 

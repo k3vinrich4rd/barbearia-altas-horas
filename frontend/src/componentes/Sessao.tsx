@@ -42,6 +42,16 @@ export function SessaoProvider({ children, inicial }: { children: ReactNode; ini
     if (!inicial) void atualizar();
   }, [inicial, atualizar]);
 
+  // Volta pelo bfcache (Fatia 16, A29): a página reaparece com o estado de antes (talvez de antes do logout).
+  // Pergunta de novo ao BFF, sem cache; até a resposta, o que já estava na tela fica, e um erro vira "sem sessão".
+  useEffect(() => {
+    function aoMostrar(e: PageTransitionEvent) {
+      if (e.persisted) void atualizar();
+    }
+    window.addEventListener("pageshow", aoMostrar);
+    return () => window.removeEventListener("pageshow", aoMostrar);
+  }, [atualizar]);
+
   const valor = useMemo(
     () => ({ ...estado, carregando, atualizar, encerrar }),
     [estado, carregando, atualizar, encerrar],
