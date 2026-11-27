@@ -35,7 +35,7 @@ flowchart TD
 ├ resumo fixo (≤ 128 px) ───────────────┤
 │ Corte Clássico / Social · R$ 45,00     │  ← 1 linha; quebra em 2 no máximo
 │ sexta, 27/11 às 07:00                  │
-│ [ CONTINUAR ]                          │  ← 48 px de altura
+│ [ CONTINUAR ]                          │  ← 44 px de altura
 └────────────────────────────────────────┘
 ```
 
@@ -100,9 +100,13 @@ Foco escondido: de 34 em 60 para 0. Altura da barra: de 243 px para até 128 px.
 
 **Por quê:** a spec pede CSS sem JavaScript. Usar sempre o teto com A+ (176 px, `calc((var(--space-16) * 2) + var(--space-12))`) evita medir a barra em tempo real e cobre o zoom do A+ (110%, 125% e 150%). As medidas novas são tokens derivados (`--resumo-fixo-altura`, `--resumo-fixo-altura-ampliada`, `--alvo-toque`), sem pixel solto, para o verificador de tokens passar.
 
-**Decisão:** no celular a barra usa `padding` `--space-1`, `gap` 0 e o botão com `min-height: var(--alvo-toque)` (44 px), para a altura ficar em cerca de 117 px e, com A+ a 150%, em no máximo 176 px. A tira de 7 dias ganha `min-width: 0`, `width` e `max-width: 100%`, para o `overflow-x` conter os chips. Com zoom de 200% a largura útil cai a cerca de 160 px: as grades `auto-fit` passam a usar `minmax(min(100%, coluna mínima), 1fr)`, os links do rodapé (como `@altashorascabeleireiros`) podem quebrar, e `body` e `main` usam `overflow-x: clip` para o vazamento do zoom na tira de dias não alargar o documento. O campo "Outro dia" também escuta `onInput`, para a escolha do dia chegar ao estado quando o teste (ou o navegador) preenche o `type="date"`.
+**Decisão:** no celular a barra usa `padding` `--space-1`, `gap` 0 e o botão com `min-height: var(--alvo-toque)` (44 px), para a altura ficar em cerca de 117 px e, com A+ a 150%, em no máximo 176 px. A tira de 7 dias ganha `min-width: 0`, `width` e `max-width: 100%`, para o `overflow-x` conter os chips. Com zoom de 200% a largura útil cai a cerca de 160 px: as grades `auto-fit` passam a usar `minmax(min(100%, coluna mínima), 1fr)`, os links do rodapé (como `@altashorascabeleireiros`) podem quebrar, e `html`, `body` e `main` usam `overflow-x: clip` para o vazamento do zoom na tira de dias não alargar o documento. O campo "Outro dia" também escuta `onInput`, para a escolha do dia chegar ao estado quando o teste (ou o navegador) preenche o `type="date"`.
 
 **Por quê:** com padding `--space-2`, espaço entre os blocos e botão de 48 px a barra media 133 px (acima de 128 px) e estourava o teto de 176 px no A+. No zoom de 200% o `scrollWidth` ia a 422 px: o handle do Instagram no rodapé (um único `inline-flex` sem quebra) e a coluna mínima de 16 rem das grades não cabiam na largura útil de ~160 px.
+
+**Decisão:** depois de escolher o serviço e o horário, a seção da tira de dias (`passo-dia`) também recorta com `overflow-x: clip`, `min-width: 0` e `max-width: 100%`, além do recorte em `html`. O E2E do RF-7 mede o `scrollWidth` nesse passo, não só na abertura de `/agendar`.
+
+**Por quê:** com zoom de 200% em 320 px, depois dessa escolha o `scrollWidth` ia a 638 px: a tira de 7 chips (e o resumo preenchido, `position: fixed`) vazava do recorte só de `body` e `main`.
 
 **Decisão:** as decisões desta melhoria ficam nesta spec, não em `docs/planejamento/decisoes.md`.
 

@@ -28,6 +28,10 @@
   --alvo-toque: calc(var(--space-12) - var(--space-1));
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
   background: var(--fundo);
@@ -867,6 +871,13 @@ dd {
 }
 
 /* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
+/* A seção da tira também recorta: no zoom 200%, depois do serviço e do horário, a tira (scrollWidth 638) não pode alargar o documento. */
+section[aria-labelledby="passo-dia"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 .dias-tira {
   display: flex;
   gap: var(--space-2);
