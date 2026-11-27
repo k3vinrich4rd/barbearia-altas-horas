@@ -1,19 +1,7 @@
-import type { Metadata } from "next";
-import { LinkBotao } from "@/componentes/Botao";
-import { ServicosDaHome } from "@/componentes/ListaDeServicos";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Serviços" };
-
+// Fatia 16 (F5, A27): a lista completa de serviços e preços é a seção "02 · O que fazemos" da home. Links antigos e
+// favoritos para /servicos continuam valendo e caem nela.
 export default function Servicos() {
-  return (
-    <>
-      <h1>Serviços</h1>
-      <ServicosDaHome comLinkVerTodos={false} />
-      <p>
-        <LinkBotao href="/agendar" variante="principal">
-          Agendar horário
-        </LinkBotao>
-      </p>
-    </>
-  );
+  redirect("/#servicos");
 }

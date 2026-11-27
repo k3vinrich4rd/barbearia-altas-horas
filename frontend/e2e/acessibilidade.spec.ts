@@ -158,7 +158,7 @@ const ROTAS_ALVO = [
 ] as const;
 
 const TABELA_AT1: { rota: string; nome: string | RegExp }[] = [
-  { rota: "/", nome: "Ver todos os serviços e preços" },
+  { rota: "/", nome: "Ver serviços e preços" },
   { rota: "/entrar", nome: "Criar conta" },
   { rota: "/cadastro", nome: "Entrar" },
   { rota: "/cadastro", nome: "Saiba mais na política de privacidade" },
@@ -174,7 +174,7 @@ test("AT-1, AT-2, AT-4 e AT-5: alvos de toque de 44 px nos links soltos", async 
 
   // AT-1
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Ver todos os serviços e preços" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ver serviços e preços" })).toBeVisible();
   for (const item of TABELA_AT1) {
     if (item.rota !== "/privacidade") {
       if (page.url().replace(/https?:\/\/[^/]+/, "") !== item.rota) await page.goto(item.rota);

@@ -21,14 +21,13 @@ beforeEach(() => {
 });
 
 describe("menu do site", () => {
-  test("A2: tem as âncoras da home (Serviços, Barbeiro, Galeria, Trajetória, Dúvidas, Onde estamos), sem A história nem Como funciona, os links da conta e um único Agendar horário", () => {
+  test("A2: tem as âncoras da home (Serviços, Barbeiro, Trajetória, Dúvidas, Onde estamos; sem Galeria no cenário A), sem A história nem Como funciona, os links da conta e um único Agendar horário", () => {
     renderizar(<Menu />, ANONIMO);
     const principal = screen.getByRole("navigation", { name: "Principal" });
     const links = within(principal).getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual([
       "Serviços",
       "Barbeiro",
-      "Galeria",
       "Trajetória",
       "Dúvidas",
       "Onde estamos",

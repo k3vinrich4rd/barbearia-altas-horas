@@ -51,8 +51,9 @@ for (const tamanho of [
       }).observe({ type: "layout-shift", buffered: true });
     });
     await page.goto("/");
-    await page.locator("#galeria").scrollIntoViewIfNeeded();
-    await expect(page.locator("#galeria img")).toHaveJSProperty("complete", true);
+    // cenário A (Fatia 16): sem galeria na home; rola pela página inteira antes de medir
+    await expect(page.locator("#galeria")).toHaveCount(0);
+    await page.locator("#onde-estamos").scrollIntoViewIfNeeded();
     await page.locator("#duvidas").scrollIntoViewIfNeeded();
     const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
     expect(cls, "CLS da home").toBeLessThanOrEqual(0.1);

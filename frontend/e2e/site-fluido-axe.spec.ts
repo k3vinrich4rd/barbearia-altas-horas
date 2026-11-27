@@ -25,25 +25,6 @@ const TAMANHOS = [
   { width: 375, height: 812 },
 ];
 
-test("A14: a galeria (grade e visualizador) não tem violação de acessibilidade", async ({ page }) => {
-  for (const tamanho of TAMANHOS) {
-    await page.setViewportSize(tamanho);
-    await page.goto("/");
-    for (const tema of ["escuro", "claro"]) {
-      await page.evaluate((t) => (document.documentElement.dataset.theme = t), tema);
-      await semViolacoes(page, `grade da galeria, ${tamanho.width}px, tema ${tema}`, "#galeria");
-    }
-    // o visualizador só existe com 2 ou mais fotos (27/11/2026: a galeria tem só a foto do salão)
-    const miniaturas = page.locator("#galeria").getByRole("button", { name: /^Ampliar foto:/ });
-    if ((await miniaturas.count()) > 1) {
-      await miniaturas.first().click();
-      await expect(page.getByRole("dialog")).toBeVisible();
-      await semViolacoes(page, `visualizador, ${tamanho.width}px`, '[role="dialog"]');
-      await page.keyboard.press("Escape");
-    }
-  }
-});
-
 test("A25: /, /servicos, /agendar e /agendar/dados não têm violação, a ordem de foco é coerente e a barra fixa não se sobrepõe", async ({
   page,
   request,

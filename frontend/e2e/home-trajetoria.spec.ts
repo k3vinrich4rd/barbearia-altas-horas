@@ -41,11 +41,8 @@ test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no nave
   await page.keyboard.press("Enter");
   await expect(duvida).toHaveAttribute("open", "");
 
-  // galeria (27/11/2026): só a foto do salão, em destaque, sem visualizador (nada para folhear)
-  const galeria = page.locator("#galeria");
-  await expect(galeria.getByRole("heading", { level: 2 })).toHaveText("O salão da Altas Horas");
-  await expect(galeria.getByRole("img")).toHaveCount(1);
-  await expect(galeria.getByRole("button")).toHaveCount(0);
+  // galeria: cenário A da Fatia 16 (sem foto de corte aprovada), a seção não existe
+  await expect(page.locator("#galeria")).toHaveCount(0);
 
   // VZ-1, VZ-2 e VZ-7: o áudio só baixa ao apertar Ouvir; play, pausa e posição pelo teclado
   expect(pedidosAudio, pedidosAudio.join(" ")).toEqual([]);

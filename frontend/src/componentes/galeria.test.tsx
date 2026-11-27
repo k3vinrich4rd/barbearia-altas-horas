@@ -3,10 +3,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { screen, within } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
-import { GALERIA, type FotoDaGaleria } from "@/conteudo/historia";
+import { describe, expect, test, vi } from "vitest";
+import Home from "@/app/page";
+import { FOTO_DO_SALAO, GALERIA, type FotoDaGaleria } from "@/conteudo/historia";
+import { SEIS_SERVICOS } from "@/testes/dados";
+import { BFF, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { renderizar } from "@/testes/render";
 import { Galeria } from "./Galeria";
+import { Menu } from "./Menu";
+
+vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
+ligarServidor();
 
 const raiz = resolve(__dirname, "../../..");
 const arquivo = (src: string) => resolve(raiz, "docs/assets", src.replace("/assets/", ""));
@@ -38,9 +45,9 @@ const QUE_SAIRAM = [
 ];
 
 // Lista de exemplo para a grade (2 ou mais fotos): arquivos que já existem e não mostram cliente (o logo e a foto do
-// Eduardo, que o site já usa no bloco do barbeiro). Só existe no teste; a galeria publicada é a GALERIA.
+// Eduardo). Só existe no teste; a galeria publicada é a GALERIA (vazia no cenário A).
 const TRES: readonly FotoDaGaleria[] = [
-  GALERIA[0],
+  FOTO_DO_SALAO,
   {
     src: "/assets/logo-altas-horas.png",
     legenda: "O logo",
@@ -59,8 +66,10 @@ const TRES: readonly FotoDaGaleria[] = [
 
 describe("galeria da home", () => {
   test("A11: só as fotos aprovadas, sem rosto e sem criança; as que saíram não existem mais na pasta de imagens", () => {
-    expect(GALERIA.map((f) => f.src)).toEqual(APROVADAS);
-    for (const f of GALERIA) {
+    // cenário A (Fatia 16): nenhuma foto de corte aprovada; a do salão fica fora da galeria
+    expect(GALERIA).toEqual([]);
+    expect(FOTO_DO_SALAO.src).toBe(APROVADAS[0]);
+    for (const f of [FOTO_DO_SALAO, ...GALERIA]) {
       expect(existsSync(arquivo(f.src)), f.src).toBe(true);
       expect(f.alt.trim().length, f.src).toBeGreaterThan(20);
       expect(f.legenda.trim()).not.toBe("");
@@ -69,15 +78,15 @@ describe("galeria da home", () => {
   });
 
   test("A12: com 1 foto, destaque largo pelo next/image (srcset, sizes, medidas reais), preguiçoso e sem botão", () => {
-    renderizar(<Galeria />);
+    renderizar(<Galeria fotos={[FOTO_DO_SALAO]} />);
     const secao = screen.getByRole("region", { name: "O salão da Altas Horas" });
     expect(within(secao).queryByRole("list")).toBeNull();
     expect(within(secao).queryByRole("button")).toBeNull();
-    const foto = within(secao).getByRole("img", { name: GALERIA[0].alt });
+    const foto = within(secao).getByRole("img", { name: FOTO_DO_SALAO.alt });
     expect(foto.getAttribute("srcset")).toContain("/_next/image");
     expect(foto.getAttribute("sizes")).toBeTruthy();
-    expect(foto).toHaveAttribute("width", String(GALERIA[0].largura));
-    expect(foto).toHaveAttribute("height", String(GALERIA[0].altura));
+    expect(foto).toHaveAttribute("width", String(FOTO_DO_SALAO.largura));
+    expect(foto).toHaveAttribute("height", String(FOTO_DO_SALAO.altura));
     expect(foto).toHaveAttribute("loading", "lazy");
     expect(within(secao).getByText("O salão")).toBeInTheDocument();
   });
@@ -138,5 +147,23 @@ describe("galeria da home", () => {
     await user.click(screen.getByRole("button", { name: "Fechar" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(botoes[2]).toHaveFocus();
+  });
+
+  test("A17: sem foto de corte aprovada (cenário A), a home não tem a seção da galeria e o menu não tem o link \"Galeria\"", async () => {
+    servidor.use(
+      http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)),
+      http.get(`${BFF}/alcance`, () => HttpResponse.json({ atualizadoEm: "2026-11-27T00:00:00Z", totalCidades: 0, totalBairros: 0, regioes: [] })),
+    );
+    const { container } = renderizar(
+      <>
+        <Menu />
+        <Home />
+      </>,
+    );
+    await screen.findByText("Descoloração / Platinado (química)");
+    expect(container.querySelector("#galeria")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Galeria/ })).toBeNull();
+    expect(container.querySelector('a[href$="#galeria"]')).toBeNull();
+    expect(screen.queryByRole("heading", { name: /O salão da Altas Horas|Do degradê ao acabamento/ })).toBeNull();
   });
 });
