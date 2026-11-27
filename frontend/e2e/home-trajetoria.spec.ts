@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 // A home conta a história da barbearia (1994, 1997, 2017, hoje) com interações que precisam funcionar no navegador
-// de verdade e só com o teclado: linha do tempo, dúvidas em <details>, galeria (visualizador) e o painel de acessibilidade.
+// de verdade e só com o teclado: linha do tempo, dúvidas em <details>, galeria (foto do salão) e o painel de acessibilidade.
 test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no navegador de verdade", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Seu horário com o Eduardo, garantido.");
@@ -37,19 +37,11 @@ test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no nave
   await page.keyboard.press("Enter");
   await expect(duvida).toHaveAttribute("open", "");
 
-  // galeria: a miniatura abre a foto inteira, a seta troca, Esc fecha e o foco volta
+  // galeria (27/11/2026): só a foto do salão, em destaque, sem visualizador (nada para folhear)
   const galeria = page.locator("#galeria");
-  await expect(galeria.getByRole("button", { name: /^Ampliar foto:/ })).toHaveCount(18);
-  const primeira = galeria.getByRole("button", { name: /^Ampliar foto:/ }).first();
-  await primeira.focus();
-  await page.keyboard.press("Enter");
-  const visualizador = page.getByRole("dialog");
-  await expect(visualizador.getByText("Foto 1 de 18")).toBeVisible();
-  await page.keyboard.press("ArrowRight");
-  await expect(visualizador.getByText("Foto 2 de 18")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(visualizador).toBeHidden();
-  await expect(galeria.getByRole("button", { name: /^Ampliar foto:/ }).nth(1)).toBeFocused();
+  await expect(galeria.getByRole("heading", { level: 2 })).toHaveText("O salão da Altas Horas");
+  await expect(galeria.getByRole("img")).toHaveCount(1);
+  await expect(galeria.getByRole("button")).toHaveCount(0);
 
   // painel de acessibilidade: tema claro e sem animação mudam o <html> e marcam o botão
   const painel = page.getByRole("region", { name: "Recursos de acessibilidade" });
