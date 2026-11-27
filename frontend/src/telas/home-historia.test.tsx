@@ -55,13 +55,15 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     const { user, container } = renderizar(<Trajetoria />);
     const audio = container.querySelector("audio")!;
     expect(audio).toHaveAttribute("preload", "none");
+    expect(audio.querySelector("source")).toBeNull();
+    expect(audio.querySelector("track")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    expect(play).toHaveBeenCalledTimes(1);
     expect(audio.querySelector('source[type="audio/opus"]')).toHaveAttribute("src", "/assets/audio/historia.opus");
     expect(audio.querySelector('source[type="audio/mpeg"]')).toHaveAttribute("src", "/assets/audio/historia.mp3");
     expect(audio.querySelector("track")).toHaveAttribute("src", "/assets/audio/historia.vtt");
     expect(audio.querySelector("track")).toHaveAttribute("kind", "captions");
-
-    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
-    expect(play).toHaveBeenCalledTimes(1);
     const botao = await screen.findByRole("button", { name: "Pausar" });
     expect(botao).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("status")).toHaveTextContent("Lendo a trajetória em voz alta.");
