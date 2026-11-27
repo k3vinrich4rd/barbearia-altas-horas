@@ -2,51 +2,53 @@
 
 <img src="docs/assets/logo-altas-horas.png" width="200" alt="Logo da Barbearia Altas Horas: círculo preto com BARBEARIA em arco, monograma AA serifado com ALTAS HORAS na diagonal e ★ 19 ✂ 97 ★"/>
 
-<img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Candido, com horário garantido."/>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-claro.svg"/>
+  <img src="docs/assets/banner.svg" width="100%" alt="Barbearia e Academy em Osasco, desde 1997. A agenda online do Eduardo Candido, com horário garantido."/>
+</picture>
 
 [![Site no ar](https://img.shields.io/website?url=https%3A%2F%2Fbarbearia-altas-horas.vercel.app&label=site&up_message=no%20ar%20%C2%B7%20beta&down_message=fora%20do%20ar&style=flat-square&labelColor=FFFFFF&color=0A0A0A)](https://barbearia-altas-horas.vercel.app)
-[![Status](https://img.shields.io/badge/status-beta_no_ar_·_Fatias_1_a_7B_·_6D_·_8-0A0A0A?style=flat-square&labelColor=FFFFFF&color=0A0A0A)](#-status-das-fatias)
+[![Status](https://img.shields.io/badge/status-beta_no_ar_·_pagamento_simulado-0A0A0A?style=flat-square&labelColor=FFFFFF)](#-roadmap)
 [![Backend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml)
 [![Frontend CI](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml/badge.svg?branch=develop)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-0A0A0A?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.2-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
-[![Next.js](https://img.shields.io/badge/Next.js-front-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes_backend-387_✔-0A0A0A?style=flat-square)](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/runs/44760774211)
+[![Next.js](https://img.shields.io/badge/Next.js-16-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Testes](https://img.shields.io/badge/testes_backend-588_✔-0A0A0A?style=flat-square)](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-)
 [![Contrato](https://img.shields.io/badge/OpenAPI-3.1-0A0A0A?style=flat-square&logo=openapiinitiative&logoColor=white)](docs/contrato/openapi.yaml)
 
 <h2>A agenda online da Barbearia Altas Horas, de Osasco: o cliente escolhe o horário, paga na hora e a vaga fica garantida.</h2>
 
 <h2><a href="https://barbearia-altas-horas.vercel.app">🌐 barbearia-altas-horas.vercel.app</a></h2>
 
-<sub>Beta no ar, com pagamento simulado · <a href="https://altas-horas-api.onrender.com/actuator/health">🩺 API</a> · <a href="docs/contrato/openapi.yaml">📑 Contrato</a> · <a href="docs/guia-testes.md">🧪 Testar à mão</a> · <a href="#-rodar-e-testar">🚀 Rodar agora</a></sub>
+<sub><a href="https://altas-horas-api.onrender.com/actuator/health">🩺 API</a> · <a href="docs/contrato/openapi.yaml">📑 Contrato</a> · <a href="docs/guia-testes.md">🧪 Testar à mão</a> · <a href="#-rodar-agora">🚀 Rodar agora</a> · <a href="#-como-foi-desenvolvido-com-ia">🤖 Feito com IA</a></sub>
 
 </div>
 
-<details>
-<summary><b>🗂 Índice</b> (clique para abrir)</summary>
+> [!IMPORTANT]
+> O projeto está em **beta**. O pagamento é **simulado** (Pix e cartão não movimentam dinheiro de verdade). A meta é chegar à **produção** (pagamento real) e, depois, à **Play Store**. O caminho curto está no [roadmap](#-roadmap).
 
-<br/>
-
-| Quero... | Vá para |
-|---|---|
-| entender em 30 segundos | [⚡ Em 30 segundos](#-em-30-segundos) · [🗓 As 3 formas de agendar](#-as-3-formas-de-agendar) · [👥 Quem faz o quê](#-quem-faz-o-quê) |
-| ver o produto | [📖 A história](#-a-história) · [🎬 O site no ar](#-o-site-no-ar-beta) · [🏆 Trajetória e prêmios](#-trajetória-e-prêmios) · [💈 A barbearia](#-a-barbearia) |
-| saber por que a agenda ajuda | [✂ O que a agenda resolve](#-o-que-a-agenda-resolve) · [💳 Pagamento antecipado](#-pagamento-100-antecipado) · [🔐 Segurança e LGPD](#-segurança-e-lgpd) · [🛠 Painel admin](#-painel-admin) |
-| ver como é por dentro | [🧱 Arquitetura](#-arquitetura) · [🧭 Decisões (ADRs)](#-decisões-de-arquitetura-adrs) · [🤖 Como foi feito com IA](#-como-foi-desenvolvido-com-ia) |
-| rodar e acompanhar | [🧪 Rodar e testar](#-rodar-e-testar) · [🚀 Deploy](#-deploy-grátis-fatia-8) · [📊 Status das fatias](#-status-das-fatias) · [📚 Documentação](#-documentação) |
-
-</details>
+| ⚡ [Em 30 segundos](#-em-30-segundos) | 🗓 [3 formas de marcar](#-as-3-formas-de-agendar) | 🎬 [Site no ar](#-o-site-no-ar-beta) | 📖 [História](#-a-história) | 💈 [A barbearia](#-a-barbearia) |
+|:-:|:-:|:-:|:-:|:-:|
+| ✂ [O que resolve](#-o-que-a-agenda-resolve) | 💳 [Pagamento](#-pagamento-100-antecipado) | 🧱 [Arquitetura](#-arquitetura) | 🚀 [Rodar agora](#-rodar-agora) | 🗺 [Roadmap](#-roadmap) |
 
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
 ## ⚡ Em 30 segundos
 
-Uma barbearia de bairro que atende por caderno e WhatsApp ganhou uma **agenda online com pagamento antecipado**. Quem marca vê só horários realmente livres, paga em até 3 minutos e, se não pagar, a vaga volta para a agenda. O barbeiro abre o painel e o dia já está organizado.
+A agenda da barbearia do meu pai, o **Eduardo Candido**, saiu do caderno e do WhatsApp. Quem marca vê só horários realmente livres, paga em até 3 minutos e, se não pagar, a vaga volta sozinha. O barbeiro abre o painel e o dia já está organizado.
 
-| 🌐 No ar | 💳 Pagamento | ⏱ Prazo | 🔒 Conflito de horário | 🧪 Testes |
-|:-:|:-:|:-:|:-:|:-:|
-| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (simulado no beta) | 3 min para pagar | impossível, garantido pelo banco | **588** no backend, 0 falhas |
+| Destaque | O que isso muda |
+|---|---|
+| 💳 **Pagamento antecipado** | o horário só é do cliente depois de pagar; falta deixa de ser cadeira vazia |
+| 🔒 **Sem conflito de horário** | dois clientes nunca ficam com a mesma vaga, nem clicando no mesmo instante (o banco impede) |
+| ⏱ **3 minutos para pagar** | passou o prazo, a vaga volta para a agenda na hora |
+| 🛠 **Painel do barbeiro** | preços, jornada e folgas mudam sem alterar o código |
+
+| 🌐 No ar | 💳 Pagamento | ⏱ Prazo | 🧪 Testes do backend |
+|:-:|:-:|:-:|:-:|
+| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (**simulado no beta**) | 3 min para pagar | **588**, 0 falhas |
 
 <sub>Os 588 testes vêm do [guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-) (rodada final de 24/11/2026, `./mvnw verify` com PostgreSQL real, depois da Fatia 14). Nenhum número desta página é estimativa.</sub>
 
@@ -72,17 +74,57 @@ flowchart LR
     M --> OK
 ```
 
-## 👥 Quem faz o quê
+| 👤 Com cadastro | 🙋 Sem cadastro | 💬 WhatsApp |
+|:-:|:-:|:-:|
+| <img src="docs/midia/prints/fluxo-agendar-horarios.png" width="260" alt="Tela de agendar com o serviço escolhido, o dia e os horários livres"/> | <img src="docs/midia/prints/fluxo-agendar-dados.png" width="260" alt="Tela de dados do visitante: nome, e-mail e WhatsApp"/> | o cliente combina na conversa; o Eduardo trava o horário no painel, e a vaga some da agenda |
+| login e **Meus agendamentos** | nome, e-mail, WhatsApp e o código da reserva | **reserva manual**: confirmada, sem cobrança |
+
+<sub>Os prints do fluxo (horário e dados) foram tirados do front na máquina, contra a API no perfil `dev`, com dados fictícios e pagamento simulado (20/11/2026).</sub>
 
 | Quem | O que faz | Situação |
 |---|---|---|
-| 🙋 **Visitante** | vê serviços e horários, agenda e paga sem criar conta | ✅ no ar |
-| 👤 **Cliente** | cadastro, login, histórico, exportar e excluir os próprios dados (LGPD) | ✅ no ar |
-| 👑 **Dono/Admin** (o Eduardo) | agenda, fecha atendimentos, cadastra serviços e preços, jornada e folgas, vê pagamentos, auditoria e o alcance por região | ✅ no ar |
-| ✂️ **Barbeiro convidado** | entra por **convite de uso único** criado pelo dono, vê só a própria agenda e trava horários combinados pelo WhatsApp | 📝 em especificação ([ADR 0013](docs/adr/0013-varios-barbeiros-dono-e-convite.md)) |
-| 🗺 **Alcance por nível** | quando um bairro tem menos de 5 clientes, ele sobe para o nível de cima (bairro, cidade, região, UF) em vez de sumir, com consentimento para a região do CEP | 📝 em especificação ([ADR 0014](docs/adr/0014-alcance-k-anonimato-e-consentimento-do-cep.md)) |
+| 🙋 **Visitante** | vê serviços e horários, agenda e paga sem criar conta | ✅ no ar (beta) |
+| 👤 **Cliente** | cadastro, login, histórico, exportar e excluir os próprios dados (LGPD) | ✅ no ar (beta) |
+| 👑 **Dono/Admin** (o Eduardo) | agenda, fecha atendimentos, cadastra serviços e preços, jornada e folgas, vê pagamentos, auditoria e o alcance por região | ✅ no ar (beta) |
+| ✂️ **Barbeiro convidado** | entra por **convite de uso único** criado pelo dono, vê só a própria agenda e trava horários combinados pelo WhatsApp | ✅ no ar (beta) ([ADR 0013](docs/adr/0013-varios-barbeiros-dono-e-convite.md)) |
 
-<sub>Hoje existe uma só pessoa na cadeira: o Eduardo, com os papéis `ADMIN` e `BARBEIRO`. O convite de barbeiro ainda não tem código; a decisão já está aceita no ADR.</sub>
+<sub>Hoje quem está na cadeira é o Eduardo, com os papéis `ADMIN` e `BARBEIRO`. O convite já existe para um profissional a mais, com a agenda isolada.</sub>
+
+## 🎬 O site no ar (beta)
+
+Prints reais de [barbearia-altas-horas.vercel.app](https://barbearia-altas-horas.vercel.app), tirados com Playwright em 20/11/2026. O tema segue o do seu GitHub: escuro por padrão, claro com a marca invertida. **O pagamento, no beta, continua simulado.**
+
+<div align="center">
+<a href="https://barbearia-altas-horas.vercel.app">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/midia/prints/site-home-claro.png"/>
+  <img src="docs/midia/prints/site-home-escuro.png" width="90%" alt="Home do site da Barbearia Altas Horas: logo, chamada para agendar horário e a parede xadrez preta e branca"/>
+</picture>
+</a>
+</div>
+
+| A história desde 1997 | Como funciona | No celular | Dúvidas |
+|:-:|:-:|:-:|:-:|
+| <img src="docs/midia/prints/site-secao-historia.png" width="260" alt="Seção da história da barbearia com a linha do tempo de 1994 a hoje"/> | <img src="docs/midia/prints/site-secao-como-funciona.png" width="220" alt="Seção Como funciona: escolher, pagar e chegar"/> | <img src="docs/midia/prints/site-home-celular.png" width="120" alt="Home do site em tela de celular"/> | <img src="docs/midia/prints/site-secao-duvidas.png" width="220" alt="Seção de dúvidas com perguntas que abrem e fecham"/> |
+
+<details>
+<summary><b>🖼 O fluxo de reserva sem cadastro, tela a tela</b> (perfil <code>dev</code> local, dados fictícios)</summary>
+
+<br/>
+
+Estes prints são do front na máquina, contra a API no perfil `dev` (cliente e CPF de teste, pagamento simulado).
+
+| 1. Escolher o horário | 2. Seus dados | 3. Pagar em 3 min |
+|:-:|:-:|:-:|
+| <img src="docs/midia/prints/fluxo-agendar-horarios.png" width="260" alt="Tela de agendar com o serviço escolhido, o dia e os horários livres"/> | <img src="docs/midia/prints/fluxo-agendar-dados.png" width="260" alt="Tela de dados do visitante: nome, e-mail e WhatsApp"/> | <img src="docs/midia/prints/fluxo-pagamento-contador.png" width="260" alt="Tela de pagamento com o contador de 3 minutos e o resumo do horário"/> |
+
+| 4. Pix (simulado) | 5. Horário confirmado |
+|:-:|:-:|
+| <img src="docs/midia/prints/fluxo-pagamento-pix.png" width="260" alt="Tela do Pix copia e cola com QR Code e o botão Simular pagamento"/> | <img src="docs/midia/prints/fluxo-confirmacao.png" width="260" alt="Tela de horário confirmado com o resumo e o código da reserva"/> |
+
+</details>
+
+Como rodar e testar à mão, com a saída real de cada passo: **[guia de testes](docs/guia-testes.md)**. O fluxo por rotas e classes está em **[docs/fluxo-ponta-a-ponta.md](docs/fluxo-ponta-a-ponta.md)**.
 
 ## 📖 A história
 
@@ -103,71 +145,14 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
-> **Onde o projeto está:** a API já mostra os horários livres de verdade (descontando almoço, folgas e reservas), impede dois clientes no mesmo horário e tem cadastro, login e um administrador que nasce sem senha no repositório. Também já tem reserva com pagamento simulado, expiração, consulta de CEP e o painel do barbeiro. Também tem privacidade (LGPD): consentimento, exportar e excluir a conta e retenção automática, e o alcance por região (de onde vêm os atendimentos, com agrupamento mínimo de 5). São **387 testes** no backend em PostgreSQL real, 0 falhas ([CI da `develop`](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/runs/44760774211), merge da PR #68, 20/11/2026). As telas (Fatias 7A e 7B) e o deploy (Fatia 8) já estão no ar em beta: [site](https://barbearia-altas-horas.vercel.app) e [API](https://altas-horas-api.onrender.com/actuator/health). No beta o pagamento é simulado. A Fatia 7C (painel no canvas) está em andamento.
+> **Onde o projeto está:** o site e a API estão no ar em **beta** desde 18/11/2026, com [pagamento simulado](https://barbearia-altas-horas.vercel.app). A API mostra horários livres de verdade, impede conflito de horário, tem conta, painel, privacidade (LGPD) e as fatias 1 a 14 (exceto a 9, que fica para depois do beta). São **588 testes** no backend em PostgreSQL real, 0 falhas ([guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-), 24/11/2026, `./mvnw verify`).
 
 <br clear="right"/>
 
-## 🎬 O site no ar (beta)
-
-Prints reais de [barbearia-altas-horas.vercel.app](https://barbearia-altas-horas.vercel.app), tirados com Playwright em 20/11/2026. O tema segue o do seu GitHub: escuro por padrão, claro com a marca invertida.
-
-<div align="center">
-<a href="https://barbearia-altas-horas.vercel.app">
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/midia/prints/site-home-claro.png"/>
-  <img src="docs/midia/prints/site-home-escuro.png" width="90%" alt="Home do site da Barbearia Altas Horas: logo, chamada para agendar horário e a parede xadrez preta e branca"/>
-</picture>
-</a>
-</div>
-
-| A história desde 1997 | Como funciona | No celular | Dúvidas |
-|:-:|:-:|:-:|:-:|
-| <img src="docs/midia/prints/site-secao-historia.png" width="260" alt="Seção da história da barbearia com a linha do tempo de 1994 a hoje"/> | <img src="docs/midia/prints/site-secao-como-funciona.png" width="220" alt="Seção Como funciona: escolher, pagar e chegar"/> | <img src="docs/midia/prints/site-home-celular.png" width="120" alt="Home do site em tela de celular"/> | <img src="docs/midia/prints/site-secao-duvidas.png" width="220" alt="Seção de dúvidas com perguntas que abrem e fecham"/> |
-
-As três formas de marcar estão no [diagrama do topo](#-as-3-formas-de-agendar). O fluxo de quem não tem conta, passo a passo:
-
 <details>
-<summary><b>🖼 O fluxo de reserva sem cadastro, tela a tela</b> (perfil <code>dev</code> local, dados fictícios)</summary>
+<summary><b>🏆 Trajetória e prêmios</b></summary>
 
 <br/>
-
-O catálogo do beta publicado ainda está vazio, então estes prints são do mesmo front rodando na máquina, contra a API no perfil `dev` (serviços e barbeiros de exemplo, cliente e CPF de teste, pagamento simulado).
-
-| 1. Escolher o horário | 2. Seus dados | 3. Pagar em 3 min |
-|:-:|:-:|:-:|
-| <img src="docs/midia/prints/fluxo-agendar-horarios.png" width="260" alt="Tela de agendar com o serviço escolhido, o dia e os horários livres"/> | <img src="docs/midia/prints/fluxo-agendar-dados.png" width="260" alt="Tela de dados do visitante: nome, e-mail e WhatsApp"/> | <img src="docs/midia/prints/fluxo-pagamento-contador.png" width="260" alt="Tela de pagamento com o contador de 3 minutos e o resumo do horário"/> |
-
-| 4. Pix (simulado) | 5. Horário confirmado |
-|:-:|:-:|
-| <img src="docs/midia/prints/fluxo-pagamento-pix.png" width="260" alt="Tela do Pix copia e cola com QR Code e o botão Simular pagamento"/> | <img src="docs/midia/prints/fluxo-confirmacao.png" width="260" alt="Tela de horário confirmado com o resumo e o código da reserva"/> |
-
-</details>
-
-## 🧭 O que tem para quem visita o projeto
-
-- ▶️ **O que já funciona e dá para testar:** catálogo, horários livres, reserva (com e sem conta), pagamento simulado, expiração, conta e sessão, CEP com degradação (6A) e o painel completo. Como rodar e testar à mão, com a saída real de cada passo: **[guia de testes](docs/guia-testes.md)**.
-- 🗺 **Alcance por região (6C):** a vitrine pública `GET /alcance` mostra, sem login e sem números, as cidades e os bairros que a barbearia atende (últimos 12 meses); o painel `GET /admin/alcance` dá a contagem e o percentual ao Eduardo. Nenhum grupo com menos de 5 atendimentos aparece com nome. Como testar: [AL1 no guia](docs/guia-testes.md#al1--alcance-por-região-fatia-6c).
-- 💬 **WhatsApp e reserva manual (6D):** o site mostra o WhatsApp comercial de cada barbeiro (cadastrado só pelo admin), e o painel trava um horário combinado por fora do app (`POST /admin/agendamentos`: nasce confirmado, sem cobrança, sem WhatsApp do cliente). O prazo de pagamento passou a ser de **3 minutos**.
-- 🛤 **Fluxo de ponta a ponta:** visitante, cliente e painel, com rotas, classes e diagramas: **[docs/fluxo-ponta-a-ponta.md](docs/fluxo-ponta-a-ponta.md)**.
-- 🧩 **Padrões usados**, cada um com a classe real:
-
-| Padrão | Onde está | Por quê |
-|---|---|---|
-| Monólito modular | Spring Modulith, verificado por `ModulithTest` | um deploy, fronteiras testadas ([ADR 0001](docs/adr/0001-monolito-modular-com-spring-modulith.md)) |
-| Ports & adapters e Strategy | `GatewayDePagamento` → `GatewaySimulado` e `AsaasGateway` (escolhidos por `app.pagamento.modo`) | trocar o gateway sem tocar na regra |
-| Fallback | `ProvedorDeCep`: `ViaCepCliente` → `BrasilApiCliente` → degradação | o cadastro segue se os provedores caírem ([ADR 0008](docs/adr/0008-cep-com-cache-e-degradacao.md)) |
-| Cache-aside | Caffeine em `CepConfig` (`CaffeineCache` + `SimpleCacheManager`, sem `@Cacheable`) | menos chamadas a API externa, com prazo para achado e para inexistente |
-| Máquina de estados | `StatusReserva.podeIrPara` e `TransicoesDeCobranca` | transição fora do mapa não existe |
-| Eventos de domínio e outbox | `ReservaExpirada`, `ReservaCancelada`; tabela `event_publication` | o evento nasce na mesma transação e não se perde |
-| Facade de módulo | `CepApi`, `PainelDaAgenda`, `conta.Contas` | o outro módulo só enxerga a API pública |
-| Repository, Factory Method, Value Object | `ReservaRepository`; `Reserva.nova`; `Cep`, `Cpf`, `Horario` | regra e validação num lugar só |
-| Lock otimista e pessimista | `@Version` em `Reserva`, `Cobranca` e outras; `FOR UPDATE`/`FOR SHARE` em `ReservarHorario` e `CadastrosDoPainel` | duas telas ou reserva e folga ao mesmo tempo |
-| Idempotência com HMAC | `CriarCobranca` (`X-Idempotency-Key` + hash HMAC-SHA256 do corpo) | repetir o pedido não cobra duas vezes |
-
-- 🤖 **Desenvolvido com IA:** SDD, agentes, RAG da documentação e recuperação por identificador, tudo em [Como foi desenvolvido com IA](#-como-foi-desenvolvido-com-ia).
-- 🗺 **Status das fatias:** 1 a 7B, 6D e 8 **no ar em beta** (pagamento simulado); 8B aprovada e em implementação; convite do barbeiro (Fatia 10) implementado na branch `feat/fatia-10-convite-do-barbeiro`, aguardando a PR e o desenho das telas novas; alcance por nível em especificação; notificação ao barbeiro (Fatia 13) implementada na branch `feat/fatia-13-notificacao-ao-barbeiro`; 9 (assistente) pós-beta. Tabela completa em [Status das fatias](#-status-das-fatias).
-
-## 🏆 Trajetória e prêmios
 
 <table>
 <tr>
@@ -194,8 +179,12 @@ timeline
 ```
 
 <div align="center">
+
+<div align="center">
 <sub><i>"Amor na ponta da tesoura!"</i> · Eduardo Candido, ao receber o Prêmio Barbeiros do Brasil</sub>
 </div>
+
+</details>
 
 ## 💈 A barbearia
 
@@ -220,7 +209,7 @@ Um barbeiro só, que faz todos os serviços. É para esse ritmo que a agenda foi
 | 09:30 | 10:00 | 10:30 | 11:00 | | 16:00 | 16:30 | 17:00 | 17:30 | 18:00 | 18:30 |
 | | | | | | 19:00 | | | | | |
 
-Com todos os serviços em 60 min, somem o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h): sobram os mesmos **22** para qualquer serviço do catálogo. Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 15 min vence, ele volta sozinho.
+Com todos os serviços em 60 min, somem o 11:30 (invadiria o almoço) e o 19:30 (passaria das 20h): sobram os mesmos **22** para qualquer serviço do catálogo. Horário reservado, mesmo ainda aguardando pagamento, sai da lista; se o prazo de 3 min vence, ele volta sozinho.
 
 ```bash
 curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-000000000002&data=2026-12-01"
@@ -240,11 +229,14 @@ curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-00
 <tr><td>✂️ Descoloração / Platinado (química)</td><td align="center">60 min</td><td align="right"><kbd>R$ 80,00</kbd></td></tr>
 </table>
 
-<sub>Sem combos. Preços, horários e regras são dados que o Eduardo muda no painel, sem mexer no código.</sub>
+<sub>Sem combos. Preços, horários e regras são dados que o Eduardo muda no painel, sem mexer no código. Os cinco primeiros entram na migração V8 (20/11/2026); a descoloração/platinado entra na V10.</sub>
 
-### Da cadeira
+<details>
+<summary><b>📸 Da cadeira</b> (galeria e fachada)</summary>
 
-> **Fatia 12 (site mais fluido):** no site a galeria agora é uma grade de **18 fotos** (as 3 abaixo e 15 novas dos Instagrams do Eduardo e da barbearia, com autorização de imagem confirmada, D158), com a foto inteira ao tocar. A home segue a ordem em que o cliente decide (serviços, barbeiro, galeria, **Trajetória**), tem barra fixa "Agendar horário" no celular e o `/agendar` virou serviço → horário em chips → "Continuar". Detalhes: [spec](docs/sdd/fatia-12-site-fluido.md).
+<br/>
+
+No site a galeria é uma grade de **18 fotos** (autorização de imagem confirmada, D158), com a foto inteira ao tocar.
 
 <table>
 <tr>
@@ -266,9 +258,9 @@ curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-00
 
 <sub>Preto e branco, como o logo e a parede xadrez do salão. Fotos do acervo da barbearia e do Instagram do Eduardo.</sub>
 
-## ✂ O que a agenda resolve
+</details>
 
-Na prática, a diferença aparece no dia do Eduardo:
+## ✂ O que a agenda resolve
 
 | No caderno e no WhatsApp | Na agenda online |
 |---|---|
@@ -334,14 +326,17 @@ O primeiro acesso do Eduardo nasce de variáveis de ambiente na hora em que a AP
 
 </details>
 
-**Em uma linha, para quem avalia código:** concorrência resolvida no banco, pagamento idempotente, máquina de estados explícita, erros em RFC 9457, LGPD desde a primeira linha e testes com PostgreSQL real, tudo especificado antes de ser escrito ([Spec-Driven Development](#-como-foi-desenvolvido-com-ia)). Stack: Java 25 · Spring Boot 4 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js; deploy planejado em Vercel, Render e Aiven.
+**Em uma linha, para quem avalia código:** concorrência resolvida no banco, pagamento idempotente, máquina de estados explícita, erros em RFC 9457, LGPD desde a primeira linha e testes com PostgreSQL real, tudo especificado antes de ser escrito ([Spec-Driven Development](#-como-foi-desenvolvido-com-ia)). Stack: Java 25 · Spring Boot 4.2 · Spring Security · JPA · Flyway · PostgreSQL · Testcontainers · Next.js 16; no ar em beta na Vercel, no Render e na Aiven.
 
 ## 💳 Pagamento 100% antecipado
+
+> [!WARNING]
+> No **beta**, o pagamento é **simulado**. Não há cobrança real. A tela `/pagamento-simulado/{cobrancaId}` não pede número de cartão. Isso só muda quando o projeto for para produção, com um gateway de verdade.
 
 | Regra | Como o sistema garante |
 |---|---|
 | **Todo** agendamento (com conta ou sem conta) paga 100% antes | a reserva nasce `AGUARDANDO_PAGAMENTO` e só vira `CONFIRMADO` pelo webhook do gateway |
-| Pix ou cartão de crédito | Pix devolve QR Code e copia e cola; cartão abre o checkout hospedado do gateway (no beta, com o gateway simulado, abre a tela `/pagamento-simulado/{cobrancaId}` do próprio site, que não pede número de cartão) |
+| Pix ou cartão de crédito | Pix devolve QR Code e copia e cola; cartão abre o checkout hospedado do gateway (no beta, a tela simulada do próprio site) |
 | O horário fica travado por **3 min** enquanto o cliente paga | a constraint do banco conta a reserva pendente como ocupada até `expira_em` |
 | Não pagou em 3 min | a reserva vira `EXPIRADO` e o horário volta para a agenda |
 | **Sem cancelamento, remarcação ou estorno** por desistência ou falta | não há botão nem rota para o cliente cancelar; antes de pagar, ele marca o aceite obrigatório (`aceitePolitica: true`, com a versão do texto gravada) |
@@ -350,6 +345,11 @@ O primeiro acesso do Eduardo nasce de variáveis de ambiente na hora em que a AP
 
 > [!NOTE]
 > O CPF é pedido **só** na tela de pagamento, porque o gateway exige. Ele é validado, repassado ao gateway e **não é guardado** no banco.
+
+<details>
+<summary><b>Checkout por dentro e ciclo de vida</b> (diagramas)</summary>
+
+<br/>
 
 ### Checkout por dentro
 
@@ -409,16 +409,11 @@ stateDiagram-v2
 
 <sub>Qualquer transição fora do diagrama responde `422 TRANSICAO_INVALIDA`. Tabela completa em [`docs/dominio/modelo-de-dominio.md`](docs/dominio/modelo-de-dominio.md#2-máquina-de-estados).</sub>
 
+</details>
+
 ## 🧱 Arquitetura
 
 **Monólito modular** (Spring Modulith): um deploy só, oito módulos com fronteiras verificadas por teste (ArchUnit + `ApplicationModules.verify()`), conversando por API pública e eventos com *outbox*. Detalhes em [`docs/arquitetura/`](docs/arquitetura/README.md).
-
-<details>
-<summary><b>🧱 Abrir a arquitetura</b> (visão geral, módulos, deploy e estrutura do monorepo)</summary>
-
-<br/>
-
-### Visão geral
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#0A0A0A','primaryTextColor':'#FFFFFF','primaryBorderColor':'#C0C0C0','lineColor':'#8A8A8A','secondaryColor':'#1F1F1F','tertiaryColor':'#2B2B2B','clusterBkg':'#141414','clusterBorder':'#8A8A8A','edgeLabelBackground':'#1F1F1F','fontFamily':'Helvetica, Arial, sans-serif'}}}%%
@@ -444,13 +439,15 @@ flowchart LR
 ```
 
 <details>
-<summary><b>Estrutura do monorepo</b></summary>
+<summary><b>🧱 Módulos, monorepo, deploy, ADRs, segurança e painel</b></summary>
 
 <br/>
 
+### Estrutura do monorepo
+
 ```text
 barbearia-altas-horas/
-├── backend/                         # API Java 25 + Spring Boot 4
+├── backend/                         # API Java 25 + Spring Boot 4.2
 │   └── src/main/java/io/github/k3vinrich4rd/altashoras/
 │       ├── comum/        # Dinheiro, Cpf, Cep (mascaram no toString), erros RFC 9457
 │       ├── plataforma/   # segurança, Clock, observabilidade, ShedLock
@@ -462,11 +459,9 @@ barbearia-altas-horas/
 │       └── admin/        # painel: agenda, catálogo, pagamentos, auditoria
 ├── frontend/             # Next.js (BFF guarda os tokens em cookie HttpOnly)
 ├── docs/                 # contrato, ADRs, domínio, banco, guia de testes
-├── render.yaml           # Blueprint do Render (API, plano free; Fatia 8)
+├── render.yaml           # Blueprint do Render (API, plano free)
 └── compose.yaml          # PostgreSQL 18 local para o perfil dev
 ```
-
-</details>
 
 ### Os módulos e quem pode chamar quem
 
@@ -504,14 +499,11 @@ flowchart LR
     GH[GitHub Actions] -. backup semanal criptografado .-> D
 ```
 
-</details>
+Está no ar em beta desde 18/11/2026: a API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)) e o front na Vercel ([site](https://barbearia-altas-horas.vercel.app)), ainda com pagamento simulado. No plano grátis, a API dorme sem uso e a primeira chamada pode passar de um minuto (em 20/11/2026 levou cerca de 90 segundos).
 
-## 🧭 Decisões de arquitetura (ADRs)
+### Decisões de arquitetura (ADRs)
 
-<details>
-<summary><b>🧭 Abrir as decisões</b> (cada uma com a alternativa descartada e o ADR)</summary>
-
-<br/>
+São **13** ADRs no repositório (`docs/adr/0001` a `0011`, `0013` e `0014`; não há `0012`), conferidos em 26/11/2026 na `develop`.
 
 | Decisão | Alternativa descartada | Por quê | ADR |
 |---|---|---|---|
@@ -527,9 +519,9 @@ flowchart LR
 
 <sub>Todas as decisões com data e fonte: [`docs/planejamento/decisoes.md`](docs/planejamento/decisoes.md).</sub>
 
-</details>
+<sub>Todas as decisões com data e fonte: [`docs/planejamento/decisoes.md`](docs/planejamento/decisoes.md).</sub>
 
-## 🔐 Segurança e LGPD
+### Segurança e LGPD
 
 | Tema | Decisão |
 |---|---|
@@ -543,9 +535,9 @@ flowchart LR
 | Negar por padrão | só as rotas listadas são públicas; rota nova nasce protegida mesmo que alguém esqueça de pensar em segurança. ✅ |
 | Titular | exporta e exclui os próprios dados; marketing só com consentimento opcional e desmarcado |
 
-## 🛠 Painel admin
+### Painel do barbeiro
 
-Área do papel `ADMIN`/`BARBEIRO` (hoje uma pessoa só, o Eduardo). É onde ele vê o dia, fecha os atendimentos e ajusta preços e horários sem depender de mim.
+Área do papel `ADMIN`/`BARBEIRO`. É onde o Eduardo vê o dia, fecha os atendimentos e ajusta preços e horários sem depender de um novo deploy.
 
 | O admin pode | Detalhe |
 |---|---|
@@ -554,107 +546,88 @@ flowchart LR
 | Gerenciar serviços e preços | nome, duração e preço, sem deploy |
 | Editar jornada e folgas | inclusive a pausa de almoço |
 | Acompanhar pagamentos | pendentes, confirmados e **pendências de pagamento tardio** |
+| Convidar um barbeiro | convite de uso único; o convidado vê só a própria agenda |
 | Ajustar regras | intervalo entre atendimentos, grade de horários, prazo de pagamento, texto da política |
 
-## 🧪 Rodar e testar
+</details>
 
-<details>
-<summary><b>🧪 Abrir o passo a passo</b> (back, front, contrato e endereços locais)</summary>
+## 🚀 Rodar agora
 
-<br/>
-
-Precisa de **Docker Desktop** e **JDK 25**. Sem `.env`: o perfil `dev` usa os padrões locais.
+> [!TIP]
+> Pré-requisitos: **Docker Desktop** e **JDK 25**. Sem `.env`: o perfil `dev` usa os padrões locais. A API sobe em `http://localhost:8080`.
 
 ```bash
 git clone https://github.com/k3vinrich4rd/barbearia-altas-horas.git
-cd barbearia-altas-horas
-docker compose up -d                                         # PostgreSQL 18 (porta 5433)
+cd barbearia-altas-horas && docker compose up -d
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
+
+<details>
+<summary><b>Front, testes e endereços locais</b></summary>
+
+<br/>
+
+O health fica em `http://localhost:8080/actuator/health`. Para o primeiro admin, suba com `ADMIN_EMAIL` e `ADMIN_SENHA` (a senha inicial precisa ser trocada antes de o painel abrir).
 
 ```bash
 cd backend && ./mvnw verify      # 588 testes com PostgreSQL real via Testcontainers (24/11/2026, depois da Fatia 14)
 ```
 
-O contrato da API ([`docs/contrato/openapi.yaml`](docs/contrato/openapi.yaml)) descreve cada rota, com os erros em pt-BR no formato RFC 9457. Para validar:
+O contrato da API ([`docs/contrato/openapi.yaml`](docs/contrato/openapi.yaml)) descreve cada rota, com os erros em pt-BR no formato RFC 9457:
 
 ```bash
 npx @redocly/cli lint docs/contrato/openapi.yaml   # valida o contrato OpenAPI 3.1
 ```
 
-
-### Front (Next.js)
-
-Precisa de **Node 22** e da API acima no ar (`http://localhost:8080`). O navegador só fala com o BFF do Next (`/api/**`), que guarda a sessão em cookies `HttpOnly`.
+Precisa de **Node 22** e da API no ar. O navegador só fala com o BFF do Next (`/api/**`), que guarda a sessão em cookies `HttpOnly`.
 
 ```bash
 cd frontend
 npm ci
-npm run dev                 # http://localhost:3000 (copia as imagens de docs/assets e usa API_URL=http://localhost:8080)
-npm run lint && npm run typecheck && npm test                      # testes unitários, um por critério (A1, A2...)
-NEXT_PUBLIC_PAGAMENTO_SIMULADO=true npm run build && npx playwright test   # E2E contra a API real e axe (precisa do Postgres e da API no ar)
-bash ../scripts/conferir-spec.sh 7 --exigir                              # os 62 critérios da fatia 7 (7A e 7B) têm teste com o número dele
+npm run dev                 # http://localhost:3000
+npm run lint && npm run typecheck && npm test
+NEXT_PUBLIC_PAGAMENTO_SIMULADO=true npm run build && npx playwright test
+bash ../scripts/conferir-spec.sh 14 --exigir
 ```
 
-O visual vem **só** dos tokens do [design system](frontend/design/README.md) (`frontend/design/tokens.json` gera o `tokens.css`). As variáveis estão em [`frontend/.env.example`](frontend/.env.example). Variáveis `NEXT_PUBLIC_*` entram no **build**.
+O visual vem **só** dos tokens do [design system](frontend/design/README.md). As variáveis estão em [`frontend/.env.example`](frontend/.env.example).
 
-| O que | Endereço local | |
-|---|---|:-:|
-| Health | `http://localhost:8080/actuator/health` | ✅ |
-| Serviços, política e horários livres | `/servicos` · `/politica-pagamento` · `/disponibilidade` | ✅ |
-| Conta e sessão | `/auth/cadastro` · `/auth/login` · `/auth/refresh` · `/auth/logout` · `/me` · `/me/senha` | ✅ |
-| Reserva, pagamento (simulado) e painel | `/agendamentos` · `/pagamentos/cobrancas` · `/admin/**` | ✅ |
-| CEP | `/cep/{cep}` | ✅ |
-| Front (home, reserva, pagamento, conta, privacidade e painel) | `http://localhost:3000` | ✅ Fatia 7A e 7B |
-
-O passo a passo para **testar à mão, sem depender de ninguém** (o que já roda hoje e os cenários de visitante, cliente e admin de cada fatia) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**. A história completa da construção está em **[`docs/como-foi-construido.md`](docs/como-foi-construido.md)**.
-
-</details>
-
-## 🚀 Deploy grátis (Fatia 8)
-
-Plano da Fase 1 (D38), **sem custo e sem cartão**: API no **Render** (web service free, Docker), banco no **Aiven PostgreSQL free** (D66, plano B Neon), front no **Vercel** depois da Fatia 7 e um **backup semanal** (`pg_dump` + gpg AES-256) guardado como artefato do GitHub Actions por 30 dias.
-
-<details>
-<summary><b>📦 As peças do deploy</b> (Dockerfile, Blueprint, backup e passo a passo)</summary>
-
-| Peça | Arquivo |
+| O que | Endereço local |
 |---|---|
-| Imagem da API (JDK 25 no build, JRE 25 e usuário não-root no runtime) | [`backend/Dockerfile`](backend/Dockerfile) |
-| Blueprint do Render (segredos gerados pelo Render ou preenchidos no painel, nunca no repositório) | [`render.yaml`](render.yaml) |
-| Backup semanal criptografado | [`.github/workflows/backup-banco.yml`](.github/workflows/backup-banco.yml) |
-| Passo a passo de ativação, limites do plano free, rollback em 3 degraus, alertas e Secrets do backup | [`docs/planejamento/ativar-deploy.md`](docs/planejamento/ativar-deploy.md) |
-| Deploy só com CI verde (`autoDeployTrigger: checksPass`) e health do Render no liveness (Fatia 8B) | [`render.yaml`](render.yaml) |
-| Cache AOT do JDK 25 gerado no `docker build` (subida mais curta), liveness/readiness e pool de 3 conexões (Fatia 8B) | [`backend/Dockerfile`](backend/Dockerfile) |
-| Banco do Aiven mantido ligado por conexão direta, sem acordar a API (Fatia 8B) | [`.github/workflows/manter-banco.yml`](.github/workflows/manter-banco.yml) |
-| Diff do ping do perfil (06:40 a 19:50, ~291 h/mês do Render) para o Kevin aplicar | [`docs/planejamento/ping-perfil.diff.md`](docs/planejamento/ping-perfil.diff.md) |
+| Health | `http://localhost:8080/actuator/health` |
+| Serviços, política e horários livres | `/servicos` · `/politica-pagamento` · `/disponibilidade` |
+| Conta e sessão | `/auth/**` · `/me` |
+| Reserva, pagamento (simulado) e painel | `/agendamentos` · `/pagamentos/cobrancas` · `/admin/**` |
+| Front | `http://localhost:3000` |
+
+O passo a passo para testar à mão (visitante, cliente, barbeiro e admin) está em **[`docs/guia-testes.md`](docs/guia-testes.md)**.
 
 </details>
 
-```bash
-sh scripts/testar-imagem.sh    # docker build + PostgreSQL 18 + API no perfil prod (variáveis falsas): health UP, Flyway, CORS, IP real
-sh scripts/testar-backup.sh    # pg_dump, criptografia e restauração num banco novo
-sh scripts/horas-render.sh --conferir   # conta de horas do ping no Render (Fatia 8B: ~291 h/mês, limite 300)
-sh scripts/verificar-no-ar.sh  # depois de um deploy ou rollback: API, front, CORS e rota de pagamento simulado
-```
+## ✅ Qualidade em números reais
 
-A Fatia 8B (deploy robusto) mediu, no Docker Desktop, a subida da API em **5,5 s** (mediana de 3, com cache AOT e C1) contra **12,1 s** da imagem da Fatia 8, e com `--cpus=0,25` (estimativa do Render) 27,7 s contra 39,4 s sem cache; os números e o que ainda é roteiro do Kevin estão no [guia de testes](docs/guia-testes.md#5c-deploy-robusto-fatia-8b).
+| Número | Fonte |
+|---|---|
+| **588** testes no backend, 0 falhas; cobertura **95%** | [guia de testes, seção 5e](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-), 24/11/2026, `./mvnw verify` com PostgreSQL real (Testcontainers), depois da Fatia 14 |
+| **206** testes Vitest no front; `tsc`, `lint` e `build` limpos | a mesma rodada de 24/11/2026, seção 5e |
+| `conferir-spec.sh 14 --exigir`: **62 de 62** | a mesma rodada: todo critério `A#` da Fatia 14 tem um teste com esse número |
+| **17** specs SDD, **701** linhas de critério `A#`, **13** ADRs, **3** skills, **7** agentes de IA, **558** testes de backend com `@DisplayName("A…")` e **105** arquivos de teste do front | contados neste repositório em 26/11/2026, na `develop` (`e91e85d`) |
 
-Está no ar em beta desde 18/11/2026: a API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)) e o front na Vercel ([site](https://barbearia-altas-horas.vercel.app)), ainda com pagamento simulado. No plano grátis, a API dorme sem uso e a primeira chamada pode passar de um minuto (em 20/11/2026 levou cerca de 90 segundos). Saída real dos scripts no [guia de testes](docs/guia-testes.md#5b-deploy-grátis-a-imagem-docker-e-o-backup-fatia-8-).
+CI da `develop`: [backend](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/backend-ci.yml) e [frontend](https://github.com/k3vinrich4rd/barbearia-altas-horas/actions/workflows/frontend-ci.yml). Nenhum número desta página é estimativa.
 
 ## 🤖 Como foi desenvolvido com IA
 
-Projeto individual: o Kevin (backend Java) usa IA como par de programação, e o que impede a IA de "inventar" é o **método**, não o prompt. Cada peça abaixo é um arquivo que você pode abrir. O que **não** existe ainda está dito como tal.
+Projeto individual: o Kevin (backend Java) usa IA como par de programação, e o que impede a IA de "inventar" é o **método**, não o prompt. Cada peça abaixo é um arquivo que você pode abrir. O relato completo está em [`docs/como-foi-construido.md`](docs/como-foi-construido.md).
 
 <div align="center">
 
 | 📐 Fatias com spec | ✅ Critérios `A#` nas specs | 🧪 Testes do backend | 🧭 ADRs | 🧑‍💻 Agentes | 🛠 Skills |
 |:-:|:-:|:-:|:-:|:-:|:-:|
-| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **588** (`./mvnw verify`) | **14** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
+| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **588** (`./mvnw verify`) | **13** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
 
 </div>
 
-<sub>Contados no repositório em 25/11/2026: 17 arquivos `fatia-*.md`; 701 linhas de tabela `| A<n> |` nessas specs; 557 `@DisplayName("A…")` no backend e 105 arquivos `*.test.ts(x)` e `*.spec.ts` no frontend; 588 é o resultado de `./mvnw verify` registrado no [guia de testes](docs/guia-testes.md) (24/11/2026, seção 5e).
+<sub>Specs, critérios, ADRs, agentes e skills foram contados no repositório em 26/11/2026, na `develop`. Os 588 testes são a rodada de 24/11/2026 do [guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-).</sub>
 
 ### O fluxo de uma fatia, da spec ao deploy
 
@@ -665,7 +638,7 @@ flowchart LR
     E --> OK{"✋ OK do dono<br/>(Kevin)"}
     OK -- "não" --> E
     OK -- "sim" --> I["🛠 /implementar-fatia<br/>contrato → testes A# → código → docs"]
-    I --> R["🧐 revisor-de-fatia<br/>só leitura"]
+    I --> R["🧐 agente de revisão<br/>só leitura"]
     R --> PR["🔀 PR para a develop"]
     PR --> CI["✅ CI<br/>testes · conferir-spec.sh · CodeQL · gitleaks"]
     PR --> CP["🤝 Revisão do Copilot"]
@@ -676,11 +649,16 @@ flowchart LR
 ```
 
 1. **Contexto barato.** Antes de escrever, a IA busca o que já foi decidido (regra, decisão, ADR, spec, teste) em vez de reler tudo.
-2. **Spec.** `/especificar-fatia` escreve `docs/sdd/fatia-N-*.md` com objetivo, contrato, decisões e critérios *Dado/Quando/Então*. **Para aí.** Nenhuma linha de produção sem o OK do Kevin.
+2. **Spec.** `/especificar-fatia` escreve `docs/sdd/fatia-N-*.md` com objetivo, contrato, decisões e critérios *Dado/Quando/Então*. **Para aí.** Nenhuma linha de código sem o OK do Kevin.
 3. **Implementação.** `/implementar-fatia` segue a ordem contrato, testes (um por critério), código, docs com saída real. Número só de execução real.
-4. **Revisão.** O agente `revisor-de-fatia` (só leitura) confere o diff contra a spec; depois o Copilot revisa a PR.
+4. **Revisão.** Um agente de revisão (só leitura) confere o diff contra a spec; depois o Copilot revisa a PR.
 5. **CI.** A PR só entra com testes, `conferir-spec.sh`, CodeQL e gitleaks verdes.
 6. **Deploy.** Merge na `develop`, release `develop → main` e publicação (front na Vercel, API no Render, banco na Aiven); o [guia de testes](docs/guia-testes.md) é rodado contra o ambiente publicado.
+
+<details>
+<summary><b>SDD, RAG, skills e os papéis dos agentes</b></summary>
+
+<br/>
 
 ### 📐 SDD: Spec-Driven Development
 
@@ -702,36 +680,29 @@ Duas ferramentas, para dois tipos de pergunta, ambas medidas.
 
 Medido em 17 perguntas (17/11/2026): só vetor acerta 10; a busca híbrida, **15**. O vetor errou todos os identificadores (`R15` e `R16` são quase o mesmo texto para o modelo). Por isso o script é a primeira escolha para ID e o RAG fica para a linguagem natural. Os dois erros que sobraram estão registrados, sem maquiar a avaliação ([detalhes](docs/ia/rag-vetorial.md)). O RAG é ferramenta de desenvolvimento, fora da API; o [assistente para clientes](docs/sdd/fatia-9-assistente-de-duvidas.md) (Fatia 9) é spec, sem código ainda.
 
-### 🛠 Skills do Claude Code
+### 🛠 Skills
 
 Receitas repetíveis em [`.claude/skills/`](.claude/skills/):
 
 | Skill | O que faz |
 |---|---|
-| [`/especificar-fatia N`](.claude/skills/especificar-fatia/SKILL.md) | escreve a spec SDD da fatia (objetivo, contrato, decisões, critérios `A#` com o teste de cada um) e **para** no OK do Kevin, sem código de produção |
+| [`/especificar-fatia N`](.claude/skills/especificar-fatia/SKILL.md) | escreve a spec SDD da fatia (objetivo, contrato, decisões, critérios `A#` com o teste de cada um) e **para** no OK do Kevin, sem escrever código |
 | [`/implementar-fatia N`](.claude/skills/implementar-fatia/SKILL.md) | a partir da spec aprovada: contrato, testes (um por `A#`), código, docs com saída real e PR para a `develop`, explicando os conceitos |
 | [`/verificar-contrato`](.claude/skills/verificar-contrato/SKILL.md) | compara controllers, DTOs e códigos de erro com o `openapi.yaml` e lista divergências de rota, campo, tipo, status e erro; só lê e relata |
 
-### 🧑‍💻 Agentes de IA
+### 🧑‍💻 Agentes de IA, pelo papel
 
-<details>
-<summary><b>Abrir os 7 agentes</b> (papel, limite e ligação com os agentes do Grok)</summary>
+Há **7** agentes no repositório, cada um num arquivo de [`.claude/agents/`](.claude/agents/), com papel e **permissões limitadas** (quais ferramentas pode usar). Aqui eles entram pelo o que fazem, não pelo nome:
 
-<br/>
-
-Cada agente é um arquivo em [`.claude/agents/`](.claude/agents/) com papel e **permissões limitadas** (ferramentas liberadas no cabeçalho). O Kevin também usa o **Grok** como outra IA de apoio: seis destes agentes se declaram "réplica" de um agente de mesmo nome do Grok (está no cabeçalho de cada arquivo). O papel é o mesmo nas duas ferramentas; o que vale para o projeto é o que está nestes arquivos. O `revisor-de-fatia` nasceu aqui.
-
-| Agente | Papel | Pode |
+| Papel | O que faz | Pode |
 |---|---|---|
-| [`alicerce-arquiteto`](.claude/agents/alicerce-arquiteto.md) | escreve e revisa spec, ADR, contrato e decisões, antes de qualquer código | ler e escrever docs; não implementa nem mergeia |
-| [`quarteto-dev`](.claude/agents/quarteto-dev.md) | implementa a partir de spec aprovada e roteiro fechado: testes `A#` primeiro, código, docs com saída real | escrever código e dar push; não abre PR nem mergeia |
-| [`revisor-de-fatia`](.claude/agents/revisor-de-fatia.md) | segundo par de olhos: diff contra spec, contrato, camadas, segurança e LGPD | só leitura |
-| [`prova-real-qa`](.claude/agents/prova-real-qa.md) | sobe API e front e executa os critérios `A#` à mão, gravando a saída real no guia de testes | rodar e documentar |
-| [`sentinela-appsec`](.claude/agents/sentinela-appsec.md) | segurança de aplicação: sessão, cookies, CORS, pagamento, webhook, dependências, OWASP | só leitura |
-| [`cautelar-lgpd`](.claude/agents/cautelar-lgpd.md) | dado pessoal, consentimento, retenção e alcance por região | só leitura e pesquisa |
-| [`decolagem-operacao`](.claude/agents/decolagem-operacao.md) | deploy e operação nos planos grátis: Render, Aiven, Vercel, ping e backup | só leitura |
-
-</details>
+| Agente de arquitetura | escreve e revisa spec, ADR, contrato e decisões, antes de qualquer código | ler e escrever docs; não implementa nem mergeia |
+| Agente de implementação | implementa a partir de spec aprovada: testes `A#` primeiro, código, docs com saída real | escrever código e dar push; não abre PR nem mergeia |
+| Agente de revisão de fatia | segundo par de olhos: diff contra spec, contrato, camadas, segurança e privacidade | só leitura |
+| Agente de QA | sobe API e front e executa os critérios `A#` à mão, gravando a saída real no guia de testes | rodar e documentar |
+| Agente de segurança de aplicação | sessão, cookies, CORS, pagamento, webhook, dependências, OWASP | só leitura |
+| Agente de privacidade | dado pessoal, consentimento, retenção e alcance por região | só leitura e pesquisa |
+| Agente de operação e deploy | deploy e operação nos planos grátis: Render, Aiven, Vercel, ping e backup | só leitura |
 
 ### 🤝 O revisor do Copilot
 
@@ -742,60 +713,70 @@ O GitHub Copilot lê as mesmas regras do `CLAUDE.md` por [`.github/copilot-instr
 | Parte | Como é feita | Como a qualidade é garantida |
 |---|---|---|
 | **Especificação** | escrita antes de qualquer código | critérios numerados; nada de código antes do OK |
-| **Backend** (Java 25 + Spring Boot 4) | IA como par de programação | um teste por critério, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CodeQL e gitleaks |
+| **Backend** (Java 25 + Spring Boot 4.2) | IA como par de programação | um teste por critério, PostgreSQL real (Testcontainers), regras de arquitetura (Spring Modulith + ArchUnit), CodeQL e gitleaks |
 | **Frontend** (Next.js) | gerado com IA a partir do contrato OpenAPI e das specs de tela, com revisão humana | tipos gerados do contrato, testes das telas críticas, `conferir-spec.sh` das Fatias 7, 12 e 14 |
 | **Deploy** | Vercel + Render + Aiven, IA apoiando os passos | guia de testes rodado contra o ambiente publicado |
 
 <sub>Números e saídas do README vêm de execução real, nunca de estimativa da IA. Mais: [como foi construído](docs/como-foi-construido.md) · [automação](docs/automacao.md) · [`CLAUDE.md`](CLAUDE.md).</sub>
 
-## 📊 Status das fatias
+</details>
 
-✅ no ar ou pronta · 🔄 em implementação · 📝 em especificação ou planejada. Cada fatia é uma PR para a `develop`, escrita primeiro como especificação (regras, contrato e critérios de aceite) e só depois como código. A fonte da verdade é o [`docs/sdd/README.md`](docs/sdd/README.md).
+## 🗺 Roadmap
+
+O projeto está em **beta**, com pagamento **simulado**. O que vem a seguir é curto e nesta ordem:
+
+| | Etapa | O que significa |
+|:-:|---|---|
+| 1 | **Agora · beta no ar** | site e API publicados; o cliente já agenda e "paga", mas o dinheiro não é real |
+| 2 | **Produção** | gateway de pagamento real, domínio e operação do dia a dia da barbearia |
+| 3 | **Play Store** | o app na loja, para o cliente marcar pelo celular |
+| — | **Depois do beta** | assistente de dúvidas (Fatia 9, hoje só em spec, desligado por padrão) |
+
+<details>
+<summary><b>📊 Status das fatias</b> (1 a 14 no repositório; 9 fica para depois do beta)</summary>
+
+<br/>
+
+✅ no ar ou pronta · 📝 planejada. Cada fatia nasceu como especificação e só depois como código. A fonte da verdade é o [`docs/sdd/README.md`](docs/sdd/README.md).
 
 | Fatia | Status | O que entrega |
 |---|:-:|---|
 | **0 · Especificação** | ✅ | domínio, máquina de estados, contrato OpenAPI, DDL proposto e ADRs |
-| **1 · Esqueleto** | ✅ | Maven, 8 módulos, RFC 9457 com `traceId`, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, teste de concorrência, CI (build, CodeQL, gitleaks) |
-| **2 · Catálogo e disponibilidade** | ✅ | serviços, política de pagamento e horários livres com almoço, folgas, antecedência e reservas pendentes vencidas ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md): 29 critérios, 29 testes) |
-| **3 · Conta e acesso** | ✅ | cadastro, login, refresh rotativo com detecção de reuso, troca de senha, admin inicial com troca obrigatória, limite de tentativas e negar por padrão ([spec](docs/sdd/fatia-3-conta-e-acesso.md): 44 critérios, 44 testes) |
-| **4 · Agendamento e checkout** | ✅ | reserva com trava de 3 min (era 15 até a 6D), cobrança 100% Pix/cartão, aceite, webhook idempotente, expiração ([spec](docs/sdd/fatia-4-agendamento-e-pagamento.md): 45 critérios) |
+| **1 · Esqueleto** | ✅ | Maven, 8 módulos, RFC 9457, `Clock`, Docker Compose, Flyway V1 com a constraint anti-sobreposição, CI |
+| **2 · Catálogo e disponibilidade** | ✅ | serviços, política e horários livres ([spec](docs/sdd/fatia-2-catalogo-disponibilidade.md)) |
+| **3 · Conta e acesso** | ✅ | cadastro, login, refresh rotativo, troca de senha, admin inicial ([spec](docs/sdd/fatia-3-conta-e-acesso.md)) |
+| **4 · Agendamento e checkout** | ✅ | reserva com trava de 3 min, cobrança 100% Pix/cartão, aceite, webhook, expiração ([spec](docs/sdd/fatia-4-agendamento-e-pagamento.md)) |
 | **5 · Painel admin** | ✅ | agenda, fechamento, catálogo, pagamentos e auditoria |
-| **6A · CEP** | ✅ | ViaCEP, BrasilAPI e degradação |
-| **6B · Privacidade (LGPD)** | ✅ | consentimento, exportar e excluir conta, retenção |
-| **6C · Alcance por região** | ✅ | CEP opcional do visitante, região na reserva, painel `GET /admin/alcance` e vitrine pública `GET /alcance`, com agrupamento mínimo de 5 (k-anonimato) |
-| **6D · WhatsApp e reserva manual** | ✅ | prazo de 3 min, WhatsApp comercial do barbeiro em `GET /barbeiros` e `POST /admin/agendamentos` para travar no painel o horário combinado por WhatsApp, sem cobrança ([spec](docs/sdd/fatia-6d-whatsapp-e-reserva-manual.md), 28 critérios) |
-| **7A e 7B · Telas Next.js** | ✅ | [no ar em beta](https://barbearia-altas-horas.vercel.app): home, agendar, checkout com aceite obrigatório, confirmação, conta, privacidade, acessibilidade e o painel do barbeiro (agenda, reserva manual, pendências, cadastros, auditoria e alcance); contrato 1.7.1 ([spec](docs/sdd/fatia-7-telas.md): 62 critérios) |
-| **7C · Painel no canvas** | 🔄 | em andamento (branch `wip/fatia-7c-painel-canvas`) |
-| **8 · Deploy grátis** | ✅ | API no Render ([health](https://altas-horas-api.onrender.com/actuator/health)), PostgreSQL free na Aiven, front na Vercel e backup semanal criptografado; o pagamento ainda é simulado ([spec](docs/sdd/fatia-8-deploy.md)) |
-| **8B · Deploy robusto e econômico** | ✅ | implementada e em PR (deploy só com CI verde, cache AOT, liveness/readiness, `503` limpo com o banco fora, desligamento limpo, rollback e alertas documentados, ping dentro das 750 h); falta o Kevin cadastrar os Secrets do backup e aplicar o diff do ping ([spec](docs/sdd/fatia-8b-deploy-robusto.md), [guia](docs/guia-testes.md#5c-deploy-robusto-fatia-8b)) |
-| **Vários barbeiros e convite** | 🚧 | Dono/Admin, isolamento por `barbeiroId` e convite de uso único; implementado na branch `feat/fatia-10-convite-do-barbeiro` (telas aguardando desenho) ([ADR 0013](docs/adr/0013-varios-barbeiros-dono-e-convite.md)) |
-| **Alcance por nível** | 📝 | subir de nível em vez de sumir, k = 5 e consentimento para a região do CEP; em especificação ([ADR 0014](docs/adr/0014-alcance-k-anonimato-e-consentimento-do-cep.md)) |
-| **13 · Notificação ao barbeiro** | 🔄 | implementada na branch `feat/fatia-13-notificacao-ao-barbeiro` (aguardando a PR, o desenho das telas e o par de chaves VAPID do Kevin): quando o pagamento confirma, o barbeiro da reserva recebe um Web Push e um aviso em Novidades, sem o nome do cliente; e-mail pronto e desligado ([spec](docs/sdd/fatia-13-notificacao-ao-barbeiro.md): 50 critérios) |
-| **9 · Assistente de dúvidas** | 📝 | RAG para o cliente, desligado por padrão; pós-beta ([spec](docs/sdd/fatia-9-assistente-de-duvidas.md)) |
+| **6A–6D · CEP, privacidade, alcance e WhatsApp** | ✅ | ViaCEP com degradação, LGPD, alcance com k = 5, reserva manual |
+| **7 · Telas Next.js** | ✅ | [no ar em beta](https://barbearia-altas-horas.vercel.app): home, agendar, checkout, painel |
+| **8 e 8B · Deploy** | ✅ | API no Render, PostgreSQL na Aiven, front na Vercel, backup e subida mais rápida; o pagamento ainda é simulado |
+| **Catálogo inicial (V8)** | ✅ | 5 serviços, o barbeiro **Eduardo Candido** e a jornada no banco (a química entra na V10) |
+| **10 · Convite do barbeiro** | ✅ | convite de uso único e isolamento entre agendas ([spec](docs/sdd/fatia-10-convite-do-barbeiro.md)) |
+| **11 · Alcance por nível** | ✅ | consentimento, k = 5 e subida de bairro → cidade → região → UF ([spec](docs/sdd/fatia-11-alcance-por-nivel.md)) |
+| **12 · Site mais fluido** | ✅ | home, galeria, Trajetória e agendar em chips ([spec](docs/sdd/fatia-12-site-fluido.md)) |
+| **13 · Notificação ao barbeiro** | ✅ | Web Push e aviso no painel quando o horário é confirmado ([spec](docs/sdd/fatia-13-notificacao-ao-barbeiro.md)) |
+| **14 · Experiência premium** | ✅ | mais 1 minuto no Pix, senha visível, voz, agenda nova e fluidez ([spec](docs/sdd/fatia-14-experiencia-premium.md)) |
+| **9 · Assistente de dúvidas** | 📝 | RAG para o cliente, desligado por padrão; **depois do beta** ([spec](docs/sdd/fatia-9-assistente-de-duvidas.md)) |
+
+</details>
 
 ## 📚 Documentação
 
 | Documento | O que tem |
 |---|---|
 | [Contrato da API](docs/contrato/contrato-api.md) · [OpenAPI](docs/contrato/openapi.yaml) | rotas, exemplos, erros e histórico de versões |
-| [Dossiê de contexto](docs/contexto.md) | regras de negócio numeradas (R1 a R34) e decisões em aberto |
+| [Dossiê de contexto](docs/contexto.md) | regras de negócio numeradas e decisões em aberto |
 | [Modelo de domínio](docs/dominio/modelo-de-dominio.md) | agregados, eventos e máquina de estados |
 | [Arquitetura](docs/arquitetura/README.md) | módulos, dependências e fluxos críticos |
 | [Banco](docs/banco/erd.md) | ERD, constraints e DDL proposto |
 | [ADRs](docs/adr/README.md) | as decisões de arquitetura, uma por arquivo |
 | [Painel admin](docs/admin/painel-admin.md) | matriz de acesso |
 | [Guia de testes](docs/guia-testes.md) | teste você mesmo, à mão: o banco, os erros e os cenários de visitante, cliente e admin |
-| [Como foi construído](docs/como-foi-construido.md) | o projeto de ponta a ponta: método, linha do tempo, código arquivo por arquivo, skills e agente de IA |
+| [Como foi construído](docs/como-foi-construido.md) | o projeto de ponta a ponta: método, linha do tempo, skills e o papel de cada IA |
 | [SDD](docs/sdd/README.md) | o processo, o modelo de spec e a spec de cada fatia |
-| [Automação](docs/automacao.md) | por que cada Action existe, o papel do Copilot, como o SDD é cobrado e a regra de recuperação de contexto |
+| [Automação](docs/automacao.md) | por que cada Action existe, o papel do Copilot e a regra de recuperação de contexto |
 | [RAG vetorial](docs/ia/rag-vetorial.md) | como a busca semântica na documentação funciona e o que a avaliação mostrou |
-| [Estudos aplicados](docs/estudos-aplicados.md) | minhas metas de estudo (Java/Spring e IA) ligadas a arquivos e testes deste projeto |
-
-## 🔭 E outros barbeiros?
-
-Hoje, não: o projeto é **a agenda do Eduardo Candido na Altas Horas**, e todo o esforço vai para ela funcionar bem.
-
-O que fica pronto para o futuro, sem custo agora: o modelo já tem a entidade `Barbeiro` com jornada própria, a disponibilidade responde por barbeiro e preços e horários são dados do banco. Se um dia entrar outro profissional na cadeira ao lado, é cadastro, não reescrita.
+| [Estudos aplicados](docs/estudos-aplicados.md) | metas de estudo (Java/Spring e IA) ligadas a arquivos e testes deste projeto |
 
 <img src="docs/assets/divisor.svg" width="100%" alt=""/>
 
@@ -818,4 +799,4 @@ Este projeto é a minha forma de levar para o código o cuidado que ele coloca e
 
 Construo backends em Java e Spring com foco em regra de negócio bem protegida: concorrência resolvida no banco, integrações que falham sem derrubar o sistema e testes que provam o que a especificação promete.
 
-<sub>Logo, fotos e identidade visual pertencem à Barbearia Altas Horas. Feito com Spec-Driven Development e apoio de IA; cada decisão tem fonte e data.</sub>
+<sub>Logo, fotos e identidade visual pertencem à Barbearia Altas Horas. Feito com Spec-Driven Development e apoio de IA; cada decisão tem fonte e data. Projeto em beta, com pagamento simulado.</sub>
