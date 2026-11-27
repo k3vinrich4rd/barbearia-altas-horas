@@ -55,7 +55,7 @@ test("HG-2: com prefers-reduced-motion, a home não anima transform e as seçõe
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Quase três décadas na mesma cadeira" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Antes de agendar" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Antes de pagar" })).toBeVisible();
   const transicoesDeTransform = await page.evaluate(
     () =>
       [...document.querySelectorAll("body *")].filter((el) => {

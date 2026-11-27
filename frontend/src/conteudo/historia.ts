@@ -45,10 +45,6 @@ export const HISTORIA: readonly string[] = [
   "Instrutor formado pela Ibel Formação, hoje ele também forma novos barbeiros na Altas Horas Barbearia Academy. Quase 30 anos depois, a cadeira e a tesoura são as mesmas. O que mudou foi o caminho até elas. O filho, Kevin, criou esta agenda para que cada cliente marque do seu jeito. Você pode criar o seu cadastro e marcar por ele. Se estiver na correria do dia a dia, pode só escolher o horário e pagar no Pix, sem cadastro nenhum. E, se preferir como antigamente, é só chamar o Eduardo no WhatsApp, que ele mesmo marca o seu horário.",
 ];
 
-/** Texto do barbeiro na home (BarbeiroDaHome, seção 6.2). */
-export const TEXTO_DO_BARBEIRO =
-  "Barbeiro desde 1994 e dono da Altas Horas desde 1997. Professor na Academy e duas vezes premiado em 2017.";
-
 export const MARCOS: readonly { ano: string; titulo: string; texto: string }[] = [
   {
     ano: "1994",
@@ -126,12 +122,6 @@ export const IMAGENS = {
   retrato: {
     src: "/assets/eduardo-candido-avatar.png",
     alt: "Eduardo Candido, barbeiro e professor da Altas Horas, de camisa branca e gravata",
-  },
-  barbeiro: {
-    src: "/assets/eduardo-candido.jpg",
-    alt: "Eduardo Candido, de camisa branca e gravata preta, olhando para a câmera",
-    largura: 480,
-    altura: 480,
   },
   fachada: {
     src: "/assets/fachada-sem-tv.jpg",

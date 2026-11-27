@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AvisoDaHome } from "@/componentes/AvisoDaHome";
-import { BarbeiroDaHome } from "@/componentes/BarbeiroDaHome";
 import { LinkBotao } from "@/componentes/Botao";
 import { Galeria } from "@/componentes/Galeria";
 import { AlcanceDaHome, ServicosDaHome } from "@/componentes/ListaDeServicos";
@@ -10,10 +9,9 @@ import { ComoMarcar } from "@/componentes/ComoMarcar";
 import { Trajetoria } from "@/componentes/SecoesDaHome";
 import { IMAGENS, SUBTITULO_DA_HOME, TITULO_DA_HOME } from "@/conteudo/historia";
 
-// Ordem da home (Fatia 16, F3): herói enxuto (promessa, um botão e o link dos serviços), serviços, "Como marcar"
-// (Três jeitos + Antes de pagar), barbeiro, galeria, Trajetória e alcance; "Onde estamos" é o rodapé do layout.
+// Ordem da home (Fatia 16, A4): herói enxuto, "01 · Quem somos" (a Trajetória, com o barbeiro dentro), "02 · O que
+// fazemos", "03 · Como marcar", a galeria (até o F5) e o alcance (só com dado); "Onde estamos" é o rodapé do layout (até o F6).
 // O herói fica sem foto (decisão do Kevin de 27/11): a porta da barbearia continua no site, na galeria (até o F5/F6).
-// Quem somos (F4) e Onde estamos na home (F6) mudam a ordem nos próximos PRs.
 export default function Home() {
   return (
     <>
@@ -42,11 +40,10 @@ export default function Home() {
           <Image src={IMAGENS.logo.src} alt="" width={320} height={320} />
         </div>
       </section>
+      <Trajetoria />
       <ServicosDaHome />
       <ComoMarcar />
-      <BarbeiroDaHome />
       <Galeria />
-      <Trajetoria />
       <AlcanceDaHome />
     </>
   );

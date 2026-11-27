@@ -913,45 +913,6 @@ dd {
   margin: 0 0 var(--space-2);
 }
 
-/* Bloco do barbeiro */
-.grade-barbeiros {
-  list-style: none;
-  margin: var(--space-6) 0 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-6);
-}
-
-.cartao-barbeiro {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  align-items: center;
-}
-
-.cartao-barbeiro:hover {
-  transform: none;
-}
-
-.foto-barbeiro {
-  display: block;
-  width: var(--space-16);
-  height: var(--space-16);
-  flex: none;
-  border-radius: var(--radius-sm);
-  object-fit: contain;
-  background: var(--fundo);
-}
-
-.cartao-barbeiro-texto {
-  flex: 1;
-  min-width: var(--medida-coluna-minima);
-}
-
-.cartao-barbeiro-texto h3 {
-  margin: 0;
-}
-
 /* Estado vazio do alcance: ícone e palavra, tracejado (a forma diz "ainda não há"), sem botão nem número */
 .estado-vazio {
   margin-top: var(--space-4);
@@ -1145,19 +1106,6 @@ dd {
 .passo-numero {
   font-family: var(--tipo-titulo-secao-familia);
   font-size: var(--tipo-titulo-banner-tamanho);
-}
-
-blockquote {
-  margin: var(--space-6) 0;
-  padding-inline-start: var(--space-4);
-  border-inline-start: var(--traco-3) solid var(--texto);
-  font-family: var(--tipo-titulo-banner-familia);
-  font-size: var(--tipo-subtitulo-tamanho);
-}
-
-blockquote footer {
-  font-size: var(--tipo-legenda-tamanho);
-  color: var(--texto-suave);
 }
 
 .linha-do-tempo {
@@ -1435,10 +1383,6 @@ caption {
     min-width: 0;
     width: 100%;
     max-width: 100%;
-  }
-
-  .cartao-barbeiro-texto {
-    min-width: 0;
   }
 
   .campo input[type="date"] {

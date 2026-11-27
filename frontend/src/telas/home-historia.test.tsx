@@ -3,7 +3,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { TEMPO_LIMITE_DO_AUDIO_MS, Trajetoria } from "@/componentes/SecoesDaHome";
-import { MARCOS } from "@/conteudo/historia";
+import { HISTORIA, MARCOS } from "@/conteudo/historia";
 import { renderizar } from "@/testes/render";
 
 afterEach(() => {
@@ -13,18 +13,36 @@ afterEach(() => {
 });
 
 describe("home: trajetória, linha do tempo e dúvidas", () => {
-  test('A3: a Trajetória tem id="trajetoria" ligado ao <h2> por aria-labelledby, não existe id="historia" e os prêmios estão no mesmo bloco', () => {
+  test("A22: \"Quem somos\" tem o texto v3 idêntico, o player logo abaixo do título e a âncora antiga #trajetoria dentro", () => {
     const { container } = renderizar(<Trajetoria />);
-    const secao = container.querySelector("#trajetoria")!;
+    const secao = container.querySelector("#quem-somos")!;
     expect(secao).not.toBeNull();
     const titulo = within(secao as HTMLElement).getByRole("heading", { level: 2 });
     expect(secao.getAttribute("aria-labelledby")).toBe(titulo.id);
     expect(titulo).toHaveTextContent("Quase três décadas na mesma cadeira");
+    expect(within(secao as HTMLElement).getByText("01 · Quem somos")).toBeInTheDocument();
+    // o player vem logo depois do título: nada entre os dois
+    expect(titulo.nextElementSibling?.querySelector("button")).toHaveTextContent(/Ouvir a trajetória/);
+    // texto v3 idêntico, parágrafo por parágrafo, na ordem
+    const paragrafos = [...secao.querySelectorAll("p")].map((p) => p.textContent);
+    let depois = -1;
+    for (const paragrafo of HISTORIA) {
+      const i = paragrafos.indexOf(paragrafo);
+      expect(i, paragrafo.slice(0, 40)).toBeGreaterThan(depois);
+      depois = i;
+    }
+    expect(secao.contains(container.querySelector("#trajetoria"))).toBe(true);
     expect(container.querySelector("#historia")).toBeNull();
     expect(container.querySelector("#premios")).toBeNull();
     expect(within(secao as HTMLElement).getByRole("heading", { name: "Linha do tempo" })).toBeInTheDocument();
-    expect(within(secao as HTMLElement).getByText("Prêmio Barbeiros do Brasil")).toBeInTheDocument();
-    expect(within(secao as HTMLElement).getByText("Prêmio Master Barber · Êxito Profissional")).toBeInTheDocument();
+  });
+
+  test("o marco 2017 mostra as fotos dos dois prêmios, só com texto alternativo (o nome do prêmio não se repete na tela)", async () => {
+    const { user } = renderizar(<Trajetoria />);
+    expect(screen.queryByRole("img", { name: /Prêmio/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^2017/ }));
+    expect(screen.getAllByRole("img", { name: /Prêmio|prêmio|troféu|Troféu|certificado/ }).length).toBe(2);
+    expect(document.querySelectorAll("figcaption")).toHaveLength(0);
   });
 
   test("a linha do tempo abre em 1997, troca de ano por clique ou teclado e anuncia o detalhe", async () => {
