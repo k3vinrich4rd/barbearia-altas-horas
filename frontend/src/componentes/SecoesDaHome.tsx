@@ -60,11 +60,14 @@ const DURACAO_DA_NARRACAO = "1 min 13 s";
 export function Trajetoria() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [falando, setFalando] = useState(false);
+  const [carregando, setCarregando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [fontesNoAr, setFontesNoAr] = useState(false);
   const [oferecerLeitura, setOferecerLeitura] = useState(false);
   const [leituraPeloAparelho, setLeituraPeloAparelho] = useState(false);
   const [marco, setMarco] = useState(1);
+  const tentouMp3 = useRef(false);
+  const trocandoFonte = useRef(false);
   useRedirecionarHistoria();
 
   useEffect(
@@ -102,22 +105,65 @@ export function Trajetoria() {
     if (!manterAviso) setAviso("Lendo a trajetória em voz alta.");
   }
 
-  function tocar(audio: HTMLAudioElement) {
-    const tentativa = audio.play();
-    if (tentativa && typeof tentativa.then === "function") {
-      tentativa
-        .then(() => {
-          setFalando(true);
-          setAviso("Lendo a trajetória em voz alta.");
-        })
-        .catch(() => {
-          setOferecerLeitura(true);
-          setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
-        });
+  function eAbortError(erro: unknown) {
+    return (
+      (typeof DOMException !== "undefined" && erro instanceof DOMException && erro.name === "AbortError") ||
+      (typeof erro === "object" && erro !== null && "name" in erro && (erro as { name: string }).name === "AbortError")
+    );
+  }
+
+  function avisarErroDeAudio() {
+    trocandoFonte.current = false;
+    setCarregando(false);
+    setFalando(false);
+    setOferecerLeitura(true);
+    setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+  }
+
+  function tentarMp3(audio: HTMLAudioElement) {
+    tentouMp3.current = true;
+    trocandoFonte.current = true;
+    audio.src = AUDIO_MP3;
+    audio.load();
+    tocar(audio);
+  }
+
+  function aoErroDoAudio(audio: HTMLAudioElement | null) {
+    if (!audio) {
+      avisarErroDeAudio();
       return;
     }
-    setFalando(true);
-    setAviso("Lendo a trajetória em voz alta.");
+    const fonte = audio.currentSrc;
+    const opusFalhou = !tentouMp3.current && (fonte.includes("historia.opus") || fonte === "");
+    if (opusFalhou) {
+      tentarMp3(audio);
+      return;
+    }
+    avisarErroDeAudio();
+  }
+
+  function tocar(audio: HTMLAudioElement) {
+    setCarregando(true);
+    setOferecerLeitura(false);
+    setAviso("Carregando o áudio…");
+    const tentativa = audio.play();
+    if (tentativa && typeof tentativa.then === "function") {
+      tentativa.catch((erro: unknown) => {
+        if (eAbortError(erro)) {
+          // pause() ou troca de fonte interrompe o play(); erro de rede/decodificação vai no onError.
+          if (trocandoFonte.current) return;
+          if (audio.error) {
+            aoErroDoAudio(audio);
+            return;
+          }
+          setCarregando(false);
+          setFalando(false);
+          return;
+        }
+        aoErroDoAudio(audio);
+      });
+      return;
+    }
   }
 
   function iniciarLeituraPeloAparelho() {
@@ -131,8 +177,9 @@ export function Trajetoria() {
       falarComAparelho();
       return;
     }
-    if (falando) {
+    if (falando || carregando) {
       audioRef.current?.pause();
+      setCarregando(false);
       setFalando(false);
       setAviso("Leitura parada.");
       return;
@@ -163,7 +210,7 @@ export function Trajetoria() {
           <div className="player-trajetoria">
             <p>
               <button type="button" className="botao botao-secundario" onClick={alternarVoz}>
-                <Icone nome="voz" /> {falando ? "Pausar" : `Ouvir a trajetória · ${DURACAO_DA_NARRACAO}`}
+                <Icone nome="voz" /> {falando || carregando ? "Pausar" : `Ouvir a trajetória · ${DURACAO_DA_NARRACAO}`}
               </button>
             </p>
             {fontesNoAr && (
@@ -171,17 +218,25 @@ export function Trajetoria() {
                 ref={audioRef}
                 controls
                 preload="none"
-                onPlay={() => setFalando(true)}
-                onPause={() => setFalando(false)}
+                onPlaying={() => {
+                  trocandoFonte.current = false;
+                  setCarregando(false);
+                  setFalando(true);
+                  setAviso("Lendo a trajetória em voz alta.");
+                }}
+                onPause={() => {
+                  const el = audioRef.current;
+                  if (el?.ended || el?.error || trocandoFonte.current) return;
+                  setCarregando(false);
+                  setFalando(false);
+                  setAviso("Leitura parada.");
+                }}
                 onEnded={() => {
+                  setCarregando(false);
                   setFalando(false);
                   setAviso("Leitura terminada.");
                 }}
-                onError={() => {
-                  setOferecerLeitura(true);
-                  setFalando(false);
-                  setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
-                }}
+                onError={() => aoErroDoAudio(audioRef.current)}
               >
                 <source src={AUDIO_OPUS} type="audio/ogg; codecs=opus" />
                 <source src={AUDIO_MP3} type="audio/mpeg" />
@@ -195,7 +250,7 @@ export function Trajetoria() {
                 </button>
               </p>
             )}
-            <p role="status" className="nota">
+            <p role="status" aria-live="polite" className="nota">
               {aviso}
             </p>
           </div>
