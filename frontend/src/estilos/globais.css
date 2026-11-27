@@ -546,7 +546,7 @@ input[aria-invalid="true"] {
 }
 
 .opcoes {
-  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--medida-coluna-minima)), 1fr));
 }
 
 .opcao {
@@ -973,7 +973,7 @@ dd {
   padding: 0;
   display: grid;
   gap: var(--space-6);
-  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--medida-coluna-minima)), 1fr));
 }
 
 .cartao-detalhe {
