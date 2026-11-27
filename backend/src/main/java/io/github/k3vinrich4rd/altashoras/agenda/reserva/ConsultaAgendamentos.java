@@ -37,22 +37,25 @@ class ConsultaAgendamentos {
     private final ZoneId fuso;
     private final Clock clock;
     private final Duration prorrogacao;
+    private final int maximoDeProrrogacoes;
 
     ConsultaAgendamentos(ReservaRepository reservas, ReservaGuestRepository visitantes,
             ObjectProvider<ConciliadorDePagamento> conciliador, @Value("${app.fuso:America/Sao_Paulo}") String fuso,
-            Clock clock, @Value("${app.agenda.prorrogacao-pagamento:PT60S}") Duration prorrogacao) {
+            Clock clock, @Value("${app.agenda.prorrogacao-pagamento:PT2M}") Duration prorrogacao,
+            @Value("${app.agenda.prorrogacao-maximo:10}") int maximoDeProrrogacoes) {
         this.reservas = reservas;
         this.visitantes = visitantes;
         this.conciliador = conciliador;
         this.fuso = ZoneId.of(fuso);
         this.clock = clock;
         this.prorrogacao = prorrogacao;
+        this.maximoDeProrrogacoes = maximoDeProrrogacoes;
     }
 
-    /** A resposta do contrato com a janela do "Acrescentar 1 minuto" (E9), contada com o relógio injetado. */
+    /** A resposta do contrato com a janela do "mais tempo para pagar" (E9, E20), contada com o relógio injetado. */
     private AgendamentoResposta resposta(LinhaAgendamento linha, @Nullable String tokenGuest) {
         ProrrogacaoDoPagamento janela = ProrrogacaoDoPagamento.de(linha.status().name(), linha.origem().name(),
-                linha.expiraEm(), linha.prorrogadaEm(), clock.instant(), prorrogacao);
+                linha.expiraEm(), linha.prorrogacoes(), clock.instant(), prorrogacao, maximoDeProrrogacoes);
         return AgendamentoResposta.de(linha, fuso, tokenGuest, janela);
     }
 
