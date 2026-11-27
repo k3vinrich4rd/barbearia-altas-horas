@@ -82,20 +82,20 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("expediente na agenda pública (Fatia 15)", () => {
-  test("AF-10: dia com expediente fechado diz 'Fechado' na tira, com aria-disabled e nome 'dom 6, fechado'; o toque não escolhe o dia e o motivo nunca aparece", async () => {
+  test("AF-10: dia com expediente fechado diz 'Fechado' na tira, com aria-disabled e nome 'dom 6, Fechado' (o texto visível); o toque não escolhe o dia e o motivo nunca aparece", async () => {
     semanaDaBarbearia();
     renderizar(<Agendar />);
-    await waitFor(() => expect(chipDoDia("dom 6, fechado")).toBeInTheDocument());
-    for (const nome of ["dom 6, fechado", "seg 7, fechado", "qui 3, fechado"]) {
+    await waitFor(() => expect(chipDoDia(/^dom 6\s?,\s?Fechado$/)).toBeInTheDocument());
+    for (const nome of [/^dom 6\s?,\s?Fechado$/, /^seg 7\s?,\s?Fechado$/, /^qui 3\s?,\s?Fechado$/]) {
       const chip = chipDoDia(nome);
       expect(chip).toHaveAttribute("aria-disabled", "true");
       expect(chip).toHaveTextContent("Fechado");
     }
     // o primeiro dia livre (ter 1) já vem escolhido; tocar no domingo não muda o dia
     await waitFor(() => expect(chipDoDia(/^ter 1/)).toHaveAttribute("aria-pressed", "true"));
-    fireEvent.click(chipDoDia("dom 6, fechado"));
+    fireEvent.click(chipDoDia(/^dom 6\s?,\s?Fechado$/));
     expect(chipDoDia(/^ter 1/)).toHaveAttribute("aria-pressed", "true");
-    expect(chipDoDia("dom 6, fechado")).not.toHaveAttribute("aria-pressed", "true");
+    expect(chipDoDia(/^dom 6\s?,\s?Fechado$/)).not.toHaveAttribute("aria-pressed", "true");
     // FF-12: o público nunca vê o tipo nem o motivo da folga
     expect(document.body.textContent).not.toMatch(/férias|folga/i);
     expect(document.body.textContent).not.toMatch(/FORA_DO_EXPEDIENTE|FECHADO/);

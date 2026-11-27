@@ -11,7 +11,7 @@ test("AF-10, AF-11 e AF-13: domingo e segunda 'Fechado' na tira, a faixa 'Fechad
   await page.getByRole("radio").first().check();
 
   const tira = page.getByRole("group", { name: "Próximos dias" });
-  const fechados = tira.getByRole("button", { name: /^(dom|seg) \d+, fechado$/ });
+  const fechados = tira.getByRole("button", { name: /^(dom|seg) \d+\s?,\s?Fechado$/ });
   await expect(fechados).toHaveCount(2);
   for (const chip of await fechados.all()) {
     await expect(chip).toHaveAttribute("aria-disabled", "true");
@@ -25,9 +25,10 @@ test("AF-10, AF-11 e AF-13: domingo e segunda 'Fechado' na tira, a faixa 'Fechad
   await expect(tira.locator('[aria-pressed="true"]')).toHaveText(antes ?? "");
 
   // o dia aberto mostra o vão do almoço como "Fechado", sem a palavra almoço, e o expediente
-  await expect(page.getByText("Fechado · 12h às 13h")).toBeVisible();
-  await expect(page.getByText(/^Atende das 7h às 20h$/)).toBeVisible();
-  await expect(page.getByText(/almoço/i)).toHaveCount(0);
+  const horarios = page.locator('section[aria-labelledby="passo-horario"]');
+  await expect(horarios.getByText("Fechado · 12h às 13h")).toBeVisible();
+  await expect(horarios.getByText(/^Atende das 7h às 20h$/)).toBeVisible();
+  await expect(horarios.getByText(/almoço/i)).toHaveCount(0);
 
   for (const tamanho of [
     { width: 360, height: 800 },

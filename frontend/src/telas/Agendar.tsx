@@ -311,11 +311,14 @@ export function Agendar() {
                   type="button"
                   className="dia-chip dia-chip-fechado"
                   aria-disabled="true"
-                  aria-label={`${rotuloDoDia(dia)}, fechado`}
                   data-livre="fechado"
                   onClick={(e) => e.preventDefault()}
                 >
-                  <span>{rotuloDoDia(dia)}</span>
+                  {/* o nome acessível é o texto visível ("dom 6, Fechado"), sem aria-label diferente (WCAG 2.5.3) */}
+                  <span>
+                    {rotuloDoDia(dia)}
+                    <span className="so-leitor">,</span>
+                  </span>
                   <span className="dia-chip-nota">Fechado</span>
                 </button>
               );
