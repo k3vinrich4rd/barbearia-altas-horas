@@ -94,10 +94,14 @@ export function Rodape() {
       </p>
       <ul className="rodape-lista rodape-links">
         <li>
-          <Link href="/privacidade">Política de privacidade</Link>
+          <Link href="/privacidade" className="link-solto">
+            Política de privacidade
+          </Link>
         </li>
         <li>
-          <a href="#conteudo">Voltar ao topo</a>
+          <a href="#conteudo" className="link-solto">
+            Voltar ao topo
+          </a>
         </li>
       </ul>
     </footer>

@@ -49,7 +49,9 @@ export function ServicosDaHome({ comLinkVerTodos = true }: { comLinkVerTodos?: b
               </ul>
               {comLinkVerTodos && (
                 <p>
-                  <Link href="/servicos">Ver todos os serviços e preços</Link>
+                  <Link href="/servicos" className="link-solto">
+                    Ver todos os serviços e preços
+                  </Link>
                 </p>
               )}
             </>
@@ -117,7 +119,9 @@ export function AlcanceDaHome() {
                     {r.bairrosComFaixa.map((b) => (
                       <li key={b.bairro}>
                         {b.bairro}
-                        {b.faixaPercentual ? <span className="destaque"> · {textoDaFaixa(b.faixaPercentual)}</span> : null}
+                        {b.faixaPercentual ? (
+                          <span className="destaque"> · {textoDaFaixa(b.faixaPercentual)}</span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
