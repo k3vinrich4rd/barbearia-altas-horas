@@ -144,6 +144,12 @@ public class Reservas {
      * Pagamento confirmado (R13, R14), numa transação própria: AGUARDANDO_PAGAMENTO ou EXPIRADO vira CONFIRMADO
      * pela máquina de estados; já CONFIRMADO é a mesma resposta (idempotente). Se a reserva expirou e o horário já
      * é de outra pessoa, a constraint recusa (23P01), a transação desfaz e a reserva continua EXPIRADO.
+     * <p>
+     * Fatia 15 (E7, A14): a constraint não enxerga folgas. A reserva vencida (EXPIRADO, ou ainda AGUARDANDO_PAGAMENTO
+     * com o prazo já passado) que cai numa folga ou em férias criadas depois NÃO volta a CONFIRMADO: o pagamento trava
+     * a linha do barbeiro com {@code FOR SHARE} (a mesma trava do {@code ReservarHorario}, que a folga espera com
+     * {@code FOR UPDATE}), confere a folga e responde HORARIO_OCUPADO; a cobrança vira PAGA_APOS_EXPIRACAO. A reserva
+     * mantida pelo dono e paga dentro do prazo confirma normalmente (E6).
      */
     public ResultadoConfirmacao confirmarPagamento(UUID reservaId) {
         try {
@@ -154,6 +160,9 @@ public class Reservas {
                 }
                 if (reserva.getStatus() == StatusReserva.CONFIRMADO) {
                     return ResultadoConfirmacao.CONFIRMADA;
+                }
+                if (vencida(reserva) && caiEmFolga(reserva)) {
+                    return ResultadoConfirmacao.HORARIO_OCUPADO;
                 }
                 reserva.mudarPara(StatusReserva.CONFIRMADO, clock.instant());
                 em.flush();
@@ -169,6 +178,32 @@ public class Reservas {
             }
             throw falha;
         }
+    }
+
+    /** EXPIRADO, ou AGUARDANDO_PAGAMENTO com o prazo já passado (o job ainda não passou): o horário não era mais dela. */
+    private boolean vencida(Reserva reserva) {
+        if (reserva.getStatus() == StatusReserva.EXPIRADO) {
+            return true;
+        }
+        if (reserva.getStatus() != StatusReserva.AGUARDANDO_PAGAMENTO) {
+            return false;
+        }
+        OffsetDateTime expiraEm = jdbc.sql("SELECT expira_em FROM reserva WHERE id = :id").param("id", reserva.getId())
+                .query(OffsetDateTime.class).optional().orElse(null);
+        return expiraEm != null && !expiraEm.toInstant().isAfter(clock.instant());
+    }
+
+    /**
+     * Trava a linha do barbeiro ({@code FOR SHARE}) e só DEPOIS confere se alguma folga atravessa a ocupação da reserva
+     * ([inicio, fim_ocupacao), meio aberto, R2): uma folga que esteja sendo gravada agora termina antes e é enxergada.
+     */
+    private boolean caiEmFolga(Reserva reserva) {
+        jdbc.sql("SELECT 1 FROM barbeiro WHERE id = :id FOR SHARE").param("id", reserva.getBarbeiroId())
+                .query(Integer.class).optional();
+        return jdbc.sql("""
+                SELECT count(*) FROM folga f JOIN reserva r ON r.barbeiro_id = f.barbeiro_id
+                WHERE r.id = :id AND f.inicio < r.fim_ocupacao AND f.fim > r.inicio
+                """).param("id", reserva.getId()).query(Long.class).single() > 0;
     }
 
     /**
