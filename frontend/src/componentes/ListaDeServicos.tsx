@@ -48,7 +48,9 @@ export function ServicosDaHome({ comLinkVerTodos = true }: { comLinkVerTodos?: b
               </ul>
               {comLinkVerTodos && (
                 <p>
-                  <Link href="/servicos">Ver todos os serviços e preços</Link>
+                  <Link href="/servicos" className="link-solto">
+                    Ver todos os serviços e preços
+                  </Link>
                 </p>
               )}
             </>

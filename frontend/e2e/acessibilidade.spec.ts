@@ -144,3 +144,113 @@ test("A54: zero violações serious ou critical nas telas do painel, nos dois te
   await expect(page.getByRole("button", { name: "Salvar jornada" })).toBeVisible();
   for (const tema of ["escuro", "claro"] as const) await conferir(page, "painel cadastros com jornada", tema);
 });
+
+const ROTAS_ALVO = [
+  "/",
+  "/agendar",
+  "/agendar/dados",
+  "/servicos",
+  "/reserva",
+  "/entrar",
+  "/cadastro",
+  "/privacidade",
+  "/nao-existe",
+] as const;
+
+const TABELA_AT1: { rota: string; nome: string | RegExp }[] = [
+  { rota: "/", nome: "Ver todos os serviços e preços" },
+  { rota: "/entrar", nome: "Criar conta" },
+  { rota: "/cadastro", nome: "Entrar" },
+  { rota: "/cadastro", nome: "Saiba mais na política de privacidade" },
+  { rota: "/cadastro", nome: "Política de privacidade" },
+  { rota: "/privacidade", nome: /./ }, // os links do sumário; medidos à parte
+  { rota: "/nao-existe", nome: "Voltar para o início" },
+  { rota: "/nao-existe", nome: "Agendar horário" },
+  { rota: "/nao-existe", nome: "Consultar reserva" },
+];
+
+test("AT-1, AT-2, AT-4 e AT-5: alvos de toque de 44 px nos links soltos", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+
+  // AT-1
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Ver todos os serviços e preços" })).toBeVisible();
+  for (const item of TABELA_AT1) {
+    if (item.rota !== "/privacidade") {
+      if (page.url().replace(/https?:\/\/[^/]+/, "") !== item.rota) await page.goto(item.rota);
+      const links = page.getByRole("link", { name: item.nome });
+      await expect(links.first()).toBeVisible();
+      const n = await links.count();
+      for (let i = 0; i < n; i++) {
+        const caixa = await links.nth(i).boundingBox();
+        expect(caixa, `${item.rota} ${item.nome} #${i}`).toBeTruthy();
+        expect(caixa!.height, `${item.rota} ${String(item.nome)} #${i} h=${caixa!.height}`).toBeGreaterThanOrEqual(44);
+      }
+    }
+  }
+  await page.goto("/privacidade");
+  await expect(page.getByRole("navigation", { name: "Nesta página" })).toBeVisible();
+  const sumario = page.getByRole("navigation", { name: "Nesta página" }).getByRole("link");
+  expect(await sumario.count()).toBeGreaterThan(0);
+  for (let i = 0; i < (await sumario.count()); i++) {
+    const caixa = await sumario.nth(i).boundingBox();
+    expect(caixa!.height, `sumário #${i}`).toBeGreaterThanOrEqual(44);
+  }
+
+  // AT-2: a, button e summary visíveis fora de um parágrafo
+  for (const rota of ROTAS_ALVO) {
+    await page.goto(rota);
+    await page.waitForLoadState("networkidle");
+    const baixos = await page.evaluate(() =>
+      [...document.querySelectorAll("a, button, summary")]
+        .filter((el) => {
+          const html = el as HTMLElement;
+          if (!html.checkVisibility()) return false;
+          if (html.closest("p")) return false;
+          const r = html.getBoundingClientRect();
+          return r.height > 0 && r.width > 0 && r.height < 44;
+        })
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            tag: el.tagName,
+            texto: (el.textContent ?? "").trim().slice(0, 80),
+            h: Math.round(r.height * 10) / 10,
+          };
+        }),
+    );
+    expect(baixos, `AT-2 ${rota}: ${JSON.stringify(baixos)}`).toEqual([]);
+  }
+
+  // AT-4: 320 px e zoom 200%, sem rolagem horizontal
+  await page.setViewportSize({ width: 320, height: 800 });
+  for (const rota of ROTAS_ALVO) {
+    await page.goto(rota);
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => {
+      document.body.style.zoom = "2";
+    });
+    const overflow = await page.evaluate(() => {
+      const raiz = document.documentElement;
+      return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
+    });
+    expect(overflow.scroll, `AT-4 ${rota} ${JSON.stringify(overflow)}`).toBeLessThanOrEqual(overflow.cliente);
+    await page.evaluate(() => {
+      document.body.style.zoom = "";
+    });
+  }
+
+  // AT-5: axe wcag22aa em 360 e 1280
+  for (const tamanho of [
+    { width: 360, height: 800 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(tamanho);
+    for (const rota of ROTAS_ALVO) {
+      await page.goto(rota);
+      await page.waitForLoadState("networkidle");
+      const axe = await new AxeBuilder({ page }).withTags(["wcag22aa"]).analyze();
+      expect(axe.violations, `AT-5 ${rota} ${tamanho.width}: ${JSON.stringify(axe.violations)}`).toEqual([]);
+    }
+  }
+});

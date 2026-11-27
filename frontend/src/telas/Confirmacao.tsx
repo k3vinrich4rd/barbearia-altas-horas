@@ -15,6 +15,7 @@ import { RetirarRegiaoDoVisitante } from "@/componentes/RetirarRegiaoDoVisitante
 import { useSessao } from "@/componentes/Sessao";
 import { LinkBotao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
+import { IndicadorDePassos } from "@/componentes/IndicadorDePassos";
 import { EtiquetaDeStatus } from "@/componentes/EtiquetaDeStatus";
 import { TEXTOS } from "@/conteudo/textos";
 
@@ -60,7 +61,7 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
 
   return (
     <>
-      <p className="sobretitulo">Etapa 3 · Confirmação</p>
+      <IndicadorDePassos passoAtual={3} />
       <h1>{TEXTOS.confirmado}</h1>
       <EstadoDaConsulta consulta={reserva}>
         {(r) => (

@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CPF_DE_TESTE, cadastrarCliente, emailUnico, horarioLivre } from "./apoio";
 
@@ -117,4 +118,141 @@ test("A55: o diálogo de exclusão prende o foco, Esc fecha e o foco volta ao bo
   await page.keyboard.press("Escape");
   await expect(dialogo).toBeHidden();
   await expect(origem).toBeFocused();
+});
+
+// RF-1 a RF-3, RF-5 e RF-7: no celular o resumo compacto não esconde o foco (WCAG 2.4.11).
+// O CI deste repositório roda só Chromium (Desktop Chrome), como o restante da suíte.
+
+async function caixaDoFocoEscondidaPeloResumo(page: Page) {
+  return page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    const resumo = document.querySelector("aside.resumo-fixo") as HTMLElement | null;
+    if (!el || el === document.body || el === document.documentElement || !resumo) return null;
+    if (resumo.contains(el)) return null;
+    const f = el.getBoundingClientRect();
+    const r = resumo.getBoundingClientRect();
+    if (f.width === 0 || f.height === 0) return null;
+    // a caixa toda está abaixo (ou a partir) do topo do resumo: ficaria escondida atrás da barra
+    if (f.top >= r.top) {
+      return {
+        texto: (el.textContent ?? el.getAttribute("aria-label") ?? el.tagName).trim().slice(0, 80),
+        top: Math.round(f.top),
+        bottom: Math.round(f.bottom),
+        resumoTop: Math.round(r.top),
+      };
+    }
+    return null;
+  });
+}
+
+async function tabDoServicoAteContinuar(page: Page) {
+  const primeiro = page.getByRole("radio").first();
+  await primeiro.focus();
+  const continuar = page.getByRole("button", { name: "Continuar", exact: true });
+  const handle = await continuar.elementHandle();
+  for (let i = 0; i < 80; i++) {
+    const escondido = await caixaDoFocoEscondidaPeloResumo(page);
+    expect(escondido, escondido ? JSON.stringify(escondido) : undefined).toBeNull();
+    if (await handle!.evaluate((el) => el === document.activeElement)) return;
+    await page.keyboard.press("Tab");
+  }
+  throw new Error("o foco não chegou em Continuar");
+}
+
+test.describe("resumo fixo não cobre o foco", () => {
+  test.use({ viewport: { width: 360, height: 800 } });
+
+  test("RF-1 e RF-2: em 360×800, Tab do serviço ao Continuar não esconde o foco e a barra tem no máximo 128 px (176 px com A+)", async ({
+    page,
+    request,
+  }) => {
+    const horario = await horarioLivre(request);
+    await page.goto("/agendar");
+    await page.getByRole("radio").first().click();
+    await page.locator("#data").fill(horario.dia);
+    await page.getByRole("button", { name: horario.hora, exact: true }).first().click();
+
+    const altura = await page.locator("aside.resumo-fixo").evaluate((el) => el.getBoundingClientRect().height);
+    expect(altura, `altura sem A+: ${altura}`).toBeLessThanOrEqual(128);
+
+    await tabDoServicoAteContinuar(page);
+
+    await page.getByRole("button", { name: /Acessibilidade/ }).click();
+    const aumentar = page.getByRole("button", { name: "Aumentar o tamanho do texto" });
+    await aumentar.click();
+    await aumentar.click();
+    await aumentar.click(); // 150%, o passo máximo
+    const alturaMais = await page.locator("aside.resumo-fixo").evaluate((el) => el.getBoundingClientRect().height);
+    expect(alturaMais, `altura com A+: ${alturaMais}`).toBeLessThanOrEqual(176);
+  });
+
+  test("RF-3: em /agendar/dados no modo sem conta, o resumo não esconde nome, e-mail, WhatsApp, caixinha nem Reservar", async ({
+    page,
+    request,
+  }) => {
+    const horario = await horarioLivre(request);
+    await page.goto("/agendar");
+    await page.getByRole("radio").first().click();
+    await page.locator("#data").fill(horario.dia);
+    await page.getByRole("button", { name: horario.hora, exact: true }).first().click();
+    await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await expect(page).toHaveURL(/\/agendar\/dados\?/);
+    await page.getByRole("button", { name: "Continuar sem conta" }).click();
+
+    await page.getByLabel("Nome", { exact: true }).focus();
+    const reservar = page.getByRole("button", { name: "Reservar" });
+    const handle = await reservar.elementHandle();
+    for (let i = 0; i < 40; i++) {
+      const escondido = await caixaDoFocoEscondidaPeloResumo(page);
+      expect(escondido, escondido ? JSON.stringify(escondido) : undefined).toBeNull();
+      if (await handle!.evaluate((el) => el === document.activeElement)) return;
+      await page.keyboard.press("Tab");
+    }
+    throw new Error("o foco não chegou em Reservar");
+  });
+
+  test("RF-5: axe (WCAG 2.2 AA) em /agendar e /agendar/dados, em 360×800 e em 1280×800", async ({ page, request }) => {
+    const horario = await horarioLivre(request);
+    async function axeNaRota(largura: number, altura: number) {
+      await page.setViewportSize({ width: largura, height: altura });
+      const resultado = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+        .analyze();
+      expect(resultado.violations, JSON.stringify(resultado.violations, null, 2)).toEqual([]);
+    }
+    await page.goto("/agendar");
+    await axeNaRota(360, 800);
+    await axeNaRota(1280, 800);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.getByRole("radio").first().click();
+    await page.locator("#data").fill(horario.dia);
+    await page.getByRole("button", { name: horario.hora, exact: true }).first().click();
+    await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await expect(page).toHaveURL(/\/agendar\/dados\?/);
+    await axeNaRota(360, 800);
+    await axeNaRota(1280, 800);
+  });
+
+  test("RF-7: em 320 px com zoom de 200%, /agendar não rola na horizontal", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/agendar");
+    await page.evaluate(() => {
+      document.body.style.zoom = "2";
+    });
+    const overflow = await page.evaluate(() => {
+      const raiz = document.documentElement;
+      return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
+    });
+    expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.cliente);
+  });
+});
+
+test("RF-4: em 1280×800 o resumo continua sticky, com Serviço, Quando e Total visíveis", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/agendar");
+  const resumo = page.locator("aside.resumo-fixo");
+  await expect(resumo.getByText("Serviço", { exact: true })).toBeVisible();
+  await expect(resumo.getByText("Quando", { exact: true })).toBeVisible();
+  await expect(resumo.getByText("Total", { exact: true })).toBeVisible();
+  await expect(resumo).toHaveCSS("position", "sticky");
 });

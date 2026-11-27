@@ -41,7 +41,9 @@ export function ConsentimentoDeRegiao({
       </div>
       <p id={`${id}-contato`} className="nota">
         {politica?.canalDeContato ? `Para falar sobre seus dados: ${politica.canalDeContato}. ` : ""}
-        <Link href="/privacidade">Saiba mais na política de privacidade</Link>
+        <Link href="/privacidade" className="link-solto">
+          Saiba mais na política de privacidade
+        </Link>
       </p>
       {marcado && children}
     </div>

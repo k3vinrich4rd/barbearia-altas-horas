@@ -1,5 +1,20 @@
-import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type Page } from "@playwright/test";
 import { API_URL, emailUnico, escolherHorario, horarioLivre, pagarComPixESimular, statusDaReservaGuest } from "./apoio";
+
+async function conferirPasso(page: Page, atual: 1 | 2 | 3) {
+  const nav = page.getByRole("navigation", { name: "Etapas do agendamento" });
+  await expect(nav).toBeVisible();
+  const itens = nav.getByRole("listitem");
+  await expect(itens).toHaveCount(3);
+  await expect(itens.nth(atual - 1)).toHaveAttribute("aria-current", "step");
+  await expect(itens.nth(atual - 1)).toContainText(["1 · Horário", "2 · Pagamento", "3 · Confirmação"][atual - 1]);
+  if (atual > 1) {
+    await expect(itens.nth(0)).toContainText("concluído");
+    await expect(itens.nth(0)).toContainText("✓");
+  }
+  await expect(page.getByText("Etapa 3 · Confirmação")).toHaveCount(0);
+}
 
 test("A57: o visitante vai da home à confirmação, consulta pelo código e o horário some para o próximo", async ({
   page,
@@ -13,9 +28,11 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("main").getByRole("link", { name: "Agendar horário" }).first().click();
   await expect(page).toHaveURL(/\/agendar$/);
+  await conferirPasso(page, 1);
 
   // serviço, dia e horário → dados (sem CEP) → reservar
   await escolherHorario(page, horario);
+  await conferirPasso(page, 1);
   await page.getByRole("button", { name: "Continuar sem conta" }).click();
   await page.getByLabel("Nome").fill("Visitante de Teste");
   await page.getByLabel("E-mail").fill(emailUnico("visitante"));
@@ -29,6 +46,7 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   const corpoBff = await respBff.json();
   expect(corpoBff).not.toHaveProperty("tokenGuest");
   await expect(page).toHaveURL(/\/agendar\/pagamento\//);
+  await conferirPasso(page, 2);
   const reservaId = page.url().split("/").pop()!.split("?")[0];
   expect(reservaId).toBe(corpoBff.id);
   expect(page.url()).not.toContain("codigo");
@@ -41,6 +59,7 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
 
   // confirmação com o código
   await expect(page.getByRole("heading", { name: "Agendado! Seu horário está garantido." })).toBeVisible();
+  await conferirPasso(page, 3);
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(codigo.length).toBeGreaterThan(10);
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
@@ -81,4 +100,34 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   await expect(p2).toHaveURL(/\/agendar\?/);
   await expect(p2.getByText("Alguém pegou esse horário agorinha. Escolha outro logo abaixo.")).toBeVisible();
   await segundo.close();
+});
+
+test("IP-6 e IP-7: o indicador não causa rolagem horizontal em 320 px com zoom 200%, e o axe passa em 360 e 1280", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/agendar");
+  await conferirPasso(page, 1);
+  await page.evaluate(() => {
+    document.body.style.zoom = "2";
+  });
+  const overflow = await page.evaluate(() => {
+    const raiz = document.documentElement;
+    return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
+  });
+  expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.cliente);
+  await page.evaluate(() => {
+    document.body.style.zoom = "";
+  });
+  for (const { width, height } of [
+    { width: 360, height: 800 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/agendar");
+    const resultado = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(resultado.violations, `${width}x${height}: ${JSON.stringify(resultado.violations, null, 2)}`).toEqual([]);
+  }
 });
