@@ -7,7 +7,6 @@ import type { components } from "@/api/schema";
 import { formatarPreco } from "@/api/formato";
 import { useConsulta } from "@/api/hooks";
 import { EstadoDaConsulta } from "./EstadoDaConsulta";
-import { Icone } from "./Icone";
 
 export type Servico = components["schemas"]["Servico"];
 export type AlcancePublico = components["schemas"]["AlcancePublico"];
@@ -66,9 +65,10 @@ export function textoDaFaixa(faixa: string): string {
 }
 
 /**
- * "De onde vêm nossos clientes" (Fatia 12, E10 + Fatia 11, A50): o bloco SEMPRE existe. Com dados que passam no k (ADR 0014),
- * os municípios; ao clicar, os bairros com a faixa de porcentagem, só o nome ou o "Outros bairros" sem faixa. NUNCA número de
- * pessoas. Sem dados (lista vazia, erro ou limite), o estado vazio digno: sem botão, sem gráfico, sem "0".
+ * "De onde vêm nossos clientes" (Fatia 11, A50, e Fatia 16, A8): o bloco só existe com dados que passam no k (ADR 0014).
+ * Com dados, os municípios; ao clicar, os bairros com a faixa de porcentagem, só o nome ou o "Outros bairros" sem faixa.
+ * NUNCA número de pessoas. Sem dados (lista vazia, erro ou limite) ou carregando, a seção não aparece: uma seção vazia
+ * ocupava uma rolagem inteira sem finalidade (Fatia 16, R5).
  */
 export function AlcanceDaHome() {
   // undefined = ainda carregando; null = sem dados (vazio ou erro)
@@ -84,49 +84,43 @@ export function AlcanceDaHome() {
       vivo = false;
     };
   }, []);
+  if (!alcance) return null;
   return (
     <section id="alcance" aria-labelledby="alcance-titulo" className="secao">
       <p className="sobretitulo">Clientes da região</p>
       <h2 id="alcance-titulo">De onde vêm nossos clientes</h2>
-      {alcance === undefined ? null : alcance === null ? (
-        <div className="estado-vazio">
-          <p>
-            <Icone nome="relogio" /> <strong>Em breve:</strong> de onde vêm nossos clientes.
-          </p>
-          <p className="nota">Mostramos a região quando há clientes suficientes para ninguém ser identificado.</p>
-        </div>
-      ) : (
-        <ul className="lista-regioes">
-          {alcance.regioes.map((r) => {
-            const lista = `bairros-${r.codigoIbge}`;
-            const expandido = aberto === r.codigoIbge;
-            return (
-              <li key={r.codigoIbge}>
-                <button
-                  type="button"
-                  className="botao botao-secundario"
-                  aria-expanded={expandido}
-                  aria-controls={lista}
-                  onClick={() => setAberto(expandido ? undefined : r.codigoIbge)}
-                >
-                  {r.cidade} - {r.uf}
-                </button>
-                {expandido && (
-                  <ul id={lista} className="lista-bairros" aria-label={`Bairros de ${r.cidade}`}>
-                    {r.bairrosComFaixa.length === 0 && <li>Ainda sem bairros para mostrar.</li>}
-                    {r.bairrosComFaixa.map((b) => (
-                      <li key={b.bairro}>
-                        {b.bairro}
-                        {b.faixaPercentual ? <span className="destaque"> · {textoDaFaixa(b.faixaPercentual)}</span> : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <ul className="lista-regioes">
+        {alcance.regioes.map((r) => {
+          const lista = `bairros-${r.codigoIbge}`;
+          const expandido = aberto === r.codigoIbge;
+          return (
+            <li key={r.codigoIbge}>
+              <button
+                type="button"
+                className="botao botao-secundario"
+                aria-expanded={expandido}
+                aria-controls={lista}
+                onClick={() => setAberto(expandido ? undefined : r.codigoIbge)}
+              >
+                {r.cidade} - {r.uf}
+              </button>
+              {expandido && (
+                <ul id={lista} className="lista-bairros" aria-label={`Bairros de ${r.cidade}`}>
+                  {r.bairrosComFaixa.length === 0 && <li>Ainda sem bairros para mostrar.</li>}
+                  {r.bairrosComFaixa.map((b) => (
+                    <li key={b.bairro}>
+                      {b.bairro}
+                      {b.faixaPercentual ? (
+                        <span className="destaque"> · {textoDaFaixa(b.faixaPercentual)}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

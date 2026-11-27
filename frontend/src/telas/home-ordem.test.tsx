@@ -15,7 +15,22 @@ describe("home: ordem das seções (Fatia 12)", () => {
       http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)),
       http.get(`${BFF}/barbeiros`, () => HttpResponse.json([{ ...BARBEIRO, nomeExibicao: "Eduardo Candido" }])),
       http.get(`${BFF}/alcance`, () =>
-        HttpResponse.json({ atualizadoEm: "2026-11-23T00:00:00Z", totalCidades: 0, totalBairros: 0, regioes: [] }),
+        // com dado que passa no k: sem dado, a seção de alcance não existe (Fatia 16, A8)
+        HttpResponse.json({
+          atualizadoEm: "2026-11-23T00:00:00Z",
+          totalCidades: 1,
+          totalBairros: 1,
+          regioes: [
+            {
+              cidade: "Osasco",
+              uf: "SP",
+              codigoIbge: "3534401",
+              comFaixas: false,
+              bairros: ["Centro"],
+              bairrosComFaixa: [{ bairro: "Centro", faixaPercentual: null, outros: false }],
+            },
+          ],
+        }),
       ),
     );
     const { container } = renderizar(
@@ -25,6 +40,7 @@ describe("home: ordem das seções (Fatia 12)", () => {
       </>,
     );
     await screen.findByText("Descoloração / Platinado (química)");
+    await screen.findByRole("heading", { name: "De onde vêm nossos clientes" });
 
     const ordem = ["inicio", "servicos", "barbeiro", "galeria", "trajetoria", "alcance", "duvidas", "onde-estamos"];
     const elementos = ordem.map((id) => container.querySelector(`#${id}`));

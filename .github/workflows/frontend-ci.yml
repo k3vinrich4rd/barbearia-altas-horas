@@ -118,6 +118,11 @@ jobs:
       - name: Conferir spec × testes (fatia 12)
         run: sh scripts/conferir-spec.sh 12 --exigir
 
+      # Fatia 16 (fluxo sem repetição): cada PR da fatia tira da lista --exceto os critérios que ele cobre.
+      # A18 (galeria de cortes, parada), A19 (revisão manual) e A26 (Lighthouse CI) ficam de fora de propósito.
+      - name: Conferir spec × testes (fatia 16)
+        run: sh scripts/conferir-spec.sh 16 --exigir --exceto 1-7,9-20,22-24,26-28
+
       # Fatia 14, parte 14A (mais 1 minuto no Pix e agenda sem limites): A1 a A27 têm teste com o número deles.
       # 14B, 14C e 14D (A28 a A62) entram nas próximas PRs e ampliam o --ate.
       - name: Conferir spec × testes (fatia 14, parte 14A)

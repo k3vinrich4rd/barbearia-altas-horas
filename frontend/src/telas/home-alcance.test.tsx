@@ -15,24 +15,20 @@ const respostas = {
   rede: () => HttpResponse.error(),
 };
 
-describe("home: de onde vêm nossos clientes (Fatia 12, E10)", () => {
-  test("A15: regiões vazias, 429 ou rede fora: o bloco APARECE com o estado vazio 'Em breve', sem número e sem botão; com dados, mostra as faixas", async () => {
+describe("home: de onde vêm nossos clientes (Fatia 16: só com dado)", () => {
+  test("A8: regiões vazias, 429 ou rede fora: a seção de alcance NÃO aparece (nem 'Em breve', nem número, nem botão); com dados, mostra as faixas", async () => {
     for (const [nome, resposta] of Object.entries(respostas)) {
       servidor.use(
         http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)),
         http.get(`${BFF}/alcance`, resposta),
       );
-      renderizar(<Home />);
+      const { container } = renderizar(<Home />);
       expect(await screen.findByText("Corte Clássico / Social"), nome).toBeInTheDocument();
-      const bloco = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;
-      expect(await within(bloco).findByText(/Em breve/), nome).toBeInTheDocument();
-      expect(bloco, nome).toHaveTextContent("ninguém ser identificado");
-      expect(bloco.textContent, nome).not.toMatch(/\d/); // sem número, sem "0"
-      expect(within(bloco).queryByRole("button"), nome).toBeNull();
-      expect(within(bloco).queryByRole("link"), nome).toBeNull();
-      expect(within(bloco).queryByRole("list"), nome).toBeNull();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByRole("heading", { name: "De onde vêm nossos clientes" }), nome).toBeNull();
+      expect(container.querySelector("#alcance"), nome).toBeNull();
+      expect(screen.queryByText(/Em breve/), nome).toBeNull();
       expect(screen.queryByRole("alert"), nome).toBeNull();
-      expect(screen.getAllByText(/Jardim Bonança, em Osasco/).length).toBeGreaterThan(0);
       cleanup();
     }
 
@@ -64,7 +60,7 @@ describe("home: de onde vêm nossos clientes (Fatia 12, E10)", () => {
     expect(comDados.textContent).not.toMatch(/\d/);
   });
 
-  test("A17: regiões vazias, 429 ou rede fora: sem número, sem erro de página inteira, e a história e os serviços continuam (desde a Fatia 12 o bloco aparece com o estado vazio, A15)", async () => {
+  test("A17: regiões vazias, 429 ou rede fora: sem número, sem erro de página inteira, e a história e os serviços continuam (desde a Fatia 16 a seção some, A8)", async () => {
     for (const [nome, resposta] of Object.entries(respostas)) {
       servidor.use(
         http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)),
@@ -72,7 +68,8 @@ describe("home: de onde vêm nossos clientes (Fatia 12, E10)", () => {
       );
       renderizar(<Home />);
       expect(await screen.findByText("Corte Clássico / Social"), nome).toBeInTheDocument();
-      await screen.findByText(/Em breve/);
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByText(/Em breve/), nome).toBeNull();
       expect(screen.queryByText(/0 cidades/), nome).toBeNull();
       expect(screen.queryByRole("alert"), nome).toBeNull();
       expect(screen.getByRole("heading", { level: 1 }), nome).toBeInTheDocument();
