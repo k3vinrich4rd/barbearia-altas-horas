@@ -266,16 +266,16 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 | **Aviso a quem não deve** (barbeiro errado) | destinatário vem **só** do `barbeiroId` do evento; testes A44 a A46 |
 | **Visual das telas e dos ícones** | não decidir aqui (D148); layout neutro até o desenho |
 
-### Checklist LGPD (aplicando o `cautelar-lgpd`; **não substitui parecer jurídico**, e as fontes oficiais (planalto.gov.br, gov.br/anpd) ainda precisam ser consultadas pelo Cautelar antes do merge)
+### Checklist LGPD (aplicando o agente jurídico; **não substitui parecer jurídico**, e as fontes oficiais (planalto.gov.br, gov.br/anpd) ainda precisam ser consultadas na revisão jurídica antes do merge)
 
 | Ponto | Situação | Observação |
 |---|---|---|
 | Minimização (texto do aviso) | 🟢 ok | sem nome, WhatsApp, e-mail, CPF nem valor; só serviço, dia e hora (E10) |
 | Dado do cliente no outbox | 🟢 ok | o evento só tem ids e instante (E2, A1) |
-| Dado pessoal do **barbeiro** (endpoint e chaves do aparelho) | 🟠 risco | identifica o aparelho; apagar no desligamento e na exclusão, **30 dias** para os avisos e **90 dias** sem uso para a inscrição (E11 e E13); base legal e prazos para o Cautelar confirmar (H33 segue dependendo do advogado) |
-| Serviços de push (Google, Mozilla, Apple) | 🟠 risco | o conteúdo vai **criptografado** (RFC 8291), mas o `endpoint` e o fato de haver um aviso passam por eles; **um parágrafo na política de privacidade** (para barbeiros) precisa citar isso; texto pelo Cautelar |
+| Dado pessoal do **barbeiro** (endpoint e chaves do aparelho) | 🟠 risco | identifica o aparelho; apagar no desligamento e na exclusão, **30 dias** para os avisos e **90 dias** sem uso para a inscrição (E11 e E13); base legal e prazos para a revisão jurídica confirmar (H33 segue dependendo do advogado) |
+| Serviços de push (Google, Mozilla, Apple) | 🟠 risco | o conteúdo vai **criptografado** (RFC 8291), mas o `endpoint` e o fato de haver um aviso passam por eles; **um parágrafo na política de privacidade** (para barbeiros) precisa citar isso; texto pela revisão jurídica |
 | Consentimento do barbeiro | 🟢 ok | o barbeiro **ativa** e **desativa** quando quiser; a permissão é pedida pelo navegador, depois de um toque |
-| Nome do cliente no aviso | 🟠 risco | **fora** por padrão (D-3). Colocá-lo no push é tratamento a mais e depende do Cautelar |
+| Nome do cliente no aviso | 🟠 risco | **fora** por padrão (D-3). Colocá-lo no push é tratamento a mais e depende da revisão jurídica |
 | Logs | 🟢 ok | R30: nada de endpoint, chave ou dado de cliente (A49) |
 | Direitos do titular (exportar e excluir) | 🟠 risco | a exportação do barbeiro precisa listar as inscrições (sem as chaves); a exclusão apaga tudo (A34) |
 
@@ -285,7 +285,7 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 |---|---|---|
 | D-1 | O código mora em `admin.notificacao` (sem módulo novo) ou em um **9º módulo** `notificacao` (com ADR)? | **`admin.notificacao`**: respeita os 8 módulos, e o aviso é parte do painel. Se o e-mail crescer (lembrete ao cliente, por exemplo), a gente extrai um módulo com ADR |
 | D-2 | **Biblioteca** de Web Push ou criptografia escrita com o JDK? | **Biblioteca** (`nl.martijndwars:web-push`, licença e versão a conferir na implementação): criptografia é fácil de errar. Se o consumo de memória pesar na medição, escrevo só o RFC 8291 e o VAPID com o JDK, atrás da mesma porta |
-| D-3 | O push e a lista "Novidades" mostram o **nome do cliente**? | **Não.** Só serviço, dia e hora. O nome aparece ao abrir a agenda (já autenticada e isolada). Se o Kevin quiser o nome, o Cautelar revisa antes, e entra como opção por barbeiro |
+| D-3 | O push e a lista "Novidades" mostram o **nome do cliente**? | **Não.** Só serviço, dia e hora. O nome aparece ao abrir a agenda (já autenticada e isolada). Se o Kevin quiser o nome, a revisão jurídica entra antes, e entra como opção por barbeiro |
 | D-4 | O **dono** (Eduardo) também recebe os avisos dos barbeiros convidados? | **Não.** Cada barbeiro recebe os da própria agenda (E4). Ele vê tudo na agenda do painel. Se o Kevin quiser, vira uma opção ("Receber também os avisos dos outros barbeiros") numa fatia futura |
 | D-5 | Mensagem de reserva **cancelada** ou **remarcada** também avisa? | **Não nesta fatia** (o pedido é só o horário novo). Fica registrado como próxima melhoria, com o mesmo canal e outro texto |
 | D-6 | **Ícones do app** (192, 512, maskable) e o nome na tela inicial | **O Kevin desenha (ou aprova o logotipo atual).** Até lá, o logotipo existente, sem fundo mascarável. Nome: "Altas Horas" |
@@ -312,5 +312,5 @@ Sem dado de cliente em nenhuma das duas tabelas. `endpoint` e chaves pertencem a
 - [x] decisões D170 a D176 em `decisoes.md` (números conferidos)
 - [x] documento do e-mail (`notificacao-por-email.md`) e guia do iPhone e do Android escritos
 - [ ] **telas desenhadas** e o visual trocado (hoje layout neutro): depende do desenho do Kevin
-- [ ] parágrafo da política de privacidade sobre notificações revisado pelo Cautelar
+- [ ] parágrafo da política de privacidade sobre notificações revisado na revisão jurídica
 - [ ] [checklist da PR](checklist-pr.md) completo na abertura da PR (o Kevin abre)

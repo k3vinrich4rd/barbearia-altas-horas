@@ -12,7 +12,7 @@
 | 4 | Adaptador do provedor | desenvolvimento | uma classe que implementa `ClienteDeEmail` (um POST na API do provedor com o `HttpClient` do JDK, timeout de 5 s, fora de transação) e vira bean; o `EmailCanal` já a usa |
 | 5 | `app.notificacao.email.remetente` | Kevin | o remetente do item 2 (a propriedade já é lida pelo `EmailCanal`; no Render, uma variável nova mapeada para ela) |
 | 6 | Ligar o canal | Kevin | `APP_NOTIFICACAO_CANAIS=webpush,email` e um deploy |
-| 7 | Política de privacidade | Cautelar e advogado | citar o provedor de e-mail como operador (a política vigente é a 1.2 da Fatia 11; a mudança seria a **1.3**) |
+| 7 | Política de privacidade | revisão jurídica e advogado | citar o provedor de e-mail como operador (a política vigente é a 1.2 da Fatia 11; a mudança seria a **1.3**) |
 
 ## Para onde vai o e-mail
 
