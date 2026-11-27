@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.github.k3vinrich4rd.altashoras.admin.Ator;
 import io.github.k3vinrich4rd.altashoras.admin.auditoria.Auditor;
-import io.github.k3vinrich4rd.altashoras.agenda.FolgaComReservas;
+import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaComReservas;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.ConflitoDaFolga;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaGravada;
