@@ -117,31 +117,32 @@ class ProrrogacaoConcorrenciaIT {
     }
 
     @Test
-    @DisplayName("A4: duas chamadas ao mesmo tempo às 10:02:30 dão uma 201 e uma 200; expiraEm 10:04:00 e um só PrazoDaReservaProrrogado no outbox")
+    @DisplayName("A4: duas chamadas ao mesmo tempo às 10:02:30 com a mesma X-Idempotency-Key (Fatia 15, E21) dão uma 201 e uma 200; expiraEm 10:05:00 e um só PrazoDaReservaProrrogado no outbox")
     void duasAoMesmoTempo() throws Exception {
         String acesso = Reservas.clienteLogado(mvc);
         String id = JsonPath.read(reservar(mvc, acesso, corpo(servico, barbeiro, as(15, 0)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
 
+        String chave = UUID.randomUUID().toString();
         relogio.definir(em(10, 2, 30));
         int[] codigos = soltarJuntas(List.of(
-                () -> prorrogar(mvc, acesso, id).andReturn().getResponse().getStatus(),
-                () -> prorrogar(mvc, acesso, id).andReturn().getResponse().getStatus()));
+                () -> prorrogar(mvc, acesso, id, chave).andReturn().getResponse().getStatus(),
+                () -> prorrogar(mvc, acesso, id, chave).andReturn().getResponse().getStatus()));
 
         assertThat(codigos).containsExactlyInAnyOrder(200, 201);
-        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 4, 0));
+        assertThat(expiraEm(jdbc, id)).isEqualTo(em(10, 5, 0));
         assertThat(eventosDePrazo(jdbc, id)).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("A14: reserva prorrogada (prazo 10:04:00) e o webhook do Pix às 10:03:30: reserva CONFIRMADO, cobrança PAGA e um só ReservaConfirmada")
+    @DisplayName("A14: reserva prorrogada (prazo 10:05:00 desde a Fatia 15) e o webhook do Pix às 10:03:30: reserva CONFIRMADO, cobrança PAGA e um só ReservaConfirmada")
     void pagamentoDentroDoPrazoNovo() throws Exception {
         ReservaGuest reserva = reservarComoVisitante(mvc, barbeiro, servico, as(15, 0));
         cobrarPixComoVisitante(mvc, jdbc, reserva);
         String idNoGateway = idDoProvedor(jdbc, reserva.id());
         relogio.definir(em(10, 2, 30));
         prorrogarComoVisitante(mvc, reserva.id(), reserva.token()).andExpect(status().isCreated());
-        assertThat(expiraEm(jdbc, reserva.id())).isEqualTo(em(10, 4, 0));
+        assertThat(expiraEm(jdbc, reserva.id())).isEqualTo(em(10, 5, 0));
 
         relogio.definir(em(10, 3, 30));
         gateway.marcarPago(idNoGateway);
@@ -187,7 +188,7 @@ class ProrrogacaoConcorrenciaIT {
     }
 
     @Test
-    @DisplayName("A16: a prorrogação segura o lock da linha às 10:02:59 e o relógio chega a 10:03:00: o job pula a linha (SKIP LOCKED), depois do commit a reserva segue AGUARDANDO_PAGAMENTO até 10:04:00 e só então o job a expira")
+    @DisplayName("A16: a prorrogação segura o lock da linha às 10:02:59 e o relógio chega a 10:03:00: o job pula a linha (SKIP LOCKED), depois do commit a reserva segue AGUARDANDO_PAGAMENTO até 10:05:00 (120 s, Fatia 15) e só então o job a expira")
     void jobPulaALinhaTravada() throws Exception {
         ReservaGuest reserva = reservarComoVisitante(mvc, barbeiro, servico, as(15, 0));
         TransactionTemplate fora = new TransactionTemplate(gerenciador);
@@ -196,7 +197,7 @@ class ProrrogacaoConcorrenciaIT {
         try (ExecutorService outroFio = Executors.newSingleThreadExecutor()) {
             fora.executeWithoutResult(transacao -> {
                 // Dentro da transação aberta pelo teste a prorrogação entra nela (propagação REQUIRED): o lock fica preso até o commit.
-                prorrogar.doVisitante(UUID.fromString(reserva.id()), reserva.token());
+                prorrogar.doVisitante(UUID.fromString(reserva.id()), reserva.token(), null);
                 relogio.definir(em(10, 3, 0));
                 try {
                     // Tudo de outro fio: o JdbcTemplate deste fio participa da transação aberta e enxergaria o que ainda não foi commitado.
@@ -211,10 +212,10 @@ class ProrrogacaoConcorrenciaIT {
             });
         }
 
-        assertThat(expiraEm(jdbc, reserva.id())).isEqualTo(em(10, 4, 0));
+        assertThat(expiraEm(jdbc, reserva.id())).isEqualTo(em(10, 5, 0));
         job.executar();
-        assertThat(status(jdbc, reserva.id())).as("10:03:00 com prazo até 10:04:00").isEqualTo("AGUARDANDO_PAGAMENTO");
-        relogio.definir(em(10, 4, 0));
+        assertThat(status(jdbc, reserva.id())).as("10:03:00 com prazo até 10:05:00").isEqualTo("AGUARDANDO_PAGAMENTO");
+        relogio.definir(em(10, 5, 0));
         job.executar();
         assertThat(status(jdbc, reserva.id())).isEqualTo("EXPIRADO");
     }

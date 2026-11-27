@@ -15,7 +15,7 @@ import io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroResumo;
  * O "Agendamento" do contrato. {@code tokenGuest} só aparece na resposta da criação pelo visitante (mostrado uma
  * vez; o banco guarda o hash). {@code expiraEm} é nulo depois que a reserva sai da espera do pagamento.
  * {@code regiaoAutorizada} só aparece nas respostas do visitante (Fatia 11): a reserva guarda a região com a prova do aceite.
- * {@code prorrogacao} (1.11.0, Fatia 14A) é a janela do "Acrescentar 1 minuto"; nulo quando não se aplica.
+ * {@code prorrogacao} (1.11.0, Fatia 14A; 1.12.0, ADR 0015) é a janela do "mais tempo para pagar"; nulo quando não se aplica.
  */
 public record AgendamentoResposta(UUID id, StatusReserva status, Reserva.Origem origem, ServicoDaReserva servico,
         BarbeiroResumo barbeiro, String inicio, String fim, long precoCentavos, @Nullable String expiraEm,
@@ -27,13 +27,17 @@ public record AgendamentoResposta(UUID id, StatusReserva status, Reserva.Origem 
     public record ServicoDaReserva(UUID id, String nome, int duracaoMin) {
     }
 
-    /** A janela do "Acrescentar 1 minuto", no mesmo formato de {@code expiraEm}: o servidor decide, o front só mostra (E9). */
-    public record Prorrogacao(boolean usada, long segundos, String abreEm, String fechaEm) {
+    /**
+     * A janela do "mais tempo para pagar", no mesmo formato de {@code expiraEm}: o servidor decide, o front só mostra (E9).
+     * {@code usada} fica por compatibilidade (deprecated na 1.12.0): {@code true} quando {@code usadas > 0}.
+     */
+    public record Prorrogacao(boolean usada, int usadas, int maximo, int restantes, long segundos, String abreEm,
+            String fechaEm) {
 
         static @Nullable Prorrogacao de(@Nullable ProrrogacaoDoPagamento janela, ZoneId fuso) {
             return janela == null ? null
-                    : new Prorrogacao(janela.usada(), janela.segundos(), formatar(janela.abreEm(), fuso),
-                            formatar(janela.fechaEm(), fuso));
+                    : new Prorrogacao(janela.usada(), janela.usadas(), janela.maximo(), janela.restantes(),
+                            janela.segundos(), formatar(janela.abreEm(), fuso), formatar(janela.fechaEm(), fuso));
         }
     }
 

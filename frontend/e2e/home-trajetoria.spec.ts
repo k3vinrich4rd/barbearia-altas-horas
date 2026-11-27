@@ -58,9 +58,11 @@ test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no nave
   await expect(audio).toHaveAttribute("controls");
   await expect(page.getByRole("button", { name: "Pausar" })).toBeVisible();
   expect(pedidosAudio.some((u) => u.includes("/assets/audio/historia."))).toBe(true);
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText("Lendo a trajetória em voz alta.");
   await audio.focus();
   await page.keyboard.press("Space");
   await expect(page.getByRole("button", { name: /Ouvir a trajetória/ })).toBeVisible();
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText("Leitura parada.");
 
   // painel de acessibilidade: tema claro e sem animação mudam o <html> e marcam o botão
   const painel = page.getByRole("region", { name: "Recursos de acessibilidade" });
@@ -109,10 +111,54 @@ test("se o arquivo não carrega, oferece ler com a voz do aparelho e não fala s
   await page.route(/\/assets\/audio\/historia\.(opus|mp3)(\?|$)/, (route) => route.abort());
   await page.goto("/");
   await page.getByRole("button", { name: /Ouvir a trajetória/ }).click();
-  await expect(page.getByRole("status")).toHaveText("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText(
+    "Não deu para carregar o áudio. Ler com a voz do aparelho?",
+  );
   await expect(page.getByRole("button", { name: "Ler com a voz do aparelho" })).toBeVisible();
   expect(await page.evaluate(() => window.speechSynthesis?.speaking ?? false)).toBe(false);
   await page.getByRole("button", { name: "Ler com a voz do aparelho" }).click();
   await expect(page.getByRole("button", { name: "Pausar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ler com a voz do aparelho" })).toHaveCount(0);
+});
+
+test("pausar durante o carregamento não oferece o fallback e o status não fica em erro", async ({ page }) => {
+  await page.route(/\/assets\/audio\/historia\.opus(\?|$)/, async (route) => {
+    await new Promise((r) => setTimeout(r, 2500));
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Ouvir a trajetória/ }).click();
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText("Carregando o áudio…");
+  await page.getByRole("button", { name: "Pausar" }).click();
+  await expect(page.getByRole("button", { name: "Ler com a voz do aparelho" })).toHaveCount(0);
+  await expect(page.locator("#trajetoria").getByRole("status")).not.toHaveText(/Não deu para carregar/);
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText("Leitura parada.");
+});
+
+test("se o áudio não responde, reserva o MP3 e depois oferece o fallback, sem falar sozinho", async ({ page }) => {
+  const pedidosAudio: string[] = [];
+  page.on("request", (r) => {
+    if (/\/assets\/audio\/historia\.(opus|mp3)(\?|$)/.test(r.url())) pedidosAudio.push(r.url());
+  });
+  await page.route(/\/assets\/audio\/historia\.(opus|mp3)(\?|$)/, () => new Promise(() => undefined));
+  await page.goto("/");
+  await page.getByRole("button", { name: /Ouvir a trajetória/ }).click();
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText("Carregando o áudio…");
+  await expect
+    .poll(() => pedidosAudio.some((u) => u.includes("/assets/audio/historia.mp3")), { timeout: 12_000 })
+    .toBe(true);
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText("Carregando o áudio…");
+  await expect(page.getByRole("button", { name: "Ler com a voz do aparelho" })).toHaveCount(0);
+  await expect(page.locator("#trajetoria").getByRole("status")).toHaveText(
+    "Não deu para carregar o áudio. Ler com a voz do aparelho?",
+    { timeout: 25_000 },
+  );
+  await expect(page.getByRole("button", { name: "Ler com a voz do aparelho" })).toBeVisible();
+  expect(await page.evaluate(() => window.speechSynthesis?.speaking ?? false)).toBe(false);
+});
+
+test("o .opus é servido com Content-Type audio/ogg", async ({ request }) => {
+  const resposta = await request.get("/assets/audio/historia.opus");
+  expect(resposta.ok(), `status ${resposta.status()}`).toBeTruthy();
+  expect(resposta.headers()["content-type"] ?? "").toMatch(/^audio\/ogg\b/i);
 });

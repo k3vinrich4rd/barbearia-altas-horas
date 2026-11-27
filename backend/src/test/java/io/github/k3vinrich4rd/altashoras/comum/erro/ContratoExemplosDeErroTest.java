@@ -170,4 +170,27 @@ class ContratoExemplosDeErroTest {
                 });
         assertThat(CodigoErro.FOLGA_COM_RESERVAS.status()).isEqualTo(422);
     }
+
+    @Test
+    @DisplayName("A43: PRORROGACAO_ESGOTADA está no enum do Java (422, \"Prorrogações esgotadas\") e no do contrato, com o exemplo de 422 e a linha na tabela de erros do contrato-api.md")
+    @SuppressWarnings("unchecked")
+    void prorrogacaoEsgotadaNoContrato() throws IOException {
+        CodigoErro codigo = CodigoErro.PRORROGACAO_ESGOTADA;
+        assertThat(codigo.status()).isEqualTo(422);
+        assertThat(codigo.titulo()).isEqualTo("Prorrogações esgotadas");
+
+        Map<String, Object> c = contrato();
+        assertThat((List<String>) mapa(mapa(mapa(c, "components"), "schemas"), "CodigoErro").get("enum"))
+                .contains("PRORROGACAO_ESGOTADA");
+        assertThat(exemplos(c)).filteredOn(ex -> "PRORROGACAO_ESGOTADA".equals(ex.valor().get("code"))).isNotEmpty()
+                .allSatisfy(ex -> {
+                    assertThat(ex.valor().get("status")).as(ex.onde()).isEqualTo(422);
+                    assertThat(ex.valor().get("title")).as(ex.onde()).isEqualTo("Prorrogações esgotadas");
+                    assertThat(ex.valor().get("detail")).as(ex.onde()).isEqualTo(codigo.detalhePadrao());
+                });
+
+        String tabela = Files.readString(OPENAPI.getParent().resolve("contrato-api.md"), StandardCharsets.UTF_8);
+        assertThat(tabela.lines().filter(l -> l.startsWith("| 422 |") && l.contains("`PRORROGACAO_ESGOTADA`")
+                && l.contains("Prorrogações esgotadas"))).as("linha do código na tabela de erros").hasSize(1);
+    }
 }

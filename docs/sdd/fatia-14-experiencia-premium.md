@@ -271,6 +271,8 @@ Back: IT com PostgreSQL real (`PostgresTestcontainers`) e `Clock` fixo, `@Displa
 
 ### 14A · Acrescentar 1 minuto no Pix e agenda sem limites (API)
 
+> **Alterada pelo ADR 0015 e pela D205 (27/11/2026, contrato 1.12.0):** cada pedido de mais tempo soma **120 s**, até **10 vezes** (`app.agenda.prorrogacao-pagamento: PT2M`, `app.agenda.prorrogacao-maximo: 10`), e o 11º pedido recebe `422 PRORROGACAO_ESGOTADA`. Os critérios abaixo que citam 60 s, "uma vez só" e o prazo **10:04:00** (A1, A3, A4, A6, A9, A12, A14, A16 e A24), além do E10 e da P-3, ficam como registro da regra da 1.11.0 (D188 e D190). A regra que vale hoje é a dos critérios A34 a A43 da [spec da Fatia 15](fatia-15-ferias-folgas-e-horizonte.md). A janela do último minuto, o `422 RESERVA_EXPIRADA` e a ausência de reabertura não mudam.
+
 Reserva de cliente criada às **10:00:00** de ter 01/12/2026 (horário 15:00), `expiraEm` **10:03:00**, cobrança Pix `PENDENTE`.
 
 | # | Dado | Quando | Então | Teste |
