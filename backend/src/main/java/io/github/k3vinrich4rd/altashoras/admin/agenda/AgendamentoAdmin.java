@@ -20,8 +20,12 @@ public record AgendamentoAdmin(UUID id, String status, String origem, Servico se
         long version, Cliente cliente, @Nullable String cobrancaStatus, @Nullable String observacao,
         @Nullable Prorrogacao prorrogacao) {
 
-    /** A janela do "Acrescentar 1 minuto" (1.11.0): o Eduardo entende um pagamento que chegou perto do fim do prazo. */
-    public record Prorrogacao(boolean usada, long segundos, String abreEm, String fechaEm) {
+    /**
+     * A janela do "mais tempo para pagar" (1.11.0; 1.12.0 com {@code usadas}, {@code maximo} e {@code restantes}): o
+     * Eduardo entende um pagamento que chegou perto do fim do prazo.
+     */
+    public record Prorrogacao(boolean usada, int usadas, int maximo, int restantes, long segundos, String abreEm,
+            String fechaEm) {
     }
 
     /** Reserva manual sem nome informado (ou já anonimizada): a tela mostra este texto. */
@@ -43,20 +47,22 @@ public record AgendamentoAdmin(UUID id, String status, String origem, Servico se
 
     /** Sem janela de prorrogação: serve às respostas que nunca estão AGUARDANDO_PAGAMENTO (reserva manual, fechamento e cancelamento). */
     static AgendamentoAdmin de(PainelDaAgenda.Item item, @Nullable String cobrancaStatus, ZoneId fuso) {
-        return de(item, cobrancaStatus, fuso, null, null);
+        return de(item, cobrancaStatus, fuso, null, null, 0);
     }
 
     static AgendamentoAdmin de(PainelDaAgenda.Item item, @Nullable String cobrancaStatus, ZoneId fuso,
-            @Nullable Instant agora, @Nullable Duration prorrogacao) {
+            @Nullable Instant agora, @Nullable Duration prorrogacao, int maximoDeProrrogacoes) {
         ProrrogacaoDoPagamento janela = agora == null || prorrogacao == null ? null
-                : ProrrogacaoDoPagamento.de(item.status(), item.origem(), item.expiraEm(), item.prorrogadaEm(), agora, prorrogacao);
+                : ProrrogacaoDoPagamento.de(item.status(), item.origem(), item.expiraEm(), item.prorrogacoes(), agora,
+                        prorrogacao, maximoDeProrrogacoes);
         return new AgendamentoAdmin(item.id(), item.status(), item.origem(),
                 new Servico(item.servicoId(), item.servicoNome(), item.duracaoMin()),
                 new Barbeiro(item.barbeiroId(), item.barbeiroNome()), FormatoDeData.formatar(item.inicio(), fuso),
                 FormatoDeData.formatar(item.fim(), fuso), item.precoCentavos(),
                 FormatoDeData.formatar(item.expiraEm(), fuso), item.motivoCancelamento(), item.version(),
                 new Cliente(item.clienteNome() == null ? SEM_NOME : item.clienteNome(), item.clienteWhatsapp()), cobrancaStatus,
-                item.observacao(), janela == null ? null : new Prorrogacao(janela.usada(), janela.segundos(),
+                item.observacao(), janela == null ? null : new Prorrogacao(janela.usada(), janela.usadas(),
+                        janela.maximo(), janela.restantes(), janela.segundos(),
                         FormatoDeData.formatar(janela.abreEm(), fuso), FormatoDeData.formatar(janela.fechaEm(), fuso)));
     }
 

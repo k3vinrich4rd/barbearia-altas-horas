@@ -69,11 +69,15 @@ public class Reserva {
     private @Nullable String motivoCancelamento;
 
     /**
-     * Quando o cliente acrescentou 1 minuto ao prazo do Pix (Fatia 14A, E2). Só leitura aqui: quem grava é o caso de uso
-     * ProrrogarPagamento, por SQL com a trava da linha, e nunca volta a nulo.
+     * Quando o cliente pediu mais tempo para pagar pela última vez (Fatia 14A, E2; Fatia 15: o último de até 10 pedidos).
+     * Só leitura aqui: quem grava é o caso de uso ProrrogarPagamento, por SQL com a trava da linha, e nunca volta a nulo.
      */
     @Column(name = "prorrogada_em", insertable = false, updatable = false)
     private @Nullable Instant prorrogadaEm;
+
+    /** Quantos pedidos de mais tempo já foram usados (Fatia 15, ADR 0015). Só leitura aqui, como {@code prorrogadaEm}. */
+    @Column(name = "prorrogacoes", insertable = false, updatable = false)
+    private Integer prorrogacoes = 0;
 
     @Column(name = "cancelado_por")
     private @Nullable UUID canceladoPor;

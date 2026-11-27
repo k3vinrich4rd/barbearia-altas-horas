@@ -1248,7 +1248,7 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 **Passos à mão (visitante, no celular ou numa janela estreita):**
 
 1. Abra a home: a ordem é herói (com a faixa "Escolha · Pague · Confirmado"), **Serviços** (6 cartões, o último é **Descoloração / Platinado (química), 60 min, R$ 80,00**), **Barbeiro**, **Galeria**, **Trajetória**, "De onde vêm nossos clientes" e **Dúvidas**. ✅
-2. Em **Galeria** toque numa foto: abre inteira, com legenda; `←` e `→` trocam, `Esc` fecha e o foco volta à miniatura. ✅
+2. Em **Galeria** aparece uma foto larga só, a do salão (`salao-vitrine-sem-tv.jpg`), com a legenda "O salão", sem botão e sem visualizador. O visualizador (`←`, `→`, `Esc`) só existe quando a galeria tem 2 fotos ou mais. *(Alterado em 27/11/2026 pela galeria sem rostos, PR #133 e D218.)* ✅
 3. Abra `/#historia`: a janela vai para a **Trajetória** e o endereço vira `/#trajetoria`. ✅
 4. Role até o rodapé: a barra **Agendar horário** continua visível (só abaixo de 768 px) e não cobre o último link. Em `/agendar`, `/entrar`, `/cadastro` e `/painel` ela não existe. ✅
 5. Toque em **Agendar este serviço** no platinado: `/agendar` abre com ele marcado, o próximo dia com horário já escolhido e, com um só barbeiro, sem seletor de barbeiro. Escolha um chip de horário e toque em **Continuar** (4 toques desde a home). ✅
@@ -1271,7 +1271,7 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 | `/agendar` | 94, 96, 97 | 100 | 2,46 a 2,57 s | 0,002 | 106 a 197 ms |
 
   O **LCP** fica entre 2,46 e 2,63 s, **até 130 ms acima** do orçamento de 2,5 s em parte das execuções (o título repinta quando a fonte Playfair troca, `display: swap`, D-1 do design system). Com `display: optional` o mesmo teste deu 2,44 a 2,51 s; não foi aplicado porque muda o desenho. Antes de reservar espaço para a lista de serviços e fixar o resumo, o `/agendar` tinha CLS 0,141; hoje 0,002.
-- Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada).
+- Peso de imagens da home no celular antes de rolar (A26): 4 imagens, **53,8 KB** no total (fachada, logo, retrato e foto do barbeiro) e **nenhuma das 15 fotos novas** antes de rolar; as miniaturas da galeria só carregam perto da tela, em WebP de 256 px (6 a 16 KB cada). **Atualização (27/11/2026):** a galeria passou a ter só a foto do salão, sem pessoas; as fotos com clientes saíram do site e da versão atual do repositório, e a fachada do herói virou `fachada-sem-tv.jpg` (sem as TVs e sem reflexo).
 ### 7.4 Convite do barbeiro (Fatia 10)
 
 O dono (ADMIN) gera o convite; o barbeiro digita o **próprio e-mail** e cria a senha; o convidado só mexe na própria agenda. As telas ainda **aguardam desenho** (layout neutro). Para repetir à mão: API no perfil `dev`, front em `http://localhost:3000`, o admin do `ADMIN_EMAIL`. O teste de ponta a ponta de verdade é `frontend/e2e/convite.spec.ts` (A36), que faz tudo isso contra a API real.

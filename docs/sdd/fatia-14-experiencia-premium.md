@@ -219,7 +219,9 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 ### 6.2 Texto proposto
 
-**Trajetória** (substitui `HISTORIA` em `historia.ts`; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
+O texto da Trajetória desta seção **foi substituído pela versão 3**, em [`docs/sdd/historia-v3-aprovada.txt`](historia-v3-aprovada.txt). O bloco abaixo é o texto antigo e não vai mais para o site.
+
+**Trajetória** (texto antigo, substituído pela v3; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
 
 > O Carlos Eduardo Candido (o Eduardo) começou no ofício em 1994, aprendendo com o primeiro mestre. Três anos depois, em 1997, abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e de lá não saiu mais: são quase 30 anos na mesma cadeira, de terça a sábado.
 >
@@ -268,6 +270,8 @@ Acessibilidade: o calendário segue o padrão de grade de datas do WAI-ARIA (set
 Back: IT com PostgreSQL real (`PostgresTestcontainers`) e `Clock` fixo, `@DisplayName("A<n>: ...")`. Front: Vitest com Testing Library (`it("A<n>: ...")`), Playwright e axe nos E2E. Para o `conferir-spec.sh` não contar critérios de outras fatias (D129, D186), **todos os testes desta fatia ficam em classes e arquivos novos**. Datas conferidas com código: ter **01/12/2026**, qua 02/12, dom 06/12, seg 07/12, qui 31/12. Configuração padrão nos critérios: prazo 3 min, prorrogação 60 s, granularidade 30 min, jornada do Eduardo ter a sáb 07:00–12:00 e 13:00–20:00.
 
 ### 14A · Acrescentar 1 minuto no Pix e agenda sem limites (API)
+
+> **Alterada pelo ADR 0015 e pela D205 (27/11/2026, contrato 1.12.0):** cada pedido de mais tempo soma **120 s**, até **10 vezes** (`app.agenda.prorrogacao-pagamento: PT2M`, `app.agenda.prorrogacao-maximo: 10`), e o 11º pedido recebe `422 PRORROGACAO_ESGOTADA`. Os critérios abaixo que citam 60 s, "uma vez só" e o prazo **10:04:00** (A1, A3, A4, A6, A9, A12, A14, A16 e A24), além do E10 e da P-3, ficam como registro da regra da 1.11.0 (D188 e D190). A regra que vale hoje é a dos critérios A34 a A43 da [spec da Fatia 15](fatia-15-ferias-folgas-e-horizonte.md). A janela do último minuto, o `422 RESERVA_EXPIRADA` e a ausência de reabertura não mudam.
 
 Reserva de cliente criada às **10:00:00** de ter 01/12/2026 (horário 15:00), `expiraEm` **10:03:00**, cobrança Pix `PENDENTE`.
 
@@ -326,7 +330,7 @@ Reserva de cliente criada às **10:00:00** de ter 01/12/2026 (horário 15:00), `
 | A36 | o catálogo | procuro número de regra configurável (`\d+ (hora|horas|dia|dias|minuto|minutos)`) | nenhum (só o `{n}` do `LIMITE_EXCEDIDO`) | `mensagens-voz.test.ts` |
 | A37 | os 20 textos da seção 5 e os "também revistos" | comparo com a tabela aprovada | iguais, palavra por palavra | `mensagens-voz.test.ts` |
 | A38 | todo `code` do `CodigoErro` do contrato 1.11.0 | procuro no catálogo | todos têm texto próprio (inclusive `PRORROGACAO_FORA_DA_JANELA`) | `mensagens-voz.test.ts` |
-| A39 | a home | leio a Trajetória e o bloco do barbeiro | os textos são os da seção 6.2; cada ano, nome e prêmio citado está na tabela 6.1 | `trajetoria-texto.test.tsx` |
+| A39 | a home | leio a Trajetória e o bloco do barbeiro | os textos são os de `docs/sdd/historia-v3-aprovada.txt`; cada ano, nome e prêmio citado está na tabela 6.1 | `trajetoria-texto.test.tsx` |
 
 ### 14C · Agenda nova do painel
 

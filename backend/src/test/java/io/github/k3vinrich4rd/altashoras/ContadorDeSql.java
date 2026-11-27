@@ -16,14 +16,24 @@ import org.springframework.context.annotation.Bean;
  * Conta as instruções SQL que a aplicação prepara (JPA e JDBC juntos), para provar que o número de consultas não cresce
  * com o número de linhas (sem N+1). O Hibernate Statistics só enxerga o JPA; o painel usa JdbcClient. Embrulha o
  * DataSource num proxy que conta {@code prepareStatement}, {@code createStatement} e {@code prepareCall}.
+ *
+ * <p>A contagem é por thread: o {@code MockMvc} do teste roda na mesma thread da asserção, então a garantia contra
+ * N+1 permanece. Jobs agendados em paralelo ({@code RetencaoDeDados} com atraso inicial 0, {@code ExpiracaoJob},
+ * {@code ReprocessamentoWebhookJob}) também preparam SQL e, num total global, faziam o
+ * {@code AgendaSemNMaisUmIT.mesmoNumeroDeConsultas} falhar de forma intermitente (7 contra 8, 6 contra 11, 6 contra 9).
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class ContadorDeSql {
 
-    private static final AtomicLong TOTAL = new AtomicLong();
+    private static final ThreadLocal<AtomicLong> POR_THREAD = ThreadLocal.withInitial(AtomicLong::new);
 
     public static long total() {
-        return TOTAL.get();
+        return POR_THREAD.get().get();
+    }
+
+    /** Visível para o teste que prova que a consulta de outra thread não entra no total desta. */
+    static void registrar() {
+        POR_THREAD.get().incrementAndGet();
     }
 
     @Bean
@@ -49,7 +59,7 @@ public class ContadorDeSql {
                 (proxy, metodo, args) -> {
                     String nome = metodo.getName();
                     if (nome.equals("prepareStatement") || nome.equals("createStatement") || nome.equals("prepareCall")) {
-                        TOTAL.incrementAndGet();
+                        registrar();
                     }
                     return chamar(conexao, metodo, args);
                 });

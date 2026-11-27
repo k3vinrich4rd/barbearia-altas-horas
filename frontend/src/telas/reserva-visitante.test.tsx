@@ -77,7 +77,7 @@ describe("reserva do visitante", () => {
 
     const nome = screen.getByLabelText("Nome");
     expect(nome).toHaveAttribute("aria-invalid", "true");
-    expect(nome).toHaveFocus(); // o primeiro campo da tela, não o primeiro da lista da API
+    await waitFor(() => expect(nome).toHaveFocus()); // o primeiro campo da tela, não o primeiro da lista da API
     expect(email).toHaveAccessibleDescription(/Erro:s*e-mail inválido/);
     expect(nome).toHaveAccessibleDescription(/nome obrigatório/);
     expect(screen.getByLabelText("WhatsApp")).not.toHaveAttribute("aria-invalid");
