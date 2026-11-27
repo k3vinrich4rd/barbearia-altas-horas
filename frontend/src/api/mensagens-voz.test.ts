@@ -158,4 +158,9 @@ describe("mensagens com a voz da barbearia (Fatia 14B)", () => {
       if (code !== "ERRO_INTERNO") expect(MENSAGENS[code], `${code} caiu no genérico`).not.toBe(MENSAGEM_GENERICA);
     }
   });
+  test("FF-11: o texto final do FOLGA_COM_RESERVAS (D214) é o aprovado, palavra por palavra", () => {
+    expect(MENSAGENS.FOLGA_COM_RESERVAS).toBe(
+      "Há clientes marcados nesse período. Confira a lista abaixo: você pode manter essas reservas ou cancelar uma por uma antes de salvar a folga.",
+    );
+  });
 });
