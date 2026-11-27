@@ -254,7 +254,7 @@ export function PainelAgenda() {
           </Selecao>
         )}
         <Link href="/painel/reserva-manual" className="botao botao-principal">
-          Reserva manual
+          <span aria-hidden="true">+</span> Fechar horário do WhatsApp
         </Link>
       </div>
 
