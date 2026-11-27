@@ -1,6 +1,7 @@
 // Service worker do Altas Horas (Fatia 13, D177): existe SÓ para receber o Web Push do painel do barbeiro.
 // Sem cache de página e sem rota offline: nada daqui guarda dado do site. Nenhum dado pessoal passa por aqui (o aviso traz
 // serviço, dia e hora). Não usa console: o conteúdo da notificação não vai para log.
+// O áudio da Trajetória (/assets/audio/historia.*) não entra em cache de instalação: só baixa ao tocar "Ouvir".
 
 const TEXTO_PADRAO = "Novo horário no painel";
 const TITULO_PADRAO = "Altas Horas";

@@ -2,7 +2,7 @@
 // Seções interativas da home (Main.dc.html): Trajetória (ouvir, linha do tempo e prêmios), como funciona e dúvidas.
 // A galeria mora em Galeria.tsx. Tudo por teclado.
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { DUVIDAS, HISTORIA, IMAGENS, MARCOS, PASSOS_DA_FAIXA } from "@/conteudo/historia";
 import { linkDoWhatsapp } from "./ContatoWhatsapp";
@@ -50,33 +50,86 @@ function useRedirecionarHistoria() {
   }, []);
 }
 
+const AUDIO_OPUS = "/assets/audio/historia.opus";
+const AUDIO_MP3 = "/assets/audio/historia.mp3";
+const AUDIO_VTT = "/assets/audio/historia.vtt";
+/** Duração real do arquivo versionado (último cue 00:01:12.819; opus ~73 s). */
+const DURACAO_DA_NARRACAO = "1 min 13 s";
+
 export function Trajetoria() {
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [falando, setFalando] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [usarFala, setUsarFala] = useState(false);
   const [marco, setMarco] = useState(1);
   useRedirecionarHistoria();
 
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  useEffect(
+    () => () => {
+      window.speechSynthesis?.cancel();
+      audioRef.current?.pause();
+    },
+    [],
+  );
 
-  function alternarVoz() {
+  function falarComAparelho(manterAviso = false) {
     const voz = window.speechSynthesis;
     if (!voz) {
-      setAviso("Seu navegador não tem leitura em voz alta.");
+      setAviso(
+        manterAviso
+          ? "Não deu para carregar o áudio. Seu navegador não tem leitura em voz alta."
+          : "Seu navegador não tem leitura em voz alta.",
+      );
       return;
     }
     if (falando) {
       voz.cancel();
       setFalando(false);
-      setAviso("Leitura parada.");
+      if (!manterAviso) setAviso("Leitura parada.");
       return;
     }
     const fala = new SpeechSynthesisUtterance(HISTORIA.join(" "));
     fala.lang = "pt-BR";
     fala.onend = () => {
       setFalando(false);
-      setAviso("Leitura terminada.");
+      if (!manterAviso) setAviso("Leitura terminada.");
     };
     voz.speak(fala);
+    setFalando(true);
+    if (!manterAviso) setAviso("Lendo a trajetória em voz alta.");
+  }
+
+  function alternarVoz() {
+    if (usarFala) {
+      falarComAparelho();
+      return;
+    }
+    const audio = audioRef.current;
+    if (!audio) {
+      setUsarFala(true);
+      falarComAparelho();
+      return;
+    }
+    if (falando) {
+      audio.pause();
+      setFalando(false);
+      setAviso("Leitura parada.");
+      return;
+    }
+    const tentativa = audio.play();
+    if (tentativa && typeof tentativa.then === "function") {
+      tentativa
+        .then(() => {
+          setFalando(true);
+          setAviso("Lendo a trajetória em voz alta.");
+        })
+        .catch(() => {
+          setUsarFala(true);
+          setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+          falarComAparelho(true);
+        });
+      return;
+    }
     setFalando(true);
     setAviso("Lendo a trajetória em voz alta.");
   }
@@ -93,14 +146,31 @@ export function Trajetoria() {
           {HISTORIA.map((p) => (
             <p key={p}>{p}</p>
           ))}
-          <p>
-            <button type="button" className="botao botao-secundario" onClick={alternarVoz} aria-pressed={falando}>
-              <Icone nome="voz" /> {falando ? "Parar leitura" : "Ouvir a trajetória"}
-            </button>
-          </p>
-          <p role="status" className="nota">
-            {aviso}
-          </p>
+          <div className="player-trajetoria">
+            <p>
+              <button type="button" className="botao botao-secundario" onClick={alternarVoz} aria-pressed={falando}>
+                <Icone nome="voz" /> {falando ? "Pausar" : `Ouvir a trajetória · ${DURACAO_DA_NARRACAO}`}
+              </button>
+            </p>
+            <audio
+              ref={audioRef}
+              controls
+              preload="none"
+              onPlay={() => setFalando(true)}
+              onPause={() => setFalando(false)}
+              onEnded={() => {
+                setFalando(false);
+                setAviso("Leitura terminada.");
+              }}
+            >
+              <source src={AUDIO_OPUS} type="audio/opus" />
+              <source src={AUDIO_MP3} type="audio/mpeg" />
+              <track kind="captions" srcLang="pt-BR" label="Português" src={AUDIO_VTT} default />
+            </audio>
+            <p role="status" className="nota">
+              {aviso}
+            </p>
+          </div>
           <blockquote>
             <p>“Amor na ponta da tesoura!”</p>
             <footer>Eduardo Candido, ao receber o Prêmio Barbeiros do Brasil</footer>
