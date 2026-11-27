@@ -62,7 +62,7 @@ export function Confirmacao({ reservaId }: { reservaId: string }) {
   return (
     <>
       <IndicadorDePassos passoAtual={3} />
-      <h1>{TEXTOS.confirmado}</h1>
+      <h1 className="titulo-confirmacao">{TEXTOS.confirmado}</h1>
       <EstadoDaConsulta consulta={reserva}>
         {(r) => (
           <>

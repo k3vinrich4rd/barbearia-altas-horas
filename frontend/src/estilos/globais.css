@@ -336,12 +336,16 @@ hr {
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform var(--mov-rapido) var(--mov-curva);
 }
 
 .botao:hover {
   transform: translateY(calc(var(--space-1) * -0.5));
   color: var(--texto);
+}
+
+.botao:active {
+  transform: scale(0.98);
 }
 
 .botao-principal {
@@ -550,12 +554,17 @@ input[aria-invalid="true"] {
   border: var(--traco-1) solid var(--borda);
   border-radius: var(--radius-md);
   background: var(--superficie);
-  transition: transform 0.2s ease;
+  transition: transform var(--mov-medio) var(--mov-curva);
 }
 
 .cartao:hover {
-  transform: translateY(calc(var(--space-1) * -1));
   border-color: var(--borda-forte);
+}
+
+@media (min-width: 48rem) {
+  .cartao:hover {
+    transform: translateY(calc(var(--space-1) * -0.5));
+  }
 }
 
 .item h3,
@@ -1188,7 +1197,7 @@ blockquote footer {
 
 .mais {
   display: inline-block;
-  transition: transform 0.2s ease;
+  transition: transform var(--mov-medio) var(--mov-curva);
 }
 
 .duvida[open] .mais {
@@ -1811,7 +1820,7 @@ select[aria-invalid="true"] {
 
 /*
  * Fluidez (Fatia 14D). AGUARDA DESENHO (seção 11 da spec): só tokens que já existem, nenhuma cor nova.
- * Microanimações só em transform e opacity, de 150 a 200 ms, zeradas pelo "Sem animação" e por prefers-reduced-motion
+ * Microanimações só em transform e opacity, com tokens --mov-* (150 a 250 ms), zeradas pelo "Sem animação" e por prefers-reduced-motion
  * (as regras do fim do arquivo vencem por virem depois e por !important).
  */
 .esqueleto {
@@ -1834,23 +1843,57 @@ select[aria-invalid="true"] {
 .chip-horario,
 .dia-chip {
   transition:
-    transform 0.15s ease,
-    opacity 0.15s ease;
+    transform var(--mov-rapido) var(--mov-curva),
+    opacity var(--mov-rapido) var(--mov-curva);
 }
 
 .chip-horario[aria-pressed="true"],
 .dia-chip[aria-pressed="true"] {
-  transform: scale(1.04);
+  animation: chip-escolhido var(--mov-rapido) var(--mov-curva);
+}
+
+@keyframes chip-escolhido {
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 .aviso {
-  animation: entrar 0.2s ease;
+  animation: entrar var(--mov-medio) var(--mov-curva);
 }
 
 @keyframes entrar {
   from {
     opacity: 0;
     transform: translateY(calc(var(--space-1) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.periodo-horarios .horarios {
+  animation: aparecer var(--mov-medio) var(--mov-curva);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.titulo-confirmacao {
+  animation: entrar-titulo var(--mov-lento) var(--mov-curva);
+}
+
+@keyframes entrar-titulo {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
   }
   to {
     opacity: 1;

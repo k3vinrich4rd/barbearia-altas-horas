@@ -22,7 +22,7 @@ export function gerarCss(tokens) {
       claro.push(`  --${t.name}: ${referencia(t.value.claro)};`);
     }
   }
-  for (const grupo of ["spacing", "radius", "xadrez", "traco"]) {
+  for (const grupo of ["spacing", "radius", "xadrez", "traco", "movimento"]) {
     for (const t of tokens[grupo].tokens) base.push(`  --${t.name}: ${t.value};`);
   }
   for (const [nome, valor] of Object.entries(tokens.type.families)) base.push(`  --font-${nome}: ${valor};`);
