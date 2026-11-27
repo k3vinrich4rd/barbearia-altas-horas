@@ -227,7 +227,7 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 >
 > Instrutor formado pela Ibel Formação, hoje ele também ensina o ofício na Altas Horas Barbearia Academy. Com o dia dividido entre clientes e alunos, a agenda saiu do caderno e do WhatsApp e veio para cá, feita pelo filho dele, o Kevin: você escolhe, paga e o horário é seu.
 
-**Texto do barbeiro** (`BarbeiroDaHome`, hoje "Barbeiro e professor, na cadeira desde 1995."):
+**Texto do barbeiro** (`BarbeiroDaHome`; o texto antigo era "Barbeiro e professor, na cadeira desde 1995.", corrigido pela [D201](../planejamento/decisoes.md)):
 
 > Barbeiro desde 1994 e dono da Altas Horas desde 1997. Professor na Academy e duas vezes premiado em 2017.
 
