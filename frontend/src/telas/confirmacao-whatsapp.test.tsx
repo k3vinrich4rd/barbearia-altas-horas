@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { POLITICA_PAGAMENTO, reserva, servico } from "@/testes/dados";
+import { BARBEIRO, POLITICA_PAGAMENTO, reserva, servico } from "@/testes/dados";
 import { BFF, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { zerarNavegacao } from "@/testes/navegacao";
 import { ANONIMO, fixarRelogio, renderizar } from "@/testes/render";
@@ -45,5 +45,43 @@ describe("mandar no WhatsApp (Fatia 14D, M7)", () => {
       expect(texto, pessoal).not.toContain(pessoal);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+});
+
+const NUMERO_TESTE = "11900000001";
+
+describe("avisar atraso pelo WhatsApp", () => {
+  test("CA-1 e CA-4: com WhatsApp do barbeiro, o texto usa o primeiro nome, o link é wa.me/55 sem ?text= e o nome acessível avisa que abre o WhatsApp", async () => {
+    servidor.use(
+      http.get(`${BFF}/barbeiros`, () =>
+        HttpResponse.json([{ ...BARBEIRO, nomeExibicao: "Eduardo Candido", whatsapp: NUMERO_TESTE }]),
+      ),
+    );
+    renderizar(<Confirmacao reservaId={CONFIRMADA.id} />, ANONIMO);
+    expect(await screen.findByText("Vai se atrasar? Avise o Eduardo pelo WhatsApp.")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Avisar pelo WhatsApp (abre o WhatsApp)" });
+    expect(link).toHaveTextContent("Avisar pelo WhatsApp");
+    expect(link.getAttribute("href")).toBe(`https://wa.me/55${NUMERO_TESTE}`);
+    expect(link.getAttribute("href")).not.toContain("text=");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  test('CA-2: "Prefere combinar pelo WhatsApp?" não aparece na confirmação', async () => {
+    servidor.use(
+      http.get(`${BFF}/barbeiros`, () =>
+        HttpResponse.json([{ ...BARBEIRO, nomeExibicao: "Eduardo Candido", whatsapp: NUMERO_TESTE }]),
+      ),
+    );
+    renderizar(<Confirmacao reservaId={CONFIRMADA.id} />, ANONIMO);
+    await screen.findByRole("link", { name: "Avisar pelo WhatsApp (abre o WhatsApp)" });
+    expect(screen.queryByText(/Prefere combinar pelo WhatsApp/)).toBeNull();
+  });
+
+  test("CA-3: sem WhatsApp, fica o texto genérico e não há o link de aviso", async () => {
+    renderizar(<Confirmacao reservaId={CONFIRMADA.id} />, ANONIMO);
+    expect(await screen.findByText("Vai se atrasar? Avise a barbearia.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Avisar pelo WhatsApp (abre o WhatsApp)" })).toBeNull();
+    expect(screen.queryByText(/Avise o/)).toBeNull();
   });
 });
