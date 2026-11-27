@@ -105,7 +105,7 @@ Exemplo do `422` (dados fictícios):
 | E3 | O que é conflito? | reserva **ativa** do barbeiro que se sobrepõe a `[inicio, fim)`: `CONFIRMADO`, ou `AGUARDANDO_PAGAMENTO` com prazo aberto | a mesma definição de hoje (R15) e da disponibilidade; encostar não é conflito (R2) |
 | E4 | Com conflito, o que acontece? | padrão: `422 FOLGA_COM_RESERVAS` com `conflitos[]` e nada gravado. Com `manterReservas: true`: grava, mantém as reservas e devolve `reservasMantidas[]` | o Kevin pediu: avisar e listar, nunca cancelar sozinho |
 | E5 | E as reservas mantidas? | **continuam** e acontecem. Só o `ADMIN` cancela, uma a uma, pelos caminhos que já existem | cancelar reserva paga gera devolução; decisão do dono |
-| E6 | Reserva mantida ainda `AGUARDANDO_PAGAMENTO` pode ser paga? | **sim**, dentro do prazo vira `CONFIRMADO` normalmente | o dono escolheu mantê-la (pergunta 1 da seção 8) |
+| E6 | Reserva mantida ainda `AGUARDANDO_PAGAMENTO` pode ser paga? | **sim**, dentro do prazo vira `CONFIRMADO` normalmente | o dono escolheu mantê-la (item 1 da seção 8, padrão vigente D216) |
 | E7 | Reserva já `EXPIRADO` paga depois, dentro de uma folga? | **não** reconfirma: `confirmarPagamento` trava o barbeiro com `FOR SHARE`, confere a folga e responde `HORARIO_OCUPADO`; a cobrança vira `PAGA_APOS_EXPIRACAO` (pendência do painel) | fecha uma lacuna que já existe hoje (`Reservas.java:148-171`): a constraint não enxerga folgas |
 | E8 | Quem gerencia folgas? | **só `ADMIN`**. `BARBEIRO` recebe `403` pela rota `/admin/barbeiros/**`; ele vê as próprias folgas na agenda | H27 e ADR 0013; contrato de hoje |
 | E9 | `{folgaId}` de outro barbeiro? | `404` | R23; o `DELETE` de hoje já filtra por `barbeiro_id` |
@@ -198,12 +198,14 @@ Barbeiro Eduardo (`b…01`), jornada de terça a sábado das 07:00 às 20:00, al
 - **Rota literal ao lado de rota com id.** `/folgas/conflitos` e `/folgas/{folgaId}`: no Spring a rota literal ganha. Não existe `GET /folgas/{folgaId}`.
 - **Dado pessoal no erro.** `clienteNome` só para `ADMIN`, sem log (R30).
 
-## 8. Perguntas para o Kevin
+## 8. Padrão vigente (D216) até resposta do dono
 
-1. Com `manterReservas`, a reserva ainda aguardando pagamento dentro das férias pode ser paga e confirmada (proposta) ou deve deixar de aceitar pagamento?
-2. O barbeiro terceiro continua sem cadastrar as próprias folgas (H27, proposta) ou pode pedir para o dono aprovar?
-3. O cliente com horário dentro das férias deve ser avisado automaticamente no futuro? Hoje a proposta é o dono avisar pelo WhatsApp.
-4. Mostrar "Restam N pedidos." abaixo do botão de mais tempo? (decisão de tela; o contrato já traz `restantes`)
+Estas perguntas deixaram de ser abertas em 27/11/2026. Cada uma vale como **padrão vigente (D216) até resposta do dono**, conforme a [D216](../planejamento/decisoes.md). Se o dono responder diferente, a mudança vira uma nova decisão.
+
+1. Com `manterReservas`, a reserva ainda aguardando pagamento dentro das férias **pode ser paga e confirmada** no prazo (E6). Padrão vigente (D216) até resposta do dono.
+2. **Só o ADMIN** cadastra, edita e remove folgas; o barbeiro terceiro não cadastra as próprias (H27, E8). Padrão vigente (D216) até resposta do dono.
+3. **Sem aviso automático** ao cliente com horário dentro das férias: o dono avisa pelo WhatsApp. Padrão vigente (D216) até resposta do dono.
+4. A tela de pagamento mostra **"Restam N pedidos."** ("Resta 1 pedido."), discreto, a partir do 1º pedido de mais tempo, com N = `prorrogacao.restantes`. Padrão vigente (D216) até resposta do dono.
 
 ## 9. Pronto quando
 
