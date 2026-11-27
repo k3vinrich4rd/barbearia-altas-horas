@@ -421,4 +421,23 @@ public class PainelDaAgenda {
     private static ExcecaoDeNegocio reservaNaoEncontrada() {
         return new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Agendamento não encontrado.");
     }
+
+    /**
+     * 422 FOLGA_COM_RESERVAS com as reservas ativas que impedem gravar o período (ADR 0015, E4). Fica aqui dentro
+     * porque o PainelDaAgenda é a única porta do painel para a agenda. Quem monta a resposta é o admin, que formata
+     * cada conflito como o contrato pede. Os conflitos têm nome de cliente: nunca vão para o log (R30).
+     */
+    public static final class FolgaComReservas extends ExcecaoDeNegocio {
+
+        private final transient List<ConflitoDaFolga> conflitos;
+
+        FolgaComReservas(List<ConflitoDaFolga> conflitos) {
+            super(CodigoErro.FOLGA_COM_RESERVAS);
+            this.conflitos = List.copyOf(conflitos);
+        }
+
+        public List<ConflitoDaFolga> conflitos() {
+            return conflitos;
+        }
+    }
 }

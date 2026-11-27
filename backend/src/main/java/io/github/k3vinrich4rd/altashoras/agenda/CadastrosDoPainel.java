@@ -28,6 +28,7 @@ import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.BarbeiroCadastrad
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.ConfiguracaoCadastrada;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.ConflitoDaFolga;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaCadastrada;
+import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaComReservas;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaGravada;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.Intervalo;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.NovaConfiguracao;
