@@ -43,6 +43,8 @@ public class GatewayFalsoDeTeste {
         private volatile boolean consultaSempreFalha;
         private volatile boolean indisponivel;
         private volatile boolean perdeRespostaAoCriar;
+        /** O último pedido de criação que chegou ao gateway (Fatia 15, A41: a validade enviada). */
+        public volatile NovaCobranca ultimoPedido;
 
         public void reiniciar() {
             chamadasDeCriar.set(0);
@@ -52,6 +54,7 @@ public class GatewayFalsoDeTeste {
             consultaSempreFalha = false;
             indisponivel = false;
             perdeRespostaAoCriar = false;
+            ultimoPedido = null;
         }
 
         /** Timeout ao criar. Com {@code perdeResposta}, o gateway CRIA a cobrança e só a resposta se perde (A30). */
@@ -86,6 +89,7 @@ public class GatewayFalsoDeTeste {
         @Override
         public CobrancaNoGateway criar(NovaCobranca pedido) {
             chamadasDeCriar.incrementAndGet();
+            ultimoPedido = pedido;
             if (indisponivel && !perdeRespostaAoCriar) {
                 throw new GatewayIndisponivelException();
             }

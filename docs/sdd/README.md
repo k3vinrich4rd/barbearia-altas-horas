@@ -63,6 +63,7 @@ flowchart LR
 | 12 · Site mais fluido e mais completo (home, agendar, galeria, Trajetória) | [fatia-12-site-fluido.md](fatia-12-site-fluido.md) | ✅ aprovada (23/11) com as 12 propostas · implementada (12A, 12B e 12C, 27 critérios com teste; LCP medido 2,46 a 2,63 s, ver guia de testes 7.5) |
 | 13 · Notificação ao barbeiro quando o cliente marca horário (Web Push, aviso no painel, e-mail preparado) | [fatia-13-notificacao-ao-barbeiro.md](fatia-13-notificacao-ao-barbeiro.md) | ✅ aprovada em 24/11/2026 (implementando) |
 | 14 · Experiência premium (mais 1 minuto no Pix, olhinho na senha, mensagens, Trajetória, fluidez) e agenda nova do painel | [fatia-14-experiencia-premium.md](fatia-14-experiencia-premium.md) | ✅ aprovada em 24/11/2026 (mais 1 minuto só no último minuto; agenda sem antecedência nem horizonte, D197) · **implementada** (14A, 14B, 14C e 14D: A1 a A62 com teste) |
+| 15 · Férias e folgas no painel, expediente público, mais tempo para pagar (2 min até 10 vezes) e agenda sem limite de data | [fatia-15-ferias-folgas-e-horizonte.md](fatia-15-ferias-folgas-e-horizonte.md) | 📝 aguarda aprovação do Kevin (27/11) · ADR 0015 proposto · contrato 1.12.0 |
 
 ## A IA no processo
 

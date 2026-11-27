@@ -11,8 +11,10 @@ regexes = [
 ]
 
 [[allowlists]]
-description = "Token fictício de visitante num teste do front (commits c2fb1f4 e 952ccab), já trocado por valor montado em tempo de execução. Liberação aprovada pelo Kevin em 18/11/2026; vale só para esses dois commits, nunca para o arquivo."
+description = "Token fictício de visitante num teste do front (commits c2fb1f4 e 952ccab), já trocado por valor montado em tempo de execução. Liberação aprovada pelo Kevin em 18/11/2026; vale só para esses dois commits, nunca para o arquivo. Em 27/11/2026 a limpeza do histórico (fotos de clientes) reescreveu os SHAs: c2fb1f4 virou 6a4bb86 e 952ccab virou e57d2b3; os SHAs antigos ficam para as refs antigas."
 commits = [
   "c2fb1f47e509ea7ec61fbcef543378022309ec74",
   "952ccab57053e30760af12ce1839aabf2d9bd084",
+  "6a4bb86eaa8dc623759470d6965df2b0c3516351",
+  "e57d2b33073f5e3394c416f6e3bd521b55dfb3a8",
 ]

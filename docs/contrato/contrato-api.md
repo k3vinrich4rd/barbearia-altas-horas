@@ -1,4 +1,4 @@
-# 📑 Contrato da API · v1.11.0
+# 📑 Contrato da API · v1.12.1
 
 | | |
 |---|---|
@@ -50,7 +50,7 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/actuator/health` | saúde da API | 🌐 | `200` | — | — |
 | `GET` | `/servicos` | serviços ativos com duração e preço | 🌐 | `200` | — | [4.1](#41-catálogo) |
 | `GET` | `/barbeiros` | barbeiros ativos, com o `whatsapp` comercial (**muda na 1.6.0**, 6D) | 🌐 | `200` | — | [4.1](#41-catálogo) |
-| `GET` | `/disponibilidade` | horários livres de um dia | 🌐 | `200` | `400 VALIDACAO_INVALIDA`, `404 RECURSO_NAO_ENCONTRADO`, `422 ANTECEDENCIA_INSUFICIENTE` (data que já passou; **1.11.0**) | [4.2](#42-disponibilidade) |
+| `GET` | `/disponibilidade` | horários livres de um dia e, por barbeiro, o `expediente` (aberto ou fechado e por quê, início, fim e almoço; **novo na 1.12.0**) | 🌐 | `200` | `400 VALIDACAO_INVALIDA`, `404 RECURSO_NAO_ENCONTRADO`, `422 ANTECEDENCIA_INSUFICIENTE` (data que já passou; **1.11.0**) | [4.2](#42-disponibilidade) |
 | `GET` | `/cep/{cep}` | endereço pelo CEP (cache) | 🌐 | `200` | `400 CEP_INVALIDO`, `404 CEP_NAO_ENCONTRADO`, `503 CEP_INDISPONIVEL`, `429` | [4.3](#43-cep) |
 | `POST` | `/auth/cadastro` | cria conta de cliente | 🌐 | `201` | `400 VALIDACAO_INVALIDA`, `409 EMAIL_JA_CADASTRADO`, `429` | [4.4](#44-autenticação-e-conta) |
 | `POST` | `/auth/convite` | o barbeiro aceita o convite do dono: digita o **próprio e-mail** e cria a senha (**novo na 1.8.0**, 10B). Conta que já existe: com o token dela e sem `senha` (H32) | 🌐 (10 por hora por IP; token do cliente opcional) | `204` | `400 VALIDACAO_INVALIDA`, `400 CAMPO_DESCONHECIDO`, `422 CONVITE_INVALIDO` (uma resposta só), `429 LIMITE_EXCEDIDO` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
@@ -68,14 +68,14 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `GET` | `/politica-privacidade` | política de privacidade, texto da caixa de marketing e **texto da caixinha de região**, com a versão vigente (**1.2**) | 🌐 | `200` | — | [4.9](#49-privacidade) |
 | `GET` | `/politica-pagamento` | texto e versão da política (sem cancelamento, remarcação ou estorno) | 🌐 | `200` | — | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/agendamentos` | reserva como cliente (`AGUARDANDO_PAGAMENTO`, 3 min) | 👤 | `201` | `400`, `401`, `403`, `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422 FORA_DO_EXPEDIENTE`, `422 ANTECEDENCIA_INSUFICIENTE`, `422 SERVICO_INATIVO` | [4.5](#45-agendamentos-do-cliente) |
-| `POST` | `/agendamentos/{id}/prorrogacao` | acrescenta 1 minuto ao prazo do Pix, **uma vez** e só no último minuto; sem corpo; idempotente sem chave (**novo na 1.11.0**, 14A) | 👤 | `201` (`200` na repetição) | `400 CAMPO_DESCONHECIDO`, `401`, `404` (inclusive de outro dono e reserva manual), `409 CONFLITO_CONCORRENTE`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA` | [4.5](#45-agendamentos-do-cliente) |
+| `POST` | `/agendamentos/{id}/prorrogacao` | acrescenta tempo ao prazo do Pix só no último minuto; sem corpo (**novo na 1.11.0**, 14A). **1.12.0:** +2 minutos por pedido, até 10 vezes; `X-Idempotency-Key` opcional | 👤 | `201` (`200` na repetição com a mesma chave) | `400 CAMPO_DESCONHECIDO`, `401`, `404` (inclusive de outro dono e reserva manual), `409 CONFLITO_CONCORRENTE`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 PRORROGACAO_ESGOTADA` (**1.12.0**), `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/me/agendamentos` | meus agendamentos (paginado) | 👤 | `200` | `401` | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/agendamentos/{id}` | um agendamento meu | 👤 | `200` | `401`, `404` (inclusive de outro dono) | [4.5](#45-agendamentos-do-cliente) |
 | `GET` | `/alcance` | municípios e bairros atendidos (pessoas diferentes, k ≥ 5), só nomes e **faixas de porcentagem**, nunca número, últimos 12 meses (**1.9.0**, 11C) | 🌐 (30/min por IP) | `200` | `429` | [4.6](#46-guest) |
 | `DELETE` | `/agendamentos/guest/{id}/regiao` | o visitante retira a autorização de região da reserva, com o `X-Guest-Token`; idempotente (**novo na 1.9.0**, 11A) | 🎟 (limite por IP) | `204` | `404` (token errado, ausente ou de outra reserva, mesmo corpo), `429` | [4.6](#46-guest) |
 | `POST` | `/agendamentos/guest` | reserva sem conta (`AGUARDANDO_PAGAMENTO`); `cep` opcional e só vale com `autorizaRegiao = true` (**1.9.0**) | 🌐 (limite por IP) | `201` | `400` (`CEP_INVALIDO` se o `cep` tem formato errado), `404`, `409 HORARIO_INDISPONIVEL`, `409 CONFLITO_CONCORRENTE`, `422`, `429` | [4.6](#46-guest) |
 | `GET` | `/agendamentos/guest/{id}` | status da reserva do guest | 🧾 | `200` | `404` (token errado também) | [4.6](#46-guest) |
-| `POST` | `/agendamentos/guest/{id}/prorrogacao` | o mesmo "mais 1 minuto" para o visitante, com o `X-Guest-Token` (**novo na 1.11.0**, 14A) | 🧾 | `201` (`200` na repetição) | `400 CAMPO_DESCONHECIDO`, `404` (token errado, ausente ou de outra reserva), `409 CONFLITO_CONCORRENTE`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA` | [4.6](#46-guest) |
+| `POST` | `/agendamentos/guest/{id}/prorrogacao` | o mesmo pedido de mais tempo para o visitante, com o `X-Guest-Token` (**novo na 1.11.0**, 14A; **1.12.0:** 2 minutos, até 10 vezes) | 🧾 | `201` (`200` na repetição com a mesma chave) | `400 CAMPO_DESCONHECIDO`, `404` (token errado, ausente ou de outra reserva), `409 CONFLITO_CONCORRENTE`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 PRORROGACAO_ESGOTADA` (**1.12.0**), `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA` | [4.6](#46-guest) |
 | `POST` | `/pagamentos/cobrancas` | cobra 100% por Pix ou cartão de crédito (pede CPF e aceite da política) | 👤 🧾 | `201` (`200` na repetição) | `400 CPF_INVALIDO`, `400 IDEMPOTENCY_KEY_AUSENTE`, `401`, `404`, `422 ACEITE_POLITICA_OBRIGATORIO`, `422 RESERVA_EXPIRADA`, `422 IDEMPOTENCIA_CONFLITO`, `429`, `503 GATEWAY_INDISPONIVEL` | [4.7](#47-pagamento-100-antecipado) |
 | `POST` | `/pagamentos/webhook` | aviso do gateway | 🔁 | `200` | `401 WEBHOOK_NAO_AUTENTICADO` | [4.8](#48-webhook) |
 | `GET` | `/admin/agenda` | agenda do dia ou da semana, com nome e WhatsApp de quem vem e o status da cobrança (`AgendamentoAdmin`) | 🛠 ✂️ (só a própria, **H9**) | `200` | `400`, `401`, `403`, `404` (barbeiro inexistente, alheio ou sem vínculo) | [Painel](../admin/painel-admin.md) |
@@ -91,9 +91,11 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST` | `/admin/barbeiros/{id}/convite` | gera o convite de uso único, sem corpo; é também o "reenviar" (**novo na 1.8.0**, 10B) | 🛠 | `201` `{ codigo, expiraEm }` | `401`, `403`, `404`, `409 USUARIO_JA_VINCULADO` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
 | `DELETE` | `/admin/barbeiros/{id}/convite` | revoga o convite pendente (idempotente) (**novo na 1.8.0**) | 🛠 | `204` | `401`, `403`, `404` | [4.12](#412-convite-do-barbeiro-18-fatia-10b) |
 | `PUT` | `/admin/barbeiros/{id}/jornada` | substitui a jornada semanal | 🛠 | `200` | `400`, `401`, `403`, `404`, `422 JORNADA_SOBREPOSTA` | [Painel](../admin/painel-admin.md) |
-| `GET` | `/admin/barbeiros/{id}/folgas` | folgas de hoje em diante (**novo na 1.4.0**) | 🛠 | `200` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
-| `POST` | `/admin/barbeiros/{id}/folgas` | cria folga | 🛠 | `201` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` | [Painel](../admin/painel-admin.md) |
-| `DELETE` | `/admin/barbeiros/{id}/folgas/{folgaId}` | remove folga | 🛠 | `204` | `401`, `403`, `404` | [Painel](../admin/painel-admin.md) |
+| `GET` | `/admin/barbeiros/{id}/folgas` | folgas e férias de hoje em diante (**novo na 1.4.0**; `tipo` e `atualizadaEm` na **1.12.0**) | 🛠 (só ADMIN) | `200` | `401`, `403`, `404` | [4.14](#414-férias-e-folgas-112-fatia-15) |
+| `POST` | `/admin/barbeiros/{id}/folgas` | cria folga ou férias (`tipo`, `manterReservas` na **1.12.0**) | 🛠 (só ADMIN) | `201` `FolgaSalva` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` (com `conflitos[]`) | [4.14](#414-férias-e-folgas-112-fatia-15) |
+| `PUT` | `/admin/barbeiros/{id}/folgas/{folgaId}` | edita folga ou férias (**novo na 1.12.0**) | 🛠 (só ADMIN) | `200` `FolgaSalva` | `400`, `401`, `403`, `404`, `422 FOLGA_COM_RESERVAS` (com `conflitos[]`) | [4.14](#414-férias-e-folgas-112-fatia-15) |
+| `DELETE` | `/admin/barbeiros/{id}/folgas/{folgaId}` | remove folga ou férias | 🛠 (só ADMIN) | `204` | `401`, `403`, `404` | [4.14](#414-férias-e-folgas-112-fatia-15) |
+| `GET` | `/admin/barbeiros/{id}/folgas/conflitos?inicio=&fim=` | prévia das reservas ativas que o período atingiria, sem gravar (**novo na 1.12.0**) | 🛠 (só ADMIN) | `200` `ConflitoDeFolga[]` | `400`, `401`, `403`, `404` | [4.14](#414-férias-e-folgas-112-fatia-15) |
 | `GET` | `/admin/pagamentos` | pendências (sem `status`) ou cobranças por status, sem Pix, cartão, CPF nem e-mail (`CobrancaAdmin`) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
 | `POST` | `/admin/pagamentos/{id}/devolucao` | registra devolução manual feita (responde `Cobranca` com `devolvidaEm`) | 🛠 | `200` | `401`, `403`, `404`, `422 TRANSICAO_INVALIDA` | [Painel](../admin/painel-admin.md) |
 | `GET` | `/admin/pagamentos/eventos` | eventos do gateway em `REVISAO_MANUAL`, sem payload (**novo na 1.4.0**) | 🛠 | `200` | `400`, `401`, `403` | [Painel](../admin/painel-admin.md) |
@@ -116,8 +118,8 @@ Legenda de "Quem pode": 🌐 público · 👤 `CLIENTE` · 🧾 guest com `X-Gue
 | `POST /auth/cadastro` | — | `nome`, `email`, `whatsapp`, `senha`, `cep?`, `aceitaMarketing`, `autorizaRegiao?`, `versaoTextoRegiao?` | — | 5/h por IP | — | — |
 | `POST /agendamentos` | o próprio cliente (do token) | `servicoId`, `barbeiroId`, `inicio` | — | — | — (o horário já é único) | < 400 ms |
 | `GET /agendamentos/{id}` | `cliente_id = sub` senão `404` | — | — | — | — | — |
-| `POST /agendamentos/{id}/prorrogacao` | `cliente_id = sub` senão `404` | nenhum (sem corpo) | — | — | natural: repetir devolve `200` com o mesmo corpo | — |
-| `POST /agendamentos/guest/{id}/prorrogacao` | hash do `X-Guest-Token` = `token_hash` senão `404` | nenhum (sem corpo) | — | — | natural: repetir devolve `200` com o mesmo corpo | — |
+| `POST /agendamentos/{id}/prorrogacao` | `cliente_id = sub` senão `404` | nenhum (sem corpo) | — | até 10 pedidos por reserva (**1.12.0**) | `X-Idempotency-Key` opcional: a mesma chave do último pedido devolve `200` com o mesmo corpo (**1.12.0**) | — |
+| `POST /agendamentos/guest/{id}/prorrogacao` | hash do `X-Guest-Token` = `token_hash` senão `404` | nenhum (sem corpo) | — | até 10 pedidos por reserva (**1.12.0**) | `X-Idempotency-Key` opcional, como a rota do cliente (**1.12.0**) | — |
 | `POST /agendamentos/guest` | — | `servicoId`, `barbeiroId`, `inicio`, `nome`, `email`, `whatsapp`, `cep?`, `autorizaRegiao?`, `versaoTextoRegiao?` | — | 3/h por IP | — | < 400 ms |
 | `GET /alcance` | — | — | — | 30/min por IP | — | — |
 | `GET /admin/alcance` | BARBEIRO só os próprios clientes (o `barbeiroId` da query vira o dele, sem sinal no corpo) | — | — | — | — | — |
@@ -159,11 +161,20 @@ As três rotas de catálogo (`/servicos`, `/barbeiros`, `/politica-pagamento`) r
     {
       "barbeiroId": "b0000000-0000-4000-8000-000000000001",
       "nomeExibicao": "Eduardo Candido",
-      "horarios": ["2026-12-01T07:00:00-03:00", "2026-12-01T07:30:00-03:00", "2026-12-01T08:00:00-03:00"]
+      "horarios": ["2026-12-01T07:00:00-03:00", "2026-12-01T07:30:00-03:00", "2026-12-01T08:00:00-03:00"],
+      "expediente": {
+        "aberto": true,
+        "motivoFechado": null,
+        "inicio": "2026-12-01T07:00:00-03:00",
+        "fim": "2026-12-01T20:00:00-03:00",
+        "almoco": { "inicio": "2026-12-01T12:00:00-03:00", "fim": "2026-12-01T13:00:00-03:00" }
+      }
     }
   ]
 }
 ```
+**`expediente` (novo na 1.12.0, ADR 0015):** por barbeiro, tirado da jornada e das folgas. `inicio` = início do primeiro intervalo da jornada no dia, `fim` = fim do último, `almoco` = vão entre os dois primeiros intervalos (`null` com um intervalo só). Dia fechado: `aberto: false`, `inicio`, `fim` e `almoco` `null`, e `motivoFechado` = `FORA_DO_EXPEDIENTE` (jornada sem intervalo no dia da semana, hoje domingo e segunda) ou `FECHADO` (folga ou férias cobrindo o expediente **inteiro**). O tipo (`FOLGA`/`FERIAS`) e o `motivo` da folga **nunca** aparecem aqui, só no `/admin`. Folga parcial não fecha o dia. O front mostra "Fechado" em vez de "Sem horário".
+
 Regras: jornada − folgas − reservas que ocupam horário (ignorando `AGUARDANDO_PAGAMENTO` vencidas, R15); passos de `granularidadeMin` (H11); só inícios **depois de agora** (1.11.0, D197: **não há** antecedência mínima nem limite de dias à frente; qualquer data de hoje em diante é aceita, até 400 dias); `data` **anterior a hoje**, no fuso da barbearia → `422 ANTECEDENCIA_INSUFICIENTE` ("o horário já passou"). Um início só é oferecido se o serviço **inteiro** couber no intervalo da jornada (o de 60 min não aparece às 11h30 nem às 19h30). Serviço inexistente → `404`; inativo → `422 SERVICO_INATIVO`; `barbeiroId` inexistente ou inativo → `404`; `data` ou `servicoId` ausente ou malformado → `400 VALIDACAO_INVALIDA` com o campo em `errors[]`. Horários em ordem crescente, sempre com segundos e offset; barbeiro sem horário vem com `horarios: []`. Resposta com `Cache-Control: no-store`.
 
 ### 4.3 CEP
@@ -230,9 +241,11 @@ Validações: `nome` 2–120; `email` válido e único (R24); `whatsapp` 10 a 13
 ```
 Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_INDISPONIVEL`; deadlock que persistiu depois do retry interno → `409 CONFLITO_CONCORRENTE` (o horário pode estar livre: o front **não** o esconde e pode repetir a requisição **uma vez**; vale também para o guest, ADR 0003); fora da jornada ou em folga → `422 FORA_DO_EXPEDIENTE`; `inicio` que já passou (até agora, inclusive) → `422 ANTECEDENCIA_INSUFICIENTE` (a única regra de tempo desde a 1.11.0, D197); `inicio` fora da granularidade → `400 VALIDACAO_INVALIDA`. Mandar `status` ou `precoCentavos` no corpo → `400 CAMPO_DESCONHECIDO`. O horário fica travado por 15 minutos até o pagamento (R6, R7); o próximo passo é a [cobrança](#47-pagamento-100-antecipado).
 
-**Campo novo na 1.11.0 (`prorrogacao`)**, em todo `Agendamento` (e em `AgendamentoGuest` e `AgendamentoAdmin`): `null` para reserva manual e para reserva que não está `AGUARDANDO_PAGAMENTO` dentro do prazo; senão `{ "usada": false, "segundos": 60, "abreEm": "2026-11-30T15:14:00-03:00", "fechaEm": "2026-11-30T15:15:00-03:00" }`. A janela é `[expiraEm − 60 s, expiraEm)`, calculada no servidor.
+**Campo novo na 1.11.0 (`prorrogacao`)**, em todo `Agendamento` (e em `AgendamentoGuest` e `AgendamentoAdmin`): `null` para reserva manual e para reserva que não está `AGUARDANDO_PAGAMENTO` dentro do prazo; senão `{ "usada": false, "segundos": 60, "abreEm": "2026-11-30T15:14:00-03:00", "fechaEm": "2026-11-30T15:15:00-03:00" }`. A janela é `[expiraEm − 60 s, expiraEm)`, calculada no servidor. **1.12.0 (ADR 0015):** o objeto ganha `usadas`, `maximo` (10) e `restantes`, `segundos` passa a 120 e `usada` fica `deprecated` (`true` quando `usadas > 0`): `{ "usada": false, "usadas": 0, "maximo": 10, "restantes": 10, "segundos": 120, "abreEm": "…", "fechaEm": "…" }`. Com os pedidos esgotados o objeto continua, com `restantes: 0`.
 
 **Acrescentar 1 minuto** (`POST /agendamentos/{id}/prorrogacao`, 👤, **sem corpo**) → `201` com o `Agendamento` e o `expiraEm` **60 s depois** do que estava correndo (`prorrogacao.usada = true`). A repetição devolve `200` com o mesmo corpo, **sem** somar. Ordem das checagens: `404` (não é dono, inexistente ou reserva manual) → `422 TRANSICAO_INVALIDA` (`CONFIRMADO`, `CONCLUIDO`, `NAO_COMPARECEU` ou `CANCELADO`) → `200` (já prorrogada e no prazo) → `422 RESERVA_EXPIRADA` (prazo vencido ou `EXPIRADO`: não há carência nem reabertura) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava. O Pix já gerado **não muda**. Corpo com qualquer campo → `400 CAMPO_DESCONHECIDO`. Deadlock que persistiu depois do retry → `409 CONFLITO_CONCORRENTE`.
+
+**Desde a 1.12.0 (ADR 0015, revoga a D190 e altera a D188): 2 minutos por pedido, até 10 vezes.** Cada pedido na janela soma **120 s** ao prazo que está correndo (`app.agenda.prorrogacao-pagamento: PT2M`), até `maximo` = 10 pedidos (`app.agenda.prorrogacao-maximo`; WCAG 2.2.1). A janela continua o último minuto. `X-Idempotency-Key` (UUID) **opcional**: repetir o último pedido com a mesma chave → `200` com o mesmo corpo, sem somar nem contar; sem chave, a repetição logo depois de somar cai fora da janela (`422 PRORROGACAO_FORA_DA_JANELA`; na 1.11.0 era `200`). O 11º pedido → `422 PRORROGACAO_ESGOTADA`. Ordem: `404` → `422 TRANSICAO_INVALIDA` → `200` (mesma chave) → `422 RESERVA_EXPIRADA` → `422 PRORROGACAO_ESGOTADA` → `422 PRORROGACAO_FORA_DA_JANELA` → grava. O copia e cola não muda; na criação da cobrança o gateway recebe a validade do prazo máximo possível (início do prazo + `expiracaoPagamentoMin` + `maximo` × `segundos`, hoje 23 min, calculada das propriedades); o horário continua preso pelo `expiraEm` da reserva, e o pagamento depois de expirar segue o fluxo de hoje (R14, `PAGA_APOS_EXPIRACAO`).
 
 `GET /me/agendamentos?pagina=0&tamanho=20` → `200` página do formato acima, mais recentes primeiro.
 
@@ -286,7 +299,7 @@ Erros típicos: horário já ocupado (inclusive por corrida) → `409 HORARIO_IN
 
 `GET /agendamentos/guest/{id}` com `X-Guest-Token: g1_Qm9...` → `200` com `status` atual (o front consulta a cada poucos segundos depois do Pix ou do checkout do cartão). Se a cobrança estiver `PENDENTE`, a API reconsulta o gateway (no máximo a cada 10 s) para confirmar mesmo que o webhook atrase (ADR 0007). Token errado ou ausente → `404`.
 
-**Acrescentar 1 minuto como visitante (1.11.0):** `POST /agendamentos/guest/{id}/prorrogacao` com o `X-Guest-Token` da reserva e **sem bearer nem corpo** → as mesmas respostas da rota do cliente (`201`, `200` na repetição, `422 PRORROGACAO_FORA_DA_JANELA`, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA`). Token errado, ausente ou de outra reserva → o mesmo `404` de "não existe" (R23). A rota é pública **só para `POST`** (a lista do `SegurancaConfig`).
+**Acrescentar 1 minuto como visitante (1.11.0):** `POST /agendamentos/guest/{id}/prorrogacao` com o `X-Guest-Token` da reserva e **sem bearer nem corpo** → as mesmas respostas da rota do cliente (`201`, `200` na repetição com a mesma `X-Idempotency-Key`, `422 PRORROGACAO_FORA_DA_JANELA`, `422 PRORROGACAO_ESGOTADA` desde a 1.12.0, `422 RESERVA_EXPIRADA`, `422 TRANSICAO_INVALIDA`). Token errado, ausente ou de outra reserva → o mesmo `404` de "não existe" (R23). A rota é pública **só para `POST`** (a lista do `SegurancaConfig`).
 
 ### 4.7 Pagamento 100% antecipado
 
@@ -337,7 +350,7 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 
 `PUT /me/consentimentos/regiao` `{ "aceito": false, "versaoTexto": "1.2" }` → `200` (finalidade `REGIAO_ALCANCE`, no molde do de marketing). **Revogar apaga** a localidade do perfil e a região de todas as reservas da conta, na mesma transação, e a pessoa passa a "sem região" no alcance. `PUT /me` `{ "cep": "06010-000", "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }` autoriza e grava a região (o CEP é consultado e descartado); sem `autorizaRegiao = true`, ou sem CEP, é a mesma revogação.
 
-`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.2", "textoConsentimento": "...", "textoConsentimentoRegiao": "...", "politica": "...", "atualizadaEm": "2026-11-23T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.2 (Fatia 11: consentimento de região, "clientes" no lugar de "atendimentos", faixas, retenção da região, o CEP que não é guardado) é um **rascunho técnico, não é parecer jurídico**; o texto da caixinha e da política passam pela revisão do Cautelar antes do merge.
+`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.2", "textoConsentimento": "...", "textoConsentimentoRegiao": "...", "politica": "...", "atualizadaEm": "2026-11-23T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.2 (Fatia 11: consentimento de região, "clientes" no lugar de "atendimentos", faixas, retenção da região, o CEP que não é guardado) é um **rascunho técnico, não é parecer jurídico**; o texto da caixinha e da política passam pela revisão jurídica antes do merge.
 
 ### 4.11 Reserva manual (1.6, Fatia 6D)
 
@@ -389,6 +402,31 @@ Só hosts de serviço de push, em https (`fcm.googleapis.com`, `updates.push.ser
 { "naoLidas": 2, "itens": [ { "id": "…", "reservaId": "…", "servico": "Corte Degradê", "inicio": "2026-11-27T10:00:00-03:00", "criadoEm": "2026-11-24T09:12:03-03:00", "lido": false } ] }
 ```
 `POST /admin/notificacoes/marcar-lidas` → `204`. `POST /admin/notificacoes/teste` → `204`; o 6º em uma hora é `429 LIMITE_EXCEDIDO` com `Retry-After`. Os avisos valem 30 dias. **Nenhum código de erro novo.**
+
+### 4.14 Férias e folgas (1.12, Fatia 15)
+
+[ADR 0015](../adr/0015-ferias-folgas-e-agenda-sem-limite.md) e [spec da Fatia 15](../sdd/fatia-15-ferias-folgas-e-horizonte.md). Só ADMIN (o dono, H27); `BARBEIRO` recebe `403` pela rota. `{folgaId}` de outro barbeiro: `404`.
+
+`POST /admin/barbeiros/{id}/folgas` (ou `PUT .../folgas/{folgaId}`, mesmo corpo)
+```json
+{ "inicio": "2026-12-21T00:00:00-03:00", "fim": "2027-01-03T00:00:00-03:00", "tipo": "FERIAS", "motivo": "Férias de fim de ano", "manterReservas": false }
+```
+- `tipo`: `FOLGA` (padrão) ou `FERIAS`; os dois bloqueiam a agenda igual. `manterReservas`: opcional, padrão `false`, nunca guardado.
+- Período `[inicio, fim)`: `fim` depois de `inicio` e não todo no passado, senão `400`. `motivo` até 200 caracteres, nunca em log nem auditoria.
+- **Conflito** = reserva ativa (`CONFIRMADO`, ou `AGUARDANDO_PAGAMENTO` no prazo) que se sobrepõe ao período. Padrão: `422 FOLGA_COM_RESERVAS` com a extensão `conflitos[]` e nada gravado. Com `manterReservas: true`: grava, as reservas **continuam** (nada é cancelado sozinho; cancelar continua sendo do ADMIN, uma a uma) e a resposta lista as mantidas.
+- Reserva já `EXPIRADO` paga depois, com o horário dentro de uma folga: **não** reconfirma; a cobrança vira `PAGA_APOS_EXPIRACAO`.
+- Trava a linha do barbeiro (folga e reserva nunca passam juntas); auditoria `FOLGA_CRIADA`, `FOLGA_ALTERADA` ou `FOLGA_REMOVIDA` na mesma transação.
+
+`201` (ou `200` no `PUT`) `FolgaSalva`
+```json
+{ "id": "f0000000-0000-4000-8000-000000000001", "inicio": "2026-12-21T00:00:00-03:00", "fim": "2027-01-03T00:00:00-03:00", "tipo": "FERIAS", "motivo": "Férias de fim de ano", "atualizadaEm": null, "reservasMantidas": [] }
+```
+
+`GET /admin/barbeiros/{id}/folgas/conflitos?inicio=...&fim=...` → `200` (só lê, sem trava), cada item também usado em `conflitos[]` e `reservasMantidas[]`:
+```json
+[ { "reservaId": "0baf3fc1-4b92-458e-baed-c07646d94692", "inicio": "2026-12-22T15:00:00-03:00", "fim": "2026-12-22T15:30:00-03:00", "servico": { "id": "6f1c2a8e-0000-4000-8000-000000000001", "nome": "Corte" }, "clienteNome": "Cliente Exemplo", "origem": "CLIENTE", "status": "CONFIRMADO" } ]
+```
+Sem e-mail, CPF, WhatsApp nem observação; `Cache-Control: no-store`; nunca em log (R30).
 
 ### 4.10 Regras de negócio citadas
 
@@ -442,6 +480,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 422 | <a id="antecedencia_insuficiente"></a>`ANTECEDENCIA_INSUFICIENTE` | o horário já passou: `inicio` até agora (inclusive) ou `data` anterior a hoje no fuso da barbearia; desde a **1.11.0** (D197) é a única regra de tempo, e o nome do código não mudou para não quebrar o front | Horário já passou |
 | 422 | <a id="fora_do_horizonte"></a>`FORA_DO_HORIZONTE` | **deprecated na 1.11.0** (D197): a API não devolve mais; o nome fica no enum para o front antigo | Data além do permitido |
 | 422 | <a id="prorrogacao_fora_da_janela"></a>`PRORROGACAO_FORA_DA_JANELA` | pediu "mais 1 minuto" **antes** do último minuto do prazo (**novo na 1.11.0**, 14A); `detail`: "Só dá para acrescentar tempo no último minuto." | Fora da janela de prorrogação |
+| 422 | <a id="prorrogacao_esgotada"></a>`PRORROGACAO_ESGOTADA` | o 11º pedido de mais tempo: a reserva já usou os `maximo` (10) pedidos (**novo na 1.12.0**, ADR 0015); `detail`: "Esta reserva já usou todos os pedidos de mais tempo." | Prorrogações esgotadas |
 | 422 | <a id="aceite_politica_obrigatorio"></a>`ACEITE_POLITICA_OBRIGATORIO` | cobrança sem `aceitePolitica: true` | Aceite da política obrigatório |
 | 422 | <a id="transicao_invalida"></a>`TRANSICAO_INVALIDA` | transição fora da máquina de estados | Mudança de status não permitida |
 | 422 | <a id="motivo_obrigatorio"></a>`MOTIVO_OBRIGATORIO` | cancelamento pela barbearia sem motivo | Motivo obrigatório |
@@ -449,7 +488,7 @@ O cliente decide pelo `status` e pelo `code`, nunca pelo texto. O `type` aponta 
 | 422 | <a id="servico_inativo"></a>`SERVICO_INATIVO` | serviço ou barbeiro inativo | Serviço indisponível |
 | 422 | <a id="idempotencia_conflito"></a>`IDEMPOTENCIA_CONFLITO` | mesma chave com corpo diferente | Chave de idempotência já usada |
 | 422 | <a id="jornada_sobreposta"></a>`JORNADA_SOBREPOSTA` | intervalos da jornada se sobrepõem | Jornada inválida |
-| 422 | <a id="folga_com_reservas"></a>`FOLGA_COM_RESERVAS` | folga sobre reservas que ocupam horário | Existem reservas no período |
+| 422 | <a id="folga_com_reservas"></a>`FOLGA_COM_RESERVAS` | folga sobre reservas que ocupam horário; desde a **1.12.0** traz a extensão `conflitos[]` (sem `manterReservas: true`) | Existem reservas no período |
 | 422 | <a id="convite_invalido"></a>`CONVITE_INVALIDO` | `POST /auth/convite`: convite inexistente, vencido, usado, revogado, e-mail que não pode usá-lo ou conta que já existe sem login; **o mesmo corpo em todos os casos** (**novo na 1.8.0**) | Convite inválido |
 | 429 | <a id="limite_excedido"></a>`LIMITE_EXCEDIDO` | limite de tentativas (H14), com `Retry-After` | Muitas tentativas |
 | 503 | <a id="gateway_indisponivel"></a>`GATEWAY_INDISPONIVEL` | gateway fora ou lento | Pagamento indisponível no momento |
@@ -474,6 +513,8 @@ Hoje o CI confere o contrato com o lint do Redocly e com o `ContratoExemplosDeEr
 
 | Versão | Data | Mudança | Quebra o front? |
 |---|---|---|---|
+| 1.12.1 | 2026-11-27 | Correção de compatibilidade (ressalva de QA da PR #118, D206): `Folga.tipo` e `FolgaSalva.reservasMantidas` deixam de ser obrigatórios na **resposta**, porque a API de hoje ainda não os envia; ausente = `FOLGA` e lista vazia. Viram obrigatórios numa versão maior, depois de o código da Fatia 15 estar em produção | não (afrouxa a resposta) |
+| 1.12.0 (proposta) | 2026-11-27 | **Fatia 15 (ADR 0015):** férias e folgas. `FolgaRequest` ganha `tipo` (`FOLGA` padrão, `FERIAS`) e `manterReservas` (só escrita); `Folga` ganha `tipo` e `atualizadaEm`; schemas novos `TipoFolga`, `FolgaSalva` (resposta do `POST` e do `PUT`, com `reservasMantidas[]`) e `ConflitoDeFolga`; rotas novas `PUT /admin/barbeiros/{id}/folgas/{folgaId}` e `GET /admin/barbeiros/{id}/folgas/conflitos`; `422 FOLGA_COM_RESERVAS` com a extensão `conflitos[]` (`Problema.conflitos`). **Disponibilidade:** `barbeiros[].expediente` (`ExpedienteDoDia`: `aberto`, `motivoFechado` só `FORA_DO_EXPEDIENTE` ou `FECHADO`, `inicio`, `fim`, `almoco`). **Prorrogação (27/11, revoga a D190 e altera a D188):** 120 s por pedido, até 10; `prorrogacao.usadas`, `maximo` e `restantes`; `usada` `deprecated`; `X-Idempotency-Key` opcional nas duas rotas; código novo `422 PRORROGACAO_ESGOTADA`. Agenda sem limite de data confirmada (D197, nada muda). `redocly lint` 2.78.0: 0 erros, 0 avisos | não (só acrescenta; campos novos opcionais na entrada). Caso de borda: a repetição **sem** chave de um pedido de mais tempo devolvia `200` e agora devolve `422 PRORROGACAO_FORA_DA_JANELA`, sem somar nos dois casos |
 | 1.11.0 | 2026-11-24 | **Fatia 14C:** `GET /admin/agenda/mes` (`ResumoDoMes`) e `GET /admin/agenda/dia` (`GradeDoDia`), só leitura, mesmo escopo do `/admin/agenda` (que continua). Fatia 14A: `POST /agendamentos/{id}/prorrogacao` e `POST /agendamentos/guest/{id}/prorrogacao` ("mais 1 minuto" no Pix, uma vez, só no último minuto); campo `prorrogacao` em `Agendamento` (e `AgendamentoGuest` e `AgendamentoAdmin`); código `422 PRORROGACAO_FORA_DA_JANELA`. **Agenda sem antecedência nem horizonte (D197):** `FORA_DO_HORIZONTE` fica `deprecated`; `ANTECEDENCIA_INSUFICIENTE` passa a significar só "o horário já passou"; `antecedenciaMinimaMin` e `horizonteDias` saem da resposta de `/admin/configuracao` e ficam opcionais, `deprecated` e ignorados no `PUT` | não (acrescenta; o que sai da resposta é só configuração do painel e o front é atualizado na mesma entrega) |
 | 1.10.1 | 2026-11-24 | Fatia 8B: código de erro novo `503 BANCO_INDISPONIVEL` (banco fora ou lento, com `Retry-After`, sem dado do banco); as rotas `/actuator/health/liveness` e `/readiness` são de operação e ficam fora do contrato | não (um código novo no enum; o front trata como 503 genérico) |
 | 1.10.0 | 2026-11-24 | Fatia 13 (notificação ao barbeiro): `GET /admin/notificacoes/chave-publica`, `POST` e `DELETE /admin/notificacoes/inscricao`, `GET /admin/notificacoes`, `POST /admin/notificacoes/marcar-lidas` e `POST /admin/notificacoes/teste` (todas 🛠, só da conta do token); schemas `ChavePublicaPush`, `InscricaoPush`, `RemocaoDeInscricaoPush`, `Novidades` e `AvisoDoPainel`. Nenhum campo novo nos schemas existentes e nenhum código de erro novo. A versão `1.9.0` é da Fatia 11 (alcance por nível) | não (só acrescenta) |

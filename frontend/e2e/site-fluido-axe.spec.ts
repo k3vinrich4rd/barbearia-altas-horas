@@ -33,14 +33,14 @@ test("A14: a galeria (grade e visualizador) não tem violação de acessibilidad
       await page.evaluate((t) => (document.documentElement.dataset.theme = t), tema);
       await semViolacoes(page, `grade da galeria, ${tamanho.width}px, tema ${tema}`, "#galeria");
     }
-    await page
-      .locator("#galeria")
-      .getByRole("button", { name: /^Ampliar foto:/ })
-      .first()
-      .click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await semViolacoes(page, `visualizador, ${tamanho.width}px`, '[role="dialog"]');
-    await page.keyboard.press("Escape");
+    // o visualizador só existe com 2 ou mais fotos (27/11/2026: a galeria tem só a foto do salão)
+    const miniaturas = page.locator("#galeria").getByRole("button", { name: /^Ampliar foto:/ });
+    if ((await miniaturas.count()) > 1) {
+      await miniaturas.first().click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await semViolacoes(page, `visualizador, ${tamanho.width}px`, '[role="dialog"]');
+      await page.keyboard.press("Escape");
+    }
   }
 });
 
