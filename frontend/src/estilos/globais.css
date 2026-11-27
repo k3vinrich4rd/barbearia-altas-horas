@@ -954,6 +954,21 @@ dd {
   margin-bottom: 0;
 }
 
+/* O botão "Próximo livre: …" é inline-flex e não quebra; com zoom 200% alarga o documento (RF-7). */
+.proximo-livre,
+.proximo-livre .botao {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.proximo-livre .botao {
+  white-space: normal;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  justify-content: flex-start;
+  text-align: start;
+}
+
 /* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
 /* A seção recorta; a tira tem largura própria (contain), para os 7 chips rolarem dentro dela. */
 section[aria-labelledby="passo-dia"] {

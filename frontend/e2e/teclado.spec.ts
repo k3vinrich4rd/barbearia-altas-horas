@@ -240,16 +240,21 @@ test.describe("resumo fixo não cobre o foco", () => {
     const horario = await horarioLivre(request);
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/agendar");
-    const medir = async () =>
-      page.evaluate(() => {
+    const medir = async () => {
+      await page.evaluate(() => {
         document.body.style.zoom = "2";
-        const raiz = document.documentElement;
-        const overflow = { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
-        document.body.style.zoom = "";
-        return overflow;
       });
+      const overflow = await page.evaluate(() => {
+        const raiz = document.documentElement;
+        return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
+      });
+      await page.evaluate(() => {
+        document.body.style.zoom = "";
+      });
+      return overflow;
+    };
     const noInicio = await medir();
-    expect(noInicio.scroll, JSON.stringify(noInicio)).toBeLessThanOrEqual(noInicio.cliente);
+    expect(noInicio.scroll, `no início: ${JSON.stringify(noInicio)}`).toBeLessThanOrEqual(noInicio.cliente);
 
     await page.getByRole("radio").first().click();
     await page.locator("#data").fill(horario.dia);
@@ -258,7 +263,7 @@ test.describe("resumo fixo não cobre o foco", () => {
     await expect(page.locator(".resumo-fixo")).toContainText(horario.hora);
 
     const depois = await medir();
-    expect(depois.scroll, JSON.stringify(depois)).toBeLessThanOrEqual(depois.cliente);
+    expect(depois.scroll, `depois do serviço, do horário e das notas da tira: ${JSON.stringify(depois)}`).toBeLessThanOrEqual(depois.cliente);
   });
 });
 
