@@ -1248,7 +1248,7 @@ Entre em `http://localhost:3000/entrar` com o admin criado por `ADMIN_EMAIL` e `
 **Passos à mão (visitante, no celular ou numa janela estreita):**
 
 1. Abra a home: a ordem é herói (com a faixa "Escolha · Pague · Confirmado"), **Serviços** (6 cartões, o último é **Descoloração / Platinado (química), 60 min, R$ 80,00**), **Barbeiro**, **Galeria**, **Trajetória**, "De onde vêm nossos clientes" e **Dúvidas**. ✅
-2. Em **Galeria** toque numa foto: abre inteira, com legenda; `←` e `→` trocam, `Esc` fecha e o foco volta à miniatura. ✅
+2. Em **Galeria** aparece uma foto larga só, a do salão (`salao-vitrine-sem-tv.jpg`), com a legenda "O salão", sem botão e sem visualizador. O visualizador (`←`, `→`, `Esc`) só existe quando a galeria tem 2 fotos ou mais. *(Alterado em 27/11/2026 pela galeria sem rostos, PR #133 e D218.)* ✅
 3. Abra `/#historia`: a janela vai para a **Trajetória** e o endereço vira `/#trajetoria`. ✅
 4. Role até o rodapé: a barra **Agendar horário** continua visível (só abaixo de 768 px) e não cobre o último link. Em `/agendar`, `/entrar`, `/cadastro` e `/painel` ela não existe. ✅
 5. Toque em **Agendar este serviço** no platinado: `/agendar` abre com ele marcado, o próximo dia com horário já escolhido e, com um só barbeiro, sem seletor de barbeiro. Escolha um chip de horário e toque em **Continuar** (4 toques desde a home). ✅
