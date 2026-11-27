@@ -944,6 +944,34 @@ dd {
   font-size: var(--tipo-legenda-tamanho);
 }
 
+/* C8 (Fatia 15): dia "Fechado" (sem expediente, ou folga ou férias no dia todo). Diferente de "sem horário" pela palavra e
+ * pelo traço, não só pela cor (WCAG 1.4.1); não se escolhe (aria-disabled). */
+.dia-chip-fechado {
+  border-style: dashed;
+  color: var(--texto-suave);
+  cursor: not-allowed;
+}
+
+/* C8: o vão do almoço entre os períodos, "Fechado · 12h às 13h", sem a palavra almoço. Listrado, sem ser botão. */
+.faixa-fechado {
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--traco-1) dashed var(--borda-forte);
+  border-radius: var(--radius-md);
+  color: var(--texto-suave);
+  font-size: var(--tipo-legenda-tamanho);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 var(--space-2),
+    var(--superficie) var(--space-2) var(--space-4)
+  );
+}
+
+.cronometro-pedidos {
+  margin: var(--space-1) 0 0;
+  color: var(--texto-suave);
+}
+
 .chip-horario[aria-pressed="true"] {
   background: var(--acao-fundo);
   color: var(--acao-texto);
@@ -1093,7 +1121,7 @@ blockquote footer {
   font-size: var(--tipo-subtitulo-tamanho);
 }
 
-/* Galeria (Fatia 12, E4): grade de miniaturas com a foto inteira (contain, sem corte) sobre o cinza do token */
+/* Galeria (Fatia 12, E4; revista em 27/11/2026): grade de miniaturas com a foto inteira (contain, sem corte) sobre o cinza do token */
 .galeria-grade {
   list-style: none;
   margin: var(--space-6) 0 0;
@@ -1101,6 +1129,35 @@ blockquote footer {
   display: grid;
   gap: var(--space-2);
   grid-template-columns: repeat(3, 1fr);
+}
+
+/* Poucas fotos (2 ou 3): 1 coluna no celular e 2 ou 3 no desktop, sem buraco na grade */
+.galeria-grade[data-quantidade="2"],
+.galeria-grade[data-quantidade="3"] {
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+/* Foto sem pessoa (salão): preenche o quadro quadrado, sem faixas; foto com pessoa continua inteira (contain) */
+.galeria-miniatura .galeria-foto-cobre {
+  object-fit: cover;
+  object-position: 0% 50%; /* mostra o logo inteiro da esquerda (sem estilo inline: a CSP não deixa) */
+}
+
+/* Uma foto só: destaque largo, na proporção real do arquivo (sem salto de layout), com moldura prata fina */
+.galeria-unica {
+  margin: var(--space-6) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.galeria-unica-foto {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: var(--traco-1) solid var(--borda-forte);
+  border-radius: var(--radius-md);
+  background: var(--superficie);
 }
 
 .galeria-miniatura {
@@ -1366,6 +1423,26 @@ caption {
 @media (min-width: 60rem) {
   .galeria-grade {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .galeria-grade[data-quantidade="2"] {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .galeria-grade[data-quantidade="3"] {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Uma foto só: texto à esquerda e a foto à direita, como o herói */
+  .galeria-secao-unica {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  .galeria-secao-unica .galeria-unica {
+    margin: 0;
   }
 
   .heroi {
@@ -1808,4 +1885,28 @@ select[aria-invalid="true"] {
 /* "folga" e "fechado" com a inicial maiúscula só na tela (o nome do botão continua "..., folga") */
 .calendario-marca::first-letter {
   text-transform: uppercase;
+}
+
+.player-trajetoria audio {
+  display: block;
+  width: 100%;
+  max-width: var(--medida-leitura);
+  margin-top: var(--space-3);
+}
+
+/* Férias e folgas (Fatia 15, C13): no celular, lista e formulário um embaixo do outro; a partir de 64rem, lado a lado. */
+.folgas-painel {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.folgas-previa [role="status"]:empty {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .folgas-painel {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
 }

@@ -24,11 +24,11 @@ import io.github.k3vinrich4rd.altashoras.agenda.disponibilidade.CalculadoraDeHor
 class BloqueiosJdbc implements FonteDeBloqueios {
 
     private static final String SQL = """
-            SELECT barbeiro_id, inicio, fim
+            SELECT barbeiro_id, inicio, fim, true AS folga
             FROM folga
             WHERE inicio < :fim AND fim > :inicio
             UNION ALL
-            SELECT barbeiro_id, inicio, fim_ocupacao
+            SELECT barbeiro_id, inicio, fim_ocupacao, false
             FROM reserva
             WHERE inicio < :fim AND fim_ocupacao > :inicio
               AND (status = 'CONFIRMADO' OR (status = 'AGUARDANDO_PAGAMENTO' AND expira_em > :agora))
@@ -50,7 +50,7 @@ class BloqueiosJdbc implements FonteDeBloqueios {
                 .query((rs, linha) -> {
                     UUID barbeiro = rs.getObject(1, UUID.class);
                     Bloqueio bloqueio = new Bloqueio(rs.getObject(2, OffsetDateTime.class).toInstant(),
-                            rs.getObject(3, OffsetDateTime.class).toInstant());
+                            rs.getObject(3, OffsetDateTime.class).toInstant(), rs.getBoolean(4));
                     porBarbeiro.computeIfAbsent(barbeiro, id -> new ArrayList<>()).add(bloqueio);
                     return bloqueio;
                 })
@@ -66,7 +66,7 @@ class BloqueiosJdbc implements FonteDeBloqueios {
                 .param("fim", utc(fim))
                 .query((rs, linha) -> porBarbeiro.computeIfAbsent(rs.getObject(1, UUID.class), id -> new ArrayList<>())
                         .add(new Bloqueio(rs.getObject(2, OffsetDateTime.class).toInstant(),
-                                rs.getObject(3, OffsetDateTime.class).toInstant())))
+                                rs.getObject(3, OffsetDateTime.class).toInstant(), true)))
                 .list();
         return porBarbeiro;
     }

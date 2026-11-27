@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
+
 /**
  * Rotas de reserva. Não existem rotas de cancelar ou remarcar para o cliente (R18): pedir uma delas é 404.
  * Tudo com no-store: status de reserva muda a cada minuto e tem dado pessoal.
@@ -45,27 +47,43 @@ class AgendamentosController {
 
     /**
      * A prorrogação não tem corpo (1.11.0): {@code {}} ou nada passam, qualquer campo é 400 CAMPO_DESCONHECIDO (o Jackson
-     * recusa o que o record não declara). Ela é idempotente pela natureza, sem Idempotency-Key (E3).
+     * recusa o que o record não declara). Desde a 1.12.0 aceita a {@code X-Idempotency-Key} opcional (E21).
      */
     record SemCorpo() {
     }
 
-    /** "Acrescentar 1 minuto" do cliente logado: 201 quando soma, 200 na repetição (E3). O dono vem do token. */
+    /** "Mais tempo para pagar" do cliente logado: 201 quando soma, 200 na repetição com a mesma chave (E21). */
     @PostMapping("/agendamentos/{id}/prorrogacao")
     ResponseEntity<AgendamentoResposta> prorrogarComoCliente(@AuthenticationPrincipal Jwt token, @PathVariable UUID id,
+            @RequestHeader(name = CHAVE, required = false) @Nullable String chave,
             @RequestBody(required = false) @Nullable SemCorpo corpo) {
         UUID cliente = UUID.fromString(token.getSubject());
-        ProrrogarPagamento.Desfecho desfecho = prorrogar.doCliente(cliente, id);
+        ProrrogarPagamento.Desfecho desfecho = prorrogar.doCliente(cliente, id, chaveDaProrrogacao(chave));
         return ResponseEntity.status(status(desfecho)).cacheControl(SEM_CACHE).body(consulta.meuSemConciliar(cliente, id));
     }
 
-    /** O mesmo "mais 1 minuto" do visitante, com o X-Guest-Token da reserva e sem bearer. */
+    /** O mesmo "mais tempo para pagar" do visitante, com o X-Guest-Token da reserva e sem bearer. */
     @PostMapping("/agendamentos/guest/{id}/prorrogacao")
     ResponseEntity<AgendamentoResposta> prorrogarComoVisitante(@PathVariable UUID id,
             @RequestHeader(name = "X-Guest-Token", required = false) @Nullable String token,
+            @RequestHeader(name = CHAVE, required = false) @Nullable String chave,
             @RequestBody(required = false) @Nullable SemCorpo corpo) {
-        ProrrogarPagamento.Desfecho desfecho = prorrogar.doVisitante(id, token);
+        ProrrogarPagamento.Desfecho desfecho = prorrogar.doVisitante(id, token, chaveDaProrrogacao(chave));
         return ResponseEntity.status(status(desfecho)).cacheControl(SEM_CACHE).body(consulta.doVisitanteSemConciliar(id));
+    }
+
+    private static final String CHAVE = "X-Idempotency-Key";
+
+    /** Opcional (E21): vazia é o mesmo que nenhuma; fora do formato UUID é 400, antes de qualquer leitura da reserva. */
+    private static @Nullable UUID chaveDaProrrogacao(@Nullable String chave) {
+        if (chave == null || chave.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(chave.strip());
+        } catch (IllegalArgumentException formato) {
+            throw ExcecaoDeNegocio.campoInvalido(CHAVE, "deve ser um UUID");
+        }
     }
 
     private static HttpStatus status(ProrrogarPagamento.Desfecho desfecho) {

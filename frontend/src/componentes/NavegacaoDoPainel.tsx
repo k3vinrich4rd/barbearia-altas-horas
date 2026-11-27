@@ -10,6 +10,7 @@ export const ITENS_DO_PAINEL: { href: string; texto: string; papeis: string[] }[
   { href: "/painel/reserva-manual", texto: "Reserva manual", papeis: ["ADMIN", "BARBEIRO"] },
   { href: "/painel/pendencias", texto: "Pendências", papeis: ["ADMIN"] },
   { href: "/painel/cadastros", texto: "Cadastros", papeis: ["ADMIN"] },
+  { href: "/painel/folgas", texto: "Férias e folgas", papeis: ["ADMIN"] },
   { href: "/painel/auditoria", texto: "Auditoria", papeis: ["ADMIN"] },
   { href: "/painel/alcance", texto: "Alcance", papeis: ["ADMIN", "BARBEIRO"] },
   { href: "/painel/novidades", texto: "Novidades", papeis: ["ADMIN", "BARBEIRO"] },

@@ -45,13 +45,17 @@ export const MENSAGENS: Record<string, string> = {
   TRANSICAO_INVALIDA: "Essa mudança não é possível agora. Em atendimentos, espere o horário de início.",
   MOTIVO_OBRIGATORIO: "Informe o motivo do cancelamento.",
   PRORROGACAO_FORA_DA_JANELA: "Ainda não é hora de acrescentar tempo. O botão aparece no último minuto.",
+  // Texto final (D214, 27/11): o 11º pedido de mais tempo (contrato 1.12.0, ADR 0015).
+  PRORROGACAO_ESGOTADA: "Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário.",
   RESERVA_EXPIRADA: "O tempo para pagar acabou. Escolha um horário de novo.",
   COBRANCA_EM_ANDAMENTO: "Já existe um pagamento em andamento para esta reserva. Espere a confirmação nesta tela.",
   SERVICO_INATIVO: "Este serviço não está disponível agora. Escolha outro.",
   IDEMPOTENCIA_CONFLITO: "Não foi possível repetir este pagamento. Comece de novo.",
   CONVITE_INVALIDO: "Este link não vale mais ou não pode ser usado aqui. Peça outro convite ao dono da barbearia.",
   JORNADA_SOBREPOSTA: "Há horários que se sobrepõem no mesmo dia. Ajuste a jornada.",
-  FOLGA_COM_RESERVAS: "Há agendamentos neste período. Cancele-os antes ou escolha outro período.",
+  // Texto final (D214, 27/11): desde a 1.12.0 a tela mostra a lista que vem em `conflitos[]` e as três saídas (Fatia 15).
+  FOLGA_COM_RESERVAS:
+    "Há clientes marcados nesse período. Confira a lista abaixo: você pode manter essas reservas ou cancelar uma por uma antes de salvar a folga.",
   USUARIO_JA_VINCULADO: "Esta conta já está ligada a outro barbeiro. Use outro e-mail.",
   LIMITE_EXCEDIDO: "Muitas tentativas. Tente de novo em {n} segundos.",
   GATEWAY_INDISPONIVEL:

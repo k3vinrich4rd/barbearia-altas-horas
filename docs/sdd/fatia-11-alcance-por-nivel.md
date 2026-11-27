@@ -87,7 +87,7 @@ Versão **1.9.0** do [`openapi.yaml`](../contrato/openapi.yaml) e do [`contrato-
 
 | # | Tema | Decisão | Por quê |
 |---|---|---|---|
-| E1 | Base legal | **Consentimento** (LGPD art. 7º, I), não legítimo interesse. A caixinha nasce **desmarcada**, com o texto do ADR 0014 (revisado pelo Cautelar), a versão em `regiao_consentimento_versao` (visitante) ou em `consentimento` (conta, finalidade `REGIAO_ALCANCE`), e o canal `APP_PRIVACIDADE_CONTATO` ao lado do campo | ADR 0014, 1 |
+| E1 | Base legal | **Consentimento** (LGPD art. 7º, I), não legítimo interesse. A caixinha nasce **desmarcada**, com o texto do ADR 0014 (revisado na revisão jurídica), a versão em `regiao_consentimento_versao` (visitante) ou em `consentimento` (conta, finalidade `REGIAO_ALCANCE`), e o canal `APP_PRIVACIDADE_CONTATO` ao lado do campo | ADR 0014, 1 |
 | E2 | CEP | **Nunca é guardado** e só é enviado com a caixinha marcada. Sem consentimento o backend ignora o campo (nem consulta o provedor). Ficam `bairro`, `cidade`, `uf` e `regiao_municipio_ibge` | minimização (art. 6º, III) |
 | E3 | Revogar | Pela tela de consentimentos, pelo `PUT /me` sem CEP ou pelo `DELETE /agendamentos/guest/{id}/regiao`: apaga a localidade do perfil **e** `regiao_*` de **todas** as reservas da conta; a pessoa sai do bairro e passa a `semRegiao`. A região do visitante também segue a retenção da reserva de visitante (90 dias do fim, D99) | art. 8º, § 5º |
 | E4 | Quem é uma pessoa | O alcance conta **pessoas distintas**. Conta: `usuario.id`. Visitante: `whatsapp` normalizado ou, se faltar, `email` em minúsculas. Visitante e conta com o mesmo WhatsApp **ou** e-mail são **uma** pessoa (comparação por HMAC calculado só durante a consulta, com a chave `app.alcance.chave-de-pessoa` que só vive na memória, nunca em coluna nem em log). **Nenhum dado novo é criado** para isso. O `agenda` não lê `usuario`: pede à `conta` (`Contas`) os identificadores já normalizados | ADR 0014, 4; art. 6º, III |
@@ -174,7 +174,7 @@ Convenção: as tabelas de teste usam um **IBGE de teste** pequeno (Osasco e Car
 | A43 | **teste de propriedade** (200 sementes, k = 3, 5 e 8): pessoas aleatórias (conta e visitante, 1 a 3 reservas, 1 a 4 barbeiros, alguns revogaram, alguns sem município) | juntar **todas** as respostas públicas e do painel possíveis (vitrine; painel por `nivel` × `uf` × barbeiro {todos, cada um} × as três janelas) | (P1) nenhum número publicado é positivo e menor que k; (P2) para todo par "recorte maior, recorte menor" (todos × um barbeiro; janela maior × menor; grupo × soma dos filhos nomeados) a diferença é 0 ou ≥ k; (P3) quando `totalVisivel`, total − soma dos visíveis é 0 ou ≥ k; (P4) na vitrine, nenhum campo é número de pessoas e, para todo total T ≥ 20 compatível com as faixas, o resto escondido do município não fica determinado como positivo e menor que k | `AlcancePropriedadeTest` |
 | A44 | o teste A43 com a regra da E11 e da E9 **desligadas** (mutação) | rodar | o teste **falha**: prova que ele pega o vazamento por subtração | `AlcancePropriedadeTest` |
 | A45 | `openapi.yaml` 1.9.0 · `scripts/conferir-spec.sh 11 --exigir` | lint e conferência | 0 erros; cada `A#` tem teste com o número; exemplos reais no `AlcancePainel` | `ContratoExemplosDeErroTest` |
-| A46 | política de privacidade | `GET /politica-privacidade` | versão **1.2**: consentimento, "clientes", faixas, retenção da região, canal de contato; texto revisado pelo Cautelar | `PoliticaPrivacidadeIT` |
+| A46 | política de privacidade | `GET /politica-privacidade` | versão **1.2**: consentimento, "clientes", faixas, retenção da região, canal de contato; texto revisado na revisão jurídica | `PoliticaPrivacidadeIT` |
 
 ### Telas (front)
 
@@ -226,16 +226,16 @@ O visual vem do design system e do canvas; **não decido o visual aqui**. O `fro
 - **Desempenho.** A consulta junta reservas, pessoas e níveis em memória sobre o período; com o volume de uma barbearia é pequeno. Se crescer, o índice parcial da migração e o cache do painel por período resolvem.
 - **Barbeiro convidado que conhece os clientes.** O k protege pouco quando a pessoa foi atendida por ele; vale o limite de **recorte** (ele nunca vê o dos outros) e a regra "nunca um bairro pequeno".
 
-### Checklist LGPD (aplicando o `cautelar-lgpd`; **não substitui parecer jurídico**; as fontes oficiais, planalto.gov.br e gov.br/anpd, ainda precisam ser consultadas pelo Cautelar antes do merge)
+### Checklist LGPD (aplicando o agente jurídico; **não substitui parecer jurídico**; as fontes oficiais, planalto.gov.br e gov.br/anpd, ainda precisam ser consultadas na revisão jurídica antes do merge)
 
 | Ponto | Situação | Observação |
 |---|---|---|
 | Base legal | 🟢 ok | consentimento, art. 7º, I (ADR 0014); sem legítimo interesse, então sem o registro do art. 10 |
-| Consentimento livre, informado, revogável e provado (art. 8º) | 🟠 risco | caixinha desmarcada, não obrigatória, versão e data gravadas, link de revogação do visitante; **o texto final da caixinha e da política 1.2 passam pelo Cautelar** antes do merge |
+| Consentimento livre, informado, revogável e provado (art. 8º) | 🟠 risco | caixinha desmarcada, não obrigatória, versão e data gravadas, link de revogação do visitante; **o texto final da caixinha e da política 1.2 passam pela revisão jurídica** antes do merge |
 | Minimização | 🟢 ok | CEP não é guardado (A2); só bairro, município, UF e código IBGE |
 | Retenção | 🟠 risco | conta: enquanto existir e enquanto o consentimento valer; visitante: 90 dias do fim da reserva (D-5) |
 | Direitos do titular (exportar e excluir) | 🟢 ok | `GET /me/dados` mostra a localidade e o consentimento; `DELETE /me` apaga a região |
-| Transparência | 🟠 risco | política 1.2 com "clientes" e as faixas; revisão do Cautelar |
+| Transparência | 🟠 risco | política 1.2 com "clientes" e as faixas; revisão jurídica |
 | Dado de terceiros digitado pelo barbeiro | 🟢 ok | a reserva manual não entra no alcance (E14) |
 | Reidentificação no alcance (k-anonimato) | 🟠 risco | **k é prática de anonimização, não exigência da lei** (ADR 0014); mitigado por A11 a A22 e A43 |
 
@@ -259,6 +259,6 @@ O visual vem do design system e do canvas; **não decido o visual aqui**. O `fro
 - [ ] contrato 1.9.0 com `redocly lint` em 0 erros e o histórico de versões atualizado
 - [ ] a tabela do IBGE conferida na revisão e sem nenhuma chamada de rede para traduzir região
 - [ ] nenhum `cep` em nenhuma tabela, em nenhum log e em nenhuma resposta
-- [ ] texto da caixinha e da política 1.2 revisados pelo Cautelar
+- [ ] texto da caixinha e da política 1.2 revisados na revisão jurídica
 - [ ] telas "aguarda design" desenhadas e implementadas; fluxo ponta a ponta com um barbeiro convidado de poucos clientes (saída colada nos docs)
 - [ ] [checklist da PR](checklist-pr.md) completo; a regra de "sem limite" de 19/11 revogada em `decisoes.md`

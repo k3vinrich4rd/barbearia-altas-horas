@@ -30,22 +30,26 @@ class ConsultarAgendaDoPainel {
     private final ZoneId fuso;
     private final Clock clock;
     private final Duration prorrogacao;
+    private final int maximoDeProrrogacoes;
 
     ConsultarAgendaDoPainel(PainelDaAgenda agenda, PendenciasDePagamento pagamentos,
             @Value("${app.fuso:America/Sao_Paulo}") String fuso, Clock clock,
-            @Value("${app.agenda.prorrogacao-pagamento:PT60S}") Duration prorrogacao) {
+            @Value("${app.agenda.prorrogacao-pagamento:PT2M}") Duration prorrogacao,
+            @Value("${app.agenda.prorrogacao-maximo:10}") int maximoDeProrrogacoes) {
         this.agenda = agenda;
         this.pagamentos = pagamentos;
         this.fuso = ZoneId.of(fuso);
         this.clock = clock;
         this.prorrogacao = prorrogacao;
+        this.maximoDeProrrogacoes = maximoDeProrrogacoes;
     }
 
     List<AgendamentoAdmin> consultar(Ator ator, LocalDate data, PainelDaAgenda.Visao visao, @Nullable UUID barbeiroId) {
         List<PainelDaAgenda.Item> itens = agenda.agenda(new PainelDaAgenda.Escopo(ator.id(), ator.admin()), data, visao,
                 barbeiroId);
         Map<UUID, String> cobrancas = pagamentos.statusPorReserva(itens.stream().map(PainelDaAgenda.Item::id).toList());
-        return itens.stream().map(item -> AgendamentoAdmin.de(item, cobrancas.get(item.id()), fuso, clock.instant(), prorrogacao)).toList();
+        return itens.stream().map(item -> AgendamentoAdmin.de(item, cobrancas.get(item.id()), fuso, clock.instant(), prorrogacao,
+                maximoDeProrrogacoes)).toList();
     }
 
     /** O calendário do mês (14C). */
@@ -65,7 +69,7 @@ class ConsultarAgendaDoPainel {
                         c.horarios().stream().map(h -> new GradeDoDia.Horario(h.inicio().format(hora), h.situacao(),
                                 h.agendamentoId())).toList(),
                         c.agendamentos().stream().map(item -> AgendamentoAdmin.de(item, cobrancas.get(item.id()), fuso,
-                                clock.instant(), prorrogacao)).toList()))
+                                clock.instant(), prorrogacao, maximoDeProrrogacoes)).toList()))
                 .toList());
     }
 }

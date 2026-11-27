@@ -2,6 +2,7 @@ package io.github.k3vinrich4rd.altashoras.agenda;
 
 import java.sql.SQLException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -16,6 +17,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -57,9 +59,14 @@ public class Reservas {
         }
     }
 
-    /** O que a cobrança precisa saber da reserva. {@code nomePagador} vai só ao gateway; nunca para log. */
+    /**
+     * O que a cobrança precisa saber da reserva. {@code nomePagador} vai só ao gateway; nunca para log.
+     * {@code validadeMaxima} (Fatia 15, E23) é até quando o Pix precisa valer no gateway: o prazo de agora mais todos os
+     * pedidos de mais tempo que a reserva ainda pode fazer, calculado das propriedades. O horário continua preso só pelo
+     * {@code expiraEm}.
+     */
     public record DadosParaCobranca(UUID id, boolean aguardandoPagamento, long precoCentavos, @Nullable Instant expiraEm,
-            String nomePagador, boolean vencida) {
+            String nomePagador, boolean vencida, @Nullable Instant validadeMaxima) {
 
         @Override
         public String toString() {
@@ -72,10 +79,15 @@ public class Reservas {
     private final TransactionTemplate transacao;
     private final Clock clock;
     private final ApplicationEventPublisher eventos;
+    private final Duration prorrogacao;
+    private final int maximoDeProrrogacoes;
 
     Reservas(JdbcClient jdbc, EntityManager em, PlatformTransactionManager gerenciador, Clock clock,
-            ApplicationEventPublisher eventos) {
+            ApplicationEventPublisher eventos, @Value("${app.agenda.prorrogacao-pagamento:PT2M}") Duration prorrogacao,
+            @Value("${app.agenda.prorrogacao-maximo:10}") int maximoDeProrrogacoes) {
         this.eventos = eventos;
+        this.prorrogacao = prorrogacao;
+        this.maximoDeProrrogacoes = maximoDeProrrogacoes;
         this.jdbc = jdbc;
         this.em = em;
         this.transacao = new TransactionTemplate(gerenciador);
@@ -89,14 +101,15 @@ public class Reservas {
     @Transactional(readOnly = true)
     public DadosParaCobranca paraCobranca(UUID reservaId, Dono dono) {
         Linha linha = jdbc.sql("""
-                SELECT r.status, r.preco_centavos, r.expira_em, r.cliente_id, g.nome AS nome_guest, g.token_hash
+                SELECT r.status, r.preco_centavos, r.expira_em, r.cliente_id, g.nome AS nome_guest, g.token_hash,
+                       r.prorrogacoes
                 FROM reserva r LEFT JOIN reserva_guest g ON g.reserva_id = r.id
                 WHERE r.id = :id
                 """)
                 .param("id", reservaId)
                 .query((rs, n) -> new Linha(StatusReserva.valueOf(rs.getString("status")), rs.getLong("preco_centavos"),
                         rs.getObject("expira_em", OffsetDateTime.class), rs.getObject("cliente_id", UUID.class),
-                        rs.getString("nome_guest"), rs.getString("token_hash")))
+                        rs.getString("nome_guest"), rs.getString("token_hash"), rs.getInt("prorrogacoes")))
                 .optional().orElseThrow(Reservas::naoEncontrada);
 
         String nome;
@@ -118,11 +131,14 @@ public class Reservas {
         Instant expiraEm = linha.expiraEm() == null ? null : linha.expiraEm().toInstant();
         boolean vencida = linha.status() == StatusReserva.EXPIRADO || (linha.status() == StatusReserva.AGUARDANDO_PAGAMENTO
                 && expiraEm != null && !expiraEm.isAfter(clock.instant()));
-        return new DadosParaCobranca(reservaId, linha.status() == StatusReserva.AGUARDANDO_PAGAMENTO, linha.precoCentavos(), expiraEm, nome, vencida);
+        Instant validadeMaxima = expiraEm == null ? null
+                : ProrrogacaoDoPagamento.prazoMaximo(expiraEm, linha.prorrogacoes(), prorrogacao, maximoDeProrrogacoes);
+        return new DadosParaCobranca(reservaId, linha.status() == StatusReserva.AGUARDANDO_PAGAMENTO, linha.precoCentavos(),
+                expiraEm, nome, vencida, validadeMaxima);
     }
 
     private record Linha(StatusReserva status, long precoCentavos, @Nullable OffsetDateTime expiraEm,
-            @Nullable UUID clienteId, @Nullable String nomeGuest, @Nullable String tokenHash) {
+            @Nullable UUID clienteId, @Nullable String nomeGuest, @Nullable String tokenHash, int prorrogacoes) {
     }
 
     /** Prova do aceite da política (R18): versão e data na própria reserva. Entra na transação de quem chama. */
@@ -144,6 +160,12 @@ public class Reservas {
      * Pagamento confirmado (R13, R14), numa transação própria: AGUARDANDO_PAGAMENTO ou EXPIRADO vira CONFIRMADO
      * pela máquina de estados; já CONFIRMADO é a mesma resposta (idempotente). Se a reserva expirou e o horário já
      * é de outra pessoa, a constraint recusa (23P01), a transação desfaz e a reserva continua EXPIRADO.
+     * <p>
+     * Fatia 15 (E7, A14): a constraint não enxerga folgas. A reserva vencida (EXPIRADO, ou ainda AGUARDANDO_PAGAMENTO
+     * com o prazo já passado) que cai numa folga ou em férias criadas depois NÃO volta a CONFIRMADO: o pagamento trava
+     * a linha do barbeiro com {@code FOR SHARE} (a mesma trava do {@code ReservarHorario}, que a folga espera com
+     * {@code FOR UPDATE}), confere a folga e responde HORARIO_OCUPADO; a cobrança vira PAGA_APOS_EXPIRACAO. A reserva
+     * mantida pelo dono e paga dentro do prazo confirma normalmente (E6).
      */
     public ResultadoConfirmacao confirmarPagamento(UUID reservaId) {
         try {
@@ -154,6 +176,9 @@ public class Reservas {
                 }
                 if (reserva.getStatus() == StatusReserva.CONFIRMADO) {
                     return ResultadoConfirmacao.CONFIRMADA;
+                }
+                if (vencida(reserva) && caiEmFolga(reserva)) {
+                    return ResultadoConfirmacao.HORARIO_OCUPADO;
                 }
                 reserva.mudarPara(StatusReserva.CONFIRMADO, clock.instant());
                 em.flush();
@@ -169,6 +194,32 @@ public class Reservas {
             }
             throw falha;
         }
+    }
+
+    /** EXPIRADO, ou AGUARDANDO_PAGAMENTO com o prazo já passado (o job ainda não passou): o horário não era mais dela. */
+    private boolean vencida(Reserva reserva) {
+        if (reserva.getStatus() == StatusReserva.EXPIRADO) {
+            return true;
+        }
+        if (reserva.getStatus() != StatusReserva.AGUARDANDO_PAGAMENTO) {
+            return false;
+        }
+        OffsetDateTime expiraEm = jdbc.sql("SELECT expira_em FROM reserva WHERE id = :id").param("id", reserva.getId())
+                .query(OffsetDateTime.class).optional().orElse(null);
+        return expiraEm != null && !expiraEm.toInstant().isAfter(clock.instant());
+    }
+
+    /**
+     * Trava a linha do barbeiro ({@code FOR SHARE}) e só DEPOIS confere se alguma folga atravessa a ocupação da reserva
+     * ([inicio, fim_ocupacao), meio aberto, R2): uma folga que esteja sendo gravada agora termina antes e é enxergada.
+     */
+    private boolean caiEmFolga(Reserva reserva) {
+        jdbc.sql("SELECT 1 FROM barbeiro WHERE id = :id FOR SHARE").param("id", reserva.getBarbeiroId())
+                .query(Integer.class).optional();
+        return jdbc.sql("""
+                SELECT count(*) FROM folga f JOIN reserva r ON r.barbeiro_id = f.barbeiro_id
+                WHERE r.id = :id AND f.inicio < r.fim_ocupacao AND f.fim > r.inicio
+                """).param("id", reserva.getId()).query(Long.class).single() > 0;
     }
 
     /**

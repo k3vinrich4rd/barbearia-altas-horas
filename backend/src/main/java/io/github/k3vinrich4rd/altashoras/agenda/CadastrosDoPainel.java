@@ -26,10 +26,14 @@ import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.AlteracaoDeBarbei
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.AlteracaoDeServico;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.BarbeiroCadastrado;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.ConfiguracaoCadastrada;
+import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.ConflitoDaFolga;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaCadastrada;
+import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaComReservas;
+import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.FolgaGravada;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.Intervalo;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.NovaConfiguracao;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.NovoServico;
+import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.PedidoDeFolga;
 import io.github.k3vinrich4rd.altashoras.agenda.PainelDaAgenda.ServicoCadastrado;
 import io.github.k3vinrich4rd.altashoras.agenda.catalogo.Barbeiro;
 import io.github.k3vinrich4rd.altashoras.agenda.catalogo.BarbeiroRepository;
@@ -227,6 +231,9 @@ class CadastrosDoPainel {
 
     // ---- folgas -----------------------------------------------------------------------------------------------------
 
+    /** Reserva manual sem nome (ou já anonimizada): o painel mostra este texto (o mesmo do AgendamentoAdmin). */
+    private static final String SEM_NOME = "Sem nome";
+
     @Transactional(readOnly = true)
     List<FolgaCadastrada> folgas(UUID barbeiroId) {
         if (!barbeiroExiste(barbeiroId)) {
@@ -235,48 +242,78 @@ class CadastrosDoPainel {
         ZoneId fuso = ZoneId.of(em.find(ConfiguracaoAgenda.class, ConfiguracaoAgenda.ID_UNICO).getFuso());
         Instant hoje = clock.instant().atZone(fuso).toLocalDate().atStartOfDay(fuso).toInstant();
         return jdbc.sql("""
-                SELECT id, inicio, fim, motivo FROM folga
+                SELECT id, inicio, fim, motivo, tipo, atualizado_em FROM folga
                 WHERE barbeiro_id = :barbeiro AND fim > :hoje ORDER BY inicio, id
                 """).param("barbeiro", barbeiroId).param("hoje", utc(hoje))
-                .query((rs, n) -> new FolgaCadastrada(rs.getObject("id", UUID.class),
-                        rs.getObject("inicio", OffsetDateTime.class).toInstant(),
-                        rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getString("motivo")))
-                .list();
+                .query((rs, n) -> folgaDe(rs)).list();
     }
 
     /**
-     * E20 e E21. A transação trava a linha do barbeiro com {@code FOR UPDATE} ANTES de conferir as reservas; o
-     * {@code ReservarHorario} trava a mesma linha com {@code FOR SHARE} ANTES de conferir a folga. Cada lado espera o
-     * outro terminar e então enxerga o que ele gravou: nunca existem folga e reserva ativa no mesmo horário.
+     * E20 e E21 (Fatia 5), E4 e E10 (Fatia 15). A transação trava a linha do barbeiro com {@code FOR UPDATE} ANTES de
+     * conferir as reservas; o {@code ReservarHorario} trava a mesma linha com {@code FOR SHARE} ANTES de conferir a
+     * folga. Cada lado espera o outro terminar e então enxerga o que ele gravou: nunca existem folga e reserva ativa
+     * nova no mesmo horário. Com {@code manterReservas}, as reservas ativas que já estavam no período ficam como estão
+     * e voltam na resposta, lidas dentro da trava.
      */
     @Transactional
-    FolgaCadastrada criarFolga(UUID barbeiroId, UUID criadaPor, Instant inicio, Instant fim, @Nullable String motivo) {
+    FolgaGravada criarFolga(UUID barbeiroId, UUID criadaPor, PedidoDeFolga pedido) {
         travarBarbeiro(barbeiroId);
         Instant agora = clock.instant();
-        if (!fim.isAfter(inicio)) {
-            throw new ExcecaoDeNegocio(CodigoErro.VALIDACAO_INVALIDA, "O fim da folga deve ser depois do início.");
-        }
-        if (!fim.isAfter(agora)) {
-            throw new ExcecaoDeNegocio(CodigoErro.VALIDACAO_INVALIDA, "A folga não pode estar toda no passado.");
-        }
-        // Reserva ativa = a mesma definição da constraint e da disponibilidade (R15): confirmada, ou aguardando
-        // pagamento com o prazo ainda aberto. Meio aberto: a folga que começa quando a reserva termina é permitida (R2).
-        long reservas = jdbc.sql("""
-                SELECT count(*) FROM reserva
-                WHERE barbeiro_id = :barbeiro AND inicio < :fim AND fim_ocupacao > :inicio
-                  AND (status = 'CONFIRMADO' OR (status = 'AGUARDANDO_PAGAMENTO' AND expira_em > :agora))
-                """).param("barbeiro", barbeiroId).param("inicio", utc(inicio)).param("fim", utc(fim))
-                .param("agora", utc(agora)).query(Long.class).single();
-        if (reservas > 0) {
-            throw new ExcecaoDeNegocio(CodigoErro.FOLGA_COM_RESERVAS);
+        validarPeriodo(pedido.inicio(), pedido.fim(), agora);
+        List<ConflitoDaFolga> conflitos = conflitos(barbeiroId, pedido.inicio(), pedido.fim(), agora);
+        if (!conflitos.isEmpty() && !pedido.manterReservas()) {
+            throw new FolgaComReservas(conflitos);
         }
         UUID id = UUID.randomUUID();
         jdbc.sql("""
-                INSERT INTO folga (id, barbeiro_id, inicio, fim, motivo, criado_por, criado_em)
-                VALUES (:id, :barbeiro, :inicio, :fim, :motivo, :por, :agora)
-                """).param("id", id).param("barbeiro", barbeiroId).param("inicio", utc(inicio)).param("fim", utc(fim))
-                .param("motivo", motivo).param("por", criadaPor).param("agora", utc(agora)).update();
-        return new FolgaCadastrada(id, inicio, fim, motivo);
+                INSERT INTO folga (id, barbeiro_id, inicio, fim, motivo, tipo, criado_por, criado_em)
+                VALUES (:id, :barbeiro, :inicio, :fim, :motivo, :tipo, :por, :agora)
+                """).param("id", id).param("barbeiro", barbeiroId).param("inicio", utc(pedido.inicio()))
+                .param("fim", utc(pedido.fim())).param("motivo", pedido.motivo()).param("tipo", pedido.tipo())
+                .param("por", criadaPor).param("agora", utc(agora)).update();
+        return new FolgaGravada(new FolgaCadastrada(id, pedido.inicio(), pedido.fim(), pedido.motivo(), pedido.tipo(),
+                null), conflitos);
+    }
+
+    /**
+     * PUT (ADR 0015, seção 3): substitui início, fim, motivo e tipo, com as mesmas validações e a mesma trava da
+     * criação, então um PUT que aumenta o período nunca passa junto com uma reserva nova nele (A21). Folga de outro
+     * barbeiro, ou que não existe, é 404 (R23). Sem controle de versão: a última gravação vale (E13).
+     */
+    @Transactional
+    FolgaGravada alterarFolga(UUID barbeiroId, UUID folgaId, UUID alteradaPor, PedidoDeFolga pedido) {
+        travarBarbeiro(barbeiroId);
+        boolean existe = jdbc.sql("SELECT count(*) FROM folga WHERE id = :id AND barbeiro_id = :barbeiro")
+                .param("id", folgaId).param("barbeiro", barbeiroId).query(Long.class).single() > 0;
+        if (!existe) {
+            throw folgaNaoEncontrada();
+        }
+        Instant agora = clock.instant();
+        validarPeriodo(pedido.inicio(), pedido.fim(), agora);
+        List<ConflitoDaFolga> conflitos = conflitos(barbeiroId, pedido.inicio(), pedido.fim(), agora);
+        if (!conflitos.isEmpty() && !pedido.manterReservas()) {
+            throw new FolgaComReservas(conflitos);
+        }
+        jdbc.sql("""
+                UPDATE folga SET inicio = :inicio, fim = :fim, motivo = :motivo, tipo = :tipo,
+                                 atualizado_por = :por, atualizado_em = :agora
+                WHERE id = :id AND barbeiro_id = :barbeiro
+                """).param("inicio", utc(pedido.inicio())).param("fim", utc(pedido.fim()))
+                .param("motivo", pedido.motivo()).param("tipo", pedido.tipo()).param("por", alteradaPor)
+                .param("agora", utc(agora)).param("id", folgaId).param("barbeiro", barbeiroId).update();
+        return new FolgaGravada(new FolgaCadastrada(folgaId, pedido.inicio(), pedido.fim(), pedido.motivo(),
+                pedido.tipo(), agora), conflitos);
+    }
+
+    /** A prévia (E12): só lê, sem trava. Barbeiro inexistente é 404; período inválido é 400, como no POST (E14). */
+    @Transactional(readOnly = true)
+    List<ConflitoDaFolga> conflitosDaFolga(UUID barbeiroId, Instant inicio, Instant fim) {
+        if (!barbeiroExiste(barbeiroId)) {
+            throw barbeiroNaoEncontrado();
+        }
+        Instant agora = clock.instant();
+        validarPeriodo(inicio, fim, agora);
+        return conflitos(barbeiroId, inicio, fim, agora);
     }
 
     /**
@@ -288,8 +325,58 @@ class CadastrosDoPainel {
         int removidas = jdbc.sql("DELETE FROM folga WHERE id = :id AND barbeiro_id = :barbeiro")
                 .param("id", folgaId).param("barbeiro", barbeiroId).update();
         if (removidas == 0) {
-            throw new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Folga não encontrada.");
+            throw folgaNaoEncontrada();
         }
+    }
+
+    /** E14: fim depois do início e não todo no passado; vale para o POST, o PUT e a prévia. */
+    private static void validarPeriodo(Instant inicio, Instant fim, Instant agora) {
+        if (!fim.isAfter(inicio)) {
+            throw ExcecaoDeNegocio.campoInvalido("fim", "O fim da folga deve ser depois do início.");
+        }
+        if (!fim.isAfter(agora)) {
+            throw ExcecaoDeNegocio.campoInvalido("fim", "A folga não pode estar toda no passado.");
+        }
+    }
+
+    /**
+     * Reserva ativa = a mesma definição da constraint e da disponibilidade (R15, E3): confirmada, ou aguardando
+     * pagamento com o prazo ainda aberto. Meio aberto: a folga que começa quando a reserva termina é permitida (R2).
+     * Só o que o contrato pede: nada de e-mail, CPF, WhatsApp ou observação.
+     */
+    private List<ConflitoDaFolga> conflitos(UUID barbeiroId, Instant inicio, Instant fim, Instant agora) {
+        return jdbc.sql("""
+                SELECT r.id, r.inicio, r.fim, r.servico_id, s.nome AS servico_nome, r.origem, r.status,
+                       COALESCE(g.nome, u.nome, r.nome_cliente) AS cliente_nome
+                FROM reserva r
+                JOIN servico s ON s.id = r.servico_id
+                LEFT JOIN usuario u ON u.id = r.cliente_id
+                LEFT JOIN reserva_guest g ON g.reserva_id = r.id
+                WHERE r.barbeiro_id = :barbeiro AND r.inicio < :fim AND r.fim_ocupacao > :inicio
+                  AND (r.status = 'CONFIRMADO' OR (r.status = 'AGUARDANDO_PAGAMENTO' AND r.expira_em > :agora))
+                ORDER BY r.inicio, r.id
+                """).param("barbeiro", barbeiroId).param("inicio", utc(inicio)).param("fim", utc(fim))
+                .param("agora", utc(agora))
+                .query((rs, n) -> {
+                    String nome = rs.getString("cliente_nome");
+                    return new ConflitoDaFolga(rs.getObject("id", UUID.class),
+                            rs.getObject("inicio", OffsetDateTime.class).toInstant(),
+                            rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getObject("servico_id", UUID.class),
+                            rs.getString("servico_nome"), nome == null || nome.isBlank() ? SEM_NOME : nome,
+                            rs.getString("origem"), rs.getString("status"));
+                })
+                .list();
+    }
+
+    private static FolgaCadastrada folgaDe(java.sql.ResultSet rs) throws SQLException {
+        OffsetDateTime atualizada = rs.getObject("atualizado_em", OffsetDateTime.class);
+        return new FolgaCadastrada(rs.getObject("id", UUID.class), rs.getObject("inicio", OffsetDateTime.class).toInstant(),
+                rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getString("motivo"), rs.getString("tipo"),
+                atualizada == null ? null : atualizada.toInstant());
+    }
+
+    private static ExcecaoDeNegocio folgaNaoEncontrada() {
+        return new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Folga não encontrada.");
     }
 
     // ---- configuração -----------------------------------------------------------------------------------------------

@@ -58,11 +58,13 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
   const envio = useEnvio();
   const chaveRef = useRef<string | null>(null);
   const aceiteRef = useRef<HTMLInputElement>(null);
-  // "Acrescentar 1 minuto" (Fatia 14A): um envio por vez, a mensagem que recebe o foco e o que a API respondeu de errado.
+  // "Acrescentar 2 minutos" (Fatia 14A; Fatia 15, ADR 0015): um envio por vez, a mensagem que recebe o foco e o que a API
+  // respondeu de errado. `esgotada`: o 422 PRORROGACAO_ESGOTADA (outro toque usou o último pedido) tira o botão.
   const prorrogacaoEnvio = useEnvio();
   const [prorrogado, setProrrogado] = useState<number | undefined>();
   const [foraDaJanela, setForaDaJanela] = useState(false);
   const [expiradoPelaApi, setExpiradoPelaApi] = useState(false);
+  const [esgotada, setEsgotada] = useState(false);
   const prorrogadoRef = useRef<HTMLParagraphElement>(null);
 
   const status = reserva?.status;
@@ -150,20 +152,31 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
   }, [envio.erro]);
 
   /**
-   * "Acrescentar 1 minuto": a rota é idempotente pela natureza (repetir devolve o que já existe), então não precisa de chave.
-   * Depois do sucesso o contador soma o minuto ao que está correndo e o Pix na tela continua o mesmo.
+   * "Acrescentar 2 minutos" (E21): cada toque manda uma `X-Idempotency-Key` nova. Se a rede cair no meio, o front repete
+   * uma vez sozinho com a MESMA chave: se o primeiro chegou, a API devolve 200 com o mesmo corpo, sem somar de novo.
+   * Depois do sucesso o contador soma o tempo ao que está correndo e o Pix na tela continua o mesmo.
    */
   async function acrescentar() {
-    const feita = await prorrogacaoEnvio.executar(() =>
-      chamar(
+    const chave = crypto.randomUUID();
+    const pedir = () => {
+      const params = { header: { "X-Idempotency-Key": chave } };
+      return chamar(
         sessao.autenticado
-          ? api().POST("/agendamentos/{id}/prorrogacao", { params: { path: { id: reservaId } } })
-          : api().POST("/agendamentos/guest/{id}/prorrogacao", { params: { path: { id: reservaId } } }),
-      ),
-    );
+          ? api().POST("/agendamentos/{id}/prorrogacao", { params: { ...params, path: { id: reservaId } } })
+          : api().POST("/agendamentos/guest/{id}/prorrogacao", { params: { ...params, path: { id: reservaId } } }),
+      );
+    };
+    const feita = await prorrogacaoEnvio.executar(async () => {
+      try {
+        return await pedir();
+      } catch (erro) {
+        if (erro instanceof ErroApi && repetivel(erro)) return await pedir();
+        throw erro;
+      }
+    });
     if (feita) {
       setAtual(feita);
-      setProrrogado(feita.prorrogacao?.segundos ?? 60);
+      setProrrogado(feita.prorrogacao?.segundos ?? 120);
     }
   }
 
@@ -180,6 +193,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
       setExpiradoPelaApi(true);
       void atualizarStatus();
     }
+    if (c === "PRORROGACAO_ESGOTADA") setEsgotada(true);
     if (c === "PRORROGACAO_FORA_DA_JANELA") {
       setForaDaJanela(true);
       const t = setTimeout(() => setForaDaJanela(false), 10_000);
@@ -218,7 +232,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                   <Cronometro
                     expiraEm={res.expiraEm}
                     aoZerar={() => void atualizarStatus()}
-                    prorrogacao={foraDaJanela ? null : res.prorrogacao}
+                    prorrogacao={foraDaJanela || esgotada ? null : res.prorrogacao}
                     acrescentando={prorrogacaoEnvio.enviando}
                     aoAcrescentar={() => void acrescentar()}
                   />
@@ -231,9 +245,13 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                 {!expirada &&
                   prorrogacaoEnvio.erro &&
                   prorrogacaoEnvio.erro.code !== "PRORROGACAO_FORA_DA_JANELA" &&
-                  prorrogacaoEnvio.erro.code !== "RESERVA_EXPIRADA" && (
+                  prorrogacaoEnvio.erro.code !== "RESERVA_EXPIRADA" &&
+                  // O 11º pedido não é falha de quem paga: aviso (role=status), sem o prefixo "Erro:" e sem código de suporte.
+                  (prorrogacaoEnvio.erro.code === "PRORROGACAO_ESGOTADA" ? (
+                    <Aviso tipo="aviso">{MENSAGENS.PRORROGACAO_ESGOTADA}</Aviso>
+                  ) : (
                     <AvisoDeErro erro={prorrogacaoEnvio.erro} focar={false} />
-                  )}
+                  ))}
                 <h2 id="resumo-pagamento">Seu horário</h2>
                 <dl>
                   <dt>Serviço</dt>

@@ -210,4 +210,57 @@ class SemDadoPessoalNoLogIT {
                 .doesNotContain("11900000089").doesNotContain("90000-0089").doesNotContain(token).doesNotContain(sessao.acesso())
                 .doesNotContain(ip);
     }
+
+    @Autowired
+    io.github.k3vinrich4rd.altashoras.plataforma.EmissorDeToken emissor;
+
+    @Test
+    @DisplayName("A24: folga com motivo \"consulta médica\" e reservas mantidas (422 com conflitos, criar com manterReservas, prévia, editar e remover) não deixa o motivo nem o nome do cliente no log nem na auditoria")
+    void nadaNoLogDasFolgas(CapturedOutput saida) throws Exception {
+        UUID admin = UUID.randomUUID();
+        jdbc.update("INSERT INTO usuario (id, nome, email, whatsapp) VALUES (?, 'Dono Teste', ?, '11900000024')", admin,
+                "dono." + admin + "@exemplo.test");
+        jdbc.update("INSERT INTO usuario_papel (usuario_id, papel) VALUES (?, 'ADMIN'), (?, 'BARBEIRO')", admin, admin);
+        String acesso = "Bearer " + emissor.emitir(admin, List.of("ADMIN", "BARBEIRO"), 0, false).valor();
+        UUID cliente = UUID.randomUUID();
+        jdbc.update("INSERT INTO usuario (id, nome, email, whatsapp) VALUES (?, 'Cliente Sigiloso Teste', ?, '11900000025')",
+                cliente, "cliente." + cliente + "@exemplo.test");
+        UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
+        UUID servico = DadosDeTeste.servico(jdbc, 30);
+        java.time.OffsetDateTime as15 = DadosDeTeste.em(java.time.LocalDate.of(2026, 12, 22), 15, 0);
+        jdbc.update("""
+                INSERT INTO reserva (barbeiro_id, servico_id, cliente_id, origem, inicio, fim, fim_ocupacao, status,
+                                     preco_centavos, aceite_politica_versao, aceite_politica_em)
+                VALUES (?, ?, ?, 'CLIENTE', ?, ?, ?, 'CONFIRMADO', 4500, 1, ?)
+                """, barbeiro, servico, cliente, as15, as15.plusMinutes(30), as15.plusMinutes(30), as15.minusDays(1));
+        String rota = "/admin/barbeiros/" + barbeiro + "/folgas";
+        String corpo = """
+                { "inicio": "%s", "fim": "%s", "tipo": "FOLGA", "motivo": "consulta médica"%s }
+                """;
+        java.time.OffsetDateTime inicio = as15.minusHours(1);
+        java.time.OffsetDateTime fim = as15.plusHours(2);
+
+        mvc.perform(post(rota).header("Authorization", acesso).contentType(MediaType.APPLICATION_JSON)
+                .content(corpo.formatted(inicio, fim, ""))).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.conflitos[0].clienteNome").value("Cliente Sigiloso Teste"));
+        String criada = mvc.perform(post(rota).header("Authorization", acesso).contentType(MediaType.APPLICATION_JSON)
+                .content(corpo.formatted(inicio, fim, ", \"manterReservas\": true"))).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(criada, "$.id");
+        mvc.perform(get(rota + "/conflitos").header("Authorization", acesso).param("inicio", inicio.toString())
+                .param("fim", fim.toString())).andExpect(status().isOk());
+        mvc.perform(put(rota + "/" + id).header("Authorization", acesso).contentType(MediaType.APPLICATION_JSON)
+                .content(corpo.formatted(inicio, fim.plusHours(1), ", \"manterReservas\": true"))).andExpect(status().isOk());
+        mvc.perform(put(rota + "/" + id).header("Authorization", acesso).contentType(MediaType.APPLICATION_JSON)
+                .content(corpo.formatted(inicio, fim.plusHours(1), ""))).andExpect(status().isUnprocessableEntity());
+        mvc.perform(delete(rota + "/" + id).header("Authorization", acesso)).andExpect(status().isNoContent());
+
+        String auditoria = String.join(" ", jdbc.queryForList(
+                "SELECT detalhe::text FROM auditoria_admin WHERE recurso = 'folga' AND recurso_id = ?::uuid", String.class, id));
+        assertThat(auditoria).contains("FOLGA", "reservasMantidas").doesNotContain("consulta").doesNotContain("Sigiloso");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM auditoria_admin WHERE recurso = 'folga' AND recurso_id = ?::uuid",
+                Long.class, id)).isEqualTo(3);
+        assertThat(saida.getAll()).doesNotContain("consulta médica").doesNotContain("Cliente Sigiloso Teste")
+                .doesNotContain("11900000025");
+    }
 }
