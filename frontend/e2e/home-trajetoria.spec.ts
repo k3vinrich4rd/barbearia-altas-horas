@@ -5,6 +5,20 @@ import { expect, test } from "@playwright/test";
 test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no navegador de verdade", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Seu horário com o Eduardo, garantido.");
+  const trajetoria = page.locator("#trajetoria");
+  await expect(
+    trajetoria.getByText(
+      "Em 1994, o Carlos Eduardo Candido, o Eduardo, começou no ofício aprendendo com o primeiro mestre.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+  await expect(
+    trajetoria.getByText("O filho, Kevin, criou esta agenda para que cada cliente marque do seu jeito."),
+  ).toBeVisible();
+  await expect(
+    trajetoria.getByText("é só chamar o Eduardo no WhatsApp, que ele mesmo marca o seu horário."),
+  ).toBeVisible();
+  await expect(trajetoria.getByText("terça a sábado")).toHaveCount(0);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "escuro");
 
   // linha do tempo: 1997 vem marcado; Tab até 2017 e Enter troca o detalhe anunciado

@@ -17,12 +17,33 @@ const slug = (t: string) =>
     .replace(/^-|-$/g, "");
 const textoDe = (c: unknown): string => (typeof c === "string" ? c : Array.isArray(c) ? c.map(textoDe).join("") : "");
 
-const TITULOS: Components = {
+/** Telefone brasileiro já formatado no texto da política vira link wa.me/55, sem número escrito no código. */
+const TELEFONE_BR = /\((\d{2})\) (\d{4,5})-(\d{4})/g;
+
+export function linkificarTelefoneNaPolitica(md: string): string {
+  return md.replace(TELEFONE_BR, (visivel, ddd: string, prefixo: string, sufixo: string) => {
+    const digitos = `${ddd}${prefixo}${sufixo}`;
+    return `[${visivel}](https://wa.me/55${digitos})`;
+  });
+}
+
+const COMPONENTES: Components = {
   h1: ({ children }) => <h2>{children}</h2>,
   h2: ({ children }) => <h3 id={slug(textoDe(children))}>{children}</h3>,
   h3: ({ children }) => <h4>{children}</h4>,
   h4: ({ children }) => <h5>{children}</h5>,
   h5: ({ children }) => <h6>{children}</h6>,
+  a: ({ href, children }) => {
+    const texto = textoDe(children);
+    if (href?.startsWith("https://wa.me/")) {
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${texto} (abre o WhatsApp)`}>
+          {children}
+        </a>
+      );
+    }
+    return <a href={href}>{children}</a>;
+  },
 };
 
 const sumario = (md: string) =>
@@ -55,8 +76,8 @@ export function Privacidade() {
               </nav>
             )}
             <article className="politica">
-              <ReactMarkdown rehypePlugins={[rehypeSanitize]} components={TITULOS}>
-                {p.politica}
+              <ReactMarkdown rehypePlugins={[rehypeSanitize]} components={COMPONENTES}>
+                {linkificarTelefoneNaPolitica(p.politica)}
               </ReactMarkdown>
             </article>
           </>
