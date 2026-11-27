@@ -46,6 +46,8 @@ public enum CodigoErro {
     MOTIVO_OBRIGATORIO(422, "Motivo obrigatório", "Informe o motivo."),
     /** 1.11.0 (D188): pediu "mais 1 minuto" antes do último minuto do prazo do Pix. */
     PRORROGACAO_FORA_DA_JANELA(422, "Fora da janela de prorrogação", "Só dá para acrescentar tempo no último minuto."),
+    /** Contrato 1.12.0 (ADR 0015): o pedido além do máximo de prorrogações. Ainda não é lançado pelo código (vem na implementação). */
+    PRORROGACAO_ESGOTADA(422, "Prorrogações esgotadas", "Esta reserva já usou todos os pedidos de mais tempo."),
     RESERVA_EXPIRADA(422, "Reserva expirada", "O prazo de pagamento desta reserva acabou."),
     SERVICO_INATIVO(422, "Serviço indisponível", "Este serviço não está disponível."),
     IDEMPOTENCIA_CONFLITO(422, "Chave de idempotência já usada", "Esta chave já foi usada com outro corpo."),
