@@ -35,7 +35,7 @@ const FATOS_COM_FONTE = [
 ];
 
 describe("Trajetória com fatos do repositório (Fatia 14B)", () => {
-  test("A39: a Trajetória e o bloco do barbeiro têm os textos da seção 6.2; cada ano, nome e prêmio citado está na tabela 6.1 (com fonte no README)", async () => {
+  test("A39: a Trajetória e o bloco do barbeiro têm os textos de docs/sdd/historia-v3-aprovada.txt; cada ano, nome e prêmio citado está na tabela 6.1 (com fonte no README)", async () => {
     const { unmount } = renderizar(<Trajetoria />);
     for (const paragrafo of HISTORIA) expect(screen.getByText(paragrafo)).toBeInTheDocument();
     expect(MARCOS.find((m) => m.ano === "Hoje")?.texto).toBe(

@@ -219,7 +219,9 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 ### 6.2 Texto proposto
 
-**Trajetória** (substitui `HISTORIA` em `historia.ts`; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
+O texto da Trajetória desta seção **foi substituído pela versão 3**, em [`docs/sdd/historia-v3-aprovada.txt`](historia-v3-aprovada.txt). O bloco abaixo é o texto antigo e não vai mais para o site.
+
+**Trajetória** (texto antigo, substituído pela v3; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
 
 > O Carlos Eduardo Candido (o Eduardo) começou no ofício em 1994, aprendendo com o primeiro mestre. Três anos depois, em 1997, abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e de lá não saiu mais: são quase 30 anos na mesma cadeira, de terça a sábado.
 >
@@ -326,7 +328,7 @@ Reserva de cliente criada às **10:00:00** de ter 01/12/2026 (horário 15:00), `
 | A36 | o catálogo | procuro número de regra configurável (`\d+ (hora|horas|dia|dias|minuto|minutos)`) | nenhum (só o `{n}` do `LIMITE_EXCEDIDO`) | `mensagens-voz.test.ts` |
 | A37 | os 20 textos da seção 5 e os "também revistos" | comparo com a tabela aprovada | iguais, palavra por palavra | `mensagens-voz.test.ts` |
 | A38 | todo `code` do `CodigoErro` do contrato 1.11.0 | procuro no catálogo | todos têm texto próprio (inclusive `PRORROGACAO_FORA_DA_JANELA`) | `mensagens-voz.test.ts` |
-| A39 | a home | leio a Trajetória e o bloco do barbeiro | os textos são os da seção 6.2; cada ano, nome e prêmio citado está na tabela 6.1 | `trajetoria-texto.test.tsx` |
+| A39 | a home | leio a Trajetória e o bloco do barbeiro | os textos são os de `docs/sdd/historia-v3-aprovada.txt`; cada ano, nome e prêmio citado está na tabela 6.1 | `trajetoria-texto.test.tsx` |
 
 ### 14C · Agenda nova do painel
 

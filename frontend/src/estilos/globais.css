@@ -1722,3 +1722,10 @@ select[aria-invalid="true"] {
 .calendario-marca::first-letter {
   text-transform: uppercase;
 }
+
+.player-trajetoria audio {
+  display: block;
+  width: 100%;
+  max-width: var(--medida-leitura);
+  margin-top: var(--space-3);
+}
