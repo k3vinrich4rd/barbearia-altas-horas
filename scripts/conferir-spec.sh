@@ -74,12 +74,15 @@ achar_arquivo() {
 }
 
 # Devolve 0 se o arquivo declara o critério $2 num @DisplayName, test( ou it(, ignorando comentários.
+# Um rótulo antes do critério procurado, num título com vários: "FF-3, FF-4 e FF-9: ..." ou "AF-10 (E18): ...".
+rotulo='[A-Z]{1,2}-?[0-9]+[a-z]?( \([^)]*\))?'
+
 tem_criterio() {
   arq="$1"
   id="$2"
   sed -E -e 's#^[[:space:]]*//.*$##' -e 's#^[[:space:]]*/?\*.*$##' -e 's#/\*[^*]*\*/##g' -e 's#[[:space:]]//[[:space:]].*$##' "$arq" \
     | tr '\n' ' ' \
-    | grep -qE "(@DisplayName\(|@ParameterizedTest\([[:space:]]*name[[:space:]]*=[[:space:]]*|(^|[^A-Za-z0-9_.])(test|it)\()[[:space:]]*[\"'\`]$id[: ]"
+    | grep -qE "(@DisplayName\(|@ParameterizedTest\([[:space:]]*name[[:space:]]*=[[:space:]]*|(^|[^A-Za-z0-9_.])(test|it)\()[[:space:]]*[\"'\`]($rotulo(, | e ))*$id[:, ]"
 }
 
 total=0
@@ -89,12 +92,14 @@ cache="$(mktemp -d)"
 trap 'rm -rf "$tmp" "$cache"' EXIT
 echo "Spec: $spec"
 # Linhas de critério: | A7 | dado | quando | então | `nome-do-teste` |
-grep -E '^\| A[0-9]+ \|' "$spec" > "$tmp" || true
+# Também os critérios de tela da Fatia 15 (MT-1, MT-1b, AF-10, FF-3), que o front usa como rótulo do teste.
+grep -E '^\| (A[0-9]+|(MT|AF|FF)-[0-9]+[a-z]?) \|' "$spec" > "$tmp" || true
 while IFS= read -r linha; do
   id="$(printf '%s' "$linha" | cut -d'|' -f2 | tr -d ' ')"
-  numero="${id#A}"
-  if [ -n "$ate" ] && [ "$numero" -gt "$ate" ]; then continue; fi
-  if excluido "$numero"; then continue; fi
+  # --ate e --exceto valem só para A<n>; MT/AF/FF são sempre conferidos.
+  case "$id" in A[0-9]*) numero="${id#A}" ;; *) numero="" ;; esac
+  if [ -n "$numero" ] && [ -n "$ate" ] && [ "$numero" -gt "$ate" ]; then continue; fi
+  if [ -n "$numero" ] && excluido "$numero"; then continue; fi
   # Critério trocado por outra fatia: a marca "substituído pela Fatia N (A<m>)" na linha vale se o A<m> da fatia N tem teste.
   subst="$(printf '%s' "$linha" | sed -nE 's/.*substituído pela Fatia ([0-9]+) \((A[0-9]+)\).*/\1 \2/p')"
   if [ -n "$subst" ]; then

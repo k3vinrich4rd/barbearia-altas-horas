@@ -174,8 +174,45 @@ Barbeiro Eduardo (`b…01`), jornada de terça a sábado das 07:00 às 20:00, al
 | A41 | `expiracaoPagamentoMin` 3, `prorrogacao-pagamento` PT2M, `prorrogacao-maximo` 10 | `POST /pagamentos/cobrancas` (Pix) | o gateway recebe a validade de **23 min** depois do início do prazo da reserva; com as propriedades trocadas (ex.: PT1M e 5) a validade muda junto (8 min), sem número fixo no código; o copia e cola não muda depois de um pedido de mais tempo | `CobrancaValidadeIT` |
 | A42 | reserva expirada depois de 3 pedidos | o Pix é pago depois do `expiraEm` | reconfirma se o horário estiver livre, ou a cobrança vira `PAGA_APOS_EXPIRACAO` (o fluxo de hoje, R14) | `PagamentoTardioIT` |
 | A43 | contrato | `ContratoExemplosDeErroTest` | `PRORROGACAO_ESGOTADA` está no enum do Java e do contrato, com o exemplo (422, "Prorrogações esgotadas") e a linha na tabela de erros | `ContratoExemplosDeErroTest` |
+| A44 | visitante sem token e conta só `BARBEIRO` | `GET`, `POST`, `PUT` e `DELETE /admin/barbeiros/{id}/folgas` e `GET .../folgas/conflitos` (as rotas da página Férias e folgas, C13) | sem token: `401 NAO_AUTENTICADO` em todas; `BARBEIRO`: `403 ACESSO_NEGADO` em todas; só o `ADMIN` passa (H27, E8, D216) | **pendente**: ainda não há teste com o rótulo A44. Hoje, `FolgaBolaIT` (A16) cobre o 403 do `BARBEIRO` nas cinco rotas e `AcessoAdminIT` (A70 da Fatia 5) cobre o 401 só em `GET`, `POST` e `DELETE /folgas`; falta o 401 em `PUT` e em `GET /folgas/conflitos` |
 
-**Telas (UX especifica depois da aprovação):** na agenda do cliente, dia com `aberto: false` mostra só "Fechado" em vez de "Sem horário", e dia aberto mostra o expediente e o almoço. No pagamento, o botão "Acrescentar 2 minutos" aparece no último minuto enquanto `restantes > 0` e manda uma `X-Idempotency-Key` nova a cada toque (a mesma só na repetição automática). No painel, o formulário de folga pede início, fim, tipo e motivo; **assim que o dono escolhe as datas, antes de salvar**, chama a prévia `GET /folgas/conflitos` e mostra quem está marcado (E24); o `422 FOLGA_COM_RESERVAS` com a lista só aparece se alguém marcar entre a prévia e o salvar (rede de segurança contra corrida), e a tela mostra a lista que vem no problema; "Salvar e manter os agendamentos" envia `manterReservas: true`; depois de salvar, lista as reservas mantidas com o atalho para cada uma. Os critérios de tela entram na spec de UX.
+**Telas (UX especifica depois da aprovação):** na agenda do cliente, dia com `aberto: false` mostra só "Fechado" em vez de "Sem horário", e dia aberto mostra o expediente e o almoço. No pagamento, o botão "Acrescentar 2 minutos" aparece no último minuto enquanto `restantes > 0` e manda uma `X-Idempotency-Key` nova a cada toque (a mesma só na repetição automática). No painel, o formulário de folga pede início, fim, tipo e motivo; **assim que o dono escolhe as datas, antes de salvar**, chama a prévia `GET /folgas/conflitos` e mostra quem está marcado (E24); o `422 FOLGA_COM_RESERVAS` com a lista só aparece se alguém marcar entre a prévia e o salvar (rede de segurança contra corrida), e a tela mostra a lista que vem no problema; "Salvar e manter os agendamentos" envia `manterReservas: true`; depois de salvar, lista as reservas mantidas com o atalho para cada uma. Os critérios de tela estão na seção 5.1.
+
+
+### 5.1 Critérios de tela (front)
+
+Os critérios das specs de UX de 27/11 que os PRs #140 (mais tempo para pagar e agenda com expediente) e #141 (página Férias e folgas) cobrem. O rótulo é o mesmo do teste do front (`MT-`, `AF-` e `FF-`), e o `conferir-spec.sh 15` também confere estas linhas. Os textos citados são os do código; os que ainda esperam o ok do Kevin estão nas perguntas desses PRs.
+
+| # | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| MT-1 | reserva no último minuto, `usadas = 0` | o botão aparece | aparece "Acrescentar 2 minutos" e **não** aparece "Restam N pedidos." | `pagamento-prorrogacao.test.tsx` |
+| MT-1b | `usadas = 1`, `restantes = 9`, no último minuto de novo | o botão volta | aparece, discreto, "Restam 9 pedidos." (número vindo da API) | `pagamento-prorrogacao.test.tsx` |
+| MT-3 | 9 pedidos usados | pede o 10º | funciona; depois o botão e a linha de pedidos não voltam no último minuto seguinte | `pagamento-prorrogacao.test.tsx` |
+| MT-4c | a tela recebe `422 PRORROGACAO_ESGOTADA` | mostra o aviso | "Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário." (D214), como aviso, sem "Erro:" nem código de suporte; o botão some | `pagamento-prorrogacao.test.tsx` |
+| MT-4d | um toque; depois a rede cai no meio do pedido | o front repete sozinho | cada toque manda uma `X-Idempotency-Key` nova (UUID); a repetição automática manda a **mesma** | `pagamento-prorrogacao.test.tsx` |
+| MT-7 | `mensagens-voz.test.ts` | roda | os textos da Fatia 15 (pedidos restantes, tempo extra esgotado e dia fechado) estão travados palavra por palavra | `mensagens-voz.test.ts` |
+| AF-10 | `expediente.aberto: false` no domingo | vê a tira de dias | o chip diz "Fechado", com `aria-disabled="true"`, não escolhe o dia e não mostra o motivo; dia aberto que ficou sem horário diz "sem horário", nunca "Fechado" (E18) | `agendar-expediente.test.tsx` |
+| AF-11 | almoço das 12:00 às 13:00 | vê os horários do dia | "Fechado · 12h às 13h" entre Manhã e Tarde, sem a palavra "Almoço" e sem chip "12:00 indisponível" (D209) | `agendar-expediente.test.tsx` |
+| AF-12 | `expediente` ausente (API antiga) | vê a tira de dias | a tela funciona como antes ("sem horário") e nada fica "Fechado" | `agendar-expediente.test.tsx` |
+| AF-13 | 360×800 e 1280×800, API real | roda o axe na agenda | 0 violações (WCAG 2.2 AA), com a tira "Fechado" e a faixa do almoço | `agenda-expediente.spec.ts` |
+| AF-15 | folga de 14:00 a 16:00 numa terça | vê os horários da terça | o dia **não** fica "Fechado"; os horários que ela tira aparecem como indisponíveis, sem motivo | `agendar-expediente.test.tsx` |
+| FF-1 | ADMIN, sem folgas | abre "Férias e folgas" | "Nenhuma folga de hoje em diante." e o botão "Marcar férias ou folga"; "Remover" pede confirmação antes do `DELETE`; fim antes do início é barrado na tela | `painel-folgas.test.tsx` |
+| FF-3 | período com 2 clientes | escolhe as datas | a prévia mostra os 2 (horário, serviço, nome, origem, status) antes de salvar | `painel-folgas.test.tsx`, `painel-folgas.spec.ts` |
+| FF-4 | a prévia com clientes | toca "Salvar e manter os agendamentos" (D219; o front ainda mostra "Salvar e manter os horários") | manda `manterReservas: true`; o aviso diz quantos continuam marcados e lista as reservas mantidas com "Ver na agenda" | `painel-folgas.test.tsx`, `painel-folgas.spec.ts` |
+| FF-5 | a prévia com clientes | "Cancelar um a um" | cancela pela barbearia só a reserva escolhida e a prévia passa a mostrar 1 | `painel-folgas.test.tsx` |
+| FF-6 | "Dia inteiro" de 25/11 a 27/11, tipo Férias | salva | manda `inicio` 25/11 00:00, `fim` 28/11 00:00 (BRT) e `tipo` `FERIAS` | `painel-folgas.test.tsx` |
+| FF-7 | uma folga na lista | "Editar", muda o fim e salva | manda `PUT` com `inicio`, `fim`, `motivo` e `tipo`; a lista mostra o fim novo | `painel-folgas.test.tsx` |
+| FF-8 | o campo motivo | digita além do limite | para em 200 caracteres (contador 200/200) e a tela lembra de não escrever dado de cliente | `painel-folgas.test.tsx` |
+| FF-9 | 360×800, API real | roda o axe na página | 0 violações | `painel-folgas.spec.ts` |
+| FF-10 | ADMIN escolhe as datas | antes de tocar em salvar | o painel já chamou `GET .../folgas/conflitos` com `inicio` e `fim` | `painel-folgas.test.tsx`, `painel-folgas.spec.ts` |
+| FF-11 | alguém marca entre a prévia e o salvar | ADMIN salva sem manter | `422 FOLGA_COM_RESERVAS`: a tela mostra o texto final (D214), a lista de `conflitos[]` e as 3 saídas; nada foi gravado | `painel-folgas.test.tsx`, `mensagens-voz.test.ts` |
+
+Ficam de fora desta tabela, sem rótulo próprio no front:
+- MT-4, MT-4b e MT-5 são regras da API (A38, A35 e A36).
+- MT-6 (o BFF chama a rota do visitante) está dentro do A27 da Fatia 14, em `prorrogacao-pix.spec.ts`.
+- FF-2 (o BARBEIRO não vê a página) está no A44 da Fatia 7, em `painel-acesso.test.tsx`; a parte da API é o A16 e o A44 desta spec.
+- FF-12 (o público vê só "Fechado") ainda não tem teste próprio de tela.
+- AF-1 a AF-9 e AF-14 são da agenda fluida, fora destes PRs.
 
 ## 6. Entregas
 

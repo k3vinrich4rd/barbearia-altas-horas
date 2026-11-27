@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Teste de shell do conferir-spec.sh: prova que o parser enxerga um critério sem teste (sai com erro),
-# aceita hífen no nome, os três tipos de aspas e as opções --ate e --exceto.
+# aceita hífen no nome, os três tipos de aspas, as opções --ate e --exceto e os rótulos de tela (MT/AF/FF).
 # Roda numa cópia temporária do repositório mínimo; não toca em nada do projeto.
 set -eu
 raiz="$(cd "$(dirname "$0")/.." && pwd)"
@@ -52,6 +52,12 @@ printf '| A1 | x | y | z | `bff-sessao` |\n| A2 | x | y | z | `inexistente` |\n'
 printf '| A1 | x | y | z | `antigo` · substituído pela Fatia 8 (A1) |\n' > "$t/docs/sdd/fatia-6-troca.md"
 printf '| A1 | x | y | z | `antigo` · substituído pela Fatia 8 (A2) |\n' > "$t/docs/sdd/fatia-5-troca.md"
 
+# critérios de tela (MT/AF/FF) e títulos com vários rótulos ("FF-3, FF-4 e FF-9: ...")
+printf 'test("A2 e A1: dois rotulos", () => {});\ntest("FF-3, FF-4 e FF-9: lista", () => {});\nit("AF-10 (E18): com parenteses", () => {});\ntest("MT-1 e MT-1b: com letra", () => {});\ntest("MT-4c: so a letra", () => {});\n' > "$t/frontend/src/varios-rotulos.test.tsx"
+printf '| A1 | x | y | z | `varios-rotulos.test.tsx` |\n| FF-4 | x | y | z | `varios-rotulos.test.tsx` |\n| FF-9 | x | y | z | `varios-rotulos.test.tsx` |\n| AF-10 | x | y | z | `varios-rotulos.test.tsx` |\n| MT-1b | x | y | z | `varios-rotulos.test.tsx` |\n' > "$t/docs/sdd/fatia-10-telas.md"
+printf '| FF-12 | x | y | z | `varios-rotulos.test.tsx` |\n' > "$t/docs/sdd/fatia-11-telas.md"
+printf '| MT-4 | x | y | z | `varios-rotulos.test.tsx` |\n' > "$t/docs/sdd/fatia-12-telas.md"
+
 falhas=0
 confere() { # descricao, codigo-esperado, comando...
   desc="$1"; esperado="$2"; shift 2
@@ -71,5 +77,9 @@ confere "--exceto pula faixa e número" 0 $c --exigir --exceto 10-16
 grep -q "Critérios: 3 · com teste: 3" "$t/saida.txt" || { echo "  FALHOU contagem do --exceto"; falhas=$((falhas + 1)); }
 confere "substituído por critério da outra fatia COM teste passa" 0 sh "$t/scripts/conferir-spec.sh" 6 --exigir
 confere "substituído por critério da outra fatia SEM teste derruba" 1 sh "$t/scripts/conferir-spec.sh" 5 --exigir
+confere "rótulos MT/AF/FF e título com vários rótulos são achados" 0 sh "$t/scripts/conferir-spec.sh" 10 --exigir
+grep -q "Critérios: 5 · com teste: 5" "$t/saida.txt" || { echo "  FALHOU contagem dos rótulos de tela"; falhas=$((falhas + 1)); }
+confere "rótulo de tela sem teste derruba (FF-12), e --exceto não o pula" 1 sh "$t/scripts/conferir-spec.sh" 11 --exigir --exceto 1-99
+confere "MT-4 não é achado dentro de MT-4c" 1 sh "$t/scripts/conferir-spec.sh" 12 --exigir
 confere "opção desconhecida é erro de uso" 2 $c --nada
 [ "$falhas" -eq 0 ] && echo "testar-conferir-spec: tudo certo" || { echo "testar-conferir-spec: $falhas falha(s)"; exit 1; }
