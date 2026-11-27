@@ -244,9 +244,13 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
                 {!expirada &&
                   prorrogacaoEnvio.erro &&
                   prorrogacaoEnvio.erro.code !== "PRORROGACAO_FORA_DA_JANELA" &&
-                  prorrogacaoEnvio.erro.code !== "RESERVA_EXPIRADA" && (
+                  prorrogacaoEnvio.erro.code !== "RESERVA_EXPIRADA" &&
+                  // O 11º pedido não é falha de quem paga: aviso (role=status), sem o prefixo "Erro:" e sem código de suporte.
+                  (prorrogacaoEnvio.erro.code === "PRORROGACAO_ESGOTADA" ? (
+                    <Aviso tipo="aviso">{MENSAGENS.PRORROGACAO_ESGOTADA}</Aviso>
+                  ) : (
                     <AvisoDeErro erro={prorrogacaoEnvio.erro} focar={false} />
-                  )}
+                  ))}
                 <h2 id="resumo-pagamento">Seu horário</h2>
                 <dl>
                   <dt>Serviço</dt>

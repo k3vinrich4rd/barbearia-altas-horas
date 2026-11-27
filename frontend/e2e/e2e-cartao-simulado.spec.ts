@@ -48,7 +48,7 @@ test("A63: o cartão simulado abre /pagamento-simulado/{cobrancaId} de verdade, 
   await expect(page.locator('input[autocomplete^="cc-"]')).toHaveCount(0);
   await page.getByRole("button", { name: ROTULO_CONFIRMAR }).click();
   await expect(page).toHaveURL(new RegExp(`/agendar/confirmacao/${reservaId}`), { timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agendado! Seu horário está garantido." })).toBeVisible();
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
 });
