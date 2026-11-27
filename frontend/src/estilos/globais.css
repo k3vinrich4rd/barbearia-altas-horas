@@ -862,36 +862,55 @@ dd {
   align-items: center;
 }
 
-.fatos {
+/* Herói enxuto (Fatia 16, F3): sem foto e sem fatos. No computador, o selo do logo ocupa a segunda coluna. */
+.selo-heroi {
+  display: none;
+}
+
+/* "Como marcar" (Fatia 16, F3): os Três jeitos empilhados no celular e lado a lado no computador */
+.tres-jeitos {
   list-style: none;
-  padding: 0;
   margin: var(--space-6) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.tres-jeitos > li {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
 }
 
-.fatos li {
-  display: grid;
-  border-inline-start: var(--traco-3) solid var(--texto);
-  padding-inline-start: var(--space-3);
-}
-
-/* Faixa "Como funciona" do herói (Fatia 12): três passos de uma linha, sob o herói */
-.faixa-passos {
-  grid-column: 1 / -1;
-  list-style: none;
-  margin: 0;
-  padding: var(--space-4);
-  display: grid;
+.jeito {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  border: var(--traco-1) solid var(--borda);
-  border-radius: var(--radius-md);
-  background: var(--superficie);
+  width: 100%;
 }
 
-.faixa-passos li {
-  display: grid;
+.jeito p,
+.jeito h3 {
+  margin: 0;
+}
+
+.jeito-principal {
+  border-color: var(--borda-forte);
+}
+
+.jeito-acoes {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.antes-de-pagar {
+  margin-top: var(--space-12);
+}
+
+.antes-de-pagar h3 {
+  margin: 0 0 var(--space-2);
 }
 
 /* Bloco do barbeiro */
@@ -1080,8 +1099,7 @@ dd {
 }
 
 .retrato img,
-.foto-inteira img,
-.foto-fachada img {
+.foto-inteira img {
   display: block;
   width: 100%;
   height: auto;
@@ -1103,7 +1121,6 @@ dd {
   padding: var(--space-3);
 }
 
-.foto-fachada,
 .retrato {
   margin: 0;
 }
@@ -1305,7 +1322,6 @@ ul {
 }
 
 .lista,
-.fatos,
 .grade-fotos,
 .grade-servicos,
 .passos,
@@ -1491,7 +1507,7 @@ caption {
     inset-inline: auto;
   }
 
-  .faixa-passos {
+  .tres-jeitos {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -1523,6 +1539,29 @@ caption {
 
   .heroi {
     grid-template-columns: 1.2fr 1fr;
+  }
+
+  .selo-heroi {
+    display: block;
+    justify-self: end;
+    width: min(calc(var(--space-16) * 5), 100%);
+    aspect-ratio: 1;
+    padding: var(--space-6);
+    border: var(--traco-1) solid var(--borda-forte);
+    border-radius: 50%;
+  }
+
+  .selo-heroi img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
+
+  .antes-de-pagar {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--space-12);
   }
 
   .duas-colunas {
