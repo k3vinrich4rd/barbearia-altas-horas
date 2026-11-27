@@ -6,10 +6,20 @@ import { Icone } from "./Icone";
 
 export type BarbeiroComWhatsapp = components["schemas"]["BarbeiroPublico"];
 
-export function linkDoWhatsapp(numero: string): string | undefined {
+export function linkDoWhatsapp(numero: string, texto?: string): string | undefined {
   const digitos = numero.replace(/\D/g, "");
   if (digitos.length < 10 || digitos.length > 13) return undefined;
-  return `https://wa.me/${digitos.length <= 11 ? "55" + digitos : digitos}`;
+  const base = `https://wa.me/${digitos.length <= 11 ? "55" + digitos : digitos}`;
+  return texto ? `${base}?text=${encodeURIComponent(texto)}` : base;
+}
+
+/** "na sexta" / "no sábado" / "no domingo", para a mensagem pronta do pedido de horário. */
+export function preposicaoDoDia(diaDaSemana: string): "na" | "no" {
+  const dia = diaDaSemana
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return dia.startsWith("sabado") || dia.startsWith("domingo") ? "no" : "na";
 }
 
 export function ContatoWhatsapp({ barbeiro }: { barbeiro?: { nomeExibicao: string; whatsapp?: string | null } }) {
