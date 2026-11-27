@@ -900,6 +900,23 @@ dd {
   border-color: var(--borda-forte);
 }
 
+/* Cartão 1 de "Como marcar" (A29): os dois rótulos na mesma célula; o botão fica do tamanho do maior (sem CLS) */
+.rotulos-alternados {
+  display: inline-grid;
+}
+
+.rotulos-alternados > * {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.rotulo-reserva {
+  visibility: hidden;
+}
+
 .jeito-acoes {
   margin-top: auto;
   padding-top: var(--space-2);
