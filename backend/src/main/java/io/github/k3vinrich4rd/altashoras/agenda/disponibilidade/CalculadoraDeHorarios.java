@@ -27,8 +27,15 @@ public final class CalculadoraDeHorarios {
     public record Turno(LocalTime inicio, LocalTime fim) {
     }
 
-    /** Um período em que o barbeiro não pode atender: [inicio, fim), meio aberto. */
-    public record Bloqueio(Instant inicio, Instant fim) {
+    /**
+     * Um período em que o barbeiro não pode atender: [inicio, fim), meio aberto. {@code folga} diz se veio de uma folga
+     * ou férias (o expediente do dia usa isso, E18); para a conta dos horários, folga e reserva bloqueiam igual.
+     */
+    public record Bloqueio(Instant inicio, Instant fim, boolean folga) {
+
+        public Bloqueio(Instant inicio, Instant fim) {
+            this(inicio, fim, false);
+        }
     }
 
     /** As regras configuráveis (configuracao_agenda), em minutos. */
