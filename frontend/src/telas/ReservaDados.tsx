@@ -12,6 +12,7 @@ import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao, LinkBotao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
 import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
+import { IndicadorDePassos } from "@/componentes/IndicadorDePassos";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { useSessao } from "@/componentes/Sessao";
 import { TEXTOS } from "@/conteudo/textos";
@@ -51,6 +52,7 @@ export function ReservaDados() {
   if (!servicoId || !barbeiroId || !inicio) {
     return (
       <>
+        <IndicadorDePassos passoAtual={1} />
         <h1>Seus dados</h1>
         <p>Escolha o serviço e o horário primeiro.</p>
         <LinkBotao href="/agendar">Escolher horário</LinkBotao>
@@ -122,6 +124,7 @@ export function ReservaDados() {
 
   return (
     <>
+      <IndicadorDePassos passoAtual={1} />
       <h1>Seus dados</h1>
 
       <div className="resumo-fixo-espaco" aria-hidden="true" />

@@ -20,6 +20,7 @@ import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
 import { ContatoWhatsapp } from "@/componentes/ContatoWhatsapp";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
+import { IndicadorDePassos } from "@/componentes/IndicadorDePassos";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { TEXTOS } from "@/conteudo/textos";
 
@@ -209,6 +210,7 @@ export function Agendar() {
 
   return (
     <>
+      <IndicadorDePassos passoAtual={1} />
       <p className="sobretitulo">Agenda · Eduardo Candido</p>
       <h1>Agende seu horário</h1>
       {proximoLivre && (
