@@ -57,6 +57,10 @@ export interface paths {
          *     frente). `data` anterior a hoje, no fuso da barbearia: `422 ANTECEDENCIA_INSUFICIENTE` ("o horário já passou");
          *     qualquer data de hoje em diante é aceita. Serviço inativo: 422 SERVICO_INATIVO. Serviço ou barbeiro
          *     inexistente (ou barbeiro inativo): 404. Resposta com Cache-Control no-store.
+         *     Desde a 1.12.0 (ADR 0015) cada barbeiro traz também o `expediente` do dia, para a tela mostrar "fechado" em vez de
+         *     "sem horário": `aberto: false` com `motivoFechado` `FORA_DO_EXPEDIENTE` (a jornada não tem intervalo neste dia da
+         *     semana), `FOLGA` ou `FERIAS` (uma folga ou férias cobre o expediente inteiro do dia). Folga que cobre só parte do dia
+         *     não aparece: o dia continua `aberto` e só os horários somem. O `motivo` da folga nunca é exposto.
          */
         get: operations["consultarDisponibilidade"];
         put?: never;
@@ -926,12 +930,39 @@ export interface paths {
         get: operations["listarFolgas"];
         put?: never;
         /**
-         * Cria folga
+         * Cria folga ou férias (tipo FOLGA ou FERIAS)
          * @description Só ADMIN. Período meio aberto [inicio, fim): `fim` depois de `inicio` e não toda no passado (`400`); `motivo` até 200 caracteres.
-         *     Com reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) no período: `422 FOLGA_COM_RESERVAS`.
-         *     Folga e reserva simultâneas nunca passam juntas: a transação trava a linha do barbeiro.
+         *     `tipo` (1.12.0, ADR 0015) é `FOLGA` (padrão) ou `FERIAS`; os dois bloqueiam a agenda do mesmo jeito.
+         *     Com reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) no período: `422 FOLGA_COM_RESERVAS`, nada
+         *     gravado, e desde a 1.12.0 o corpo traz a extensão `conflitos[]`. Com `manterReservas: true` o período é gravado mesmo
+         *     assim: as reservas **continuam como estão** (nada é cancelado sozinho; cancelar continua sendo uma ação do ADMIN, uma a
+         *     uma), os horários novos no período ficam bloqueados e a resposta lista as mantidas em `reservasMantidas[]`.
+         *     Folga e reserva simultâneas nunca passam juntas: a transação trava a linha do barbeiro. Auditoria `FOLGA_CRIADA` na mesma transação.
          */
         post: operations["criarFolga"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/barbeiros/{id}/folgas/conflitos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Prévia dos agendamentos ativos que um período de folga ou férias atingiria
+         * @description 1.12.0 (ADR 0015). Só ADMIN. Só lê: não grava nem trava nada (quem decide é o `POST` ou o `PUT`, que relê dentro da
+         *     trava). Lista as reservas ativas do barbeiro (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) que se sobrepõem a
+         *     [inicio, fim), em ordem de início; encostar não é conflito. Lista vazia = sem conflito. Período inválido (`fim` não
+         *     depois de `inicio`, ou todo no passado): `400`. Barbeiro inexistente: `404`. Sem e-mail, CPF, WhatsApp nem observação.
+         */
+        get: operations["listarConflitosDaFolga"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -946,9 +977,20 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Edita folga ou férias (substitui início, fim, motivo e tipo)
+         * @description 1.12.0 (ADR 0015). Só ADMIN. Substitui o período inteiro, com as mesmas validações e a mesma trava do `POST`: `fim`
+         *     depois de `inicio` e não todo no passado (`400`); conflito com reserva ativa no período novo é
+         *     `422 FOLGA_COM_RESERVAS` com `conflitos[]`, a folga continua como era; com `manterReservas: true` grava e lista as
+         *     mantidas. Folga de outro barbeiro ou inexistente: `404`. Sem controle de versão (um único dono; a última gravação
+         *     vale). Auditoria `FOLGA_ALTERADA` na mesma transação.
+         */
+        put: operations["alterarFolga"];
         post?: never;
-        /** Remove folga */
+        /**
+         * Remove folga ou férias
+         * @description Só ADMIN. Libera os horários (sem trava: remover nunca cria conflito). Folga de outro barbeiro ou inexistente: `404`. Auditoria `FOLGA_REMOVIDA`.
+         */
         delete: operations["removerFolga"];
         options?: never;
         head?: never;
@@ -1259,6 +1301,8 @@ export interface components {
                 field: string;
                 message: string;
             }[];
+            /** @description 1.12.0 (ADR 0015): só no `422 FOLGA_COM_RESERVAS`, as reservas ativas que impedem gravar o período */
+            conflitos?: components["schemas"]["ConflitoDeFolga"][];
         };
         /**
          * @description `FORA_DO_HORIZONTE` está **deprecated** desde a 1.11.0 (D197): a API não o devolve mais, e o nome fica no enum para o front
@@ -1389,16 +1433,68 @@ export interface components {
             /** @example 19:00 */
             horaFim: string;
         };
+        /**
+         * @description 1.12.0 (ADR 0015): só um rótulo para o painel; os dois bloqueiam a agenda do mesmo jeito
+         * @enum {string}
+         */
+        TipoFolga: "FOLGA" | "FERIAS";
         FolgaRequest: {
             /** Format: date-time */
             inicio: string;
             /** Format: date-time */
             fim: string;
+            /** @description pode ser pessoal: nunca vai para log nem auditoria (R30) */
             motivo?: string;
+            /** @description 1.12.0: opcional; sem o campo, a API grava `FOLGA` (sem `default` no schema para o cliente gerado não exigir o campo) */
+            tipo?: components["schemas"]["TipoFolga"];
+            /**
+             * @description 1.12.0 (ADR 0015): opcional; sem o campo, `false`. `true` grava o período mesmo com reservas ativas nele; elas continuam como estão (nada é
+             *     cancelado sozinho) e voltam em `reservasMantidas`. Nunca é guardado.
+             */
+            manterReservas?: boolean;
         };
-        Folga: components["schemas"]["FolgaRequest"] & {
+        Folga: {
             /** Format: uuid */
             id: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fim: string;
+            motivo?: string;
+            tipo: components["schemas"]["TipoFolga"];
+            /**
+             * Format: date-time
+             * @description 1.12.0: nulo até a primeira edição
+             */
+            atualizadaEm?: string | null;
+        };
+        /** @description Resposta do `POST` e do `PUT` de folga (1.12.0) */
+        FolgaSalva: components["schemas"]["Folga"] & {
+            /** @description reservas ativas que ficaram dentro do período por `manterReservas: true`; vazio quando não houve conflito */
+            reservasMantidas: components["schemas"]["ConflitoDeFolga"][];
+        };
+        /**
+         * @description 1.12.0 (ADR 0015). Reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) que se sobrepõe a um período
+         *     de folga ou férias. Só para o ADMIN; sem e-mail, CPF, WhatsApp nem observação; nunca vai para o log (R30).
+         */
+        ConflitoDeFolga: {
+            /** Format: uuid */
+            reservaId: string;
+            /** Format: date-time */
+            inicio: string;
+            /** Format: date-time */
+            fim: string;
+            servico: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+            /** @description nome de exibição; `Sem nome` na reserva manual sem nome ou já anonimizada */
+            clienteNome: string;
+            /** @enum {string} */
+            origem: "CLIENTE" | "GUEST" | "MANUAL";
+            /** @enum {string} */
+            status: "CONFIRMADO" | "AGUARDANDO_PAGAMENTO";
         };
         Disponibilidade: {
             /** Format: date */
@@ -1414,7 +1510,37 @@ export interface components {
                 nomeExibicao: string;
                 /** @description inícios livres em ordem crescente, sempre com segundos e offset; vazio quando não há horário */
                 horarios: string[];
+                expediente?: components["schemas"]["ExpedienteDoDia"];
             }[];
+        };
+        /**
+         * @description 1.12.0 (ADR 0015). O expediente do barbeiro no dia consultado, tirado da jornada semanal e das folgas. Sempre enviado
+         *     desde a 1.12.0 (opcional no schema só para não quebrar quem lê a 1.11.0). Datas com segundos e offset, no fuso da
+         *     barbearia, como `horarios`. Fechado (`aberto: false`): `inicio`, `fim` e `almoco` são `null`. Folga que cobre só
+         *     parte do dia não fecha o dia. O texto do `motivo` da folga nunca aparece aqui.
+         */
+        ExpedienteDoDia: {
+            /** @description false: fora do expediente, ou folga ou férias cobrindo o expediente inteiro do dia */
+            aberto: boolean;
+            /** @description `null` quando aberto. Com folga e férias no mesmo dia, vale `FERIAS` */
+            motivoFechado: ("FORA_DO_EXPEDIENTE" | "FOLGA" | "FERIAS") | null;
+            /**
+             * Format: date-time
+             * @description início do primeiro intervalo da jornada no dia
+             */
+            inicio: string | null;
+            /**
+             * Format: date-time
+             * @description fim do último intervalo da jornada no dia
+             */
+            fim: string | null;
+            /** @description o vão entre os dois primeiros intervalos da jornada no dia; `null` com um intervalo só, ou fechado */
+            almoco: {
+                /** Format: date-time */
+                inicio: string;
+                /** Format: date-time */
+                fim: string;
+            } | null;
         };
         Endereco: {
             cep: string;
@@ -2251,6 +2377,21 @@ export interface components {
         /** @description Regra de negócio: o pedido está bem formado, mas a regra não deixa. */
         Erro422: {
             headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problema"];
+            };
+        };
+        /**
+         * @description Regra de negócio. Na folga (1.12.0, ADR 0015): `FOLGA_COM_RESERVAS` traz a extensão `conflitos[]` com as reservas ativas
+         *     do período; nada é gravado. Para gravar mesmo assim, o painel repete com `manterReservas: true`. Corpo com
+         *     `Cache-Control: no-store`; a extensão nunca vai para o log (R30).
+         */
+        Erro422FolgaComReservas: {
+            headers: {
+                /** @example no-store */
+                "Cache-Control"?: string;
                 [name: string]: unknown;
             };
             content: {
@@ -3553,7 +3694,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Folga criada */
+            /** @description Folga criada (com `reservasMantidas` vazio, ou com as reservas mantidas por `manterReservas`) */
             201: {
                 headers: {
                     /** @description /admin/barbeiros/{id}/folgas/{folgaId} */
@@ -3561,14 +3702,79 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Folga"];
+                    "application/json": components["schemas"]["FolgaSalva"];
                 };
             };
             400: components["responses"]["Erro400"];
             401: components["responses"]["Erro401"];
             403: components["responses"]["Erro403"];
             404: components["responses"]["Erro404"];
-            422: components["responses"]["Erro422"];
+            422: components["responses"]["Erro422FolgaComReservas"];
+        };
+    };
+    listarConflitosDaFolga: {
+        parameters: {
+            query: {
+                /** @example 2026-12-21T00:00:00-03:00 */
+                inicio: string;
+                /** @example 2027-01-03T00:00:00-03:00 */
+                fim: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reservas ativas no período (vazio quando não há) */
+            200: {
+                headers: {
+                    /** @example no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflitoDeFolga"][];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+        };
+    };
+    alterarFolga: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+                folgaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolgaRequest"];
+            };
+        };
+        responses: {
+            /** @description Folga alterada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolgaSalva"];
+                };
+            };
+            400: components["responses"]["Erro400"];
+            401: components["responses"]["Erro401"];
+            403: components["responses"]["Erro403"];
+            404: components["responses"]["Erro404"];
+            422: components["responses"]["Erro422FolgaComReservas"];
         };
     };
     removerFolga: {
