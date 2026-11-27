@@ -146,9 +146,11 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 - **`PATCH` com JSON Merge Patch:** descartado. O formulário sempre manda tudo, e o painel já usa `PUT`.
 - **Criar uma trava de "data máxima" para evitar abuso:** descartado. Cada consulta já cobre um dia só, e o Kevin pediu agenda sem limite.
 
-## Perguntas para o Kevin
+## Padrão vigente (D216) até resposta do dono
 
-1. Com `manterReservas`, a reserva ainda `AGUARDANDO_PAGAMENTO` dentro das férias deve poder ser paga e confirmada (proposta deste ADR) ou deve deixar de aceitar pagamento?
-2. O barbeiro terceiro (`BARBEIRO`) continua sem cadastrar as próprias folgas (H27), ou ele pode pedir folga pelo painel para o dono aprovar? A proposta é manter a H27.
-3. O cliente que já tem horário dentro das férias deve ser avisado automaticamente no futuro? Hoje a proposta é o dono avisar pelo WhatsApp.
-4. Mostrar "Restam N pedidos." abaixo do botão de mais tempo? É decisão de tela; o contrato já traz o `restantes`.
+Estas perguntas deixaram de ser abertas em 27/11/2026. Cada resposta abaixo vale como **padrão vigente (D216) até resposta do dono**, conforme a [D216](../planejamento/decisoes.md). Se o dono responder diferente, a mudança vira uma nova decisão.
+
+1. Com `manterReservas`, a reserva ainda `AGUARDANDO_PAGAMENTO` dentro das férias **pode ser paga e confirmada** no prazo (a proposta deste ADR). Padrão vigente (D216) até resposta do dono.
+2. O barbeiro terceiro (`BARBEIRO`) **continua sem cadastrar** as próprias folgas: só o ADMIN cadastra, edita e remove (H27). Padrão vigente (D216) até resposta do dono.
+3. **Sem aviso automático** ao cliente que já tem horário dentro das férias: o dono avisa pelo WhatsApp. Padrão vigente (D216) até resposta do dono.
+4. A tela de pagamento mostra **"Restam N pedidos."** ("Resta 1 pedido."), discreto, a partir do 1º pedido de mais tempo, com N = `restantes`. Padrão vigente (D216) até resposta do dono.

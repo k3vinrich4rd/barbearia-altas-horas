@@ -105,7 +105,7 @@ Exemplo do `422` (dados fictícios):
 | E3 | O que é conflito? | reserva **ativa** do barbeiro que se sobrepõe a `[inicio, fim)`: `CONFIRMADO`, ou `AGUARDANDO_PAGAMENTO` com prazo aberto | a mesma definição de hoje (R15) e da disponibilidade; encostar não é conflito (R2) |
 | E4 | Com conflito, o que acontece? | padrão: `422 FOLGA_COM_RESERVAS` com `conflitos[]` e nada gravado. Com `manterReservas: true`: grava, mantém as reservas e devolve `reservasMantidas[]` | o Kevin pediu: avisar e listar, nunca cancelar sozinho |
 | E5 | E as reservas mantidas? | **continuam** e acontecem. Só o `ADMIN` cancela, uma a uma, pelos caminhos que já existem | cancelar reserva paga gera devolução; decisão do dono |
-| E6 | Reserva mantida ainda `AGUARDANDO_PAGAMENTO` pode ser paga? | **sim**, dentro do prazo vira `CONFIRMADO` normalmente | o dono escolheu mantê-la (pergunta 1 da seção 8) |
+| E6 | Reserva mantida ainda `AGUARDANDO_PAGAMENTO` pode ser paga? | **sim**, dentro do prazo vira `CONFIRMADO` normalmente | o dono escolheu mantê-la (item 1 da seção 8, padrão vigente D216) |
 | E7 | Reserva já `EXPIRADO` paga depois, dentro de uma folga? | **não** reconfirma: `confirmarPagamento` trava o barbeiro com `FOR SHARE`, confere a folga e responde `HORARIO_OCUPADO`; a cobrança vira `PAGA_APOS_EXPIRACAO` (pendência do painel) | fecha uma lacuna que já existe hoje (`Reservas.java:148-171`): a constraint não enxerga folgas |
 | E8 | Quem gerencia folgas? | **só `ADMIN`**. `BARBEIRO` recebe `403` pela rota `/admin/barbeiros/**`; ele vê as próprias folgas na agenda | H27 e ADR 0013; contrato de hoje |
 | E9 | `{folgaId}` de outro barbeiro? | `404` | R23; o `DELETE` de hoje já filtra por `barbeiro_id` |
@@ -144,7 +144,7 @@ Barbeiro Eduardo (`b…01`), jornada de terça a sábado das 07:00 às 20:00, al
 | A11 | as reservas do A8 | `POST /folgas` com `manterReservas: true` | `201` com `reservasMantidas` (as 2); as 2 reservas continuam com o mesmo status; a disponibilidade não mostra nenhum horário no período; a auditoria guarda a quantidade (2) e os ids, sem nome nem motivo | `ManterReservasIT` |
 | A12 | o A11 feito | uma reserva nova no período (cliente, visitante, manual) | `422 FORA_DO_EXPEDIENTE` | `ManterReservasIT` |
 | A13 | o A11 feito; a reserva `AGUARDANDO_PAGAMENTO` é paga dentro do prazo | webhook de pagamento | a reserva vira `CONFIRMADO` (E6) | `ManterReservasIT` |
-| A14 | reserva `EXPIRADO` às 22/12 15:00 e depois uma folga que cobre o horário | pagamento tardio da reserva | a reserva **continua** `EXPIRADO`; a cobrança vira `PAGA_APOS_EXPIRACAO` e aparece nas pendências (E7) | `PagamentoTardioEmFolgaIT` |
+| A14 | reserva `EXPIRADO` às 22/12 15:00, **ou ainda `AGUARDANDO_PAGAMENTO` com o prazo vencido** (o job de expiração não passou), e depois uma folga que cobre o horário | pagamento tardio da reserva | a reserva **não** volta a `CONFIRMADO` (continua no status em que estava); a cobrança vira `PAGA_APOS_EXPIRACAO` e aparece nas pendências (E7, D217). Controle: com a folga só encostando no horário (meio aberto, R2), reconfirma como no R14 | `PagamentoTardioEmFolgaIT` |
 | A15 | outro barbeiro (`b…02`) com folga `F2` | `PUT` e `DELETE /admin/barbeiros/b…01/folgas/F2` | `404` nos dois, `F2` intacta | `FolgaBolaIT` |
 | A16 | conta `BARBEIRO` vinculada ao Eduardo | `GET`, `POST`, `PUT`, `DELETE /folgas` e `GET /folgas/conflitos` do próprio Eduardo | `403 ACESSO_NEGADO` em todas (H27) | `FolgaBolaIT` |
 | A17 | barbeiro inexistente | `GET /folgas/conflitos` | `404` | `ConflitosDeFolgaIT` |
@@ -155,7 +155,7 @@ Barbeiro Eduardo (`b…01`), jornada de terça a sábado das 07:00 às 20:00, al
 | A22 | hoje 01/12/2026 | `GET /disponibilidade?data=2028-01-05` e reserva de cliente para 05/01/2028 10:00 | `200` com horários e `201`; nenhuma data futura é recusada (D197) | `AgendaSemLimiteIT` |
 | A23 | hoje 01/12/2026 | `GET /disponibilidade?data=2026-11-30` | `422 ANTECEDENCIA_INSUFICIENTE` (não muda) | `AgendaSemLimiteIT` |
 | A24 | folga com `motivo` "consulta médica" e reservas mantidas | criar, editar e remover | nem o motivo nem o nome de cliente aparecem no log nem na auditoria | `SemDadoPessoalNoLogIT` |
-| A25 | contrato | `redocly lint` e `ContratoExemplosDeErroTest` | 0 erros; o exemplo do `422 FOLGA_COM_RESERVAS` com `conflitos` bate com o enum; versão `1.12.0` | CI |
+| A25 | contrato | `redocly lint` e `ContratoExemplosDeErroTest` | 0 erros; o exemplo do `422 FOLGA_COM_RESERVAS` com `conflitos` bate com o enum; versão `1.12.x` | `ContratoExemplosDeErroTest` |
 | A26 | jornada de terça a sábado | `GET /disponibilidade` para dom 06/12 e seg 07/12 | `200`; `horarios: []`; `expediente` = `{ aberto: false, motivoFechado: FORA_DO_EXPEDIENTE, inicio: null, fim: null, almoco: null }` nos dois dias | `ExpedienteDisponibilidadeIT` |
 | A27 | terça 08/12 sem folga | `GET /disponibilidade?data=2026-12-08` | `expediente.aberto: true`, `motivoFechado: null`, `inicio` 07:00, `fim` 20:00 e `almoco` `{ inicio: 12:00, fim: 13:00 }`, todos com `-03:00` | `ExpedienteDisponibilidadeIT` |
 | A28 | jornada de terça com um intervalo só (07:00–20:00) | `GET /disponibilidade` de uma terça | `almoco: null`; `inicio` 07:00, `fim` 20:00 | `ExpedienteDisponibilidadeIT` |
@@ -173,7 +173,7 @@ Barbeiro Eduardo (`b…01`), jornada de terça a sábado das 07:00 às 20:00, al
 | A40 | dois pedidos sem chave ao mesmo tempo no último minuto (50 repetições) | `POST /prorrogacao` em paralelo | em toda repetição: um `201` e um `422 PRORROGACAO_FORA_DA_JANELA`; `usadas` sobe 1 e `expiraEm` ganha 120 s uma vez só | `ConcorrenciaProrrogacaoIT` |
 | A41 | `expiracaoPagamentoMin` 3, `prorrogacao-pagamento` PT2M, `prorrogacao-maximo` 10 | `POST /pagamentos/cobrancas` (Pix) | o gateway recebe a validade de **23 min** depois do início do prazo da reserva; com as propriedades trocadas (ex.: PT1M e 5) a validade muda junto (8 min), sem número fixo no código; o copia e cola não muda depois de um pedido de mais tempo | `CobrancaValidadeIT` |
 | A42 | reserva expirada depois de 3 pedidos | o Pix é pago depois do `expiraEm` | reconfirma se o horário estiver livre, ou a cobrança vira `PAGA_APOS_EXPIRACAO` (o fluxo de hoje, R14) | `PagamentoTardioIT` |
-| A43 | contrato | `ContratoExemplosDeErroTest` | `PRORROGACAO_ESGOTADA` está no enum do Java e do contrato, com o exemplo (422, "Prorrogações esgotadas") e a linha na tabela de erros | CI |
+| A43 | contrato | `ContratoExemplosDeErroTest` | `PRORROGACAO_ESGOTADA` está no enum do Java e do contrato, com o exemplo (422, "Prorrogações esgotadas") e a linha na tabela de erros | `ContratoExemplosDeErroTest` |
 
 **Telas (UX especifica depois da aprovação):** na agenda do cliente, dia com `aberto: false` mostra só "Fechado" em vez de "Sem horário", e dia aberto mostra o expediente e o almoço. No pagamento, o botão "Acrescentar 2 minutos" aparece no último minuto enquanto `restantes > 0` e manda uma `X-Idempotency-Key` nova a cada toque (a mesma só na repetição automática). No painel, o formulário de folga pede início, fim, tipo e motivo; **assim que o dono escolhe as datas, antes de salvar**, chama a prévia `GET /folgas/conflitos` e mostra quem está marcado (E24); o `422 FOLGA_COM_RESERVAS` com a lista só aparece se alguém marcar entre a prévia e o salvar (rede de segurança contra corrida), e a tela mostra a lista que vem no problema; "Salvar e manter os agendamentos" envia `manterReservas: true`; depois de salvar, lista as reservas mantidas com o atalho para cada uma. Os critérios de tela entram na spec de UX.
 
@@ -198,12 +198,14 @@ Barbeiro Eduardo (`b…01`), jornada de terça a sábado das 07:00 às 20:00, al
 - **Rota literal ao lado de rota com id.** `/folgas/conflitos` e `/folgas/{folgaId}`: no Spring a rota literal ganha. Não existe `GET /folgas/{folgaId}`.
 - **Dado pessoal no erro.** `clienteNome` só para `ADMIN`, sem log (R30).
 
-## 8. Perguntas para o Kevin
+## 8. Padrão vigente (D216) até resposta do dono
 
-1. Com `manterReservas`, a reserva ainda aguardando pagamento dentro das férias pode ser paga e confirmada (proposta) ou deve deixar de aceitar pagamento?
-2. O barbeiro terceiro continua sem cadastrar as próprias folgas (H27, proposta) ou pode pedir para o dono aprovar?
-3. O cliente com horário dentro das férias deve ser avisado automaticamente no futuro? Hoje a proposta é o dono avisar pelo WhatsApp.
-4. Mostrar "Restam N pedidos." abaixo do botão de mais tempo? (decisão de tela; o contrato já traz `restantes`)
+Estas perguntas deixaram de ser abertas em 27/11/2026. Cada uma vale como **padrão vigente (D216) até resposta do dono**, conforme a [D216](../planejamento/decisoes.md). Se o dono responder diferente, a mudança vira uma nova decisão.
+
+1. Com `manterReservas`, a reserva ainda aguardando pagamento dentro das férias **pode ser paga e confirmada** no prazo (E6). Padrão vigente (D216) até resposta do dono.
+2. **Só o ADMIN** cadastra, edita e remove folgas; o barbeiro terceiro não cadastra as próprias (H27, E8). Padrão vigente (D216) até resposta do dono.
+3. **Sem aviso automático** ao cliente com horário dentro das férias: o dono avisa pelo WhatsApp. Padrão vigente (D216) até resposta do dono.
+4. A tela de pagamento mostra **"Restam N pedidos."** ("Resta 1 pedido."), discreto, a partir do 1º pedido de mais tempo, com N = `prorrogacao.restantes`. Padrão vigente (D216) até resposta do dono.
 
 ## 9. Pronto quando
 
