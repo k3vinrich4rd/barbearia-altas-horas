@@ -328,7 +328,7 @@ Reserva de cliente criada às **10:00:00** de ter 01/12/2026 (horário 15:00), `
 | A36 | o catálogo | procuro número de regra configurável (`\d+ (hora|horas|dia|dias|minuto|minutos)`) | nenhum (só o `{n}` do `LIMITE_EXCEDIDO`) | `mensagens-voz.test.ts` |
 | A37 | os 20 textos da seção 5 e os "também revistos" | comparo com a tabela aprovada | iguais, palavra por palavra | `mensagens-voz.test.ts` |
 | A38 | todo `code` do `CodigoErro` do contrato 1.11.0 | procuro no catálogo | todos têm texto próprio (inclusive `PRORROGACAO_FORA_DA_JANELA`) | `mensagens-voz.test.ts` |
-| A39 | a home | leio a Trajetória e o bloco do barbeiro | os textos são os da seção 6.2; cada ano, nome e prêmio citado está na tabela 6.1 | `trajetoria-texto.test.tsx` |
+| A39 | a home | leio a Trajetória e o bloco do barbeiro | os textos são os de `docs/sdd/historia-v3-aprovada.txt`; cada ano, nome e prêmio citado está na tabela 6.1 | `trajetoria-texto.test.tsx` |
 
 ### 14C · Agenda nova do painel
 
