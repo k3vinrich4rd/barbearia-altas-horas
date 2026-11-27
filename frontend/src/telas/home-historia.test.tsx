@@ -138,8 +138,9 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     );
     const { user } = renderizar(<Trajetoria />);
     await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
-    await waitFor(() => expect(screen.getByRole("status")).not.toHaveTextContent("Carregando o áudio…"));
-    expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument(),
+    );
     expect(screen.getByRole("status")).not.toHaveTextContent("Não deu para carregar o áudio");
   });
 
@@ -193,6 +194,33 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     expect(audio.src).toContain("/assets/audio/historia.mp3");
     expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Carregando o áudio…");
+  });
+
+  test("se Opus e MP3 falham, o status é o fallback e o pause do erro não vira Leitura parada", async () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    const { user, container } = renderizar(<Trajetoria />);
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    const audio = container.querySelector("audio")!;
+    Object.defineProperty(audio, "currentSrc", {
+      configurable: true,
+      get: () => "http://localhost/assets/audio/historia.opus",
+    });
+    act(() => {
+      fireEvent(audio, new Event("error"));
+    });
+    Object.defineProperty(audio, "currentSrc", {
+      configurable: true,
+      get: () => "http://localhost/assets/audio/historia.mp3",
+    });
+    Object.defineProperty(audio, "error", { configurable: true, get: () => ({ code: 2 }) });
+    act(() => {
+      fireEvent(audio, new Event("error"));
+      fireEvent(audio, new Event("pause"));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+    expect(screen.getByRole("button", { name: "Ler com a voz do aparelho" })).toBeInTheDocument();
   });
 
   test("as dúvidas são <details> nativos (abrem sem JavaScript), uma pergunta por item", async () => {
