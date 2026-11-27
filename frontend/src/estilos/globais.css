@@ -388,6 +388,15 @@ hr {
   align-items: center;
 }
 
+.aviso-atraso-acao {
+  min-height: var(--space-12);
+  margin-top: var(--space-3);
+}
+
+.aviso-atraso-acao .botao {
+  justify-content: flex-start;
+}
+
 .reserva-whatsapp {
   display: grid;
   gap: var(--space-3);
