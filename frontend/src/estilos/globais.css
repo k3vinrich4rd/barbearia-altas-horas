@@ -970,11 +970,19 @@ dd {
 }
 
 /* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
-/* A seção recorta; a tira tem largura própria (contain), para os 7 chips rolarem dentro dela. */
+/* A seção e a caixa recortam; os 7 chips rolam só dentro da tira, sem entrar no scrollWidth da página (RF-7). */
 section[aria-labelledby="passo-dia"] {
   min-width: 0;
   max-width: 100%;
   overflow-x: clip;
+}
+
+.dias-tira-caixa {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  contain: inline-size paint;
 }
 
 .dias-tira {
@@ -986,9 +994,6 @@ section[aria-labelledby="passo-dia"] {
   min-width: 0;
   width: 100%;
   max-width: 100%;
-  /* Com zoom de 200%, o recorte do ancestral não basta: a min-content da tira (notas "livre"/"Fechado")
-   * ainda entra no scrollWidth do documento (638). A largura da tira não depende dos chips. */
-  contain: inline-size;
 }
 
 .dia-chip {

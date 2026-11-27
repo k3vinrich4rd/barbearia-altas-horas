@@ -302,7 +302,8 @@ export function Agendar() {
 
       <section aria-labelledby="passo-dia">
         <h2 id="passo-dia">{unico || !barbeiros.dados ? "2" : "3"} · Dia</h2>
-        <div role="group" aria-label="Próximos dias" className="dias-tira">
+        <div className="dias-tira-caixa">
+          <div role="group" aria-label="Próximos dias" className="dias-tira">
           {tira.map((dia) => {
             const resumo = semana?.[dia];
             if (resumo?.fechado)
@@ -341,6 +342,7 @@ export function Agendar() {
               </button>
             );
           })}
+          </div>
         </div>
         <div className="campo">
           <label htmlFor="data">Outro dia</label>
