@@ -28,7 +28,8 @@ test("FF-3, FF-4, FF-9 e FF-10: o ADMIN marca uma folga num dia com cliente, vê
   await expect(
     page.getByRole("navigation", { name: "Painel" }).getByRole("link", { name: "Férias e folgas" }),
   ).toHaveAttribute("href", "/painel/folgas");
-  await page.goto("/painel/folgas");
+  // Outros testes cadastram barbeiros; abre direto no barbeiro do horário reservado (o mesmo link do Cadastros).
+  await page.goto(`/painel/folgas?barbeiro=${horario.barbeiroId}`);
   await expect(page.getByRole("heading", { name: "Férias e folgas" })).toBeVisible();
   await semViolacoes(page, "lista de folgas 360");
 
