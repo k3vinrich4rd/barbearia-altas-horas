@@ -1,8 +1,9 @@
 "use client";
-// Mudou de rota: o foco vai para o h1 da página nova (A55). Na primeira carga o navegador cuida do foco.
+// Mudou de rota: o foco vai para o h1 da página nova (A55), salvo quando o destino é uma seção da home. Na primeira carga o navegador cuida do foco.
 // Páginas com Suspense só têm o h1 depois de montar: se ele ainda não existe, espera ele aparecer (até 3 s).
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { ancoraPendente } from "./ancoras";
 
 export function FocoNoTitulo() {
   const caminho = usePathname();
@@ -12,6 +13,8 @@ export function FocoNoTitulo() {
       primeira.current = false;
       return;
     }
+    // Veio de um link para uma seção da home: o foco vai ao título da seção (NavegacaoPorAncora), não ao h1 do herói.
+    if (ancoraPendente()) return;
     const focar = () => {
       const h1 = document.querySelector<HTMLElement>("main h1");
       if (!h1) return false;

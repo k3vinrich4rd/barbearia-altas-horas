@@ -38,58 +38,10 @@ export function WhatsappDireto() {
   );
 }
 
-/** Links antigos (Fatia 16, F4, A28): `/#historia` e `/#barbeiro` (já divulgados) e `/#trajetoria` (menu antigo) levam a
- * "Quem somos". `#trajetoria` também existe como âncora dentro da seção, para funcionar mesmo antes do JavaScript. */
-export const HASHES_DE_QUEM_SOMOS = ["#historia", "#trajetoria", "#barbeiro"];
-
-/** Sem animação pelo sistema ou pelo botão "Sem animação" do painel de acessibilidade. */
-function semAnimacao() {
-  return (
-    document.documentElement.dataset.movimento === "reduzido" ||
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
-
-/** Rola até "Quem somos" (suave, ou de uma vez sem animação) e, quando veio de um gesto, leva o foco ao título. */
-export function irParaQuemSomos({ focar }: { focar: boolean }) {
-  const secao = document.getElementById("quem-somos");
-  if (!secao) return;
-  secao.scrollIntoView({ behavior: semAnimacao() ? "auto" : "smooth", block: "start" });
-  if (focar) document.getElementById("t-quem-somos")?.focus({ preventScroll: true });
-}
-
-function useRedirecionarParaQuemSomos() {
-  useEffect(() => {
-    // 1) abriu a página com o hash antigo, ou o hash mudou por fora (hashchange)
-    function peloEndereco(focar: boolean) {
-      if (!HASHES_DE_QUEM_SOMOS.includes(window.location.hash)) return;
-      window.history.replaceState(window.history.state, "", "#quem-somos");
-      irParaQuemSomos({ focar });
-    }
-    // 2) clique num link do mesmo documento (o Link do Next troca o hash por pushState e não dispara hashchange):
-    // na captura, antes do Link, para ele não navegar; o onClick do link (fechar o menu, por exemplo) continua rodando.
-    function noClique(e: MouseEvent) {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const link = (e.target as Element | null)?.closest?.("a[href]");
-      if (!(link instanceof HTMLAnchorElement) || (link.target && link.target !== "_self")) return;
-      const destino = new URL(link.href, window.location.href);
-      if (destino.origin !== window.location.origin || destino.pathname !== window.location.pathname) return;
-      if (!HASHES_DE_QUEM_SOMOS.includes(destino.hash)) return;
-      e.preventDefault();
-      if (window.location.hash !== "#quem-somos") window.history.pushState(window.history.state, "", "#quem-somos");
-      // depois do onClick do link (o menu do celular fecha e o cabeçalho muda de altura), para rolar até o lugar certo
-      requestAnimationFrame(() => irParaQuemSomos({ focar: true }));
-    }
-    const aoMudarHash = () => peloEndereco(true);
-    peloEndereco(false);
-    window.addEventListener("hashchange", aoMudarHash);
-    document.addEventListener("click", noClique, true);
-    return () => {
-      window.removeEventListener("hashchange", aoMudarHash);
-      document.removeEventListener("click", noClique, true);
-    };
-  }, []);
-}
+// Links antigos (/#historia, /#barbeiro, /#trajetoria) e o clique em qualquer âncora da home: NavegacaoPorAncora.tsx
+// (no layout, para valer também vindo de outra rota). `#trajetoria` continua como âncora dentro da seção, para funcionar
+// mesmo antes do JavaScript.
+export { HASHES_DE_QUEM_SOMOS } from "./ancoras";
 
 const AUDIO_OPUS = "/assets/audio/historia.opus";
 const AUDIO_MP3 = "/assets/audio/historia.mp3";
@@ -112,7 +64,6 @@ export function Trajetoria() {
   const trocandoFonte = useRef(false);
   const tempoLimite = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aguardandoPlaying = useRef(false);
-  useRedirecionarParaQuemSomos();
 
   function limparTempoLimite() {
     if (tempoLimite.current !== null) {

@@ -24,7 +24,9 @@ export function ServicosDaHome() {
   return (
     <section id="servicos" aria-labelledby="servicos-titulo" className="secao">
       <p className="sobretitulo">02 · O que fazemos</p>
-      <h2 id="servicos-titulo">Um barbeiro, todos os serviços</h2>
+      <h2 id="servicos-titulo" tabIndex={-1}>
+        Um barbeiro, todos os serviços
+      </h2>
       <EstadoDaConsulta consulta={consulta}>
         {(servicos) => {
           if (servicos.length === 0) return <p>Sem serviços no momento.</p>;

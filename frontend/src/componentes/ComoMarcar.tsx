@@ -9,7 +9,9 @@ export function ComoMarcar() {
   return (
     <section id="como-marcar" aria-labelledby="t-como-marcar" className="secao">
       <p className="sobretitulo">03 · Como marcar</p>
-      <h2 id="t-como-marcar">Três jeitos de marcar</h2>
+      <h2 id="t-como-marcar" tabIndex={-1}>
+        Três jeitos de marcar
+      </h2>
       <ul className="tres-jeitos">
         {TRES_JEITOS.map((j, i) => (
           <li key={j.titulo}>
@@ -28,7 +30,9 @@ export function ComoMarcar() {
         ))}
       </ul>
       <div id="duvidas" className="antes-de-pagar" aria-labelledby="t-antes-de-pagar" role="group">
-        <h3 id="t-antes-de-pagar">Antes de pagar</h3>
+        <h3 id="t-antes-de-pagar" tabIndex={-1}>
+          Antes de pagar
+        </h3>
         <div>
           {DUVIDAS.map((d) => (
             <details key={d.pergunta} className="duvida">
