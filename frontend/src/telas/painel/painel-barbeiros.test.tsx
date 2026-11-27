@@ -5,6 +5,7 @@ import { zerarNavegacao } from "@/testes/navegacao";
 import { barbeiroAdmin } from "@/testes/painel";
 import { ADMIN, fixarRelogio, renderizar } from "@/testes/render";
 import { CadastroDeBarbeiros } from "./CadastroDeBarbeiros";
+import { PainelFolgas } from "./PainelFolgas";
 
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
 ligarServidor();
@@ -97,7 +98,7 @@ describe("barbeiros, jornada e folgas", () => {
     expect(await screen.findByText("Jornada salva.")).toBeInTheDocument();
   });
 
-  test("A50: folgas de hoje em diante, criar com início, fim e motivo, remover com confirmação e FOLGA_COM_RESERVAS explicado", async () => {
+  test("A50: folgas de hoje em diante, criar com início, fim e motivo, remover com confirmação e FOLGA_COM_RESERVAS explicado (desde a Fatia 15, na página Férias e folgas, com o atalho em Jornada e folgas)", async () => {
     lista(EDUARDO);
     let folgas = [
       { id: "f1", inicio: "2026-11-25T09:00:00-03:00", fim: "2026-11-25T12:00:00-03:00", motivo: "Médico" },
@@ -106,6 +107,7 @@ describe("barbeiros, jornada e folgas", () => {
     const removidas: string[] = [];
     servidor.use(
       http.get(`${BFF}/admin/barbeiros/:id/folgas`, () => HttpResponse.json(folgas)),
+      http.get(`${BFF}/admin/barbeiros/:id/folgas/conflitos`, () => HttpResponse.json([])),
       http.post(`${BFF}/admin/barbeiros/:id/folgas`, async ({ request }) => {
         const corpo = (await request.json()) as Record<string, unknown>;
         criadas.push(corpo);
@@ -118,27 +120,37 @@ describe("barbeiros, jornada e folgas", () => {
         return new HttpResponse(null, { status: 204 });
       }),
     );
-    const { user } = renderizar(<CadastroDeBarbeiros />, ADMIN);
-    await user.click(await screen.findByRole("button", { name: "Jornada e folgas de Eduardo Candido" }));
-    expect(await screen.findByText(/quarta, 25\/11 às 09:00 até quarta, 25\/11 às 12:00 · Médico/)).toBeInTheDocument();
+    // em Cadastros fica só o atalho para a página própria
+    const cadastro = renderizar(<CadastroDeBarbeiros />, ADMIN);
+    await cadastro.user.click(await screen.findByRole("button", { name: "Jornada e folgas de Eduardo Candido" }));
+    expect(screen.getByRole("link", { name: "Ver férias e folgas de Eduardo Candido" })).toHaveAttribute(
+      "href",
+      `/painel/folgas?barbeiro=${EDUARDO.id}`,
+    );
+    cadastro.unmount();
 
-    await user.type(screen.getByLabelText("Dia do início"), "2026-11-26");
+    const { user } = renderizar(<PainelFolgas />, ADMIN);
+    expect(await screen.findByText(/quarta, 25\/11 às 09:00 até quarta, 25\/11 às 12:00 · Médico/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Marcar férias ou folga" }));
+    await user.click(screen.getByLabelText("Dia inteiro"));
+    await user.type(screen.getByLabelText("De"), "2026-11-26");
     await user.type(screen.getByLabelText("Hora do início"), "09:00");
-    await user.type(screen.getByLabelText("Dia do fim"), "2026-11-26");
+    await user.type(screen.getByLabelText("Até"), "2026-11-26");
     await user.type(screen.getByLabelText("Hora do fim"), "18:00");
     await user.type(screen.getByLabelText("Motivo (opcional)"), "Curso");
-    await user.click(screen.getByRole("button", { name: "Lançar folga" }));
-    expect(await screen.findByText(/Há agendamentos neste período/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    expect(await screen.findByText(/Há clientes marcados nesse período/)).toBeInTheDocument();
     expect(criadas[0]).toEqual({
       inicio: "2026-11-26T09:00:00-03:00",
       fim: "2026-11-26T18:00:00-03:00",
+      tipo: "FOLGA",
       motivo: "Curso",
     });
-    await user.click(screen.getByRole("button", { name: "Lançar folga" }));
+    await user.click(screen.getByRole("button", { name: "Salvar e manter os horários" }));
     expect(await screen.findByText("Folga lançada.")).toBeInTheDocument();
 
     // remover pede confirmação
-    await user.click(screen.getByRole("button", { name: /Remover a folga de quarta, 25\/11 às 09:00/ }));
+    await user.click(screen.getByRole("button", { name: /Remover de quarta, 25\/11 às 09:00/ }));
     expect(removidas).toHaveLength(0);
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remover folga" }));
     await vi.waitFor(() => expect(removidas).toEqual(["f1"]));
