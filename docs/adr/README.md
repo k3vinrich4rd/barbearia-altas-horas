@@ -17,3 +17,4 @@ Formato MADR (adr.github.io/madr). Um ADR aceito nunca é reescrito: um ADR novo
 | [0011](0011-hexagonal-seletivo-no-monolito-modular.md) | Hexagonal seletivo dentro do monólito modular | Kevin | aceito em 16/11/2026 |
 | [0013](0013-varios-barbeiros-dono-e-convite.md) | Vários barbeiros: Dono/Admin, isolamento por `barbeiroId` e convite de uso único | revisão de arquitetura | aceito |
 | [0014](0014-alcance-k-anonimato-e-consentimento-do-cep.md) | Alcance: subir de nível, k = 5 e consentimento para a região do CEP | revisão de arquitetura | aceito |
+| [0015](0015-ferias-folgas-e-agenda-sem-limite.md) | Férias e folgas no painel (tipo, edição, conflitos sem cancelar sozinho), expediente público na disponibilidade e agenda sem limite de data | revisão de arquitetura | proposto |
