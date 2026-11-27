@@ -117,6 +117,8 @@ O Copilot lê as mesmas regras pelo [`.github/copilot-instructions.md`](../.gith
 | O cancelamento pela barbearia pede o `version` da reserva, mas a prévia de conflitos da folga não traz versão | ao desenhar o "Cancelar um a um" (Fatia 15) | a tela lê a grade do dia da reserva na hora e usa a versão de lá; o contrato não mudou |
 | A spec pedia comparar a versão da credencial no refresh, mas o refresh é opaco e não carrega versão | ao implementar | troca de senha revoga os refresh; spec e decisão D56 atualizadas |
 | Uma data de teste quase foi tratada como segunda-feira (era terça) | conferência por código | passo obrigatório na skill `/especificar-fatia` |
+| O E2E do Pix procurava "Acrescentar 1 minuto" depois que a API passou a dar 2 minutos por pedido (Fatia 15) | E2E vermelho no CI do PR do back-end | o E2E segue o número da API; texto de tela que tem número de regra vem sempre do contrato |
+| O teste do contador (A24) às vezes lia 01:22 em vez de 01:25: só a data era falsa e, sob carga, o tempo real entre os tiques do `setInterval` variava | CI do front vermelho de vez em quando | no A24, relógio **e** `setInterval` falsos, e o tempo anda pelo teste (`advanceTimersByTime`): valor exato, sem folga |
 
 ## 7. Como repetir em outro projeto
 

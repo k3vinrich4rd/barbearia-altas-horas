@@ -45,8 +45,8 @@ export const MENSAGENS: Record<string, string> = {
   TRANSICAO_INVALIDA: "Essa mudança não é possível agora. Em atendimentos, espere o horário de início.",
   MOTIVO_OBRIGATORIO: "Informe o motivo do cancelamento.",
   PRORROGACAO_FORA_DA_JANELA: "Ainda não é hora de acrescentar tempo. O botão aparece no último minuto.",
-  // Texto provisório (contrato 1.12.0, ADR 0015); a versão final vem da spec de UX com o ok do Kevin.
-  PRORROGACAO_ESGOTADA: "O tempo extra já foi todo usado. Continue o pagamento no tempo que falta.",
+  // Texto final (D214, 27/11): o 11º pedido de mais tempo (contrato 1.12.0, ADR 0015).
+  PRORROGACAO_ESGOTADA: "Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário.",
   RESERVA_EXPIRADA: "O tempo para pagar acabou. Escolha um horário de novo.",
   COBRANCA_EM_ANDAMENTO: "Já existe um pagamento em andamento para esta reserva. Espere a confirmação nesta tela.",
   SERVICO_INATIVO: "Este serviço não está disponível agora. Escolha outro.",

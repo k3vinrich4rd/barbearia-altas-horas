@@ -104,8 +104,8 @@ describe("mensagens com a voz da barbearia (Fatia 14B)", () => {
       ],
       [TEXTOS.esperandoPagamento, "Assim que o pagamento cair, a gente confirma aqui. Pode deixar esta tela aberta."],
       [
-        TEXTOS.ultimoMinutoComBotao("Acrescentar 1 minuto"),
-        "Menos de 1 minuto. Se precisar, toque em Acrescentar 1 minuto.",
+        TEXTOS.ultimoMinutoComBotao("Acrescentar 2 minutos"),
+        "Menos de 1 minuto. Se precisar, toque em Acrescentar 2 minutos.",
       ],
       [TEXTOS.ultimoMinuto, "Menos de 1 minuto para pagar."],
       [TEXTOS.prazoZerado, "Conferindo se o pagamento chegou…"],
@@ -147,6 +147,16 @@ describe("mensagens com a voz da barbearia (Fatia 14B)", () => {
     for (const [atual, aprovado] of aprovados) expect(atual).toBe(aprovado);
     // sem exclamação em erro: o único "!" é o da confirmação (sucesso)
     for (const [chave, texto] of CATALOGO) expect(texto, chave).not.toContain("!");
+  });
+
+  test("MT-7: os textos da Fatia 15 são os aprovados, palavra por palavra (pedidos restantes, tempo extra esgotado e dia fechado)", () => {
+    expect(TEXTOS.pedidosRestantes(9)).toBe("Restam 9 pedidos.");
+    expect(TEXTOS.pedidosRestantes(2)).toBe("Restam 2 pedidos.");
+    expect(TEXTOS.pedidosRestantes(1)).toBe("Resta 1 pedido.");
+    expect(MENSAGENS.PRORROGACAO_ESGOTADA).toBe(
+      "Você já usou todo o tempo extra. Conclua o pagamento agora ou escolha outro horário.",
+    );
+    expect(TEXTOS.diaFechado).toBe("Fechado nesse dia. Veja o próximo dia com horário.");
   });
 
   test("A38: todo code do CodigoErro do contrato 1.11.0 tem texto próprio no catálogo (inclusive PRORROGACAO_FORA_DA_JANELA)", () => {
