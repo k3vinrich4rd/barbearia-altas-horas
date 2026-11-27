@@ -348,6 +348,7 @@ export function Agendar() {
             min={hoje}
             value={data}
             onChange={(e) => escolherDia(e.target.value)}
+            onInput={(e) => escolherDia((e.target as HTMLInputElement).value)}
             aria-describedby={data !== "" && !dataValida ? "data-erro" : undefined}
             aria-invalid={data !== "" && !dataValida ? true : undefined}
           />
@@ -484,6 +485,10 @@ export function Agendar() {
       )}
 
       <p className="nota">{TEXTOS.notaAgendar}</p>
+      <p className="nota">
+        Pagamento antecipado por Pix ou cartão. Você terá um prazo curto para pagar, que aparece na próxima etapa; sem
+        pagamento nesse prazo, o horário volta para a agenda.
+      </p>
       <ContatoWhatsapp barbeiro={barbeiroEscolhido ?? barbeiros.dados?.find((b) => Boolean(b.whatsapp))} />
 
       <div className="resumo-fixo-espaco" aria-hidden="true" />
@@ -503,10 +508,6 @@ export function Agendar() {
           <dt>Total</dt>
           <dd>{servico ? formatarPreco(servico) : "-"}</dd>
         </dl>
-        <p className="nota">
-          Pagamento antecipado por Pix ou cartão. Você terá um prazo curto para pagar, que aparece na próxima etapa; sem
-          pagamento nesse prazo, o horário volta para a agenda.
-        </p>
         <Botao variante="principal" disabled={!sel} onClick={continuar}>
           Continuar
         </Botao>
