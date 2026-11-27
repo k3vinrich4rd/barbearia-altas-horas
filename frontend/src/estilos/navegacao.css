@@ -35,6 +35,9 @@
 
 .botao-agendar-topo {
   flex-basis: 100%;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 
 /* Painel de acessibilidade: no celular, um botão que abre as opções */
@@ -72,6 +75,7 @@
   letter-spacing: var(--tipo-rotulo-espacamento);
   text-transform: uppercase;
   color: var(--texto-suave);
+  overflow-wrap: anywhere;
 }
 
 .rodape address {
@@ -91,10 +95,31 @@
   flex-direction: column;
 }
 
+.rodape,
+.rodape-colunas,
+.cabecalho,
+.cabecalho-interno {
+  min-width: 0;
+}
+
+.rodape-colunas > *,
+.rodape li,
+.rodape p,
+.rodape address {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .rodape a {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   min-height: var(--space-12);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .rodape-credito {
