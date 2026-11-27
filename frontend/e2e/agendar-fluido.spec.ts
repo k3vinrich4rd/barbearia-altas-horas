@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { emailUnico } from "./apoio";
 
@@ -60,4 +61,50 @@ test("A22: da home ao pagamento, as formas de reservar e o prazo vindo do expira
   const cronometro = page.getByRole("timer");
   await expect(cronometro).toBeVisible();
   await expect(cronometro).toHaveText(/\d{2}:\d{2}/);
+});
+
+test("WA-3 e WA-7: pedir o horário pelo WhatsApp não cria reserva, mostra a nota de volta, e o axe passa", async ({
+  page,
+}) => {
+  const pedidos: string[] = [];
+  page.on("request", (req) => {
+    const metodo = req.method();
+    const caminho = new URL(req.url()).pathname;
+    if (
+      metodo === "POST" &&
+      (caminho.endsWith("/agendamentos") ||
+        caminho.endsWith("/agendamentos/guest") ||
+        caminho.endsWith("/api/agendamentos") ||
+        caminho.endsWith("/api/agendamentos/guest"))
+    )
+      pedidos.push(`${metodo} ${caminho}`);
+  });
+
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/agendar");
+  await page.getByRole("radio").first().check();
+  await page.locator(".chip-horario:not(.chip-indisponivel)").first().click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  await expect(page).toHaveURL(/\/agendar\/dados\?/);
+
+  const link = page.getByRole("link", { name: "Pedir este horário pelo WhatsApp (abre o WhatsApp)" });
+  await expect(link).toBeVisible();
+  const href = await link.getAttribute("href");
+  expect(href, href ?? "").toMatch(/^https:\/\/wa\.me\/55\d{10,11}\?text=/);
+  await link.click();
+  const nota = page.getByRole("status").filter({ hasText: "Mandou a mensagem?" });
+  await expect(nota).toBeVisible();
+  await expect(page.getByRole("link", { name: "Escolher outro horário" })).toBeVisible();
+  expect(pedidos, pedidos.join(", ")).toEqual([]);
+
+  for (const { width, height } of [
+    { width: 360, height: 800 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize({ width, height });
+    const resultado = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(resultado.violations, `${width}x${height}: ${JSON.stringify(resultado.violations, null, 2)}`).toEqual([]);
+  }
 });

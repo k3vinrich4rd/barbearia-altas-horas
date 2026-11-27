@@ -392,6 +392,72 @@ hr {
   align-items: center;
 }
 
+.reserva-whatsapp {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.reserva-whatsapp-ou {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--texto-apagado);
+}
+
+.reserva-whatsapp-ou::before,
+.reserva-whatsapp-ou::after {
+  content: "";
+  border-top: var(--traco-1) solid var(--borda);
+}
+
+.reserva-whatsapp-rotulo {
+  margin: 0;
+  font-family: var(--tipo-rotulo-familia);
+  font-size: var(--tipo-rotulo-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.reserva-whatsapp .botao {
+  justify-content: center;
+  min-height: var(--space-12);
+}
+
+@media (min-width: 48rem) {
+  .reserva-caminhos .reserva-caminhos-acoes,
+  .reserva-caminhos .reserva-whatsapp {
+    display: contents;
+  }
+
+  .reserva-caminhos {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .reserva-caminhos > h2 {
+    grid-column: 1 / -1;
+  }
+
+  .reserva-caminhos .reserva-whatsapp-ou {
+    display: none;
+  }
+
+  .reserva-caminhos .reserva-whatsapp-rotulo,
+  .reserva-caminhos .reserva-whatsapp p,
+  .reserva-caminhos .reserva-whatsapp [role="status"] {
+    grid-column: 3;
+  }
+
+  .reserva-caminhos .reserva-whatsapp a {
+    grid-column: 3;
+    justify-self: start;
+  }
+}
+
 /* Formulários */
 form {
   display: grid;
