@@ -42,16 +42,52 @@ export function WhatsappDireto() {
  * "Quem somos". `#trajetoria` também existe como âncora dentro da seção, para funcionar mesmo antes do JavaScript. */
 export const HASHES_DE_QUEM_SOMOS = ["#historia", "#trajetoria", "#barbeiro"];
 
+/** Sem animação pelo sistema ou pelo botão "Sem animação" do painel de acessibilidade. */
+function semAnimacao() {
+  return (
+    document.documentElement.dataset.movimento === "reduzido" ||
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+  );
+}
+
+/** Rola até "Quem somos" (suave, ou de uma vez sem animação) e, quando veio de um gesto, leva o foco ao título. */
+export function irParaQuemSomos({ focar }: { focar: boolean }) {
+  const secao = document.getElementById("quem-somos");
+  if (!secao) return;
+  secao.scrollIntoView({ behavior: semAnimacao() ? "auto" : "smooth", block: "start" });
+  if (focar) document.getElementById("t-quem-somos")?.focus({ preventScroll: true });
+}
+
 function useRedirecionarParaQuemSomos() {
   useEffect(() => {
-    function ir() {
+    // 1) abriu a página com o hash antigo, ou o hash mudou por fora (hashchange)
+    function peloEndereco(focar: boolean) {
       if (!HASHES_DE_QUEM_SOMOS.includes(window.location.hash)) return;
-      window.history.replaceState(null, "", "#quem-somos");
-      document.getElementById("quem-somos")?.scrollIntoView();
+      window.history.replaceState(window.history.state, "", "#quem-somos");
+      irParaQuemSomos({ focar });
     }
-    ir();
-    window.addEventListener("hashchange", ir);
-    return () => window.removeEventListener("hashchange", ir);
+    // 2) clique num link do mesmo documento (o Link do Next troca o hash por pushState e não dispara hashchange):
+    // na captura, antes do Link, para ele não navegar; o onClick do link (fechar o menu, por exemplo) continua rodando.
+    function noClique(e: MouseEvent) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = (e.target as Element | null)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement) || (link.target && link.target !== "_self")) return;
+      const destino = new URL(link.href, window.location.href);
+      if (destino.origin !== window.location.origin || destino.pathname !== window.location.pathname) return;
+      if (!HASHES_DE_QUEM_SOMOS.includes(destino.hash)) return;
+      e.preventDefault();
+      if (window.location.hash !== "#quem-somos") window.history.pushState(window.history.state, "", "#quem-somos");
+      // depois do onClick do link (o menu do celular fecha e o cabeçalho muda de altura), para rolar até o lugar certo
+      requestAnimationFrame(() => irParaQuemSomos({ focar: true }));
+    }
+    const aoMudarHash = () => peloEndereco(true);
+    peloEndereco(false);
+    window.addEventListener("hashchange", aoMudarHash);
+    document.addEventListener("click", noClique, true);
+    return () => {
+      window.removeEventListener("hashchange", aoMudarHash);
+      document.removeEventListener("click", noClique, true);
+    };
   }, []);
 }
 
@@ -249,7 +285,9 @@ export function Trajetoria() {
         </figure>
         <div>
           <p className="sobretitulo">01 · Quem somos</p>
-          <h2 id="t-quem-somos">Quase três décadas na mesma cadeira</h2>
+          <h2 id="t-quem-somos" tabIndex={-1}>
+            Quase três décadas na mesma cadeira
+          </h2>
           <div className="player-trajetoria">
             <p>
               <button type="button" className="botao botao-secundario" onClick={alternarVoz}>

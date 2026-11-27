@@ -60,3 +60,35 @@ test("A27: /servicos vai para /#servicos, direto ou por um link de dentro do sit
   await expect(page).toHaveURL(/\/#servicos$/);
   await expect(page.locator("#servicos").getByRole("heading", { level: 2 })).toBeInViewport();
 });
+
+test("A28 no celular (360 px): tocar no menu um link para âncora antiga (/#barbeiro, /#trajetoria) com a home aberta rola até quem-somos e leva o foco ao título", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  // os itens do menu mudam com o F2; vale para qualquer link do menu que aponte para uma âncora antiga
+  await page.getByRole("button", { name: "Menu" }).click();
+  const principal = page.getByRole("navigation", { name: "Principal" });
+  const hrefs = await principal
+    .locator("a")
+    .evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? "").filter((h) => /^\/#(barbeiro|trajetoria|historia)$/.test(h)));
+  expect(hrefs.length, "o menu tem ao menos um link para âncora antiga").toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Menu" }).click(); // fecha; cada volta reabre
+
+  const titulo = page.locator("#t-quem-somos");
+  for (const href of hrefs) {
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await expect(titulo, href).not.toBeInViewport();
+    await page.getByRole("button", { name: "Menu" }).click();
+    await principal.locator(`a[href="${href}"]`).click();
+    await expect(page, href).toHaveURL(/\/#quem-somos$/);
+    await expect(titulo, href).toBeInViewport();
+    await expect(titulo, href).toBeFocused();
+    // sem animação: a rolagem não fica pela metade
+    const topo = await titulo.evaluate((el) => el.getBoundingClientRect().top);
+    expect(topo, href).toBeGreaterThanOrEqual(0);
+    expect(topo, href).toBeLessThan(800);
+  }
+});
