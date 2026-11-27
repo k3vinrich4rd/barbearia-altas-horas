@@ -60,6 +60,36 @@ test("A57: o visitante vai da home à confirmação, consulta pelo código e o h
   // confirmação com o código
   await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
   await conferirPasso(page, 3);
+  // CA-1: aviso de atraso pelo WhatsApp do barbeiro, sem mensagem pronta
+  const resumo = await page.getByRole("region", { name: "Resumo" }).innerText();
+  const com = resumo.match(/com ([^\n]+)/);
+  expect(com, resumo).toBeTruthy();
+  const primeiroNome = com![1].trim().split(" ")[0];
+  await expect(page.getByText(`Vai se atrasar? Avise o ${primeiroNome} pelo WhatsApp.`)).toBeVisible();
+  expect(page.getByText(/Prefere combinar pelo WhatsApp/)).toHaveCount(0);
+  const avisar = page.getByRole("link", { name: "Avisar pelo WhatsApp (abre o WhatsApp)" });
+  await expect(avisar).toBeVisible();
+  const hrefAviso = await avisar.getAttribute("href");
+  expect(hrefAviso).toMatch(/^https:\/\/wa\.me\/55\d{10,11}$/);
+  expect(hrefAviso).not.toContain("text=");
+
+  // CA-5: axe em 360 e 1280; botão à esquerda no desktop
+  await page.setViewportSize({ width: 360, height: 800 });
+  const overflow360 = await page.evaluate(() => {
+    const raiz = document.documentElement;
+    return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
+  });
+  expect(overflow360.scroll, JSON.stringify(overflow360)).toBeLessThanOrEqual(overflow360.cliente);
+  const axe360 = await new AxeBuilder({ page }).withTags(["wcag22aa"]).analyze();
+  expect(axe360.violations, JSON.stringify(axe360.violations)).toEqual([]);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const axe1280 = await new AxeBuilder({ page }).withTags(["wcag22aa"]).analyze();
+  expect(axe1280.violations, JSON.stringify(axe1280.violations)).toEqual([]);
+  const caixaBotao = await avisar.boundingBox();
+  const caixaTitulo = await page.getByRole("heading", { name: "E agora?" }).boundingBox();
+  expect(caixaBotao && caixaTitulo).toBeTruthy();
+  expect(Math.abs(caixaBotao!.x - caixaTitulo!.x)).toBeLessThan(8);
+
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(codigo.length).toBeGreaterThan(10);
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
