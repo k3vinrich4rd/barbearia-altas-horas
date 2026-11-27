@@ -88,6 +88,7 @@ Sem rosto (nem olho, nem perfil nítido), sem criança, sem TV ligada, sem espel
 | A26 | Lighthouse móvel da home | roda | sem piora em relação à `develop` (orçamento da Fatia 12) | Lighthouse CI |
 | A27 | `/servicos` | abre | vai para `/#servicos` | `home-fluxo.spec.ts` |
 | A28 | links antigos `/#trajetoria`, `/#historia`, `/#barbeiro` e `/#duvidas` | abre | vai para `quem-somos` (os três primeiros) e `como-marcar` (`#duvidas`) | `home-fluxo.spec.ts` |
+| A29 | o cartão 1 de "Como marcar" (decisão 6) | abro a home com sessão, sem sessão, com erro no BFF, e volto (bfcache) depois do logout | com sessão, "Meus agendamentos" (`/meus-agendamentos`) no lugar de "Criar conta ou entrar" (`/entrar`); sem sessão, carregando ou com erro em `/api/sessao` (same-origin, `no-store`), o estado sem sessão; no `pageshow` com `persisted` a sessão é lida de novo; o cartão não muda de altura (sem CLS) | `como-marcar.test.tsx` · `home-cartao-sessao.spec.ts` |
 `conferir-spec.sh 16` no CI pula A18, A19 e A26 (sem teste com número: parado, manual e Lighthouse).
 
 ## 9. Decisões do Kevin (27/11/2026) · o Kevin pode rever
@@ -96,6 +97,7 @@ Sem rosto (nem olho, nem perfil nítido), sem criança, sem TV ligada, sem espel
 3. O último parágrafo do texto v3 fica.
 4. Os sobretítulos ficam de 01 a 04.
 5. O site fica sem galeria (cenário A); o F8 está parado.
+6. Com sessão, o cartão 1 de "Como marcar" mostra "Meus agendamentos" em vez de "Criar conta ou entrar" (pergunta 2 da spec 09; A29).
 O registro em `decisoes.md` (inclusive a mudança na D157 e na E10 da Fatia 12) fica no PR de docs da arquitetura.
 
 ## 10. Fatiamento (PRs pequenos para a `develop`, empilhados nesta ordem)
@@ -108,3 +110,4 @@ O registro em `decisoes.md` (inclusive a mudança na D157 e na E10 da Fatia 12) 
 | F4 | Quem somos (Barbeiro + Trajetória) | A5 (história), A6, A22, A28 |
 | F5 | O que fazemos, sem galeria, e `/servicos` para a home | A9, A10, A17, A27 |
 | F6 | Onde estamos na home + rodapé enxuto | A4, A5, A7, A12, A14, A23 |
+| Cartão 1 | Cartão 1 de "Como marcar" com sessão (decisão 6) | A29 |
