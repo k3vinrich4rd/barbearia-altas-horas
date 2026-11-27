@@ -35,10 +35,13 @@ body {
   font-family: var(--tipo-corpo-familia);
   font-size: var(--tipo-corpo-tamanho);
   line-height: var(--tipo-corpo-altura);
+  overflow-x: clip;
 }
 
 main {
   max-width: var(--medida-pagina);
+  min-width: 0;
+  overflow-x: clip;
   margin-inline: auto;
   padding: var(--space-8) var(--space-4) var(--space-16);
 }
@@ -260,6 +263,9 @@ hr {
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-family: var(--tipo-titulo-agenda-familia);
   font-weight: var(--tipo-titulo-agenda-peso);
   text-decoration: none;
@@ -348,8 +354,12 @@ hr {
 .link-whatsapp {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
   min-height: var(--space-12);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: var(--tipo-rotulo-peso);
 }
 
@@ -482,6 +492,8 @@ input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   min-height: var(--space-12);
+  min-width: 0;
+  max-width: 100%;
   padding: var(--space-2) var(--space-4);
   border: var(--traco-1) solid var(--borda-forte);
   border-radius: var(--radius-sm);
@@ -621,13 +633,14 @@ input[aria-invalid="true"] {
 }
 
 .opcoes {
-  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--medida-coluna-minima)), 1fr));
 }
 
 .opcao {
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
+  min-width: 0;
   padding: var(--space-3) var(--space-4);
   border: var(--traco-1) solid var(--borda-forte);
   border-radius: var(--radius-md);
@@ -922,6 +935,7 @@ dd {
   padding-bottom: var(--space-2);
   /* Sem min-width:0 a tira (7 chips) estica a página; o overflow-x fica inútil (RF-7). */
   min-width: 0;
+  width: 100%;
   max-width: 100%;
 }
 
@@ -1012,6 +1026,9 @@ dd {
   inset-inline: 0;
   bottom: 0;
   z-index: 5;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
   margin-top: var(--space-6);
   padding: var(--space-3) var(--space-4);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
@@ -1076,7 +1093,7 @@ dd {
   padding: 0;
   display: grid;
   gap: var(--space-6);
-  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--medida-coluna-minima)), 1fr));
 }
 
 .cartao-detalhe {
@@ -1368,6 +1385,17 @@ caption {
 
   .resumo-fixo .botao {
     min-height: var(--alvo-toque);
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .resumo-fixo dl,
+  .resumo-fixo dd {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .cartao-barbeiro-texto {
