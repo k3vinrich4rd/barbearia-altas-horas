@@ -9,9 +9,15 @@ export default function NaoEncontrada() {
       <h1>Página não encontrada</h1>
       <p>Não encontramos o que você procura.</p>
       <p className="acoes">
-        <Link href="/">Voltar para o início</Link>
-        <Link href="/agendar">Agendar horário</Link>
-        <Link href="/reserva">Consultar reserva</Link>
+        <Link href="/" className="link-solto">
+          Voltar para o início
+        </Link>
+        <Link href="/agendar" className="link-solto">
+          Agendar horário
+        </Link>
+        <Link href="/reserva" className="link-solto">
+          Consultar reserva
+        </Link>
       </p>
     </>
   );
