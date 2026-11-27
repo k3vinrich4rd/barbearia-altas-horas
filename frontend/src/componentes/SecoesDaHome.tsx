@@ -67,6 +67,7 @@ export function Trajetoria() {
   const [leituraPeloAparelho, setLeituraPeloAparelho] = useState(false);
   const [marco, setMarco] = useState(1);
   const tentouMp3 = useRef(false);
+  const trocandoFonte = useRef(false);
   useRedirecionarHistoria();
 
   useEffect(
@@ -112,6 +113,7 @@ export function Trajetoria() {
   }
 
   function avisarErroDeAudio() {
+    trocandoFonte.current = false;
     setCarregando(false);
     setFalando(false);
     setOferecerLeitura(true);
@@ -120,6 +122,7 @@ export function Trajetoria() {
 
   function tentarMp3(audio: HTMLAudioElement) {
     tentouMp3.current = true;
+    trocandoFonte.current = true;
     audio.src = AUDIO_MP3;
     audio.load();
     tocar(audio);
@@ -147,9 +150,14 @@ export function Trajetoria() {
     if (tentativa && typeof tentativa.then === "function") {
       tentativa.catch((erro: unknown) => {
         if (eAbortError(erro)) {
+          // pause() ou troca de fonte interrompe o play(); erro de rede/decodificação vai no onError.
+          if (trocandoFonte.current) return;
+          if (audio.error) {
+            aoErroDoAudio(audio);
+            return;
+          }
           setCarregando(false);
           setFalando(false);
-          if (audio.paused) setAviso("Leitura parada.");
           return;
         }
         aoErroDoAudio(audio);
@@ -211,12 +219,14 @@ export function Trajetoria() {
                 controls
                 preload="none"
                 onPlaying={() => {
+                  trocandoFonte.current = false;
                   setCarregando(false);
                   setFalando(true);
                   setAviso("Lendo a trajetória em voz alta.");
                 }}
                 onPause={() => {
-                  if (audioRef.current?.ended) return;
+                  const el = audioRef.current;
+                  if (el?.ended || el?.error || trocandoFonte.current) return;
                   setCarregando(false);
                   setFalando(false);
                   setAviso("Leitura parada.");
