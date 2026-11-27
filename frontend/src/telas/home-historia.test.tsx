@@ -2,8 +2,8 @@
 // prêmios e dúvidas (a galeria tem o galeria.test.tsx). Tudo por teclado e com as mudanças anunciadas (aria-live), como pede o design system.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { Duvidas, TEMPO_LIMITE_DO_AUDIO_MS, Trajetoria } from "@/componentes/SecoesDaHome";
-import { DUVIDAS, MARCOS } from "@/conteudo/historia";
+import { TEMPO_LIMITE_DO_AUDIO_MS, Trajetoria } from "@/componentes/SecoesDaHome";
+import { MARCOS } from "@/conteudo/historia";
 import { renderizar } from "@/testes/render";
 
 afterEach(() => {
@@ -319,17 +319,5 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
       vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS);
     });
     expect(load).not.toHaveBeenCalled();
-  });
-
-  test("as dúvidas são <details> nativos (abrem sem JavaScript), uma pergunta por item", async () => {
-    const { user, container } = renderizar(<Duvidas />);
-    const itens = container.querySelectorAll("details");
-    expect(itens).toHaveLength(DUVIDAS.length);
-    const primeiro = itens[0];
-    expect(primeiro.open).toBe(false);
-    // O teclado (Enter no <summary>) é do navegador: o E2E home-trajetoria.spec.ts confere no Chromium.
-    await user.click(within(primeiro as HTMLElement).getByText(DUVIDAS[0].pergunta));
-    expect(primeiro.open).toBe(true);
-    expect(primeiro).toHaveTextContent(DUVIDAS[0].resposta);
   });
 });

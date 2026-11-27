@@ -9,8 +9,8 @@ import { renderizar } from "@/testes/render";
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
 ligarServidor();
 
-describe("home: ordem das seções (Fatia 12)", () => {
-  test("A1: herói, serviços, barbeiro, galeria, trajetória, alcance, dúvidas e onde estamos, nessa ordem; sem #como-funciona nem #premios", async () => {
+describe("home: ordem das seções (Fatia 12, atualizada pela Fatia 16, F3)", () => {
+  test("A1: herói, serviços, como marcar (com as dúvidas dentro), barbeiro, galeria, trajetória, alcance e onde estamos; sem #como-funciona nem #premios", async () => {
     servidor.use(
       http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)),
       http.get(`${BFF}/barbeiros`, () => HttpResponse.json([{ ...BARBEIRO, nomeExibicao: "Eduardo Candido" }])),
@@ -26,7 +26,7 @@ describe("home: ordem das seções (Fatia 12)", () => {
     );
     await screen.findByText("Descoloração / Platinado (química)");
 
-    const ordem = ["inicio", "servicos", "barbeiro", "galeria", "trajetoria", "alcance", "duvidas", "onde-estamos"];
+    const ordem = ["inicio", "servicos", "como-marcar", "barbeiro", "galeria", "trajetoria", "alcance", "onde-estamos"];
     const elementos = ordem.map((id) => container.querySelector(`#${id}`));
     ordem.forEach((id, i) => expect(elementos[i], `#${id} existe`).not.toBeNull());
     for (let i = 1; i < elementos.length; i++) {
@@ -40,9 +40,9 @@ describe("home: ordem das seções (Fatia 12)", () => {
 
     expect(container.querySelector("#como-funciona")).toBeNull();
     expect(container.querySelector("#premios")).toBeNull();
-    // a faixa "Como funciona" mora dentro do herói
-    const faixa = screen.getByRole("list", { name: "Como funciona" });
-    expect(elementos[0]!.contains(faixa)).toBe(true);
+    // Fatia 16, F3: a faixa "Como funciona" saiu; as dúvidas que ficaram moram dentro de "Como marcar"
+    expect(screen.queryByRole("list", { name: "Como funciona" })).toBeNull();
+    expect(elementos[2]!.contains(container.querySelector("#duvidas"))).toBe(true);
     await waitFor(() => expect(screen.getByRole("link", { name: /Agendar com Eduardo/ })).toBeInTheDocument());
   });
 });
