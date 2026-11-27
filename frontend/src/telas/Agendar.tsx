@@ -3,7 +3,7 @@
 // com o próximo dia livre já escolhido, horários em chips e resumo fixo com "Continuar". Horários no fuso da barbearia,
 // agrupados por barbeiro. A rota e a lógica seguem as mesmas: /agendar → /agendar/dados → pagamento → confirmação.
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import {
   diaNoFuso,
@@ -33,12 +33,33 @@ const buscarDisponibilidade = (servicoId: string, data: string, barbeiroId: stri
     api().GET("/disponibilidade", { params: { query: { servicoId, data, ...(barbeiroId ? { barbeiroId } : {}) } } }),
   );
 
-const totalDeHorarios = (d: Awaited<ReturnType<typeof buscarDisponibilidade>>) =>
-  d.barbeiros.reduce((n, b) => n + b.horarios.length, 0);
+type Disponibilidade = Awaited<ReturnType<typeof buscarDisponibilidade>>;
 
-/** Quantos horários livres cada dia da tira tem (null = não deu para saber). Uma consulta por dia, ao escolher o serviço. */
+const totalDeHorarios = (d: Disponibilidade) => d.barbeiros.reduce((n, b) => n + b.horarios.length, 0);
+
+/**
+ * C8 (Fatia 15, E16 a E19): o dia está "Fechado" quando TODOS os barbeiros da resposta têm `expediente.aberto: false` (com o
+ * barbeiro escolhido, a resposta só traz ele). Sem `expediente` (API antiga, campo aditivo) nunca fecha: a tela fica como antes.
+ * Folga de parte do dia não fecha o dia (E18): ele continua aberto, só com menos horários, e pode ficar "sem horário".
+ */
+const diaFechado = (d: Disponibilidade) =>
+  d.barbeiros.length > 0 && d.barbeiros.every((b) => b.expediente !== undefined && !b.expediente.aberto);
+
+/** Como o dia aparece na tira: quantos horários livres e se está fechado. */
+interface ResumoDoDia {
+  livres: number;
+  fechado: boolean;
+}
+
+/** "12h", "13h30": a hora da faixa "Fechado · 12h às 13h", do campo `almoco` (nada fixo no código). */
+function horaCurta(iso: string, fuso: string) {
+  const [h, m] = formatarHora(iso, fuso).split(":");
+  return `${Number(h)}h${m === "00" ? "" : m}`;
+}
+
+/** Livres de cada dia da tira (null = não deu para saber). Uma consulta por dia, ao escolher o serviço. */
 function useSemana(servicoId: string, barbeiroId: string, dias: string[]) {
-  const [lido, setLido] = useState<{ chave: string; porDia: Record<string, number | null> }>();
+  const [lido, setLido] = useState<{ chave: string; porDia: Record<string, ResumoDoDia | null> }>();
   const chave = `${servicoId}|${barbeiroId}|${dias[0]}`;
   useEffect(() => {
     if (!servicoId) return;
@@ -46,7 +67,7 @@ function useSemana(servicoId: string, barbeiroId: string, dias: string[]) {
     Promise.all(
       dias.map((d) =>
         buscarDisponibilidade(servicoId, d, barbeiroId).then(
-          (r) => totalDeHorarios(r),
+          (r): ResumoDoDia => ({ livres: totalDeHorarios(r), fechado: diaFechado(r) }),
           () => null,
         ),
       ),
@@ -124,7 +145,7 @@ export function Agendar() {
   // o próximo dia que tem horário já vem escolhido (a pessoa só troca se quiser)
   useEffect(() => {
     if (diaEscolhidoPelaPessoa.current || data || !semana) return;
-    const primeiro = tira.find((d) => (semana[d] ?? 0) > 0);
+    const primeiro = tira.find((d) => (semana[d]?.livres ?? 0) > 0);
     if (primeiro) setData(primeiro);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [semana]);
@@ -133,7 +154,7 @@ export function Agendar() {
   const chaveDoProximo = `${servicoId}|${barbeiroEfetivo}`;
   useEffect(() => {
     if (!servicoId || !semana) return;
-    const dia = tira.find((d) => (semana[d] ?? 0) > 0);
+    const dia = tira.find((d) => (semana[d]?.livres ?? 0) > 0);
     if (!dia) return;
     let vivo = true;
     buscarDisponibilidade(servicoId, dia, barbeiroEfetivo).then(
@@ -283,19 +304,39 @@ export function Agendar() {
         <h2 id="passo-dia">{unico || !barbeiros.dados ? "2" : "3"} · Dia</h2>
         <div role="group" aria-label="Próximos dias" className="dias-tira">
           {tira.map((dia) => {
-            const livres = semana?.[dia];
+            const resumo = semana?.[dia];
+            if (resumo?.fechado)
+              // AF-10: "Fechado" não é "sem horário": não responde ao toque e não diz o motivo
+              return (
+                <button
+                  key={dia}
+                  type="button"
+                  className="dia-chip dia-chip-fechado"
+                  aria-disabled="true"
+                  data-livre="fechado"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  {/* o nome acessível é o texto visível ("dom 6, Fechado"), sem aria-label diferente (WCAG 2.5.3) */}
+                  <span>
+                    {rotuloDoDia(dia)}
+                    <span className="so-leitor">,</span>
+                  </span>
+                  <span className="dia-chip-nota">Fechado</span>
+                </button>
+              );
+            const livres = resumo?.livres;
             return (
               <button
                 key={dia}
                 type="button"
                 className="dia-chip"
                 aria-pressed={data === dia}
-                data-livre={livres === undefined || livres === null ? "desconhecido" : livres > 0 ? "sim" : "nao"}
+                data-livre={livres === undefined ? "desconhecido" : livres > 0 ? "sim" : "nao"}
                 onClick={() => escolherDia(dia)}
               >
                 <span>{rotuloDoDia(dia)}</span>
                 <span className="dia-chip-nota">
-                  {livres === undefined || livres === null ? "" : livres > 0 ? "livre" : "sem horário"}
+                  {livres === undefined ? "" : livres > 0 ? "livre" : "sem horário"}
                 </span>
               </button>
             );
@@ -333,10 +374,12 @@ export function Agendar() {
               const grupos = d.barbeiros
                 .map((b) => ({ ...b, horarios: b.horarios.filter((h) => h !== ocupado) }))
                 .filter((b) => b.horarios.length > 0);
+              // E18: dia aberto sem nenhum horário (cheio, ou uma folga de parte do dia tirou todos) fica "cheio", nunca
+              // "Fechado"; só o dia com o expediente fechado diz "Fechado", e sem o motivo
               if (grupos.length === 0)
                 return (
                   <div>
-                    <p role="status">{TEXTOS.diaCheio}</p>
+                    <p role="status">{diaFechado(d) ? TEXTOS.diaFechado : TEXTOS.diaCheio}</p>
                     <Botao
                       onClick={() => void procurarProximoDiaComHorario(dataValida ? data : hoje)}
                       disabled={procurando}
@@ -367,41 +410,71 @@ export function Agendar() {
                       aria-label={`Horários de ${b.nomeExibicao}, ${formatarDiaDaSemana(dia, d.fuso)} ${formatarDataCurta(dia, d.fuso)}`}
                     >
                       <h3>{b.nomeExibicao}</h3>
+                      {b.expediente?.aberto && b.expediente.inicio && b.expediente.fim && (
+                        <p className="nota">
+                          Atende das {horaCurta(b.expediente.inicio, fusoDoDia)} às{" "}
+                          {horaCurta(b.expediente.fim, fusoDoDia)}
+                        </p>
+                      )}
                       {PERIODOS.map((periodo) => {
-                        const chips = comIndisponiveis(b.horarios).filter(
-                          (h) => periodoDe(formatarHora(h.inicio, fusoDoDia)) === periodo,
-                        );
+                        const almoco = b.expediente?.almoco;
+                        const noAlmoco = (iso: string) =>
+                          !!almoco &&
+                          new Date(iso).getTime() >= new Date(almoco.inicio).getTime() &&
+                          new Date(iso).getTime() < new Date(almoco.fim).getTime();
+                        const todos = comIndisponiveis(b.horarios).filter((h) => !noAlmoco(h.inicio));
+                        const chips = todos.filter((h) => periodoDe(formatarHora(h.inicio, fusoDoDia)) === periodo);
                         if (!chips.some((h) => h.livre)) return null;
+                        // AF-11: a faixa "Fechado · 12h às 13h" entra antes do primeiro período que começa depois do almoço
+                        const primeiroDepois = PERIODOS.find((p) =>
+                          todos.some(
+                            (h) =>
+                              h.livre &&
+                              periodoDe(formatarHora(h.inicio, fusoDoDia)) === p &&
+                              !!almoco &&
+                              new Date(h.inicio).getTime() >= new Date(almoco.fim).getTime(),
+                          ),
+                        );
+                        const faixa = almoco && primeiroDepois === periodo && (
+                          <p className="faixa-fechado">
+                            Fechado · {horaCurta(almoco.inicio, fusoDoDia)} às {horaCurta(almoco.fim, fusoDoDia)}
+                          </p>
+                        );
                         return (
-                          <div key={periodo} role="group" aria-label={periodo} className="periodo-horarios">
-                            <h4>{periodo}</h4>
-                            <div className="horarios horarios-chips">
-                              {chips.map((h) =>
-                                h.livre ? (
-                                  <button
-                                    key={h.inicio}
-                                    type="button"
-                                    className="botao botao-secundario horario chip-horario"
-                                    aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
-                                    onClick={() => setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })}
-                                  >
-                                    {formatarHora(h.inicio, fusoDoDia)}
-                                  </button>
-                                ) : (
-                                  <button
-                                    key={h.inicio}
-                                    type="button"
-                                    className="botao botao-secundario horario chip-horario chip-indisponivel"
-                                    aria-disabled="true"
-                                    onClick={(e) => e.preventDefault()}
-                                  >
-                                    {formatarHora(h.inicio, fusoDoDia)}
-                                    <span className="so-leitor"> indisponível</span>
-                                  </button>
-                                ),
-                              )}
+                          <Fragment key={periodo}>
+                            {faixa}
+                            <div role="group" aria-label={periodo} className="periodo-horarios">
+                              <h4>{periodo}</h4>
+                              <div className="horarios horarios-chips">
+                                {chips.map((h) =>
+                                  h.livre ? (
+                                    <button
+                                      key={h.inicio}
+                                      type="button"
+                                      className="botao botao-secundario horario chip-horario"
+                                      aria-pressed={sel?.inicio === h.inicio && sel.barbeiroId === b.barbeiroId}
+                                      onClick={() =>
+                                        setEscolhido({ chave, barbeiroId: b.barbeiroId, inicio: h.inicio })
+                                      }
+                                    >
+                                      {formatarHora(h.inicio, fusoDoDia)}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      key={h.inicio}
+                                      type="button"
+                                      className="botao botao-secundario horario chip-horario chip-indisponivel"
+                                      aria-disabled="true"
+                                      onClick={(e) => e.preventDefault()}
+                                    >
+                                      {formatarHora(h.inicio, fusoDoDia)}
+                                      <span className="so-leitor"> indisponível</span>
+                                    </button>
+                                  ),
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          </Fragment>
                         );
                       })}
                     </div>

@@ -42,7 +42,14 @@ test("A27: o visitante reserva, gera o Pix, espera o último minuto, acrescenta 
   await expect(acrescentar).toBeVisible({ timeout: 200_000 });
   const antes = await segundosDoContador(await page.getByRole("timer").textContent());
   expect(antes).toBeLessThanOrEqual(60);
+  // C1 (MT-4d e MT-6): o toque manda uma X-Idempotency-Key nova (UUID) e o BFF chama a rota do visitante
+  const pedido = page.waitForRequest((r) => r.method() === "POST" && r.url().endsWith("/prorrogacao"));
   await acrescentar.click();
+  const enviado = await pedido;
+  expect(enviado.url()).toContain(`/api/agendamentos/guest/${reservaId}/prorrogacao`);
+  expect(enviado.headers()["x-idempotency-key"]).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
 
   // o contador soma os 2 minutos ao que estava correndo, o botão some (o prazo sai do último minuto), a mensagem recebe o
   // foco e o Pix não muda
@@ -57,7 +64,7 @@ test("A27: o visitante reserva, gera o Pix, espera o último minuto, acrescenta 
   // o Pix que já estava na tela continua valendo: simular o pagamento confirma a reserva
   await page.getByRole("button", { name: "Simular pagamento" }).click();
   await expect(page).toHaveURL(/\/agendar\/confirmacao\//, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { name: "Fechado! Seu horário está garantido." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agendado! Seu horário está garantido." })).toBeVisible();
   const codigo = await page.getByLabel("Código", { exact: true }).inputValue();
   expect(await statusDaReservaGuest(request, reservaId, codigo)).toBe("CONFIRMADO");
 });

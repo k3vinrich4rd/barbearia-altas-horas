@@ -881,6 +881,34 @@ dd {
   font-size: var(--tipo-legenda-tamanho);
 }
 
+/* C8 (Fatia 15): dia "Fechado" (sem expediente, ou folga ou férias no dia todo). Diferente de "sem horário" pela palavra e
+ * pelo traço, não só pela cor (WCAG 1.4.1); não se escolhe (aria-disabled). */
+.dia-chip-fechado {
+  border-style: dashed;
+  color: var(--texto-suave);
+  cursor: not-allowed;
+}
+
+/* C8: o vão do almoço entre os períodos, "Fechado · 12h às 13h", sem a palavra almoço. Listrado, sem ser botão. */
+.faixa-fechado {
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--traco-1) dashed var(--borda-forte);
+  border-radius: var(--radius-md);
+  color: var(--texto-suave);
+  font-size: var(--tipo-legenda-tamanho);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 var(--space-2),
+    var(--superficie) var(--space-2) var(--space-4)
+  );
+}
+
+.cronometro-pedidos {
+  margin: var(--space-1) 0 0;
+  color: var(--texto-suave);
+}
+
 .chip-horario[aria-pressed="true"] {
   background: var(--acao-fundo);
   color: var(--acao-texto);
@@ -1814,4 +1842,21 @@ select[aria-invalid="true"] {
   width: 100%;
   max-width: var(--medida-leitura);
   margin-top: var(--space-3);
+}
+
+/* Férias e folgas (Fatia 15, C13): no celular, lista e formulário um embaixo do outro; a partir de 64rem, lado a lado. */
+.folgas-painel {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.folgas-previa [role="status"]:empty {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .folgas-painel {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
 }
