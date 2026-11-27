@@ -1,6 +1,6 @@
 // Seções interativas da home que contam a trajetória da barbearia (Main.dc.html): linha do tempo, "Ouvir a trajetória",
 // prêmios e dúvidas (a galeria tem o galeria.test.tsx). Tudo por teclado e com as mudanças anunciadas (aria-live), como pede o design system.
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { Duvidas, Trajetoria } from "@/componentes/SecoesDaHome";
 import { DUVIDAS, MARCOS } from "@/conteudo/historia";
@@ -76,8 +76,13 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     expect(audio.querySelector('source[type="audio/mpeg"]')).toHaveAttribute("src", "/assets/audio/historia.mp3");
     expect(audio.querySelector("track")).toHaveAttribute("src", "/assets/audio/historia.vtt");
     expect(audio.querySelector("track")).toHaveAttribute("kind", "captions");
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando o áudio…");
     const botao = await screen.findByRole("button", { name: "Pausar" });
     expect(botao).not.toHaveAttribute("aria-pressed");
+
+    act(() => {
+      fireEvent(audio, new Event("playing"));
+    });
     expect(screen.getByRole("status")).toHaveTextContent("Lendo a trajetória em voz alta.");
 
     await user.click(botao);
@@ -112,6 +117,82 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     expect(fala.text).toContain("1997");
     expect(screen.getByRole("button", { name: "Pausar" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+  });
+
+  test("mostra Carregando o áudio… no status até o evento playing", async () => {
+    const play = vi.fn().mockReturnValue(new Promise(() => undefined));
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    const { user, container } = renderizar(<Trajetoria />);
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando o áudio…");
+    expect(screen.getByRole("button", { name: "Pausar" })).toBeInTheDocument();
+    act(() => {
+      fireEvent(container.querySelector("audio")!, new Event("playing"));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Lendo a trajetória em voz alta.");
+  });
+
+  test("AbortError no play() não oferece o fallback: pausar no carregamento não é erro", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValue(
+      new DOMException("The play() request was interrupted", "AbortError"),
+    );
+    const { user } = renderizar(<Trajetoria />);
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    await waitFor(() => expect(screen.getByRole("status")).not.toHaveTextContent("Carregando o áudio…"));
+    expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).not.toHaveTextContent("Não deu para carregar o áudio");
+  });
+
+  test("pausar pelo controle nativo atualiza o status e o rótulo", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const { user, container } = renderizar(<Trajetoria />);
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    const audio = container.querySelector("audio")!;
+    act(() => {
+      fireEvent(audio, new Event("playing"));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Lendo a trajetória em voz alta.");
+    expect(screen.getByRole("button", { name: "Pausar" })).toBeInTheDocument();
+    act(() => {
+      fireEvent(audio, new Event("pause"));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Leitura parada.");
+    expect(screen.getByRole("button", { name: /Ouvir a trajetória/ })).toBeInTheDocument();
+  });
+
+  test("o evento ended anuncia Leitura terminada e devolve o rótulo Ouvir", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const { user, container } = renderizar(<Trajetoria />);
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    const audio = container.querySelector("audio")!;
+    act(() => {
+      fireEvent(audio, new Event("playing"));
+    });
+    act(() => {
+      fireEvent(audio, new Event("ended"));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Leitura terminada.");
+    expect(screen.getByRole("button", { name: /Ouvir a trajetória/ })).toBeInTheDocument();
+  });
+
+  test("se o Opus falha na decodificação, tenta o MP3 antes de oferecer o fallback", async () => {
+    const play = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    const { user, container } = renderizar(<Trajetoria />);
+    await user.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    const audio = container.querySelector("audio")!;
+    Object.defineProperty(audio, "currentSrc", {
+      configurable: true,
+      get: () => "http://localhost/assets/audio/historia.opus",
+    });
+    act(() => {
+      fireEvent(audio, new Event("error"));
+    });
+    expect(play).toHaveBeenCalledTimes(2);
+    expect(audio.src).toContain("/assets/audio/historia.mp3");
+    expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando o áudio…");
   });
 
   test("as dúvidas são <details> nativos (abrem sem JavaScript), uma pergunta por item", async () => {

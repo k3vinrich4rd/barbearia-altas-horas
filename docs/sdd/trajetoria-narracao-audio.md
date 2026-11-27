@@ -12,7 +12,10 @@
 - A fonte Opus usa `type="audio/ogg; codecs=opus"` (não `audio/opus`): no Chromium, o tipo curto fazia o navegador ignorar o Opus e baixar o MP3.
 - O botão próprio alterna play/pausa só pelo rótulo (sem `aria-pressed`). Texto visível: "Ouvir a trajetória · 1 min 13 s" (duração real do arquivo, ~73 s; o rascunho da spec citava 1 min 6 s). Em reprodução vira "Pausar". Depois do primeiro "Ouvir", os controles nativos (posição e pausa) ficam disponíveis e funcionam pelo teclado.
 - A transcrição é o texto visível da seção (`HISTORIA`). O teste VZ-4 confere que o texto das legendas, juntado, é igual a `HISTORIA.join(" ")`.
-- Se o arquivo não carregar, aparece "Não deu para carregar o áudio. Ler com a voz do aparelho?" e um botão "Ler com a voz do aparelho". A Web Speech API só começa se a pessoa apertar esse botão (VZ-5); nada fala sozinho.
+- O `role="status"` (`aria-live="polite"`) acompanha os eventos do `<audio>`: "Carregando o áudio…" até o `playing`; "Lendo a trajetória em voz alta." no `playing`; "Leitura parada." no `pause` (também pelo controle nativo); "Leitura terminada." no `ended`.
+- Se `play()` rejeitar com `AbortError` (Pausar ou Espaço durante o carregamento), isso não é tratado como erro e o fallback não aparece.
+- Se o Opus falhar na decodificação (caso do WebKit, que baixa o arquivo e não toca), o player troca para o MP3 e tenta de novo antes de oferecer o fallback.
+- Se o arquivo não carregar (depois da reserva MP3, se couber), aparece "Não deu para carregar o áudio. Ler com a voz do aparelho?" e um botão "Ler com a voz do aparelho". A Web Speech API só começa se a pessoa apertar esse botão (VZ-5); nada fala sozinho.
 - O service worker continua sem cache de instalação; um comentário deixa explícito que o áudio da Trajetória não deve entrar nesse cache.
 - LCP: com `preload="none"` o arquivo não entra no carregamento inicial da home. O teto do Lighthouse móvel da home permanece 2,7 s em `lighthouserc.json`.
 
