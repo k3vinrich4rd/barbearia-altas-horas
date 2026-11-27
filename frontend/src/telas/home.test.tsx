@@ -40,7 +40,8 @@ describe("home", () => {
     const lista = within(servicos.closest("section")!).getAllByRole("listitem");
     expect(lista).toHaveLength(5);
     expect(lista[1]).toHaveTextContent("Corte Degradê / Fade / Navalhado");
-    expect(lista[1]).toHaveTextContent("60 min");
+    // todos com 60 min: a duração aparece uma vez, no apoio (Fatia 16, A10)
+    expect(within(servicos.closest("section")!).getByText(/Cada serviço dura 60 min/)).toBeInTheDocument();
     expect(lista[1]).toHaveTextContent("R$ 55,00");
 
     const bloco = (await screen.findByRole("heading", { name: "De onde vêm nossos clientes" })).closest("section")!;

@@ -8,26 +8,48 @@ import { renderizar } from "@/testes/render";
 vi.mock("next/navigation", async () => (await import("@/testes/navegacao")).modulo);
 ligarServidor();
 
-describe("serviços da home (Fatia 12)", () => {
-  test("A7: um cartão por serviço da API (6, com o novo), com nome, duração em minutos, preço em reais e o botão que leva ao agendamento", async () => {
-    servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(SEIS_SERVICOS)));
-    renderizar(<ServicosDaHome />);
+async function renderizarLista(servicos: typeof SEIS_SERVICOS) {
+  servidor.use(http.get(`${BFF}/servicos`, () => HttpResponse.json(servicos)));
+  renderizar(<ServicosDaHome />);
+  const bloco = (await screen.findByRole("heading", { name: "Um barbeiro, todos os serviços" })).closest("section")!;
+  await within(bloco).findAllByRole("listitem");
+  return bloco;
+}
 
-    const bloco = (await screen.findByRole("heading", { name: "Um barbeiro, todos os serviços" })).closest("section")!;
+describe('"02 · O que fazemos" na home (Fatia 16, F5)', () => {
+  test("A10: com todos os serviços da mesma duração, ela aparece 1× no apoio; nome e preço em cada linha, e a própria linha leva ao agendamento", async () => {
+    const bloco = await renderizarLista(SEIS_SERVICOS);
     expect(bloco).toHaveAttribute("id", "servicos");
-    const cartoes = await within(bloco).findAllByRole("listitem");
-    expect(cartoes).toHaveLength(6);
+    expect(within(bloco).getByText("02 · O que fazemos")).toBeInTheDocument();
+    expect(within(bloco).getByText("Cada serviço dura 60 min. Toque em um para ver os horários.")).toBeInTheDocument();
+    expect(bloco.textContent!.split("60 min").length - 1).toBe(1);
+
+    const linhas = within(bloco).getAllByRole("listitem");
+    expect(linhas).toHaveLength(6);
     SEIS_SERVICOS.forEach((s, i) => {
-      expect(cartoes[i]).toHaveTextContent(s.nome);
-      expect(cartoes[i]).toHaveTextContent("60 min");
-      expect(cartoes[i]).toHaveTextContent(s.precoFormatado);
-      const acao = within(cartoes[i]).getByRole("link", { name: /^Agendar este serviço/ });
-      expect(acao).toHaveTextContent("Agendar este serviço");
-      expect(acao).toHaveAttribute("href", `/agendar?servicoId=${s.id}`);
+      const link = within(linhas[i]).getByRole("link");
+      expect(link).toHaveTextContent(s.nome);
+      expect(link).toHaveTextContent(s.precoFormatado);
+      expect(link).toHaveAttribute("href", `/agendar?servicoId=${s.id}`);
     });
-    expect(cartoes[5]).toHaveTextContent("Descoloração / Platinado (química)");
-    expect(cartoes[5]).toHaveTextContent("R$ 80,00");
-    // "Ver todos" leva à página completa; nela mesma o link não aparece
-    expect(within(bloco).getByRole("link", { name: /Ver todos/ })).toHaveAttribute("href", "/servicos");
+    expect(linhas[5]).toHaveTextContent("Descoloração / Platinado (química)");
+    expect(linhas[5]).toHaveTextContent("R$ 80,00");
+    // a lista completa é esta: sem "Agendar este serviço" e sem "Ver todos"
+    expect(within(bloco).queryByText(/Agendar este serviço/)).toBeNull();
+    expect(within(bloco).queryByRole("link", { name: /Ver todos/ })).toBeNull();
+    expect(within(bloco).getAllByRole("link")).toHaveLength(6);
+  });
+
+  test("A10: com durações diferentes, a duração aparece em cada linha e o apoio não cita minutos", async () => {
+    const variados = SEIS_SERVICOS.map((s, i) => ({ ...s, duracaoMin: i === 0 ? 30 : 60 }));
+    const bloco = await renderizarLista(variados);
+    expect(within(bloco).getByText("Toque em um serviço para ver os horários.")).toBeInTheDocument();
+    const linhas = within(bloco).getAllByRole("listitem");
+    variados.forEach((s, i) => {
+      expect(linhas[i]).toHaveTextContent(`${s.duracaoMin} min`);
+      expect(linhas[i]).toHaveTextContent(s.nome);
+      expect(linhas[i]).toHaveTextContent(s.precoFormatado);
+    });
+    expect(within(bloco).queryByText(/Cada serviço dura/)).toBeNull();
   });
 });

@@ -93,7 +93,8 @@ export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
 ];
 
 // Galeria da home: só fotos sem rosto identificável e sem criança (privacidade, 27/11/2026). As fotos de clientes saíram
-// do site e da versão atual do repositório. Hoje fica só o salão, recortado sem as TVs e sem reflexo de pessoa.
+// do site e da versão atual do repositório. A foto do salão, recortada sem as TVs e sem reflexo de pessoa, fica fora da
+// galeria (cenário A da Fatia 16).
 // Largura e altura são as reais do arquivo (o next/image reserva o espaço, sem salto de layout).
 export type FotoDaGaleria = {
   src: string;
@@ -105,17 +106,19 @@ export type FotoDaGaleria = {
   semPessoas?: boolean;
 };
 
-/** As únicas fotos aprovadas para a galeria (critério: nenhum rosto, nenhuma criança, nenhuma TV com gente). */
-export const GALERIA: readonly FotoDaGaleria[] = [
-  {
-    src: "/assets/galeria/salao-vitrine-sem-tv.jpg",
-    legenda: "O salão",
-    alt: "Porta de vidro da barbearia com dois adesivos redondos do logo Altas Horas 1997 e, atrás do vidro, a cadeira preta, a bancada de ferramentas e um troféu na prateleira",
-    largura: 1100,
-    altura: 619,
-    semPessoas: true,
-  },
-];
+/** A única foto aprovada sem pessoa (o salão). No cenário A ela sai da galeria; volta na home em "Onde estamos" (F6). */
+export const FOTO_DO_SALAO: FotoDaGaleria = {
+  src: "/assets/galeria/salao-vitrine-sem-tv.jpg",
+  legenda: "O salão",
+  alt: "Porta de vidro da barbearia com dois adesivos redondos do logo Altas Horas 1997 e, atrás do vidro, a cadeira preta, a bancada de ferramentas e um troféu na prateleira",
+  largura: 1100,
+  altura: 619,
+  semPessoas: true,
+};
+
+/** Fotos de corte aprovadas para a galeria (critério: nenhum rosto, nenhuma criança, nenhuma TV com gente). Cenário A
+ * (Fatia 16, decisão 5, A17): nenhuma ainda, então a seção e o link "Galeria" não existem. */
+export const GALERIA: readonly FotoDaGaleria[] = [];
 
 export const IMAGENS = {
   logo: {

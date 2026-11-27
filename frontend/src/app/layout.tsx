@@ -7,6 +7,7 @@ import "@/estilos/navegacao.css";
 import { BarraAgendar } from "@/componentes/BarraAgendar";
 import { FocoNoTitulo } from "@/componentes/FocoNoTitulo";
 import { Menu } from "@/componentes/Menu";
+import { NavegacaoPorAncora } from "@/componentes/NavegacaoPorAncora";
 import { PainelDeAcessibilidade } from "@/componentes/PainelDeAcessibilidade";
 import { Rodape } from "@/componentes/Rodape";
 import { SessaoProvider } from "@/componentes/Sessao";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <PainelDeAcessibilidade />
           <Menu />
           <FocoNoTitulo />
+          <NavegacaoPorAncora />
           <main id="conteudo">{children}</main>
         </SessaoProvider>
         <Rodape />

@@ -85,9 +85,9 @@ test("A8: o cartão da Descoloração / Platinado (química) leva a /agendar com
 
   await page.goto("/");
   const cartao = page.locator("#servicos li", { hasText: "Descoloração / Platinado (química)" });
-  await expect(cartao).toContainText("60 min");
+  await expect(page.locator("#servicos")).toContainText("Cada serviço dura 60 min");
   await expect(cartao).toContainText("R$ 80,00");
-  await cartao.getByRole("link", { name: /Agendar este serviço/ }).click();
+  await cartao.getByRole("link").click(); // Fatia 16 (A9): a própria linha leva ao agendamento
   await expect(page).toHaveURL(new RegExp(`/agendar\\?servicoId=${platinado!.id}$`));
   await expect(page.getByRole("radio", { name: /Descoloração \/ Platinado/ })).toBeChecked();
 });

@@ -13,49 +13,46 @@ export type AlcancePublico = components["schemas"]["AlcancePublico"];
 
 export const buscarServicos = () => chamar(api().GET("/servicos"));
 
-export function ServicosDaHome({ comLinkVerTodos = true }: { comLinkVerTodos?: boolean } = {}) {
+/**
+ * "02 · O que fazemos" (Fatia 16, F5, A9 e A10): uma linha por serviço com nome e preço, e a própria linha leva a
+ * `/agendar?servicoId=<id>` com o serviço marcado (sem botão "Agendar este serviço" nem link "Ver todos": a lista
+ * completa é esta). Com todos os serviços da mesma duração, ela aparece uma vez só, no apoio; com durações diferentes,
+ * em cada linha.
+ */
+export function ServicosDaHome() {
   const consulta = useConsulta(buscarServicos, []);
   return (
     <section id="servicos" aria-labelledby="servicos-titulo" className="secao">
-      <p className="sobretitulo">Serviços</p>
-      <h2 id="servicos-titulo">Um barbeiro, todos os serviços</h2>
-      <p className="subtitulo-secao">
-        Todos com a duração mostrada em cada cartão. Sem combos. O valor é pago na reserva.
-      </p>
+      <p className="sobretitulo">02 · O que fazemos</p>
+      <h2 id="servicos-titulo" tabIndex={-1}>
+        Um barbeiro, todos os serviços
+      </h2>
       <EstadoDaConsulta consulta={consulta}>
-        {(servicos) =>
-          servicos.length === 0 ? (
-            <p>Sem serviços no momento.</p>
-          ) : (
+        {(servicos) => {
+          if (servicos.length === 0) return <p>Sem serviços no momento.</p>;
+          const duracoes = new Set(servicos.map((s) => s.duracaoMin));
+          const duracaoUnica = duracoes.size === 1 ? servicos[0].duracaoMin : null;
+          return (
             <>
-              <ul className="grade-servicos">
+              <p className="subtitulo-secao">
+                {duracaoUnica === null
+                  ? "Toque em um serviço para ver os horários."
+                  : `Cada serviço dura ${duracaoUnica} min. Toque em um para ver os horários.`}
+              </p>
+              <ul className="lista-servicos">
                 {servicos.map((s) => (
-                  <li key={s.id} className="cartao cartao-servico">
-                    <h3>{s.nome}</h3>
-                    <p className="cartao-detalhe">
-                      <span className="hora">{s.duracaoMin} min</span>
+                  <li key={s.id}>
+                    <Link href={`/agendar?servicoId=${s.id}`} className="linha-servico">
+                      <span className="linha-servico-nome">{s.nome}</span>
+                      {duracaoUnica === null && <span className="hora">{s.duracaoMin} min</span>}
                       <span className="preco">{formatarPreco(s)}</span>
-                    </p>
-                    <Link
-                      href={`/agendar?servicoId=${s.id}`}
-                      className="botao botao-secundario"
-                      aria-label={`Agendar este serviço: ${s.nome}, ${s.duracaoMin} minutos, ${formatarPreco(s)}`}
-                    >
-                      Agendar este serviço
                     </Link>
                   </li>
                 ))}
               </ul>
-              {comLinkVerTodos && (
-                <p>
-                  <Link href="/servicos" className="link-solto">
-                    Ver todos os serviços e preços
-                  </Link>
-                </p>
-              )}
             </>
-          )
-        }
+          );
+        }}
       </EstadoDaConsulta>
     </section>
   );

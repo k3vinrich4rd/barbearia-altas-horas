@@ -131,7 +131,7 @@ jobs:
         run: npx vitest run src/fotos-no-repositorio.test.ts
 
       - name: Conferir spec × testes (fatia 16)
-        run: sh scripts/conferir-spec.sh 16 --exigir --exceto 1-3,5,7,9,10,12-19,23,24,26,27
+        run: sh scripts/conferir-spec.sh 16 --exigir --exceto 1-3,5,7,12-16,18,19,23,24,26
 
       # Fatia 14, parte 14A (mais 1 minuto no Pix e agenda sem limites): A1 a A27 têm teste com o número deles.
       # 14B, 14C e 14D (A28 a A62) entram nas próximas PRs e ampliam o --ate.

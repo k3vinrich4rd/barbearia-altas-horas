@@ -38,22 +38,10 @@ export function WhatsappDireto() {
   );
 }
 
-/** Links antigos (Fatia 16, F4, A28): `/#historia` e `/#barbeiro` (já divulgados) e `/#trajetoria` (menu antigo) levam a
- * "Quem somos". `#trajetoria` também existe como âncora dentro da seção, para funcionar mesmo antes do JavaScript. */
-export const HASHES_DE_QUEM_SOMOS = ["#historia", "#trajetoria", "#barbeiro"];
-
-function useRedirecionarParaQuemSomos() {
-  useEffect(() => {
-    function ir() {
-      if (!HASHES_DE_QUEM_SOMOS.includes(window.location.hash)) return;
-      window.history.replaceState(null, "", "#quem-somos");
-      document.getElementById("quem-somos")?.scrollIntoView();
-    }
-    ir();
-    window.addEventListener("hashchange", ir);
-    return () => window.removeEventListener("hashchange", ir);
-  }, []);
-}
+// Links antigos (/#historia, /#barbeiro, /#trajetoria) e o clique em qualquer âncora da home: NavegacaoPorAncora.tsx
+// (no layout, para valer também vindo de outra rota). `#trajetoria` continua como âncora dentro da seção, para funcionar
+// mesmo antes do JavaScript.
+export { HASHES_DE_QUEM_SOMOS } from "./ancoras";
 
 const AUDIO_OPUS = "/assets/audio/historia.opus";
 const AUDIO_MP3 = "/assets/audio/historia.mp3";
@@ -76,7 +64,6 @@ export function Trajetoria() {
   const trocandoFonte = useRef(false);
   const tempoLimite = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aguardandoPlaying = useRef(false);
-  useRedirecionarParaQuemSomos();
 
   function limparTempoLimite() {
     if (tempoLimite.current !== null) {
@@ -249,7 +236,9 @@ export function Trajetoria() {
         </figure>
         <div>
           <p className="sobretitulo">01 · Quem somos</p>
-          <h2 id="t-quem-somos">Quase três décadas na mesma cadeira</h2>
+          <h2 id="t-quem-somos" tabIndex={-1}>
+            Quase três décadas na mesma cadeira
+          </h2>
           <div className="player-trajetoria">
             <p>
               <button type="button" className="botao botao-secundario" onClick={alternarVoz}>
