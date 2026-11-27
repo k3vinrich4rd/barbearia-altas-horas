@@ -155,7 +155,7 @@ Convenção dos testes: dois barbeiros reais no banco, **A** e **B** (Testcontai
 - **Contrato**: `openapi.yaml` e `contrato-api.md` 1.8.0 (rotas, `BarbeiroAdmin.acesso`, `ConviteAceite`, `422 CONVITE_INVALIDO` e `429`), histórico de versões e `contexto.md` (R# novo para o convite).
 - **Banco**: `V?__convite_de_conta.sql`.
 - **Front** (BFF e telas): rota `/convite` e o BFF `POST /api/convite`; bloco "Convite" em Cadastros → Barbeiros; rótulo "Dono/Admin"; ver a tabela de telas abaixo.
-- **Docs**: guia de testes com a saída real, política de privacidade (parágrafo sobre o barbeiro: dados e retenção, a revisar pelo Cautelar), `docs/fluxo-ponta-a-ponta.md` e o roteiro de visitantes.
+- **Docs**: guia de testes com a saída real, política de privacidade (parágrafo sobre o barbeiro: dados e retenção, a revisar na revisão jurídica), `docs/fluxo-ponta-a-ponta.md` e o roteiro de visitantes.
 
 ### Telas (design system) · **aguardam desenho**
 
@@ -179,7 +179,7 @@ O design system é a fonte do visual: **não decido o visual aqui**. O canvas do
 - **Dado de terceiro.** A reserva manual guarda nome opcional e observação, sem WhatsApp, e-mail ou CPF (R30, D125). O barbeiro pode digitar um nome real: a política deve dizer isso e a retenção de 5 anos (E11) vale só para o nome de exibição **do barbeiro**, não do cliente.
 - **Retenção sem parecer.** A H33 depende do advogado (art. 10 e tipo de vínculo). Até lá a spec segue a H33 revisada e **não** amplia prazos.
 
-### Checklist LGPD (aplicando o `cautelar-lgpd`; **não substitui parecer jurídico**, e as fontes oficiais ainda precisam ser consultadas pelo Cautelar antes do merge)
+### Checklist LGPD (aplicando o agente jurídico; **não substitui parecer jurídico**, e as fontes oficiais ainda precisam ser consultadas na revisão jurídica antes do merge)
 
 | Ponto | Situação | Observação |
 |---|---|---|
@@ -187,7 +187,7 @@ O design system é a fonte do visual: **não decido o visual aqui**. O canvas do
 | Minimização | 🟢 ok | o convite guarda só o hash; o e-mail do barbeiro não volta em lista; a reserva manual não guarda contato do cliente (art. 6º, III) |
 | Retenção | 🟠 risco | 5 anos do `nome_exibicao` e pseudônimo depois são da H33 e dependem do advogado; o resto (IP 1 ano, backup 30 dias) já está no ADR 0009 e na D128 |
 | Direitos do titular (exportar e excluir) | 🟠 risco | `DELETE /me` de barbeiro ativo é `409` até o desligamento (A29); a exportação do barbeiro precisa listar os dados dele (conta, vínculo, reservas) |
-| Transparência | 🟠 risco | a política 1.2 precisa de um parágrafo sobre barbeiros terceiros (dados, retenção e anonimização); o texto passa pelo Cautelar |
+| Transparência | 🟠 risco | a política 1.2 precisa de um parágrafo sobre barbeiros terceiros (dados, retenção e anonimização); o texto passa pela revisão jurídica |
 | Dado de terceiros digitado pelo barbeiro (reserva manual) | 🟢 ok | só nome opcional e observação; sem contato (R30, D125) |
 | Segurança do convite | 🟢 ok | hash, uso único, expiração, limite e `422` único (E3 a E8) |
 
@@ -212,6 +212,6 @@ O design system é a fonte do visual: **não decido o visual aqui**. O canvas do
 - [x] contrato 1.8.0 com `redocly lint` em 0 erros e o histórico de versões atualizado
 - [x] o Dono/Admin gera, reenvia e revoga convites; o barbeiro cria a senha e vê só a própria agenda (E2E `convite.spec.ts` contra a API real; o fluxo manual no [guia de testes](../guia-testes.md#74-convite-do-barbeiro-fatia-10) fica "a preencher")
 - [ ] **telas "aguarda design" desenhadas** e o visual trocado (hoje em layout neutro, só tokens): depende do desenho do Kevin
-- [ ] texto da política de privacidade revisado pelo Cautelar (parágrafo do barbeiro) e as pendências jurídicas da H33 levadas ao advogado (art. 10 e tipo de vínculo): **não feito nesta entrega**
+- [ ] texto da política de privacidade revisado na revisão jurídica (parágrafo do barbeiro) e as pendências jurídicas da H33 levadas ao advogado (art. 10 e tipo de vínculo): **não feito nesta entrega**
 - [ ] [checklist da PR](checklist-pr.md) completo na abertura da PR (o Kevin abre; esta branch não abriu PR)
 
