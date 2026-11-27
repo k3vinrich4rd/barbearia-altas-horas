@@ -67,3 +67,47 @@ test("HG-2: com prefers-reduced-motion, a home não anima transform e as seçõe
   );
   expect(transicoesDeTransform).toBe(0);
 });
+
+test("A24: com prefers-reduced-motion ou com o Sem animação, a barra fixa e o Agendar horário do topo mudam sem transição", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const semTransicao = async () => {
+    for (const seletor of [".barra-agendar", ".botao-agendar-topo", "#inicio .botao-principal"]) {
+      const duracoes = await page
+        .locator(seletor)
+        .first()
+        .evaluate((el) =>
+          getComputedStyle(el)
+            .transitionDuration.split(",")
+            .map((d) => d.trim()),
+        );
+      for (const d of duracoes) expect(d, seletor).toBe("0s");
+    }
+  };
+  const aside = page.locator(".barra-agendar");
+
+  // sem nada ligado a barra tem transição (prova que o teste mede algo)
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  const antes = await aside.evaluate((el) => getComputedStyle(el).transitionDuration);
+  expect(antes.split(",").some((d) => d.trim() !== "0s")).toBe(true);
+
+  // preferência do sistema
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(aside).toHaveAttribute("data-escondida", "true");
+  await semTransicao();
+  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+  await expect(aside).toHaveAttribute("data-escondida", "false");
+  await semTransicao();
+
+  // "Sem animação" do painel, sem a preferência do sistema
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => (document.documentElement.dataset.movimento = "reduzido"));
+  await semTransicao();
+});
