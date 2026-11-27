@@ -100,7 +100,8 @@ describe("acrescentar 1 minuto", () => {
     liberar();
     const mensagem = await screen.findByText("Pronto, mais 1 minuto no contador.");
     expect(mensagem).toHaveAttribute("role", "status");
-    expect(mensagem).toHaveFocus();
+    // o foco vai num efeito depois de a mensagem aparecer: espera esse efeito (sob carga no CI ele vinha um instante depois)
+    await vi.waitFor(() => expect(mensagem).toHaveFocus());
     expect(botao()).toBeNull();
     expect(chamadas.posts).toBe(1);
     expect(screen.getByLabelText("Pix copia e cola")).toHaveValue("SIMULADO-0001-ABCDEF");
@@ -121,9 +122,20 @@ describe("acrescentar 1 minuto", () => {
     await vi.waitFor(() => expect(screen.getByRole("timer")).toHaveTextContent("01:30"), { timeout: 4000 });
     expect(screen.getByText("Faltam 2 minutos para pagar.")).toBeInTheDocument();
     expect(screen.getByText("Faltam 2 minutos para pagar.")).toHaveAttribute("aria-live", "polite");
-    // continua correndo: um segundo depois do relógio do aparelho, o contador anda
+    // continua correndo: o relógio do aparelho anda 5 s e o contador desce junto. O relógio falso segue andando em tempo real
+    // depois do setSystemTime, então sob carga o próximo tique pode já mostrar 01:24 ou menos: vale qualquer valor até 01:25.
     vi.setSystemTime(new Date("2026-12-01T10:02:35-03:00"));
-    await vi.waitFor(() => expect(screen.getByRole("timer")).toHaveTextContent("01:25"), { timeout: 4000 });
+    const segundosNoContador = () => {
+      const [m, s] = (screen.getByRole("timer").textContent ?? "").split(":").map(Number);
+      return m * 60 + s;
+    };
+    await vi.waitFor(
+      () => {
+        expect(segundosNoContador()).toBeLessThanOrEqual(85);
+        expect(segundosNoContador()).toBeGreaterThan(60);
+      },
+      { timeout: 4000 },
+    );
   }, 15000);
 
   test("A25: 422 RESERVA_EXPIRADA mostra o texto de expirado com 'Escolher outro horário'; 422 PRORROGACAO_FORA_DA_JANELA faz o botão sumir", async () => {
