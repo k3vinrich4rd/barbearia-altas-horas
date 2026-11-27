@@ -56,6 +56,8 @@ const AUDIO_MP3 = "/assets/audio/historia.mp3";
 const AUDIO_VTT = "/assets/audio/historia.vtt";
 /** Duração real do arquivo versionado (último cue 00:01:12.819; opus ~73 s). */
 const DURACAO_DA_NARRACAO = "1 min 13 s";
+/** WebKit às vezes baixa o Opus e não dispara erro nem playing; após este prazo tentamos o MP3. */
+export const TEMPO_LIMITE_DO_AUDIO_MS = 8_000;
 
 export function Trajetoria() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -68,10 +70,25 @@ export function Trajetoria() {
   const [marco, setMarco] = useState(1);
   const tentouMp3 = useRef(false);
   const trocandoFonte = useRef(false);
+  const tempoLimite = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aguardandoPlaying = useRef(false);
   useRedirecionarHistoria();
+
+  function limparTempoLimite() {
+    if (tempoLimite.current !== null) {
+      clearTimeout(tempoLimite.current);
+      tempoLimite.current = null;
+    }
+    aguardandoPlaying.current = false;
+  }
 
   useEffect(
     () => () => {
+      if (tempoLimite.current !== null) {
+        clearTimeout(tempoLimite.current);
+        tempoLimite.current = null;
+      }
+      aguardandoPlaying.current = false;
       window.speechSynthesis?.cancel();
       audioRef.current?.pause();
     },
@@ -113,6 +130,7 @@ export function Trajetoria() {
   }
 
   function avisarErroDeAudio() {
+    limparTempoLimite();
     trocandoFonte.current = false;
     setCarregando(false);
     setFalando(false);
@@ -142,10 +160,28 @@ export function Trajetoria() {
     avisarErroDeAudio();
   }
 
+  function armarTempoLimite(audio: HTMLAudioElement) {
+    if (tempoLimite.current !== null) {
+      clearTimeout(tempoLimite.current);
+      tempoLimite.current = null;
+    }
+    aguardandoPlaying.current = true;
+    tempoLimite.current = setTimeout(() => {
+      tempoLimite.current = null;
+      if (!aguardandoPlaying.current) return;
+      if (!tentouMp3.current) {
+        tentarMp3(audio);
+        return;
+      }
+      avisarErroDeAudio();
+    }, TEMPO_LIMITE_DO_AUDIO_MS);
+  }
+
   function tocar(audio: HTMLAudioElement) {
     setCarregando(true);
     setOferecerLeitura(false);
     setAviso("Carregando o áudio…");
+    armarTempoLimite(audio);
     const tentativa = audio.play();
     if (tentativa && typeof tentativa.then === "function") {
       tentativa.catch((erro: unknown) => {
@@ -178,6 +214,7 @@ export function Trajetoria() {
       return;
     }
     if (falando || carregando) {
+      limparTempoLimite();
       audioRef.current?.pause();
       setCarregando(false);
       setFalando(false);
@@ -219,6 +256,7 @@ export function Trajetoria() {
                 controls
                 preload="none"
                 onPlaying={() => {
+                  limparTempoLimite();
                   trocandoFonte.current = false;
                   setCarregando(false);
                   setFalando(true);
@@ -227,11 +265,13 @@ export function Trajetoria() {
                 onPause={() => {
                   const el = audioRef.current;
                   if (el?.ended || el?.error || trocandoFonte.current) return;
+                  limparTempoLimite();
                   setCarregando(false);
                   setFalando(false);
                   setAviso("Leitura parada.");
                 }}
                 onEnded={() => {
+                  limparTempoLimite();
                   setCarregando(false);
                   setFalando(false);
                   setAviso("Leitura terminada.");
