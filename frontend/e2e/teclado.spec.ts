@@ -233,17 +233,52 @@ test.describe("resumo fixo não cobre o foco", () => {
     await axeNaRota(1280, 800);
   });
 
-  test("RF-7: em 320 px com zoom de 200%, /agendar não rola na horizontal", async ({ page }) => {
+  test("RF-7: em 320 px com zoom de 200%, /agendar não rola na horizontal, também depois do serviço e do horário", async ({
+    page,
+    request,
+  }) => {
+    const horario = await horarioLivre(request);
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/agendar");
-    await page.evaluate(() => {
-      document.body.style.zoom = "2";
-    });
-    const overflow = await page.evaluate(() => {
-      const raiz = document.documentElement;
-      return { scroll: raiz.scrollWidth, cliente: raiz.clientWidth };
-    });
-    expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.cliente);
+    const medir = async () => {
+      await page.evaluate(() => {
+        document.body.style.zoom = "2";
+      });
+      const overflow = await page.evaluate(() => {
+        const raiz = document.documentElement;
+        const cliente = raiz.clientWidth;
+        const largos = [...document.querySelectorAll("body *")]
+          .map((el) => {
+            const caixa = el.getBoundingClientRect();
+            const cls = typeof el.className === "string" ? el.className : "";
+            return {
+              tag: el.tagName,
+              cls: cls.slice(0, 80),
+              sw: el.scrollWidth,
+              rw: Math.round(caixa.width),
+            };
+          })
+          .filter((e) => e.sw > cliente || e.rw > cliente)
+          .sort((a, b) => b.sw - a.sw)
+          .slice(0, 12);
+        return { scroll: raiz.scrollWidth, cliente, largos };
+      });
+      await page.evaluate(() => {
+        document.body.style.zoom = "";
+      });
+      return overflow;
+    };
+    const noInicio = await medir();
+    expect(noInicio.scroll, `no início: ${JSON.stringify(noInicio)}`).toBeLessThanOrEqual(noInicio.cliente);
+
+    await page.getByRole("radio").first().click();
+    await page.locator("#data").fill(horario.dia);
+    await expect(page.locator(".dias-tira .dia-chip-nota").filter({ hasText: /livre|Fechado|sem horário/ }).first()).toBeVisible();
+    await page.getByRole("button", { name: horario.hora, exact: true }).first().click();
+    await expect(page.locator(".resumo-fixo")).toContainText(horario.hora);
+
+    const depois = await medir();
+    expect(depois.scroll, `depois do serviço, do horário e das notas da tira: ${JSON.stringify(depois)}`).toBeLessThanOrEqual(depois.cliente);
   });
 });
 

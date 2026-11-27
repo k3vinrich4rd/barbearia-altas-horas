@@ -35,7 +35,7 @@ flowchart TD
 ├ resumo fixo (≤ 128 px) ───────────────┤
 │ Corte Clássico / Social · R$ 45,00     │  ← 1 linha; quebra em 2 no máximo
 │ sexta, 27/11 às 07:00                  │
-│ [ CONTINUAR ]                          │  ← 48 px de altura
+│ [ CONTINUAR ]                          │  ← 44 px de altura
 └────────────────────────────────────────┘
 ```
 
@@ -100,9 +100,17 @@ Foco escondido: de 34 em 60 para 0. Altura da barra: de 243 px para até 128 px.
 
 **Por quê:** a spec pede CSS sem JavaScript. Usar sempre o teto com A+ (176 px, `calc((var(--space-16) * 2) + var(--space-12))`) evita medir a barra em tempo real e cobre o zoom do A+ (110%, 125% e 150%). As medidas novas são tokens derivados (`--resumo-fixo-altura`, `--resumo-fixo-altura-ampliada`, `--alvo-toque`), sem pixel solto, para o verificador de tokens passar.
 
-**Decisão:** no celular a barra usa `padding` `--space-1`, `gap` 0 e o botão com `min-height: var(--alvo-toque)` (44 px), para a altura ficar em cerca de 117 px e, com A+ a 150%, em no máximo 176 px. A tira de 7 dias ganha `min-width: 0`, `width` e `max-width: 100%`, para o `overflow-x` conter os chips. Com zoom de 200% a largura útil cai a cerca de 160 px: as grades `auto-fit` passam a usar `minmax(min(100%, coluna mínima), 1fr)`, os links do rodapé (como `@altashorascabeleireiros`) podem quebrar, e `body` e `main` usam `overflow-x: clip` para o vazamento do zoom na tira de dias não alargar o documento. O campo "Outro dia" também escuta `onInput`, para a escolha do dia chegar ao estado quando o teste (ou o navegador) preenche o `type="date"`.
+**Decisão:** no celular a barra usa `padding` `--space-1`, `gap` 0 e o botão com `min-height: var(--alvo-toque)` (44 px), para a altura ficar em cerca de 117 px e, com A+ a 150%, em no máximo 176 px. A tira de 7 dias ganha `min-width: 0`, `width` e `max-width: 100%`, para o `overflow-x` conter os chips. Com zoom de 200% a largura útil cai a cerca de 160 px: as grades `auto-fit` passam a usar `minmax(min(100%, coluna mínima), 1fr)`, os links do rodapé (como `@altashorascabeleireiros`) podem quebrar, e `html`, `body` e `main` usam `overflow-x: clip` para o vazamento do zoom na tira de dias não alargar o documento. O campo "Outro dia" também escuta `onInput`, para a escolha do dia chegar ao estado quando o teste (ou o navegador) preenche o `type="date"`.
 
 **Por quê:** com padding `--space-2`, espaço entre os blocos e botão de 48 px a barra media 133 px (acima de 128 px) e estourava o teto de 176 px no A+. No zoom de 200% o `scrollWidth` ia a 422 px: o handle do Instagram no rodapé (um único `inline-flex` sem quebra) e a coluna mínima de 16 rem das grades não cabiam na largura útil de ~160 px.
+
+**Decisão:** depois de escolher o serviço e o horário, a seção da tira recorta com `overflow-x: clip`; a tira fica numa caixa com `overflow-x: clip` e `contain: inline-size paint` (os 7 chips rolam só por dentro; no zoom, o `scrollWidth` 496 da tira não pode alargar o documento); cada chip tem largura `var(--space-16)` (e no mínimo o `--alvo-toque` de 44 px); as notas "livre", "Fechado" e "sem horário" podem quebrar (`overflow-wrap: anywhere`); o botão "Próximo livre" também quebra (`white-space: normal` e `overflow-wrap: anywhere`); no celular a lista de serviços vira uma coluna `minmax(0, 1fr)`, sem a min-content de 16 rem. O E2E do RF-7 mede o `scrollWidth` nesse passo, com as notas visíveis, não só na abertura de `/agendar`.
+
+**Por quê:** com zoom de 200% em 320 px, depois dessa escolha o `scrollWidth` ia a 638 px (e, com só o recorte e a largura dos chips, ainda a 545 px). As notas "livre"/"Fechado" (e "sem horário") alargavam os chips; o botão "Próximo livre: …" (inline-flex, uma linha só) aparece com a mesma carga da semana; e a grade de serviços, com coluna mínima de 16 rem, ainda media 545 px no `scrollWidth` depois da escolha (a abertura da tela media antes da lista chegar). O recorte em `html`/`body`/`main` não impedia essa min-content de entrar no `scrollWidth` do documento.
+
+**Decisão:** o botão "Continuar" da barra compacta e o desenho da spec ficam em 44 px (`var(--alvo-toque)`), não em 48 px (`--space-12`). 44 px é o alvo AAA do desenho (WCAG 2.5.5 Target Size Enhanced; o 2.5.8 AA pede 24 px). Subir de volta para 48 px estourava o teto da barra no A+ (RF-2).
+
+**Por quê:** a implementação já usava 44 px; a spec (e o desenho do "Continuar") ainda diziam 48 px.
 
 **Decisão:** as decisões desta melhoria ficam nesta spec, não em `docs/planejamento/decisoes.md`.
 

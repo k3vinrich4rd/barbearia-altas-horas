@@ -28,6 +28,10 @@
   --alvo-toque: calc(var(--space-12) - var(--space-1));
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
   background: var(--fundo);
@@ -930,7 +934,37 @@ dd {
   margin-bottom: 0;
 }
 
+/* O botão "Próximo livre: …" é inline-flex e não quebra; com zoom 200% alarga o documento (RF-7). */
+.proximo-livre,
+.proximo-livre .botao {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.proximo-livre .botao {
+  white-space: normal;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  justify-content: flex-start;
+  text-align: start;
+}
+
 /* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
+/* A seção e a caixa recortam; os 7 chips rolam só dentro da tira, sem entrar no scrollWidth da página (RF-7). */
+section[aria-labelledby="passo-dia"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.dias-tira-caixa {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  contain: inline-size paint;
+}
+
 .dias-tira {
   display: flex;
   gap: var(--space-2);
@@ -946,7 +980,10 @@ dd {
   flex: none;
   display: grid;
   justify-items: center;
-  min-width: var(--space-16);
+  /* Largura travada: "livre", "Fechado" e "sem horário" não alargam o chip (RF-7). 64 px ≥ alvo de 44 px. */
+  width: var(--space-16);
+  max-width: var(--space-16);
+  min-width: var(--alvo-toque);
   min-height: var(--space-12);
   padding: var(--space-2) var(--space-3);
   border: var(--traco-1) solid var(--borda-forte);
@@ -971,6 +1008,9 @@ dd {
 
 .dia-chip-nota {
   font-size: var(--tipo-legenda-tamanho);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 /* C8 (Fatia 15): dia "Fechado" (sem expediente, ou folga ou férias no dia todo). Diferente de "sem horário" pela palavra e
@@ -1354,6 +1394,19 @@ caption {
 /* Celular: barra compacta e scroll-padding para o foco não ficar atrás dela (WCAG 2.4.11).
  * O padding usa a altura ampliada (teto com A+) para cobrir o zoom sem JavaScript. */
 @media (max-width: 47.999rem) {
+  /* RF-7: com zoom no body, o recorte do html não reduz o scrollWidth; a largura destes
+   * blocos não pode depender da min-content dos filhos (notas da tira, 16 rem, botões). */
+  .cabecalho,
+  main,
+  .rodape,
+  .resumo-fixo {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+    contain: inline-size;
+  }
+
   html:has(.resumo-fixo) {
     scroll-padding-bottom: calc(var(--resumo-fixo-altura-ampliada) + var(--space-4));
   }
@@ -1387,6 +1440,20 @@ caption {
 
   .campo input[type="date"] {
     max-width: 100%;
+  }
+
+  /* RF-7: no zoom 200% a min-content de 16 rem da grade (nome do serviço) ainda media scrollWidth 545. */
+  .opcoes {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .opcao,
+  .opcao span {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   /* Rótulos ficam no HTML para o leitor de tela e somem da tela no celular. */
