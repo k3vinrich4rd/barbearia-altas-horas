@@ -36,11 +36,12 @@ class TextosDaPolitica {
             @Value("${app.privacidade.retencao-ip-dias:365}") int retencaoIpDias,
             @Value("${app.privacidade.retencao-webhook-dias:365}") int retencaoWebhookDias) {
         String versao = Consentimentos.VERSAO_DO_TEXTO;
-        this.contato = contato == null || contato.isBlank() ? SEM_CONTATO : contato.strip();
+        this.contato = contato == null || contato.isBlank() ? SEM_CONTATO
+                : FormatadorDeCanalDeContato.formatar(contato.strip());
         this.consentimento = ler("privacidade/consentimento-" + versao + ".md").strip();
         this.consentimentoRegiao = ler("privacidade/consentimento-regiao-" + versao + ".md").strip();
         this.politica = ler("privacidade/politica-" + versao + ".md").strip()
-                .replace("{{contato}}", contato == null || contato.isBlank() ? SEM_CONTATO : contato.strip())
+                .replace("{{contato}}", this.contato)
                 .replace("{{retencaoGuestDias}}", Integer.toString(retencaoGuestDias))
                 .replace("{{retencaoIpDias}}", Integer.toString(retencaoIpDias))
                 .replace("{{retencaoWebhookDias}}", Integer.toString(retencaoWebhookDias));
