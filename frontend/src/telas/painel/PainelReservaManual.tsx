@@ -116,11 +116,15 @@ export function PainelReservaManual() {
 
   return (
     <>
-      <h1>Reserva manual</h1>
-      <p>Para quem combinou pelo WhatsApp. A reserva já nasce confirmada e sem cobrança.</p>
+      <h1>Fechar horário combinado no WhatsApp</h1>
+      <p>
+        O cliente pediu o horário pelo WhatsApp e você confirmou na conversa? Feche o horário aqui. Confira na agenda se
+        ele ainda está livre. A reserva nasce confirmada, sem pagamento pelo app, e o horário sai na hora da lista de
+        horários livres.
+      </p>
       <EstadoDaConsulta consulta={(admin ? todos : minha) as Consulta<unknown>}>
         {() => (
-          <form onSubmit={enviar} noValidate aria-label="Reserva manual">
+          <form onSubmit={enviar} noValidate aria-label="Fechar horário combinado no WhatsApp">
             {erroApi && !doCampo && erroApi.code !== "VALIDACAO_INVALIDA" && (
               <AvisoDeErro
                 erro={erroApi}
@@ -196,7 +200,7 @@ export function PainelReservaManual() {
             <Aviso tipo="info">Sem cobrança pelo app: combine o pagamento direto com o cliente.</Aviso>
             <div className="acoes">
               <Botao type="submit" variante="principal" disabled={envio.enviando || envio.esperando}>
-                {envio.esperando ? `Aguarde ${envio.restante} s` : "Criar reserva"}
+                {envio.esperando ? `Aguarde ${envio.restante} s` : "Fechar horário"}
               </Botao>
               <Link href="/painel">Voltar à agenda</Link>
             </div>
