@@ -118,7 +118,12 @@ jobs:
       - name: Conferir spec × testes (fatia 12)
         run: sh scripts/conferir-spec.sh 12 --exigir
 
-      # Fatia 16 (fluxo sem repetição): cada PR da fatia tira da lista --exceto os critérios que ele cobre (o F2 tirou A1 a A3, A13, A15, A16 e A24).
+      # Fatia 16, F2 (topo, menu, barra fixa e /entrar): A1 a A3, A13, A15, A16 e A24 têm teste com o número deles.
+      # Passo à parte, para não disputar a linha --exceto da fatia 16 com os outros PRs da fatia.
+      - name: Conferir spec × testes (fatia 16, F2)
+        run: sh scripts/conferir-spec.sh 16 --exigir --exceto 4-12,14,17-23,25-28
+
+      # Fatia 16 (fluxo sem repetição): cada PR da fatia tira da lista --exceto os critérios que ele cobre.
       # A18 (galeria de cortes, parada), A19 (revisão manual) e A26 (Lighthouse CI) ficam de fora de propósito.
       # Fatia 16, A20: nenhuma foto de cliente entra no repositório (galeria só por armazenamento externo).
       - name: Sem foto de cliente em docs/assets nem em frontend/public
@@ -126,7 +131,7 @@ jobs:
         run: npx vitest run src/fotos-no-repositorio.test.ts
 
       - name: Conferir spec × testes (fatia 16)
-        run: sh scripts/conferir-spec.sh 16 --exigir --exceto 4-7,9-12,14,17-19,22-23,26-28
+        run: sh scripts/conferir-spec.sh 16 --exigir --exceto 1-7,9-19,22-24,26-28
 
       # Fatia 14, parte 14A (mais 1 minuto no Pix e agenda sem limites): A1 a A27 têm teste com o número deles.
       # 14B, 14C e 14D (A28 a A62) entram nas próximas PRs e ampliam o --ate.

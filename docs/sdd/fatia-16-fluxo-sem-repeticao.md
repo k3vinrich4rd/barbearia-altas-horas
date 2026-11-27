@@ -60,9 +60,9 @@ Sem rosto (nem olho, nem perfil nítido), sem criança, sem TV ligada, sem espel
 ## 8. Critérios de aceite
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A1 | a home a 360 e a 1280 | rola de cima a baixo | no máximo **1** "Agendar horário" visível e clicável ao mesmo tempo | `home-fluxo.spec.ts` |
-| A2 | a home a 360 | herói ou "Como marcar" na tela | a barra fixa fica escondida e `inert`; fora deles, aparece | `home-fluxo.spec.ts` |
-| A3 | a home a 1280 | herói na tela | o "Agendar horário" do topo fica escondido e `inert`; nas outras páginas (fora do agendamento e da conta) ele aparece | `home-fluxo.spec.ts` |
+| A1 | a home a 360 e a 1280 | rola de cima a baixo | no máximo **1** "Agendar horário" visível e clicável ao mesmo tempo | `home-fluxo-topo.spec.ts` |
+| A2 | a home a 360 | herói ou "Como marcar" na tela | a barra fixa fica escondida e `inert`; fora deles, aparece | `home-fluxo-topo.spec.ts` |
+| A3 | a home a 1280 | herói na tela | o "Agendar horário" do topo fica escondido e `inert`; nas outras páginas (fora do agendamento e da conta) ele aparece | `home-fluxo-topo.spec.ts` |
 | A4 | a home | lê a ordem | `inicio`, `quem-somos`, `servicos`, `como-marcar`, (`alcance`, só com dado), `onde-estamos` | `home-ordem.test.tsx` |
 | A5 | o texto da home | conta | "R. São Judas Tadeu, 313", "Terça a sábado" e o WhatsApp formatado 1× cada, em `onde-estamos`; "Amor na ponta da tesoura" 1×; "Prêmio Barbeiros do Brasil" no máximo 2×, em `quem-somos` | `home-fluxo.test.tsx` |
 | A6 | a home | procura o retrato do Eduardo e a seção Barbeiro | 1 retrato, em `quem-somos`; `#barbeiro` não existe | `home-fluxo.test.tsx` |

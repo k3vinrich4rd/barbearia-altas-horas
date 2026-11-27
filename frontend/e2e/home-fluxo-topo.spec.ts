@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Fatia 16, F2 (docs/sdd/fatia-16-fluxo-sem-repeticao.md): na home nunca aparecem dois "Agendar horário" juntos.
+// Fatia 16, F2 (docs/sdd/fatia-16-fluxo-sem-repeticao.md), topo e barra fixa: na home nunca aparecem dois "Agendar horário" juntos.
 // A1: no máximo 1 visível e clicável ao rolar. A2: a barra fixa do celular some (e fica inert) com o herói ou
 // "Como marcar" na tela. A3: no computador, o "Agendar horário" do topo fica fora da home e volta nas outras páginas.
 
