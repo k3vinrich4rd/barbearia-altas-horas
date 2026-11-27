@@ -15,7 +15,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.2-0A0A0A?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-0A0A0A?style=flat-square&logo=postgresql&logoColor=white)](docs/adr/0003-anti-double-booking-no-banco.md)
 [![Next.js](https://img.shields.io/badge/Next.js-16-0A0A0A?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Testes](https://img.shields.io/badge/testes_backend-588_✔-0A0A0A?style=flat-square)](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-)
+[![Testes](https://img.shields.io/badge/testes_backend-657_✔-0A0A0A?style=flat-square)](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-)
 [![Contrato](https://img.shields.io/badge/OpenAPI-3.1-0A0A0A?style=flat-square&logo=openapiinitiative&logoColor=white)](docs/contrato/openapi.yaml)
 
 <h2>A agenda online da Barbearia Altas Horas, de Osasco: o cliente escolhe o horário, paga na hora e a vaga fica garantida.</h2>
@@ -48,9 +48,9 @@ A agenda da barbearia do meu pai, o **Eduardo Candido**, saiu do caderno e do Wh
 
 | 🌐 No ar | 💳 Pagamento | ⏱ Prazo | 🧪 Testes do backend |
 |:-:|:-:|:-:|:-:|
-| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (**simulado no beta**) | 3 min para pagar | **588**, 0 falhas |
+| [beta na Vercel](https://barbearia-altas-horas.vercel.app) | 100% antecipado, Pix ou cartão (**simulado no beta**) | 3 min para pagar | **657**, 0 falhas |
 
-<sub>Os 588 testes vêm do [guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-) (rodada final de 24/11/2026, `./mvnw verify` com PostgreSQL real, depois da Fatia 14). Nenhum número desta página é estimativa.</sub>
+<sub>Os 657 testes do backend e os 286 do front vêm da CI da `develop` em 27/11/2026 (commit `2f4014c`, Backend CI e Frontend CI verdes). A rodada local anterior, com cobertura de 95%, está no [guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-) (24/11/2026). Nenhum número desta página é estimativa.</sub>
 
 ## 🗓 As 3 formas de agendar
 
@@ -145,7 +145,7 @@ Com o dia dividido entre os clientes e os alunos, a agenda sempre ficou no cader
 No fim, o Eduardo começa a manhã com um painel limpo e o dia já organizado, cada atendimento confirmado. Sobra tempo para o que importa: a cadeira e os alunos.
 
 > [!NOTE]
-> **Onde o projeto está:** o site e a API estão no ar em **beta** desde 18/11/2026, com [pagamento simulado](https://barbearia-altas-horas.vercel.app). A API mostra horários livres de verdade, impede conflito de horário, tem conta, painel, privacidade (LGPD) e as fatias 1 a 14 (exceto a 9, que fica para depois do beta). São **588 testes** no backend em PostgreSQL real, 0 falhas ([guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-), 24/11/2026, `./mvnw verify`).
+> **Onde o projeto está:** o site e a API estão no ar em **beta** desde 18/11/2026, com [pagamento simulado](https://barbearia-altas-horas.vercel.app). A API mostra horários livres de verdade, impede conflito de horário, tem conta, painel, privacidade (LGPD) e as fatias 1 a 14 (exceto a 9, que fica para depois do beta). São **657 testes** no backend em PostgreSQL real, 0 falhas, além de 286 testes Vitest e 56 E2E com Playwright no front (CI da `develop` em 27/11/2026 (commit `2f4014c`, Backend CI e Frontend CI verdes)).
 
 <br clear="right"/>
 
@@ -566,7 +566,7 @@ cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 O health fica em `http://localhost:8080/actuator/health`. Para o primeiro admin, suba com `ADMIN_EMAIL` e `ADMIN_SENHA` (a senha inicial precisa ser trocada antes de o painel abrir).
 
 ```bash
-cd backend && ./mvnw verify      # 588 testes com PostgreSQL real via Testcontainers (24/11/2026, depois da Fatia 14)
+cd backend && ./mvnw verify      # 657 testes com PostgreSQL real via Testcontainers (CI da develop, 27/11/2026)
 ```
 
 O contrato da API ([`docs/contrato/openapi.yaml`](docs/contrato/openapi.yaml)) descreve cada rota, com os erros em pt-BR no formato RFC 9457:
@@ -604,8 +604,8 @@ O passo a passo para testar à mão (visitante, cliente, barbeiro e admin) está
 
 | Número | Fonte |
 |---|---|
-| **588** testes no backend, 0 falhas; cobertura **95%** | [guia de testes, seção 5e](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-), 24/11/2026, `./mvnw verify` com PostgreSQL real (Testcontainers), depois da Fatia 14 |
-| **206** testes Vitest no front; `tsc`, `lint` e `build` limpos | a mesma rodada de 24/11/2026, seção 5e |
+| **657** testes no backend, 0 falhas; cobertura **95%** na rodada local de 24/11 | CI da `develop` em 27/11/2026 (commit `2f4014c`, Backend CI e Frontend CI verdes); cobertura no [guia de testes, seção 5e](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-) |
+| **286** testes Vitest e **56** E2E (Playwright) no front; `tsc`, `lint` e `build` limpos | a mesma CI da `develop` em 27/11/2026 (commit `2f4014c`, Backend CI e Frontend CI verdes) |
 | `conferir-spec.sh 14 --exigir`: **62 de 62** | a mesma rodada: todo critério `A#` da Fatia 14 tem um teste com esse número |
 | **17** specs SDD, **701** linhas de critério `A#`, **13** ADRs, **3** skills, **7** agentes de IA, **558** testes de backend com `@DisplayName("A…")` e **105** arquivos de teste do front | contados neste repositório em 26/11/2026, na `develop` (`e91e85d`) |
 
@@ -619,11 +619,11 @@ Projeto individual: o Kevin (backend Java) usa IA como par de programação, e o
 
 | 📐 Fatias com spec | ✅ Critérios `A#` nas specs | 🧪 Testes do backend | 🧭 ADRs | 🧑‍💻 Agentes | 🛠 Skills |
 |:-:|:-:|:-:|:-:|:-:|:-:|
-| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **588** (`./mvnw verify`) | **13** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
+| **17** em [`docs/sdd`](docs/sdd/README.md) | **701** linhas `A#` | **657** (CI da `develop`, 27/11) | **13** em [`docs/adr`](docs/adr) | **7** em [`.claude/agents`](.claude/agents) | **3** em [`.claude/skills`](.claude/skills) |
 
 </div>
 
-<sub>Specs, critérios, ADRs, agentes e skills foram contados no repositório em 26/11/2026, na `develop`. Os 588 testes são a rodada de 24/11/2026 do [guia de testes](docs/guia-testes.md#5e-senha-voz-da-barbearia-agenda-nova-e-fluidez-fatia-14b-14c-e-14d-).</sub>
+<sub>Specs, critérios, ADRs, agentes e skills foram contados no repositório em 26/11/2026, na `develop`. Os 657 testes do backend e os 286 do front vêm da CI da `develop` de 27/11/2026.</sub>
 
 ### O fluxo de uma fatia, da spec ao deploy
 
