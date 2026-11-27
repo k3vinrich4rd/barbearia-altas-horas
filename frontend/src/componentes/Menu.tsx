@@ -15,9 +15,9 @@ import { ehPaginaDeTarefa } from "./tipoDePagina";
 
 /** Itens do menu (Fatia 16, F2, A13): as 4 seções da home, numeradas na ordem da página. Cada assunto tem um lugar só:
  * saem "Barbeiro", "Galeria" e "Dúvidas" (viram parte de Quem somos, O que fazemos e Como marcar). "Quem somos" aponta
- * para a Trajetória até o F4 juntar barbeiro e Trajetória na seção `quem-somos`; "Como marcar" chega com o F3 (#151). */
+ * para a seção `quem-somos` do F4, que juntou barbeiro e Trajetória; "Como marcar" veio com o F3. */
 export const SECOES_DA_HOME: { href: string; numero: string; texto: string }[] = [
-  { href: "/#trajetoria", numero: "01", texto: "Quem somos" },
+  { href: "/#quem-somos", numero: "01", texto: "Quem somos" },
   { href: "/#servicos", numero: "02", texto: "O que fazemos" },
   { href: "/#como-marcar", numero: "03", texto: "Como marcar" },
   { href: "/#onde-estamos", numero: "04", texto: "Onde estamos" },

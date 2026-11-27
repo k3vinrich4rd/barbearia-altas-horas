@@ -27,6 +27,7 @@ describe("menu do site", () => {
     const links = within(principal).getAllByRole("link");
     // o número é visual (aria-hidden): o nome acessível é só a seção
     expect(links.map((l) => l.textContent)).toEqual(["01 Quem somos", "02 O que fazemos", "03 Como marcar", "04 Onde estamos"]);
+    expect(within(principal).getByRole("link", { name: "Quem somos" })).toHaveAttribute("href", "/#quem-somos");
     expect(within(principal).getByRole("link", { name: "Como marcar" })).toHaveAttribute("href", "/#como-marcar");
     expect(links.map((l) => l.getAttribute("href"))).toEqual(SECOES_DA_HOME.map((s) => s.href));
     for (const fora of ["Serviços", "Barbeiro", "Galeria", "Trajetória", "Dúvidas", "Como funciona", "A história"]) {
