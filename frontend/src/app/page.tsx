@@ -1,15 +1,19 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Suspense } from "react";
 import { AvisoDaHome } from "@/componentes/AvisoDaHome";
 import { BarbeiroDaHome } from "@/componentes/BarbeiroDaHome";
 import { LinkBotao } from "@/componentes/Botao";
 import { Galeria } from "@/componentes/Galeria";
 import { AlcanceDaHome, ServicosDaHome } from "@/componentes/ListaDeServicos";
-import { Duvidas, FaixaComoFunciona, Trajetoria, WhatsappDoHeroi } from "@/componentes/SecoesDaHome";
-import { FATOS_DA_HOME, IMAGENS, SUBTITULO_DA_HOME, TITULO_DA_HOME } from "@/conteudo/historia";
+import { ComoMarcar } from "@/componentes/ComoMarcar";
+import { Trajetoria } from "@/componentes/SecoesDaHome";
+import { IMAGENS, SUBTITULO_DA_HOME, TITULO_DA_HOME } from "@/conteudo/historia";
 
-// Ordem da home (Fatia 12, A1): a ordem em que o cliente decide. Herói (com a faixa "Como funciona"), serviços,
-// barbeiro, galeria, Trajetória, de onde vêm os clientes, dúvidas; "Onde estamos" é o rodapé do layout.
+// Ordem da home (Fatia 16, F3): herói enxuto (promessa, um botão e o link dos serviços), serviços, "Como marcar"
+// (Três jeitos + Antes de pagar), barbeiro, galeria, Trajetória e alcance; "Onde estamos" é o rodapé do layout.
+// O herói fica sem foto (decisão do Kevin de 27/11): a porta da barbearia continua no site, na galeria (até o F5/F6).
+// Quem somos (F4) e Onde estamos na home (F6) mudam a ordem nos próximos PRs.
 export default function Home() {
   return (
     <>
@@ -18,8 +22,8 @@ export default function Home() {
       </Suspense>
       <section id="inicio" aria-labelledby="t-inicio" className="heroi">
         <div>
-          <p className="sobretitulo">
-            <span aria-hidden="true">★ 19 ✂ 97 ★ · </span>Jardim Bonança, Osasco, desde 1997
+          <p className="sobretitulo" aria-hidden="true">
+            ★ 19 ✂ 97 ★
           </p>
           <h1 id="t-inicio" className="tipo-titulo-hero">
             {TITULO_DA_HOME}
@@ -29,29 +33,21 @@ export default function Home() {
             <LinkBotao href="/agendar" variante="principal">
               Agendar horário
             </LinkBotao>
-            <WhatsappDoHeroi />
+            <Link href="#servicos" className="link-solto">
+              Ver serviços e preços
+            </Link>
           </p>
-          <ul className="fatos">
-            {FATOS_DA_HOME.map((f) => (
-              <li key={f.titulo}>
-                <strong>{f.titulo}</strong>
-                <span className="destaque">{f.texto}</span>
-              </li>
-            ))}
-          </ul>
         </div>
-        <figure className="foto-fachada">
-          <Image src={IMAGENS.fachada.src} alt={IMAGENS.fachada.alt} width={560} height={420} priority />
-          <figcaption className="nota">A fachada, na R. São Judas Tadeu, 313</figcaption>
-        </figure>
-        <FaixaComoFunciona />
+        <div className="selo-heroi">
+          <Image src={IMAGENS.logo.src} alt="" width={320} height={320} />
+        </div>
       </section>
       <ServicosDaHome />
+      <ComoMarcar />
       <BarbeiroDaHome />
       <Galeria />
       <Trajetoria />
       <AlcanceDaHome />
-      <Duvidas />
     </>
   );
 }

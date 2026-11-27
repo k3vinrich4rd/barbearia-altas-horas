@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { PASSOS_DA_FAIXA } from "@/conteudo/historia";
+import { DUVIDAS } from "@/conteudo/historia";
 import { BARBEIRO, CINCO_SERVICOS } from "@/testes/dados";
 import { BFF, http, HttpResponse, ligarServidor, servidor } from "@/testes/msw";
 import { definirBusca, roteador, zerarNavegacao } from "@/testes/navegacao";
@@ -73,16 +73,17 @@ describe("resumo fixo de /agendar (Fatia 12C)", () => {
     expect(within(grupo).getAllByRole("radio")).toHaveLength(3);
   });
 
-  test("A19: antes da reserva, a página e a faixa da home falam em prazo curto, sem número de minutos", async () => {
+  test("A19: antes da reserva, a página fala em prazo curto e o Antes de pagar da home fala do prazo, sem número de minutos", async () => {
     renderizar(<Agendar />);
     const resumo = await screen.findByRole("complementary");
     // a nota saiu da barra e ficou no fluxo da página, logo acima do WhatsApp
     expect(screen.getByText(/prazo curto/)).toBeInTheDocument();
     expect(resumo).not.toHaveTextContent(/prazo curto/);
     expect(screen.getByText(/prazo curto/).textContent).not.toMatch(/\d+\s*(min|minutos)/i);
-    const faixa = PASSOS_DA_FAIXA.map((p) => p.texto).join(" ");
-    expect(faixa).toMatch(/prazo curto/);
-    expect(faixa).not.toMatch(/\d+\s*(min|minutos)/i);
+    // Fatia 16, F3: a faixa "Como funciona" saiu da home; o prazo fica só em "E se eu não pagar no prazo?"
+    const prazo = DUVIDAS.find((d) => d.pergunta === "E se eu não pagar no prazo?")?.resposta ?? "";
+    expect(prazo).toMatch(/contador/);
+    expect(prazo).not.toMatch(/\d+\s*(min|minutos)/i);
   });
 
   test("RF-6: o resumo declara Serviço, Quando e Total com os valores, para o leitor de tela", async () => {
