@@ -7,6 +7,7 @@ import { api, chamar } from "@/api/cliente";
 import { ErroApi } from "@/api/erro";
 import { AvisoDeErro } from "@/componentes/Aviso";
 import { Botao } from "@/componentes/Botao";
+import { IndicadorDePassos } from "@/componentes/IndicadorDePassos";
 
 const ROTULO_CONFIRMAR = "Ver a tela de confirmação (simula o pagamento aprovado)";
 
@@ -37,11 +38,11 @@ export function PagamentoSimulado({ cobrancaId }: { cobrancaId: string }) {
 
   return (
     <>
-      <p className="sobretitulo">Pagamento</p>
+      <IndicadorDePassos passoAtual={2} />
       <h1>Pagamento com cartão</h1>
       <p className="destaque">
-        Esta é a tela de checkout simulado do beta. Nenhum número de cartão é pedido. Confirmar aprova o pagamento
-        como o gateway faria.
+        Esta é a tela de checkout simulado do beta. Nenhum número de cartão é pedido. Confirmar aprova o pagamento como
+        o gateway faria.
       </p>
       {erro && <AvisoDeErro erro={erro} />}
       <Botao type="button" variante="principal" onClick={() => void confirmar()} disabled={enviando}>
