@@ -219,7 +219,9 @@ Os testes antigos que conferem o texto exato mudam **só de valor** (como na D12
 
 ### 6.2 Texto proposto
 
-**Trajetória** (substitui `HISTORIA` em `historia.ts`; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
+O texto da Trajetória desta seção **foi substituído pela versão 3**, em [`docs/sdd/historia-v3-aprovada.txt`](historia-v3-aprovada.txt). O bloco abaixo é o texto antigo e não vai mais para o site.
+
+**Trajetória** (texto antigo, substituído pela v3; o título "Quase três décadas na mesma cadeira", a linha do tempo e os prêmios ficam):
 
 > O Carlos Eduardo Candido (o Eduardo) começou no ofício em 1994, aprendendo com o primeiro mestre. Três anos depois, em 1997, abriu a Barbearia Altas Horas no Jardim Bonança, em Osasco, e de lá não saiu mais: são quase 30 anos na mesma cadeira, de terça a sábado.
 >

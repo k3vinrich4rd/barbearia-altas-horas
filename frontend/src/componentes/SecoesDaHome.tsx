@@ -3,6 +3,7 @@
 // A galeria mora em Galeria.tsx. Tudo por teclado.
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { api, chamar } from "@/api/cliente";
 import { DUVIDAS, HISTORIA, IMAGENS, MARCOS, PASSOS_DA_FAIXA } from "@/conteudo/historia";
 import { linkDoWhatsapp } from "./ContatoWhatsapp";
@@ -61,6 +62,7 @@ export function Trajetoria() {
   const [falando, setFalando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [usarFala, setUsarFala] = useState(false);
+  const [fontesNoAr, setFontesNoAr] = useState(false);
   const [marco, setMarco] = useState(1);
   useRedirecionarHistoria();
 
@@ -99,6 +101,25 @@ export function Trajetoria() {
     if (!manterAviso) setAviso("Lendo a trajetória em voz alta.");
   }
 
+  function tocar(audio: HTMLAudioElement) {
+    const tentativa = audio.play();
+    if (tentativa && typeof tentativa.then === "function") {
+      tentativa
+        .then(() => {
+          setFalando(true);
+          setAviso("Lendo a trajetória em voz alta.");
+        })
+        .catch(() => {
+          setUsarFala(true);
+          setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+          falarComAparelho(true);
+        });
+      return;
+    }
+    setFalando(true);
+    setAviso("Lendo a trajetória em voz alta.");
+  }
+
   function alternarVoz() {
     if (usarFala) {
       falarComAparelho();
@@ -116,22 +137,11 @@ export function Trajetoria() {
       setAviso("Leitura parada.");
       return;
     }
-    const tentativa = audio.play();
-    if (tentativa && typeof tentativa.then === "function") {
-      tentativa
-        .then(() => {
-          setFalando(true);
-          setAviso("Lendo a trajetória em voz alta.");
-        })
-        .catch(() => {
-          setUsarFala(true);
-          setAviso("Não deu para carregar o áudio. Ler com a voz do aparelho?");
-          falarComAparelho(true);
-        });
-      return;
+    // Fontes e legenda só entram no DOM ao apertar Ouvir (VZ-1: o .vtt com default era baixado no carregamento).
+    if (!fontesNoAr) {
+      flushSync(() => setFontesNoAr(true));
     }
-    setFalando(true);
-    setAviso("Lendo a trajetória em voz alta.");
+    tocar(audio);
   }
 
   return (
@@ -163,9 +173,13 @@ export function Trajetoria() {
                 setAviso("Leitura terminada.");
               }}
             >
-              <source src={AUDIO_OPUS} type="audio/opus" />
-              <source src={AUDIO_MP3} type="audio/mpeg" />
-              <track kind="captions" srcLang="pt-BR" label="Português" src={AUDIO_VTT} default />
+              {fontesNoAr && (
+                <>
+                  <source src={AUDIO_OPUS} type="audio/opus" />
+                  <source src={AUDIO_MP3} type="audio/mpeg" />
+                  <track kind="captions" srcLang="pt-BR" label="Português" src={AUDIO_VTT} default />
+                </>
+              )}
             </audio>
             <p role="status" className="nota">
               {aviso}
