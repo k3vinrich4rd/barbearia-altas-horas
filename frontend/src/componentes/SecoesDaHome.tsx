@@ -38,13 +38,16 @@ export function WhatsappDireto() {
   );
 }
 
-/** Links antigos para `/#historia` (já divulgados) levam à Trajetória (E1): troca o hash e rola até o bloco. */
-function useRedirecionarHistoria() {
+/** Links antigos (Fatia 16, F4, A28): `/#historia` e `/#barbeiro` (já divulgados) e `/#trajetoria` (menu antigo) levam a
+ * "Quem somos". `#trajetoria` também existe como âncora dentro da seção, para funcionar mesmo antes do JavaScript. */
+export const HASHES_DE_QUEM_SOMOS = ["#historia", "#trajetoria", "#barbeiro"];
+
+function useRedirecionarParaQuemSomos() {
   useEffect(() => {
     function ir() {
-      if (window.location.hash !== "#historia") return;
-      window.history.replaceState(null, "", "#trajetoria");
-      document.getElementById("trajetoria")?.scrollIntoView();
+      if (!HASHES_DE_QUEM_SOMOS.includes(window.location.hash)) return;
+      window.history.replaceState(null, "", "#quem-somos");
+      document.getElementById("quem-somos")?.scrollIntoView();
     }
     ir();
     window.addEventListener("hashchange", ir);
@@ -73,7 +76,7 @@ export function Trajetoria() {
   const trocandoFonte = useRef(false);
   const tempoLimite = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aguardandoPlaying = useRef(false);
-  useRedirecionarHistoria();
+  useRedirecionarParaQuemSomos();
 
   function limparTempoLimite() {
     if (tempoLimite.current !== null) {
@@ -236,15 +239,17 @@ export function Trajetoria() {
     tocar(audio);
   }
 
+  // "01 · Quem somos" (Fatia 16, F4): a história do Eduardo contada uma vez só. O bloco "Barbeiro", a citação e o bloco
+  // dos prêmios saíram; as fotos dos prêmios aparecem no marco 2017 da linha do tempo.
   return (
-    <section id="trajetoria" aria-labelledby="t-trajetoria" className="secao">
-      <div className="duas-colunas">
+    <section id="quem-somos" aria-labelledby="t-quem-somos" className="secao">
+      <div id="trajetoria" className="duas-colunas">
         <figure className="retrato">
           <Image src={IMAGENS.retrato.src} alt={IMAGENS.retrato.alt} width={360} height={360} />
         </figure>
         <div>
-          <p className="sobretitulo">Trajetória</p>
-          <h2 id="t-trajetoria">Quase três décadas na mesma cadeira</h2>
+          <p className="sobretitulo">01 · Quem somos</p>
+          <h2 id="t-quem-somos">Quase três décadas na mesma cadeira</h2>
           <div className="player-trajetoria">
             <p>
               <button type="button" className="botao botao-secundario" onClick={alternarVoz}>
@@ -298,10 +303,6 @@ export function Trajetoria() {
           {HISTORIA.map((p) => (
             <p key={p}>{p}</p>
           ))}
-          <blockquote>
-            <p>“Amor na ponta da tesoura!”</p>
-            <footer>Eduardo Candido, ao receber o Prêmio Barbeiros do Brasil</footer>
-          </blockquote>
         </div>
       </div>
       <h3>Linha do tempo</h3>
@@ -326,28 +327,17 @@ export function Trajetoria() {
         </strong>{" "}
         {MARCOS[marco].texto}
       </p>
-      <h3>Reconhecido duas vezes em 2017</h3>
-      <p>
-        Vinte anos depois de abrir a barbearia, o trabalho do Eduardo foi premiado duas vezes no mesmo ano. Os troféus
-        vieram para Osasco e hoje ficam na prateleira do salão, à vista de quem senta na cadeira.
-      </p>
-      <ul className="grade-fotos">
-        {IMAGENS.premios.map((p, i) => (
-          <li key={p.src} className="cartao">
-            <figure className="foto-inteira">
-              <Image src={p.src} alt={p.alt} width={480} height={480} />
-              <figcaption>
-                <strong>{i === 0 ? "Prêmio Barbeiros do Brasil" : "Prêmio Master Barber · Êxito Profissional"}</strong>
-                <span className="destaque">
-                  {i === 0
-                    ? "2017 · o troféu com a barra de barbeiro que ele fez questão de trazer para Osasco"
-                    : "2017 · reconhecimento pela trajetória e pelo êxito profissional"}
-                </span>
-              </figcaption>
-            </figure>
-          </li>
-        ))}
-      </ul>
+      {MARCOS[marco].ano === "2017" && (
+        <ul className="grade-fotos">
+          {IMAGENS.premios.map((p) => (
+            <li key={p.src}>
+              <figure className="foto-inteira">
+                <Image src={p.src} alt={p.alt} width={480} height={480} />
+              </figure>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
