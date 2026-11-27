@@ -45,9 +45,12 @@ spring:
 app:
   fuso: America/Sao_Paulo
   agenda:
-    # Fatia 14A (E10): quanto "Acrescentar 1 minuto" soma ao prazo do Pix, uma vez por reserva, só no último trecho desse tamanho.
-    # É regra de produto (fixa), não configuração do painel; a propriedade deixa o teste trocar o valor sem mexer no código.
-    prorrogacao-pagamento: PT60S
+    # Fatia 15 (ADR 0015, E20; revoga a D190): quanto cada pedido de "mais tempo para pagar" soma ao prazo do Pix, e
+    # quantos pedidos cada reserva pode fazer (WCAG 2.2.1: pelo menos 10). A janela é sempre o último minuto do prazo.
+    # É regra de produto (fixa), não configuração do painel; as propriedades deixam o teste trocar os valores sem mexer no
+    # código. A validade do Pix no gateway sai delas (E23): início do prazo + expiracaoPagamentoMin + maximo x segundos.
+    prorrogacao-pagamento: PT2M
+    prorrogacao-maximo: 10
   seguranca:
     jwt:
       # Sem valor padrão de propósito: sem JWT_SEGREDO (32 bytes ou mais) a API não sobe.
