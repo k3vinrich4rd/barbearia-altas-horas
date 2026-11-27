@@ -29,7 +29,7 @@ export const TEXTOS = {
   redeCaiuNaReserva:
     "A conexão caiu no meio do caminho e não sabemos se a reserva entrou. Confira em Meus agendamentos antes de tentar de novo.",
   /** Confirmação: único ponto de exclamação do site (é sucesso, não erro). */
-  confirmado: "Fechado! Seu horário está garantido.",
+  confirmado: "Agendado! Seu horário está garantido.", // D207: "Fechado" agora é só dia ou faixa sem atendimento
   /** Painel: dia sem cliente. */
   painelSemClientes: "Nenhum cliente marcado neste dia ainda.",
   /** Dúvida da home "Com quanta antecedência posso agendar?" (D197). */

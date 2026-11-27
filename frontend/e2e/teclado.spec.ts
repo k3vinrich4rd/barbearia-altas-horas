@@ -96,7 +96,7 @@ test("A55: o fluxo do visitante se faz só com o teclado, com foco visível, lin
   await tabAte(page, page.getByRole("button", { name: "Simular pagamento" }));
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/agendar\/confirmacao\//, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { level: 1, name: "Fechado! Seu horário está garantido." })).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "Agendado! Seu horário está garantido." })).toBeFocused();
   await expect(page.getByLabel("Código", { exact: true })).toBeVisible();
 });
 
