@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { cadastrarCliente, emailUnico, entrarComoAdmin, horarioLivre, reservaPagaDeVisitante } from "./apoio";
 
@@ -87,11 +88,12 @@ test("A59: reserva manual do painel trava o horário, aparece na agenda com a et
   await formulario.getByLabel("Serviço").selectOption({ index: 1 });
   await formulario.getByLabel("Barbeiro").selectOption(horario.barbeiroId);
   await formulario.getByLabel("Dia").fill(horario.dia);
-  await formulario.getByLabel("Horário").fill(horario.hora);
+  await formulario.getByLabel("Horário", { exact: true }).fill(horario.hora);
   const nome = `Manual E2E ${Date.now()}`;
   await formulario.getByLabel("Nome do cliente (opcional)").fill(nome);
   await formulario.getByLabel("Observação (opcional)").fill("Combinado pelo WhatsApp.");
-  await page.getByRole("button", { name: "Criar reserva" }).click();
+  await expect(page).toHaveTitle(/Fechar horário combinado no WhatsApp/);
+  await page.getByRole("button", { name: "Fechar horário" }).click();
   await expect(page).toHaveURL(new RegExp(`/painel\\?data=${horario.dia}`));
   const item = page.getByRole("listitem").filter({ hasText: nome });
   await expect(item).toContainText("MANUAL · WHATSAPP");
@@ -105,4 +107,30 @@ test("A59: reserva manual do painel trava o horário, aparece na agenda com a et
   ).json();
   const doBarbeiro = d.barbeiros.find((b: { barbeiroId: string }) => b.barbeiroId === horario.barbeiroId);
   expect(doBarbeiro.horarios).not.toContain(horario.inicio);
+});
+
+test("PF-5: axe (WCAG 2.2 AA) no painel, em 360×800 e em 1280×800, inclusive na tela de fechar horário", async ({
+  page,
+}) => {
+  await entrarComoAdmin(page);
+  for (const rota of ["/painel", "/painel/reserva-manual"]) {
+    for (const { width, height } of [
+      { width: 360, height: 800 },
+      { width: 1280, height: 800 },
+    ]) {
+      await page.setViewportSize({ width, height });
+      // a cor do aviso entra com transição; sem movimento, o axe mede a cor final
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(rota);
+      await page.waitForLoadState("networkidle");
+      for (const tema of ["escuro", "claro"] as const) {
+        await page.evaluate((t) => (document.documentElement.dataset.theme = t), tema);
+        const resultado = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+          .analyze();
+        const graves = resultado.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+        expect(graves, `${rota} ${width}x${height} tema ${tema}: ${JSON.stringify(graves, null, 2)}`).toEqual([]);
+      }
+    }
+  }
 });

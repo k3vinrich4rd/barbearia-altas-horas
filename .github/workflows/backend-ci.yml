@@ -51,6 +51,9 @@ jobs:
         working-directory: .
         run: |
           for fatia in 1 2 3 4 5 6 6d 7 catalogo; do sh scripts/conferir-spec.sh "$fatia" --exigir; done
+          # Fatia 15 em partes (um PR por parte): o que ainda não foi implementado fica no --exceto e sai dele a cada PR.
+          # A25 e A43 não têm classe na coluna "Teste" da spec (só "CI"): rodam no ContratoExemplosDeErroTest e no lint abaixo.
+          sh scripts/conferir-spec.sh 15 --exigir --exceto 25,34-43
 
       # O contrato de máquina precisa passar no lint: qualquer erro reprova o PR (hoje: 0 erros e 0 avisos; exceções com motivo em .redocly.lint-ignore.yaml).
       - name: Lint do contrato OpenAPI (Redocly)

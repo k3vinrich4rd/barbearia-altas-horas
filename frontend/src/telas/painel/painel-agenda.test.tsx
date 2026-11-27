@@ -135,4 +135,14 @@ describe("agenda do painel", () => {
     renderizar(<PainelAgenda />, SESSAO_BARBEIRO);
     expect(await screen.findByText("Nenhum cliente marcado neste dia ainda.")).toBeInTheDocument();
   });
+
+  test("PF-1: o link Fechar horário do WhatsApp leva à reserva manual; o nome acessível não inclui o +", async () => {
+    definirBusca("data=2026-11-24");
+    api([]);
+    renderizar(<PainelAgenda />, ADMIN);
+    const link = await screen.findByRole("link", { name: "Fechar horário do WhatsApp" });
+    expect(link).toHaveAttribute("href", "/painel/reserva-manual");
+    expect(link).toHaveTextContent("+");
+    expect(link).toHaveTextContent("Fechar horário do WhatsApp");
+  });
 });
