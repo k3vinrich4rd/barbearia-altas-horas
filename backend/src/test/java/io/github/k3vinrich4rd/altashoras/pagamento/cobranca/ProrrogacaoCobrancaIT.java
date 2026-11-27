@@ -70,7 +70,7 @@ class ProrrogacaoCobrancaIT {
     }
 
     @Test
-    @DisplayName("A6: depois da prorrogação o listener do pagamento deixa a cobrança PENDENTE com expira_em 10:04:00 e o mesmo pix_copia_e_cola; o gateway não é chamado")
+    @DisplayName("A6: depois da prorrogação o listener do pagamento deixa a cobrança PENDENTE com expira_em 10:05:00 (120 s, Fatia 15) e o mesmo pix_copia_e_cola; o gateway não é chamado")
     void cobrancaAcompanhaOPrazo() throws Exception {
         UUID barbeiro = DadosDeTeste.barbeiro(jdbc, true);
         UUID servico = DadosDeTeste.servico(jdbc, 30);
@@ -88,7 +88,7 @@ class ProrrogacaoCobrancaIT {
         mvc.perform(post("/agendamentos/guest/" + reserva.id() + "/prorrogacao").header("X-Guest-Token", reserva.token()))
                 .andExpect(status().isCreated());
 
-        esperar(() -> em(10, 4, 0).equals(expiraEmDaCobranca(reserva.id())));
+        esperar(() -> em(10, 5, 0).equals(expiraEmDaCobranca(reserva.id())));
         assertThat(statusDaCobranca(jdbc, reserva.id())).isEqualTo("PENDENTE");
         assertThat(jdbc.queryForObject("SELECT pix_copia_e_cola FROM cobranca WHERE reserva_id = ?::uuid", String.class,
                 reserva.id())).isEqualTo(pixAntes);

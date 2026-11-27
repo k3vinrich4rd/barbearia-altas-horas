@@ -1,6 +1,6 @@
 # Política de privacidade · versão 1.2
 
-> **Rascunho técnico, não é parecer jurídico.** Este texto descreve o que o sistema faz com os dados hoje. Prazos e bases legais são hipóteses de trabalho (H13) e precisam de validação de quem entende de LGPD antes de qualquer uso real. Esta versão é de um projeto de portfólio (beta). O texto da autorização de região e desta política ainda passa pela revisão do Cautelar.
+> **Rascunho técnico, não é parecer jurídico.** Este texto descreve o que o sistema faz com os dados hoje. Prazos e bases legais são hipóteses de trabalho (H13) e precisam de validação de quem entende de LGPD antes de qualquer uso real. Esta versão é de um projeto de portfólio (beta). O texto da autorização de região e desta política ainda passa pela revisão jurídica.
 
 ## 1. Quem cuida dos seus dados
 

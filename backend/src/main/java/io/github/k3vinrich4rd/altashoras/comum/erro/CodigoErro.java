@@ -39,13 +39,18 @@ public enum CodigoErro {
     FORA_DO_EXPEDIENTE(422, "Fora do horário de atendimento", "A barbearia não atende neste horário."),
     /** Desde a 1.11.0 (D197) é a única regra de tempo: o horário já passou. O nome não mudou para não quebrar o front. */
     ANTECEDENCIA_INSUFICIENTE(422, "Horário já passou", "Este horário já passou. Escolha um horário mais à frente."),
-    /** Deprecated na 1.11.0 (D197): a API não devolve mais; o nome fica no enum para o front antigo e o contrato. */
+    /**
+     * Deprecated desde a D197 (1.11.0), sem efeito: nenhum código lança este valor e a API não o devolve. O nome fica
+     * no enum só para o front antigo e o contrato (sai na próxima versão maior).
+     */
     FORA_DO_HORIZONTE(422, "Data além do permitido", "A agenda ainda não está aberta para esta data."),
     ACEITE_POLITICA_OBRIGATORIO(422, "Aceite da política obrigatório", "Aceite a política de pagamento para continuar."),
     TRANSICAO_INVALIDA(422, "Mudança de status não permitida", "Esta mudança de status não é permitida."),
     MOTIVO_OBRIGATORIO(422, "Motivo obrigatório", "Informe o motivo."),
     /** 1.11.0 (D188): pediu "mais 1 minuto" antes do último minuto do prazo do Pix. */
     PRORROGACAO_FORA_DA_JANELA(422, "Fora da janela de prorrogação", "Só dá para acrescentar tempo no último minuto."),
+    /** Contrato 1.12.0 (ADR 0015): o pedido além do máximo de prorrogações. Ainda não é lançado pelo código (vem na implementação). */
+    PRORROGACAO_ESGOTADA(422, "Prorrogações esgotadas", "Esta reserva já usou todos os pedidos de mais tempo."),
     RESERVA_EXPIRADA(422, "Reserva expirada", "O prazo de pagamento desta reserva acabou."),
     SERVICO_INATIVO(422, "Serviço indisponível", "Este serviço não está disponível."),
     IDEMPOTENCIA_CONFLITO(422, "Chave de idempotência já usada", "Esta chave já foi usada com outro corpo."),

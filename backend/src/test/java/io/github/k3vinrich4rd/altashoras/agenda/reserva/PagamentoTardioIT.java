@@ -145,4 +145,44 @@ class PagamentoTardioIT {
         assertThat(statusDaReserva(jdbc, reserva.id())).isEqualTo("CANCELADO");
         assertThat(statusDaCobranca(jdbc, reserva.id())).isEqualTo("PAGA_APOS_EXPIRACAO");
     }
+
+    /** Três pedidos de mais tempo, cada um no último minuto do prazo (Fatia 15): 3 + 3 × 2 = 9 minutos. */
+    private void tresPedidosDeMaisTempo(ReservaGuest reserva) throws Exception {
+        for (int pedido = 0; pedido < 3; pedido++) {
+            relogio.avancar(Duration.ofSeconds(pedido == 0 ? 150 : 120));
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                            .post("/agendamentos/guest/" + reserva.id() + "/prorrogacao").header("X-Guest-Token", reserva.token()))
+                    .andExpect(status().isCreated());
+        }
+        assertThat(jdbc.queryForObject("SELECT prorrogacoes FROM reserva WHERE id = ?::uuid", Integer.class, reserva.id()))
+                .isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("A42: reserva que expirou depois de 3 pedidos de mais tempo e o Pix pago depois do expiraEm: com o horário livre reconfirma (CONFIRMADO, cobrança PAGA); com o horário de outro cliente continua EXPIRADO e a cobrança vira PAGA_APOS_EXPIRACAO (R14)")
+    void pagamentoTardioDepoisDeTresPedidos() throws Exception {
+        ReservaGuest livre = reservarComoVisitante(mvc, barbeiro, servico, as(14, 0));
+        cobrarPixComoVisitante(mvc, jdbc, livre);
+        tresPedidosDeMaisTempo(livre);
+        relogio.avancar(Duration.ofMinutes(3)); // o último prazo acaba 9 min depois da criação
+        job.executar();
+        assertThat(statusDaReserva(jdbc, livre.id())).isEqualTo("EXPIRADO");
+        esperar(() -> "CANCELADA".equals(statusDaCobranca(jdbc, livre.id())));
+        pagarNoGateway(livre);
+        assertThat(statusDaReserva(jdbc, livre.id())).isEqualTo("CONFIRMADO");
+        assertThat(statusDaCobranca(jdbc, livre.id())).isEqualTo("PAGA");
+
+        relogio.reiniciar();
+        ReservaGuest ocupada = reservarComoVisitante(mvc, barbeiro, servico, as(14, 30));
+        cobrarPixComoVisitante(mvc, jdbc, ocupada);
+        tresPedidosDeMaisTempo(ocupada);
+        relogio.avancar(Duration.ofMinutes(3));
+        ReservaGuest outra = reservarComoVisitante(mvc, barbeiro, servico, as(14, 30));
+        assertThat(statusDaReserva(jdbc, ocupada.id())).isEqualTo("EXPIRADO");
+        esperar(() -> "CANCELADA".equals(statusDaCobranca(jdbc, ocupada.id())));
+        pagarNoGateway(ocupada);
+        assertThat(statusDaReserva(jdbc, ocupada.id())).isEqualTo("EXPIRADO");
+        assertThat(statusDaCobranca(jdbc, ocupada.id())).isEqualTo("PAGA_APOS_EXPIRACAO");
+        assertThat(statusDaReserva(jdbc, outra.id())).isEqualTo("AGUARDANDO_PAGAMENTO");
+    }
 }

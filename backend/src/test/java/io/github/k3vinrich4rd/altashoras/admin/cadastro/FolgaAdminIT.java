@@ -20,7 +20,10 @@ import io.github.k3vinrich4rd.altashoras.DadosDeTeste;
 import io.github.k3vinrich4rd.altashoras.RelogioFixoDeTeste;
 import io.github.k3vinrich4rd.altashoras.admin.CadastrosBase;
 
-/** A57 a A61: folgas do painel (criar, listar, remover) e a regra de nunca esconder um horário que já tem cliente. */
+/**
+ * A57 a A61 (Fatia 5): folgas do painel (criar, listar, remover) e a regra de nunca esconder um horário que já tem
+ * cliente. A1, A4, A7 e A9 (Fatia 15, ADR 0015): tipo, resposta FolgaSalva, auditoria e a lista de conflitos no 422.
+ */
 class FolgaAdminIT extends CadastrosBase {
 
     private static final LocalDate TERCA_DE_TESTE = LocalDate.of(2026, 12, 1);
@@ -138,5 +141,111 @@ class FolgaAdminIT extends CadastrosBase {
         assertThat(horas(servico, barbeiro, TERCA_DE_TESTE)).hasSize(24);
         delete(rota + "/" + criada, admin).andExpect(status().isNotFound());
         get("/admin/barbeiros/" + UUID.randomUUID() + "/folgas", admin).andExpect(status().isNotFound());
+    }
+
+    // ---- Fatia 15 (relógio em ter 01/12/2026 10:00, como a seção 5 da spec) ---------------------------------------
+
+    private void relogioDaFatia15() {
+        irPara(TERCA_DE_TESTE, 10, 0);
+        admin = admin();
+    }
+
+    private static OffsetDateTime dez(int dia, int hora, int minuto) {
+        return DadosDeTeste.em(LocalDate.of(2026, 12, dia), hora, minuto);
+    }
+
+    private String detalheDaAuditoria(String acao) {
+        return jdbc.queryForObject("SELECT detalhe::text FROM auditoria_admin WHERE acao = ? ORDER BY ocorrido_em DESC LIMIT 1",
+                String.class, acao);
+    }
+
+    private long auditorias(String acao) {
+        return jdbc.queryForObject("SELECT count(*) FROM auditoria_admin WHERE acao = ?", Long.class, acao);
+    }
+
+    private String rota() {
+        return "/admin/barbeiros/" + barbeiro + "/folgas";
+    }
+
+    @Test
+    @DisplayName("A1: POST de férias de 21/12 00:00 a 03/01 00:00 com tipo FERIAS e sem reserva no período dá 201 FolgaSalva com tipo FERIAS, reservasMantidas [] e Location; auditoria FOLGA_CRIADA com o tipo")
+    void feriasCriadas() throws Exception {
+        relogioDaFatia15();
+        String corpo = """
+                { "inicio": "%s", "fim": "%s", "tipo": "FERIAS", "motivo": "Viagem de fim de ano" }
+                """.formatted(dez(21, 0, 0), DadosDeTeste.em(LocalDate.of(2027, 1, 3), 0, 0));
+        var resposta = postJson(rota(), admin, corpo).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tipo").value("FERIAS"))
+                .andExpect(jsonPath("$.inicio").value("2026-12-21T00:00:00-03:00"))
+                .andExpect(jsonPath("$.fim").value("2027-01-03T00:00:00-03:00"))
+                .andExpect(jsonPath("$.motivo").value("Viagem de fim de ano"))
+                .andExpect(jsonPath("$.atualizadaEm").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.reservasMantidas").isEmpty())
+                .andExpect(header().string("Cache-Control", "no-store")).andReturn().getResponse();
+        String id = JsonPath.read(resposta.getContentAsString(), "$.id");
+        assertThat(resposta.getHeader("Location")).isEqualTo(rota() + "/" + id);
+        assertThat(jdbc.queryForObject("SELECT tipo FROM folga WHERE id = ?::uuid", String.class, id)).isEqualTo("FERIAS");
+        assertThat(detalheDaAuditoria("FOLGA_CRIADA")).contains("\"tipo\": \"FERIAS\"").contains(barbeiro.toString())
+                .doesNotContain("Viagem");
+    }
+
+    @Test
+    @DisplayName("A4: POST sem o campo tipo (o corpo do front de hoje) dá 201 com tipo FOLGA, e o GET lista a folga com tipo FOLGA")
+    void semTipoViraFolga() throws Exception {
+        relogioDaFatia15();
+        criarFolga(barbeiro, dez(5, 14, 0), dez(5, 16, 0)).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tipo").value("FOLGA")).andExpect(jsonPath("$.reservasMantidas").isEmpty());
+        get(rota(), admin).andExpect(status().isOk()).andExpect(jsonPath("$[0].tipo").value("FOLGA"))
+                .andExpect(jsonPath("$[0].atualizadaEm").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    @DisplayName("A7: DELETE da folga de 05/12 dá 204, os horários das 14:00 às 15:30 voltam à disponibilidade e a auditoria grava FOLGA_REMOVIDA")
+    void removerDevolveOsHorarios() throws Exception {
+        relogioDaFatia15();
+        LocalDate sabado = LocalDate.of(2026, 12, 5);
+        String id = idDe(criarFolga(barbeiro, dez(5, 14, 0), dez(5, 16, 0)).andExpect(status().isCreated()));
+        assertThat(horas(servico, barbeiro, sabado)).doesNotContain("14:00", "14:30", "15:00", "15:30");
+
+        delete(rota() + "/" + id, admin).andExpect(status().isNoContent());
+
+        assertThat(horas(servico, barbeiro, sabado)).hasSize(24).contains("14:00", "14:30", "15:00", "15:30");
+        assertThat(auditorias("FOLGA_REMOVIDA")).isEqualTo(1);
+        assertThat(detalheDaAuditoria("FOLGA_REMOVIDA")).contains(barbeiro.toString()).doesNotContain("Consulta");
+    }
+
+    @Test
+    @DisplayName("A9: com a CONFIRMADO e a AGUARDANDO_PAGAMENTO no prazo do A8, mais uma AGUARDANDO_PAGAMENTO vencida e uma CANCELADO no período, o POST sem manterReservas dá 422 FOLGA_COM_RESERVAS com conflitos[] listando só as 2 ativas; nada gravado e sem auditoria")
+    void conflitosNo422() throws Exception {
+        relogioDaFatia15();
+        UUID cliente = cliente("Cliente Exemplo", "11988880001");
+        UUID confirmada = reserva(barbeiro, servico, dez(22, 15, 0), "CONFIRMADO", null, cliente, null);
+        UUID pendente = reserva(barbeiro, servico, dez(22, 15, 30), "AGUARDANDO_PAGAMENTO",
+                relogio.instant().plusSeconds(120), null, "Visitante Dois");
+        reserva(barbeiro, servico, dez(22, 16, 0), "AGUARDANDO_PAGAMENTO", relogio.instant().minusSeconds(1), null,
+                "Visitante Vencido");
+        reserva(barbeiro, servico, dez(22, 16, 30), "CANCELADO", null, cliente, null);
+        String corpo = """
+                { "inicio": "%s", "fim": "%s", "tipo": "FERIAS" }
+                """.formatted(dez(21, 0, 0), DadosDeTeste.em(LocalDate.of(2027, 1, 3), 0, 0));
+
+        postJson(rota(), admin, corpo).andExpect(status().isUnprocessableEntity())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.code").value("FOLGA_COM_RESERVAS"))
+                .andExpect(jsonPath("$.conflitos.length()").value(2))
+                .andExpect(jsonPath("$.conflitos[0].reservaId").value(confirmada.toString()))
+                .andExpect(jsonPath("$.conflitos[0].inicio").value("2026-12-22T15:00:00-03:00"))
+                .andExpect(jsonPath("$.conflitos[0].fim").value("2026-12-22T15:30:00-03:00"))
+                .andExpect(jsonPath("$.conflitos[0].servico.id").value(servico.toString()))
+                .andExpect(jsonPath("$.conflitos[0].servico.nome").value(org.hamcrest.Matchers.startsWith("Corte Clássico")))
+                .andExpect(jsonPath("$.conflitos[0].clienteNome").value("Cliente Exemplo"))
+                .andExpect(jsonPath("$.conflitos[0].origem").value("CLIENTE"))
+                .andExpect(jsonPath("$.conflitos[0].status").value("CONFIRMADO"))
+                .andExpect(jsonPath("$.conflitos[1].reservaId").value(pendente.toString()))
+                .andExpect(jsonPath("$.conflitos[1].clienteNome").value("Visitante Dois"))
+                .andExpect(jsonPath("$.conflitos[1].origem").value("GUEST"))
+                .andExpect(jsonPath("$.conflitos[1].status").value("AGUARDANDO_PAGAMENTO"));
+        assertThat(folgasGravadas()).isZero();
+        assertThat(auditorias("FOLGA_CRIADA")).isZero();
     }
 }

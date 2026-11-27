@@ -59,7 +59,7 @@ public class PainelDaAgenda {
     public record Item(UUID id, String status, String origem, UUID servicoId, String servicoNome, int duracaoMin,
             UUID barbeiroId, String barbeiroNome, Instant inicio, Instant fim, long precoCentavos,
             @Nullable Instant expiraEm, @Nullable String motivoCancelamento, long version, @Nullable String clienteNome,
-            @Nullable String clienteWhatsapp, @Nullable String observacao, @Nullable Instant prorrogadaEm) {
+            @Nullable String clienteWhatsapp, @Nullable String observacao, int prorrogacoes) {
 
         @Override
         public String toString() {
@@ -134,13 +134,44 @@ public class PainelDaAgenda {
             boolean ativo, long version, List<Intervalo> jornada) {
     }
 
-    /** O motivo da folga pode ser pessoal (consulta médica): o toString não o imprime (R30). */
-    public record FolgaCadastrada(UUID id, Instant inicio, Instant fim, @Nullable String motivo) {
+    /**
+     * A folga ou as férias do barbeiro. {@code tipo} é {@code FERIAS} ou {@code FOLGA} (ADR 0015, E1), só um rótulo do
+     * painel; {@code atualizadaEm} fica nulo até a primeira edição. O motivo pode ser pessoal (consulta médica): o
+     * toString não o imprime (R30).
+     */
+    public record FolgaCadastrada(UUID id, Instant inicio, Instant fim, @Nullable String motivo, String tipo,
+            @Nullable Instant atualizadaEm) {
 
         @Override
         public String toString() {
-            return "FolgaCadastrada[" + id + "]";
+            return "FolgaCadastrada[" + id + ", " + tipo + "]";
         }
+    }
+
+    /** O que o painel pede ao criar ou editar uma folga (ADR 0015): o período, o tipo e se mantém as reservas do período. */
+    public record PedidoDeFolga(Instant inicio, Instant fim, @Nullable String motivo, String tipo, boolean manterReservas) {
+
+        @Override
+        public String toString() {
+            return "PedidoDeFolga[" + tipo + ", manterReservas=" + manterReservas + "]";
+        }
+    }
+
+    /**
+     * Uma reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) dentro do período de uma folga (E3). Só
+     * para o ADMIN: o nome do cliente nunca vai para log nem auditoria (R30, E15), e o toString não o imprime.
+     */
+    public record ConflitoDaFolga(UUID reservaId, Instant inicio, Instant fim, UUID servicoId, String servicoNome,
+            String clienteNome, String origem, String status) {
+
+        @Override
+        public String toString() {
+            return "ConflitoDaFolga[" + reservaId + ", " + status + "]";
+        }
+    }
+
+    /** A folga gravada e as reservas ativas que ficaram dentro dela por {@code manterReservas} (vazio sem conflito). */
+    public record FolgaGravada(FolgaCadastrada folga, List<ConflitoDaFolga> reservasMantidas) {
     }
 
     public record NovaConfiguracao(int intervaloEntreAtendimentosMin, int granularidadeMin, int expiracaoPagamentoMin,
@@ -158,7 +189,7 @@ public class PainelDaAgenda {
                    r.barbeiro_id, b.nome_exibicao AS barbeiro_nome, r.inicio, r.fim, r.preco_centavos, r.expira_em,
                    r.motivo_cancelamento, r.version,
                    COALESCE(g.nome, u.nome, r.nome_cliente) AS cliente_nome,
-                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao, r.prorrogada_em
+                   COALESCE(g.whatsapp, u.whatsapp) AS cliente_whatsapp, r.observacao, r.prorrogacoes
             FROM reserva r
             JOIN servico s ON s.id = r.servico_id
             JOIN barbeiro b ON b.id = r.barbeiro_id
@@ -181,9 +212,7 @@ public class PainelDaAgenda {
                 rs.getObject("fim", OffsetDateTime.class).toInstant(), rs.getLong("preco_centavos"),
                 esperando && expiraEm != null ? expiraEm.toInstant() : null, rs.getString("motivo_cancelamento"),
                 rs.getLong("version"), rs.getString("cliente_nome"), rs.getString("cliente_whatsapp"),
-                rs.getString("observacao"),
-                rs.getObject("prorrogada_em", OffsetDateTime.class) == null ? null
-                        : rs.getObject("prorrogada_em", OffsetDateTime.class).toInstant());
+                rs.getString("observacao"), rs.getInt("prorrogacoes"));
     }
 
     private final JdbcClient jdbc;
@@ -353,12 +382,22 @@ public class PainelDaAgenda {
     }
 
     /**
-     * Cria a folga se nenhuma reserva ativa a atravessa. Trava a linha do barbeiro ({@code FOR UPDATE}), e a reserva
-     * trava a mesma linha com {@code FOR SHARE}: folga e reserva nunca passam juntas no mesmo horário (E21).
+     * Cria a folga. Com reserva ativa no período e sem {@code manterReservas}: {@link FolgaComReservas} (422) e nada
+     * gravado. Trava a linha do barbeiro ({@code FOR UPDATE}), e a reserva trava a mesma linha com {@code FOR SHARE}:
+     * folga e reserva nunca passam juntas no mesmo horário (E21 da Fatia 5, E10 da Fatia 15).
      */
-    public FolgaCadastrada criarFolga(UUID barbeiroId, UUID criadaPor, Instant inicio, Instant fim,
-            @Nullable String motivo) {
-        return cadastros.criarFolga(barbeiroId, criadaPor, inicio, fim, motivo);
+    public FolgaGravada criarFolga(UUID barbeiroId, UUID criadaPor, PedidoDeFolga pedido) {
+        return cadastros.criarFolga(barbeiroId, criadaPor, pedido);
+    }
+
+    /** Edita a folga (PUT, ADR 0015): as mesmas regras e a mesma trava da criação. Folga de outro barbeiro: 404. */
+    public FolgaGravada alterarFolga(UUID barbeiroId, UUID folgaId, UUID alteradaPor, PedidoDeFolga pedido) {
+        return cadastros.alterarFolga(barbeiroId, folgaId, alteradaPor, pedido);
+    }
+
+    /** A prévia (E12, E24): as reservas ativas que o período atingiria. Só lê, sem trava. */
+    public List<ConflitoDaFolga> conflitosDaFolga(UUID barbeiroId, Instant inicio, Instant fim) {
+        return cadastros.conflitosDaFolga(barbeiroId, inicio, fim);
     }
 
     public void removerFolga(UUID barbeiroId, UUID folgaId) {
@@ -379,5 +418,24 @@ public class PainelDaAgenda {
 
     private static ExcecaoDeNegocio reservaNaoEncontrada() {
         return new ExcecaoDeNegocio(CodigoErro.RECURSO_NAO_ENCONTRADO, "Agendamento não encontrado.");
+    }
+
+    /**
+     * 422 FOLGA_COM_RESERVAS com as reservas ativas que impedem gravar o período (ADR 0015, E4). Fica aqui dentro
+     * porque o PainelDaAgenda é a única porta do painel para a agenda. Quem monta a resposta é o admin, que formata
+     * cada conflito como o contrato pede. Os conflitos têm nome de cliente: nunca vão para o log (R30).
+     */
+    public static final class FolgaComReservas extends ExcecaoDeNegocio {
+
+        private final transient List<ConflitoDaFolga> conflitos;
+
+        FolgaComReservas(List<ConflitoDaFolga> conflitos) {
+            super(CodigoErro.FOLGA_COM_RESERVAS);
+            this.conflitos = List.copyOf(conflitos);
+        }
+
+        public List<ConflitoDaFolga> conflitos() {
+            return conflitos;
+        }
     }
 }

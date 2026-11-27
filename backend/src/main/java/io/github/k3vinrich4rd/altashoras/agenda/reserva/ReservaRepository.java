@@ -17,7 +17,7 @@ interface ReservaRepository extends JpaRepository<Reserva, UUID> {
     String PROJECAO = """
             SELECT new io.github.k3vinrich4rd.altashoras.agenda.reserva.LinhaAgendamento(
                 r.id, r.status, r.origem, s.id, s.nome, s.duracaoMin, b.id, b.nomeExibicao,
-                r.inicio, r.fim, r.precoCentavos, r.expiraEm, r.motivoCancelamento, r.version, r.prorrogadaEm)
+                r.inicio, r.fim, r.precoCentavos, r.expiraEm, r.motivoCancelamento, r.version, r.prorrogacoes)
             FROM Reserva r
             JOIN Servico s ON s.id = r.servicoId
             JOIN Barbeiro b ON b.id = r.barbeiroId

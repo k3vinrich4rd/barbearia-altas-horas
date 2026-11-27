@@ -15,6 +15,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -56,6 +57,13 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
             corpo.setProperty("errors", List.of(Map.of("field", campo, "message", ex.getMessage())));
         }
         ResponseEntity.BodyBuilder resposta = ResponseEntity.status(corpo.getStatus());
+        // Extensão do contrato (ex.: conflitos[] com nome de cliente, só para o ADMIN): vai no corpo, nunca no log, e
+        // a resposta não fica em cache (R30, E15 da Fatia 15).
+        Map<String, Object> extensoes = ex.extensoes();
+        if (!extensoes.isEmpty()) {
+            extensoes.forEach(corpo::setProperty);
+            resposta.cacheControl(CacheControl.noStore());
+        }
         if (ex instanceof ExcecaoDeLimite limite) {
             resposta.header(HttpHeaders.RETRY_AFTER, Long.toString(limite.tentarDeNovoEmSegundos()));
         }

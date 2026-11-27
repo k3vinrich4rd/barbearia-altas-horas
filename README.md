@@ -175,7 +175,7 @@ timeline
     2017 : Prêmio Barbeiros do Brasil
          : Prêmio Master Barber · Êxito Profissional
     Hoje : barbeiro na cadeira e professor na Altas Horas Barbearia Academy
-         : a agenda sai do caderno e vai para a internet
+         : a agenda sai do caderno e vem para a internet
 ```
 
 <div align="center">
@@ -236,22 +236,18 @@ curl "http://localhost:8080/disponibilidade?servicoId=6f1c2a8e-0000-4000-8000-00
 
 <br/>
 
-No site a galeria é uma grade de **18 fotos** (autorização de imagem confirmada, D158), com a foto inteira ao tocar.
+No site a galeria mostra só fotos sem pessoas: hoje, o salão visto da porta de vidro. Fotos com rosto de cliente ou com criança não são publicadas (privacidade, 27/11/2026).
 
-<table>
-<tr>
-<td align="center" width="33%"><img src="docs/assets/galeria/eduardo-em-atendimento.jpg" width="100%" alt="Eduardo Candido, de camisa listrada e gravata borboleta, finalizando um corte com topo reto e degradê, com as prateleiras pretas do salão ao fundo"/><br/><sub>O Eduardo em atendimento</sub></td>
-<td align="center" width="33%"><img src="docs/assets/galeria/corte-topete-parede-do-logo.jpg" width="100%" alt="Cliente de perfil com topete alto e degradê, em frente à parede xadrez preta e branca com o logo da barbearia"/><br/><sub>A parede xadrez do logo</sub></td>
-<td align="center" width="33%"><img src="docs/assets/galeria/corte-degrade-com-desenho.jpg" width="100%" alt="Cliente de costas com cabelo crespo em degradê, pontas descoloridas e um desenho feito na navalha na nuca"/><br/><sub>Degradê com desenho na navalha</sub></td>
-</tr>
-</table>
+<div align="center">
+<img src="docs/assets/galeria/salao-vitrine-sem-tv.jpg" width="520" alt="Porta de vidro da barbearia com dois adesivos redondos do logo Altas Horas 1997 e, atrás do vidro, a cadeira preta, a bancada de ferramentas e um troféu na prateleira"/><br/><sub>O salão</sub>
+</div>
 
 <details>
 <summary><b>🚪 A fachada</b></summary>
 
 <br/>
 <div align="center">
-<img src="docs/assets/fachada.jpg" width="520" alt="Fachada de vidro da Barbearia Altas Horas com dois adesivos redondos do logo e, ao fundo, as cadeiras, o balcão e os troféus"/>
+<img src="docs/assets/fachada-sem-tv.jpg" width="520" alt="Porta de vidro da Barbearia Altas Horas com dois adesivos redondos do logo e, atrás do vidro, a cadeira preta, a bancada e um troféu na prateleira"/>
 </div>
 
 </details>
