@@ -2,7 +2,8 @@
 // Contador do pagamento (README, "Contador do pagamento"). O tempo vem SEMPRE do `expiraEm` da API, nunca de um número fixo.
 // É só um aviso: quem decide é o status vindo da API. role="timer" não fala a cada segundo; uma região
 // aria-live à parte avisa a cada minuto, aos 30 segundos e no fim, e também quando o prazo ganha tempo (Fatia 14A).
-// "Acrescentar 1 minuto" (D188): o botão só aparece dentro da janela que a API mandou (`prorrogacao`) e enquanto não foi usado.
+// "Acrescentar 2 minutos" (Fatia 15, ADR 0015): o botão só aparece dentro da janela que a API mandou (`prorrogacao`) e enquanto
+// restam pedidos (`restantes > 0`); o rótulo vem de `prorrogacao.segundos`. "Restam N pedidos." só a partir do 1º pedido.
 // A tela decide pelo relógio do aparelho, mas quem decide de verdade é a API (um 422 faz o botão sumir, E9).
 import { useEffect, useRef, useState } from "react";
 import { formatarContagem } from "@/api/formato";
@@ -26,6 +27,9 @@ function anuncio(restante: number): string {
   return `Faltam ${minutos} ${minutos === 1 ? "minuto" : "minutos"} para pagar.`;
 }
 
+/** Ainda dá para pedir mais tempo: `restantes > 0` (1.12.0). Sem `restantes` (API antiga), vale o `usada` de antes. */
+export const temPedidos = (p: Prorrogacao) => (p.restantes === undefined ? !p.usada : p.restantes > 0);
+
 const segundosAte = (alvo: number) => Math.max(0, Math.ceil((alvo - Date.now()) / 1000));
 
 export function Cronometro({
@@ -37,7 +41,7 @@ export function Cronometro({
 }: {
   expiraEm: string;
   aoZerar: () => void;
-  /** A janela do "Acrescentar 1 minuto" que a API mandou (nula quando não se aplica). */
+  /** A janela do "Acrescentar 2 minutos" que a API mandou (nula quando não se aplica). */
   prorrogacao?: Prorrogacao | null;
   acrescentando?: boolean;
   aoAcrescentar?: () => void;
@@ -80,7 +84,7 @@ export function Cronometro({
   const ultimoMinuto = restante > 0 && restante < 60;
   const janelaAberta =
     !!prorrogacao &&
-    !prorrogacao.usada &&
+    temPedidos(prorrogacao) &&
     restante > 0 &&
     // +1 s: a API manda o abreEm em segundos inteiros (sem milissegundos), mas decide com o instante exato. Sem a folga, um toque
     // no primeiro segundo da janela podia chegar antes da abertura real e voltar 422 PRORROGACAO_FORA_DA_JANELA (o botão sumia).
@@ -108,9 +112,14 @@ export function Cronometro({
         </p>
       )}
       {janelaAberta && prorrogacao && aoAcrescentar && (
-        <Botao onClick={aoAcrescentar} disabled={acrescentando}>
-          {acrescentando ? "Acrescentando…" : `Acrescentar ${descreverTempo(prorrogacao.segundos)}`}
-        </Botao>
+        <>
+          <Botao onClick={aoAcrescentar} disabled={acrescentando}>
+            {acrescentando ? "Acrescentando…" : `Acrescentar ${descreverTempo(prorrogacao.segundos)}`}
+          </Botao>
+          {(prorrogacao.usadas ?? 0) >= 1 && prorrogacao.restantes !== undefined && (
+            <p className="nota cronometro-pedidos">{TEXTOS.pedidosRestantes(prorrogacao.restantes)}</p>
+          )}
+        </>
       )}
       <p aria-live="polite" className="so-leitor">
         {falado}

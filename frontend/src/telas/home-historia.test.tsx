@@ -2,11 +2,12 @@
 // prêmios e dúvidas (a galeria tem o galeria.test.tsx). Tudo por teclado e com as mudanças anunciadas (aria-live), como pede o design system.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { Duvidas, Trajetoria } from "@/componentes/SecoesDaHome";
+import { Duvidas, TEMPO_LIMITE_DO_AUDIO_MS, Trajetoria } from "@/componentes/SecoesDaHome";
 import { DUVIDAS, MARCOS } from "@/conteudo/historia";
 import { renderizar } from "@/testes/render";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -221,6 +222,103 @@ describe("home: trajetória, linha do tempo e dúvidas", () => {
     });
     expect(screen.getByRole("status")).toHaveTextContent("Não deu para carregar o áudio. Ler com a voz do aparelho?");
     expect(screen.getByRole("button", { name: "Ler com a voz do aparelho" })).toBeInTheDocument();
+  });
+
+  test("se o áudio não chega a playing em 8 s, troca para o MP3", () => {
+    vi.useFakeTimers();
+    const play = vi.fn().mockReturnValue(new Promise(() => undefined));
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    const { container } = renderizar(<Trajetoria />);
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando o áudio…");
+    act(() => {
+      vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS);
+    });
+    expect(play).toHaveBeenCalledTimes(2);
+    expect(container.querySelector("audio")!.src).toContain("/assets/audio/historia.mp3");
+    expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando o áudio…");
+  });
+
+  test("se o MP3 também não toca em 8 s, oferece o fallback e não fala sozinho", () => {
+    vi.useFakeTimers();
+    const play = vi.fn().mockReturnValue(new Promise(() => undefined));
+    const falar = vi.fn();
+    vi.stubGlobal("speechSynthesis", { speak: falar, cancel: vi.fn() });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    renderizar(<Trajetoria />);
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS);
+    });
+    act(() => {
+      vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Não deu para carregar o áudio. Ler com a voz do aparelho?");
+    expect(screen.getByRole("button", { name: "Ler com a voz do aparelho" })).toBeInTheDocument();
+    expect(falar).not.toHaveBeenCalled();
+  });
+
+  test("o tempo limite não dispara depois do playing", () => {
+    vi.useFakeTimers();
+    const play = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    const { container } = renderizar(<Trajetoria />);
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    });
+    act(() => {
+      fireEvent(container.querySelector("audio")!, new Event("playing"));
+    });
+    act(() => {
+      vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS * 2);
+    });
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Lendo a trajetória em voz alta.");
+  });
+
+  test("o tempo limite não dispara depois que a pessoa pausa", () => {
+    vi.useFakeTimers();
+    const play = vi.fn().mockReturnValue(new Promise(() => undefined));
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    renderizar(<Trajetoria />);
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    });
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Pausar" }));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Leitura parada.");
+    act(() => {
+      vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS * 2);
+    });
+    expect(screen.queryByRole("button", { name: "Ler com a voz do aparelho" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Leitura parada.");
+  });
+
+  test("o timer do áudio é limpo no unmount", () => {
+    vi.useFakeTimers();
+    const play = vi.fn().mockReturnValue(new Promise(() => undefined));
+    const load = vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(play);
+    const { unmount } = renderizar(<Trajetoria />);
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /Ouvir a trajetória/ }));
+    });
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(TEMPO_LIMITE_DO_AUDIO_MS);
+    });
+    expect(load).not.toHaveBeenCalled();
   });
 
   test("as dúvidas são <details> nativos (abrem sem JavaScript), uma pergunta por item", async () => {

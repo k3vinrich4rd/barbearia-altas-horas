@@ -47,11 +47,14 @@ function celula(coluna: Coluna, inicio: string, data: string, visivel: boolean) 
   );
 }
 
+/** Fatia 15: o cliente pode pedir mais tempo até 10 vezes; o painel mostra quantas (sem fixar quanto tempo cada uma dá). */
+const maisTempo = (usadas: number) => `Mais tempo pedido ${usadas} ${usadas === 1 ? "vez" : "vezes"}`;
+
 function Reserva({ reserva }: { reserva: AgendamentoAdmin }) {
   return (
     <>
       <strong>{reserva.cliente.nome}</strong> · {reserva.servico?.nome} <EtiquetaDeStatus status={reserva.status} />
-      {reserva.prorrogacao?.usada && <span className="selo-origem">Mais 1 minuto usado</span>}
+      {reserva.prorrogacao?.usada && <span className="selo-origem">{maisTempo(reserva.prorrogacao.usadas ?? 1)}</span>}
     </>
   );
 }
