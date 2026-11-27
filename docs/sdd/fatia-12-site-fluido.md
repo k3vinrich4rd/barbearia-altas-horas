@@ -154,16 +154,16 @@ Vitest com Testing Library (nome do critério no `it`), Playwright (E2E), axe e 
 
 | # | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| A1 | a home | abro a página | as seções aparecem **nesta ordem**: herói, serviços, barbeiro, galeria, trajetória, alcance, dúvidas, onde estamos; `#como-funciona` e `#premios` **não existem** como seções | `home-ordem` (Vitest, `A1:`) |
+| A1 | a home | abro a página | as seções aparecem **nesta ordem**: herói, serviços, barbeiro, galeria, trajetória, alcance, dúvidas, onde estamos; `#como-funciona` e `#premios` **não existem** como seções | `home-ordem` (Vitest) · substituído pela Fatia 16 (A4): a ordem nova começa por "Quem somos" |
 | A2 | o menu | leio os itens | existem **Serviços, Barbeiro, Galeria, Trajetória, Dúvidas, Onde estamos**; **não existe** "A história" nem "Como funciona" | `navegacao` (Vitest, `A2:`) |
-| A3 | a home | procuro `id="trajetoria"` | existe, com `<h2>` ligado por `aria-labelledby`; **não existe** `id="historia"`; o menu aponta para `/#trajetoria` | `home-historia` (Vitest, `A3:`) |
+| A3 | a home | procuro `id="trajetoria"` | existe, com `<h2>` ligado por `aria-labelledby`; **não existe** `id="historia"`; o menu aponta para `/#trajetoria` | `home-historia` (Vitest) · substituído pela Fatia 16 (A28): `#trajetoria` continua como âncora dentro de `#quem-somos` |
 | A4 | o link antigo `/#historia` | a página abre com esse hash | a janela vai para a Trajetória | `home-fluida` (E2E, `A4:`) |
 | A5 | o celular (375 px), em qualquer ponto da home | rolo até o rodapé | a barra "Agendar horário" está **visível e clicável** e leva a `/agendar`; em tela ≥ 1024 px ela **não existe** | `home-fluida` (E2E, `A5:`) |
 | A6 | `/agendar`, `/agendar/dados`, `/entrar`, `/cadastro` e `/painel` | abro no celular | **não há** barra fixa de CTA | `navegacao` (Vitest, `A6:`) |
 | A7 | a lista de serviços da API (6, com o novo) | abro a home | há um cartão por serviço com **nome, duração em minutos e preço em reais** | `servicos-home` (Vitest, `A7:`) |
 | A8 | o cartão "Descoloração / Platinado (química)" | toco "Agendar este serviço" | vou a `/agendar?servicoId=<id>` com **esse serviço já marcado** | `home-fluida` (E2E, `A8:`) |
-| A9 | a API com um barbeiro com foto e WhatsApp | abro a home | o bloco "Barbeiro" mostra nome, foto com texto alternativo e botão do WhatsApp (`wa.me/55…`, **só dígitos**, D122); **sem WhatsApp, sem botão** | `barbeiro-home` (Vitest, `A9:`) |
-| A10 | o botão "Agendar com Eduardo" | toco | vou a `/agendar?barbeiroId=<id>` com o barbeiro marcado | `barbeiro-home` (Vitest, `A10:`) |
+| A9 | a API com um barbeiro com foto e WhatsApp | abro a home | o bloco "Barbeiro" mostra nome, foto com texto alternativo e botão do WhatsApp (`wa.me/55…`, **só dígitos**, D122); **sem WhatsApp, sem botão** | `barbeiro-home` (Vitest) · substituído pela Fatia 16 (A6): o bloco "Barbeiro" entrou em "Quem somos" |
+| A10 | o botão "Agendar com Eduardo" | toco | vou a `/agendar?barbeiroId=<id>` com o barbeiro marcado | `barbeiro-home` (Vitest) · substituído pela Fatia 16 (A6): o bloco "Barbeiro" entrou em "Quem somos" |
 | A11 | a galeria | abro a home | há **18 fotos** (3 atuais e 15 novas), **todas com `alt` não vazio** e todas com arquivo existente na pasta de imagens. *Alterado pela D218 (27/11/2026): só as fotos aprovadas sem rosto (hoje, `salao-vitrine-sem-tv.jpg`), e as que saíram não existem mais na pasta* | `galeria` (Vitest, `A11:`) |
 | A12 | cada foto da galeria | inspeciono | usa `object-fit: contain` (foto inteira) e é renderizada pelo `next/image` (`srcset` e `sizes`; `loading="lazy"` fora da 1ª linha). *Alterado pela D218 (27/11/2026): com 1 foto, é uma foto larga sem botão; 0 foto some a seção; 2 ou mais viram grade* | `galeria` (Vitest, `A12:`) |
 | A13 | uma miniatura | toco ou aperto `Enter` | abre a foto inteira com legenda; `←` e `→` trocam; `Esc` fecha; o foco **volta** à miniatura. *Alterado pela D218 (27/11/2026): o visualizador só existe com 2 fotos ou mais* | `galeria` (Vitest, `A13:`) |

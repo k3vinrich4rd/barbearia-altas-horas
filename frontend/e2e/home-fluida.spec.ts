@@ -4,7 +4,7 @@ import { API_URL } from "./apoio";
 // Home mais fluida (Fatia 12). A 12A cobre o link antigo; a 12B, a barra fixa, o serviço novo e o peso das imagens.
 test("A4: o link antigo /#historia leva à Trajetória", async ({ page }) => {
   await page.goto("/#historia");
-  await expect(page).toHaveURL(/#trajetoria$/);
+  await expect(page).toHaveURL(/#quem-somos$/); // Fatia 16 (A28): a Trajetória mora em "Quem somos"
   const trajetoria = page.locator("#trajetoria");
   await expect(trajetoria).toBeVisible();
   await expect(trajetoria.getByRole("heading", { level: 2 })).toHaveText("Quase três décadas na mesma cadeira");
