@@ -143,4 +143,31 @@ class ContratoExemplosDeErroTest {
         assertThat(esquemas).containsKeys("AlcancePainel", "AlcanceGrupo", "AlcanceFilho", "NivelDoAlcance", "AtualizarPerfilRequest");
         assertThat(mapa(mapa(esquemas, "AlcancePainel"), "properties")).containsKeys("grupos", "totalVisivel", "semRegiao", "k");
     }
+
+    @Test
+    @DisplayName("A25: o contrato 1.12.x declara o PUT e a prévia de folgas, FolgaSalva, ConflitoDeFolga e TipoFolga, e o exemplo do 422 FOLGA_COM_RESERVAS traz conflitos[] com os campos do schema e o código do enum")
+    @SuppressWarnings("unchecked")
+    void contratoDasFolgas() throws IOException {
+        Map<String, Object> c = contrato();
+        assertThat(String.valueOf(mapa(c, "info").get("version"))).matches("1\\.(1[2-9])\\.\\d+");
+        Map<String, Object> paths = mapa(c, "paths");
+        assertThat(paths).containsKeys("/admin/barbeiros/{id}/folgas", "/admin/barbeiros/{id}/folgas/conflitos",
+                "/admin/barbeiros/{id}/folgas/{folgaId}");
+        assertThat(mapa(paths, "/admin/barbeiros/{id}/folgas/{folgaId}")).containsKeys("put", "delete");
+        assertThat(mapa(paths, "/admin/barbeiros/{id}/folgas/conflitos")).containsKey("get");
+        Map<String, Object> schemas = mapa(mapa(c, "components"), "schemas");
+        assertThat(schemas).containsKeys("FolgaSalva", "ConflitoDeFolga", "TipoFolga");
+        assertThat((List<String>) mapa(schemas, "TipoFolga").get("enum")).containsExactlyInAnyOrder("FOLGA", "FERIAS");
+        assertThat(mapa(mapa(schemas, "FolgaRequest"), "properties")).containsKeys("tipo", "manterReservas");
+
+        List<String> camposDoConflito = (List<String>) mapa(schemas, "ConflitoDeFolga").get("required");
+        assertThat(exemplos(c)).filteredOn(ex -> "FOLGA_COM_RESERVAS".equals(ex.valor().get("code"))).isNotEmpty()
+                .allSatisfy(ex -> {
+                    List<Map<String, Object>> conflitos = (List<Map<String, Object>>) ex.valor().get("conflitos");
+                    assertThat(conflitos).as("%s: conflitos[]", ex.onde()).isNotEmpty();
+                    conflitos.forEach(item -> assertThat(item).containsKeys(camposDoConflito.toArray(String[]::new))
+                            .doesNotContainKeys("email", "cpf", "whatsapp", "observacao"));
+                });
+        assertThat(CodigoErro.FOLGA_COM_RESERVAS.status()).isEqualTo(422);
+    }
 }

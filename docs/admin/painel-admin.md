@@ -77,9 +77,9 @@ Toda ação de escrita do painel grava uma linha em `auditoria_admin` **na mesma
 | Campo | Exemplo |
 |---|---|
 | `ator_id` | id do admin ou barbeiro |
-| `acao` | `SERVICO_CRIADO`, `SERVICO_ALTERADO`, `BARBEIRO_ALTERADO`, `JORNADA_SUBSTITUIDA`, `FOLGA_CRIADA`, `FOLGA_REMOVIDA`, `RESERVA_CONCLUIDA`, `RESERVA_FALTA`, `RESERVA_CANCELADA_ADMIN`, `DEVOLUCAO_REGISTRADA`, `CONFIGURACAO_ALTERADA`, `ADMIN_INICIAL_CRIADO` |
+| `acao` | `SERVICO_CRIADO`, `SERVICO_ALTERADO`, `BARBEIRO_ALTERADO`, `JORNADA_SUBSTITUIDA`, `FOLGA_CRIADA`, `FOLGA_ALTERADA` (1.12.0, ADR 0015), `FOLGA_REMOVIDA`, `RESERVA_CONCLUIDA`, `RESERVA_FALTA`, `RESERVA_CANCELADA_ADMIN`, `DEVOLUCAO_REGISTRADA`, `CONFIGURACAO_ALTERADA`, `ADMIN_INICIAL_CRIADO` |
 | `recurso` / `recurso_id` | `servico` / id |
-| `detalhe` | campos alterados, **sem dado pessoal** (ex.: `{"precoCentavos":{"de":4000,"para":4500}}`) |
+| `detalhe` | campos alterados, **sem dado pessoal** (ex.: `{"precoCentavos":{"de":4000,"para":4500}}`). Nas folgas: `barbeiroId`, `tipo` e, com `manterReservas`, `reservasMantidas` (quantidade) e `reservasMantidasIds`; nunca o motivo nem o nome de cliente |
 | `ip` | IP de origem (segurança; retenção de 1 ano, proposta) |
 | `ocorrido_em` | instante UTC |
 
