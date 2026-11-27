@@ -1,16 +1,17 @@
 "use client";
-// Seções interativas da home (Main.dc.html): Trajetória (ouvir, linha do tempo e prêmios), como funciona e dúvidas.
+// Seções interativas da home (Main.dc.html): Trajetória (ouvir, linha do tempo e prêmios) e o link do WhatsApp de "Como marcar".
 // A galeria mora em Galeria.tsx. Tudo por teclado.
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { api, chamar } from "@/api/cliente";
-import { DUVIDAS, HISTORIA, IMAGENS, MARCOS, PASSOS_DA_FAIXA } from "@/conteudo/historia";
+import { HISTORIA, IMAGENS, MARCOS } from "@/conteudo/historia";
 import { linkDoWhatsapp } from "./ContatoWhatsapp";
 import { Icone } from "./Icone";
 
-/** "Falar no WhatsApp" do herói: o número é público e vem só de GET /barbeiros (6D). Sem número, o botão some. */
-export function WhatsappDoHeroi() {
+/** "Ou abrir o WhatsApp direto", no cartão 3 de "Como marcar" (Fatia 16, F3; spec 09, TJ-5). O número é público e vem
+ * só de GET /barbeiros (6D). Sem número, o link some e o resto do cartão fica. */
+export function WhatsappDireto() {
   const [numero, setNumero] = useState<string | undefined>();
   useEffect(() => {
     let vivo = true;
@@ -29,10 +30,10 @@ export function WhatsappDoHeroi() {
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className="botao botao-secundario"
-      aria-label="Falar no WhatsApp (abre o WhatsApp)"
+      className="link-solto nota"
+      aria-label="Ou abrir o WhatsApp direto (abre o WhatsApp)"
     >
-      <Icone nome="conversa" /> Falar no WhatsApp
+      Ou abrir o WhatsApp direto
     </a>
   );
 }
@@ -347,41 +348,6 @@ export function Trajetoria() {
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-/** Faixa "Como funciona" dentro do herói (D-11): três passos de uma linha. O prazo do pagamento NÃO tem número aqui:
- * ele só aparece onde existe `expiraEm` (tela de pagamento), porque é configurável de 3 a 60 min (D121, A19). */
-export function FaixaComoFunciona() {
-  return (
-    <ol className="faixa-passos" aria-label="Como funciona">
-      {PASSOS_DA_FAIXA.map((p) => (
-        <li key={p.titulo}>
-          <strong>{p.titulo}</strong>
-          <span className="destaque">{p.texto}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-export function Duvidas() {
-  return (
-    <section id="duvidas" aria-labelledby="t-duvidas" className="secao">
-      <p className="sobretitulo">Dúvidas</p>
-      <h2 id="t-duvidas">Antes de agendar</h2>
-      {DUVIDAS.map((d) => (
-        <details key={d.pergunta} className="duvida">
-          <summary>
-            {d.pergunta}
-            <span aria-hidden="true" className="mais">
-              +
-            </span>
-          </summary>
-          <p>{d.resposta}</p>
-        </details>
-      ))}
     </section>
   );
 }

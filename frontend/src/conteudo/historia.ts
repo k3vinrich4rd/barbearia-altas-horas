@@ -3,20 +3,38 @@
 import { TEXTOS } from "./textos";
 export const TITULO_DA_HOME = "Seu horário com o Eduardo, garantido.";
 
+// Subtítulo do herói: texto do PDF (p. 1), sem mudança (Fatia 16, F3; spec 09, TJ-1).
 export const SUBTITULO_DA_HOME =
-  "Escolha o serviço, veja os horários livres e pague na hora, por Pix ou cartão. Pagou, o horário é seu: sem esperar resposta no WhatsApp.";
+  "Escolha o serviço, veja os horários livres e pague na hora, por Pix ou cartão, com conta ou sem cadastro. Pagou, o horário é seu.";
 
-export const FATOS_DA_HOME: readonly { titulo: string; texto: string }[] = [
-  { titulo: "Terça a sábado", texto: "das 7h às 20h" },
-  { titulo: "Pix ou cartão", texto: "pago na hora, horário garantido" },
-  { titulo: "2 prêmios", texto: "nacionais em 2017" },
-];
+// "Como marcar" (Fatia 16, F3, A11): os Três jeitos do PDF (p. 1), na ordem do PDF. Substituem a faixa "Como funciona"
+// e os fatos do herói. Só "Agendar sem cadastro" é o botão principal.
+export type JeitoDeMarcar = {
+  numero: string;
+  titulo: string;
+  texto: string;
+  acao: { href: string; texto: string; principal?: boolean };
+};
 
-// Faixa "Como funciona" do herói (Fatia 12, D-11). Nenhum número de minutos: o prazo vem só do `expiraEm` (A19).
-export const PASSOS_DA_FAIXA: readonly { titulo: string; texto: string }[] = [
-  { titulo: "1 · Escolha", texto: "o serviço e um horário livre" },
-  { titulo: "2 · Pague", texto: "por Pix ou cartão, num prazo curto" },
-  { titulo: "3 · Confirmado", texto: "o horário fica garantido na agenda" },
+export const TRES_JEITOS: readonly JeitoDeMarcar[] = [
+  {
+    numero: "1 · Com conta",
+    titulo: "Criar conta e agendar",
+    texto: "Pague no app e acompanhe seus horários em Meus agendamentos.",
+    acao: { href: "/entrar", texto: "Criar conta ou entrar" },
+  },
+  {
+    numero: "2 · Sem cadastro",
+    titulo: "Agendar sem cadastro",
+    texto: "Só nome, e-mail e WhatsApp. Pague no app e receba o link da reserva.",
+    acao: { href: "/agendar", texto: "Agendar sem cadastro", principal: true },
+  },
+  {
+    numero: "3 · Pelo WhatsApp",
+    titulo: "Combinar com o Eduardo",
+    texto: "Veja os horários livres agora e peça o seu na conversa. O pagamento é direto com ele.",
+    acao: { href: "/agendar", texto: "Ver horários livres" },
+  },
 ];
 
 // Trajetória (Fatia 14B, seção 6.2 da spec): só os fatos da tabela 6.1, cada um com fonte no repositório (A39).
@@ -56,16 +74,9 @@ export const MARCOS: readonly { ano: string; titulo: string; texto: string }[] =
   },
 ];
 
+// "Antes de pagar", dentro de "Como marcar" (Fatia 16, F3, A11). Saíram "Preciso criar uma conta?" e "Como eu pago?",
+// que os Três jeitos e o subtítulo já respondem. Ficam as 3 que só aparecem aqui: prazo, cancelamento e antecedência.
 export const DUVIDAS: readonly { pergunta: string; resposta: string }[] = [
-  {
-    pergunta: "Preciso criar uma conta?",
-    resposta:
-      "Não. Você pode agendar só com seus dados de contato. Com conta, acompanha seus agendamentos num lugar só.",
-  },
-  {
-    pergunta: "Como eu pago?",
-    resposta: "Por Pix ou cartão, no momento da reserva. O horário só é confirmado depois que o pagamento é aprovado.",
-  },
   {
     pergunta: "E se eu não pagar no prazo?",
     resposta:
