@@ -1,6 +1,6 @@
 // Verificador de tokens (A56): nenhum CSS de src usa valor visual literal fora de tokens.css.
 // Proíbe: cor literal (#, rgb(, hsl(), cor nomeada como red ou white), font-family fora de var(--font-*), box-shadow,
-// medida em px, rem e em soltos (rem e em só dentro de uma variável --medida-*) e o atributo style= nos componentes TSX.
+// medida em px, rem e em soltos (rem e em só dentro de uma variável --medida-*), duração literal (ms ou s; use var(--mov-*)) e o atributo style= nos componentes TSX.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -99,6 +99,7 @@ export function verificar(dir = join(raiz, "src")) {
         problemas.push(`${onde} medida em rem/em solta (use var(--medida-*), var(--space-*) ou outro token)`);
       if (/(^|[^\w.-])-?\d*\.?\d+px\b/.test(linha))
         problemas.push(`${onde} medida em px solta (use var(--space-*), var(--radius-*) ou var(--traco-*))`);
+      if (/(^|[^\w.-])-?\d*\.?\d+m?s\b/.test(linha)) problemas.push(`${onde} duração literal (use var(--mov-*))`);
     });
   }
   return problemas;

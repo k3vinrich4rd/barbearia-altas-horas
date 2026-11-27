@@ -49,3 +49,21 @@ test("A58: com o Sem animação do painel de acessibilidade (sem a preferência 
   await page.evaluate(() => (document.documentElement.dataset.movimento = "reduzido"));
   for (const d of await duracoes(page, ".chip-horario[aria-pressed='true']")) expect(d).toBe("0s");
 });
+
+test("HG-2: com prefers-reduced-motion, a home não anima transform e as seções já aparecem", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quase três décadas na mesma cadeira" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Antes de agendar" })).toBeVisible();
+  const transicoesDeTransform = await page.evaluate(
+    () =>
+      [...document.querySelectorAll("body *")].filter((el) => {
+        const estilo = getComputedStyle(el);
+        const propriedades = estilo.transitionProperty.split(",").map((p) => p.trim());
+        const duracoes = estilo.transitionDuration.split(",").map((d) => d.trim());
+        return propriedades.some((p, i) => p.includes("transform") && duracoes[i] !== "0s");
+      }).length,
+  );
+  expect(transicoesDeTransform).toBe(0);
+});

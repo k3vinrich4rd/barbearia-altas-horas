@@ -340,12 +340,16 @@ hr {
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform var(--mov-rapido) var(--mov-curva);
 }
 
 .botao:hover {
   transform: translateY(calc(var(--space-1) * -0.5));
   color: var(--texto);
+}
+
+.botao:active {
+  transform: scale(0.98);
 }
 
 .botao-principal {
@@ -390,6 +394,81 @@ hr {
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
+}
+
+.aviso-atraso-acao {
+  min-height: var(--space-12);
+  margin-top: var(--space-3);
+}
+
+.aviso-atraso-acao .botao {
+  justify-content: flex-start;
+}
+
+.reserva-whatsapp {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.reserva-whatsapp-ou {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--texto-apagado);
+}
+
+.reserva-whatsapp-ou::before,
+.reserva-whatsapp-ou::after {
+  content: "";
+  border-top: var(--traco-1) solid var(--borda);
+}
+
+.reserva-whatsapp-rotulo {
+  margin: 0;
+  font-family: var(--tipo-rotulo-familia);
+  font-size: var(--tipo-rotulo-tamanho);
+  font-weight: var(--tipo-rotulo-peso);
+}
+
+.reserva-whatsapp .botao {
+  justify-content: center;
+  min-height: var(--space-12);
+}
+
+@media (min-width: 48rem) {
+  .reserva-caminhos .reserva-caminhos-acoes,
+  .reserva-caminhos .reserva-whatsapp {
+    display: contents;
+  }
+
+  .reserva-caminhos {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .reserva-caminhos > h2 {
+    grid-column: 1 / -1;
+  }
+
+  .reserva-caminhos .reserva-whatsapp-ou {
+    display: none;
+  }
+
+  .reserva-caminhos .reserva-whatsapp-rotulo,
+  .reserva-caminhos .reserva-whatsapp p,
+  .reserva-caminhos .reserva-whatsapp [role="status"] {
+    grid-column: 3;
+  }
+
+  .reserva-caminhos .reserva-whatsapp a {
+    grid-column: 3;
+    justify-self: start;
+  }
 }
 
 /* Formulários */
@@ -554,12 +633,17 @@ input[aria-invalid="true"] {
   border: var(--traco-1) solid var(--borda);
   border-radius: var(--radius-md);
   background: var(--superficie);
-  transition: transform 0.2s ease;
+  transition: transform var(--mov-medio) var(--mov-curva);
 }
 
 .cartao:hover {
-  transform: translateY(calc(var(--space-1) * -1));
   border-color: var(--borda-forte);
+}
+
+@media (min-width: 48rem) {
+  .cartao:hover {
+    transform: translateY(calc(var(--space-1) * -0.5));
+  }
 }
 
 .item h3,
@@ -1199,7 +1283,7 @@ blockquote footer {
 
 .mais {
   display: inline-block;
-  transition: transform 0.2s ease;
+  transition: transform var(--mov-medio) var(--mov-curva);
 }
 
 .duvida[open] .mais {
@@ -1822,7 +1906,7 @@ select[aria-invalid="true"] {
 
 /*
  * Fluidez (Fatia 14D). AGUARDA DESENHO (seção 11 da spec): só tokens que já existem, nenhuma cor nova.
- * Microanimações só em transform e opacity, de 150 a 200 ms, zeradas pelo "Sem animação" e por prefers-reduced-motion
+ * Microanimações só em transform e opacity, com tokens --mov-* (150 a 250 ms), zeradas pelo "Sem animação" e por prefers-reduced-motion
  * (as regras do fim do arquivo vencem por virem depois e por !important).
  */
 .esqueleto {
@@ -1845,23 +1929,57 @@ select[aria-invalid="true"] {
 .chip-horario,
 .dia-chip {
   transition:
-    transform 0.15s ease,
-    opacity 0.15s ease;
+    transform var(--mov-rapido) var(--mov-curva),
+    opacity var(--mov-rapido) var(--mov-curva);
 }
 
 .chip-horario[aria-pressed="true"],
 .dia-chip[aria-pressed="true"] {
-  transform: scale(1.04);
+  animation: chip-escolhido var(--mov-rapido) var(--mov-curva);
+}
+
+@keyframes chip-escolhido {
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 .aviso {
-  animation: entrar 0.2s ease;
+  animation: entrar var(--mov-medio) var(--mov-curva);
 }
 
 @keyframes entrar {
   from {
     opacity: 0;
     transform: translateY(calc(var(--space-1) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.periodo-horarios .horarios {
+  animation: aparecer var(--mov-medio) var(--mov-curva);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.titulo-confirmacao {
+  animation: entrar-titulo var(--mov-lento) var(--mov-curva);
+}
+
+@keyframes entrar-titulo {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
   }
   to {
     opacity: 1;
