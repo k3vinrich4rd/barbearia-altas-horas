@@ -78,7 +78,10 @@ export function Entrar() {
         </Botao>
       </form>
       <p>
-        Ainda não tem conta? <Link href="/cadastro">Criar conta</Link>
+        Ainda não tem conta?{" "}
+        <Link href="/cadastro" className="link-solto">
+          Criar conta
+        </Link>
       </p>
     </>
   );

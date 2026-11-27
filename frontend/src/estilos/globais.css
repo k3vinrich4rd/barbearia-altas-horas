@@ -85,6 +85,20 @@ a:hover {
   outline-offset: var(--traco-3);
 }
 
+/* Links e botões soltos: alvo de toque de 44px (PDF p.22). Vale também no desktop. */
+.link-solto {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+}
+
+.sumario-politica li,
+.rodape-links li {
+  display: flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+}
+
 small,
 .nota {
   font-size: var(--tipo-nota-tamanho);

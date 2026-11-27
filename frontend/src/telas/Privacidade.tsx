@@ -45,10 +45,12 @@ export function Privacidade() {
             {sumario(p.politica).length > 0 && (
               <nav aria-labelledby="t-sumario" className="cartao">
                 <h2 id="t-sumario">Nesta página</h2>
-                <ol>
+                <ol className="sumario-politica">
                   {sumario(p.politica).map((t) => (
                     <li key={t}>
-                      <a href={`#${slug(t)}`}>{t}</a>
+                      <a href={`#${slug(t)}`} className="link-solto">
+                        {t}
+                      </a>
                     </li>
                   ))}
                 </ol>

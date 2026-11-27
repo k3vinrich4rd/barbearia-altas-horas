@@ -178,7 +178,9 @@ export function Cadastro() {
             {politica.dados
               ? politica.dados.textoConsentimento
               : "Receber ofertas e novidades (indisponível agora, é opcional)."}{" "}
-            <Link href="/privacidade">Política de privacidade</Link>
+            <Link href="/privacidade" className="link-solto">
+              Política de privacidade
+            </Link>
           </label>
         </div>
 
@@ -192,7 +194,10 @@ export function Cadastro() {
         </Botao>
       </form>
       <p>
-        Já tem conta? <Link href="/entrar">Entrar</Link>
+        Já tem conta?{" "}
+        <Link href="/entrar" className="link-solto">
+          Entrar
+        </Link>
       </p>
     </>
   );
