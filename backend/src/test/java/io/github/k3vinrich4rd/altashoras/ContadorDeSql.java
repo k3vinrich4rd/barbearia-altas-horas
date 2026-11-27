@@ -31,6 +31,11 @@ public class ContadorDeSql {
         return POR_THREAD.get().get();
     }
 
+    /** Tira o valor desta thread para o próximo teste não herdar a soma anterior. */
+    public static void limpar() {
+        POR_THREAD.remove();
+    }
+
     /** Visível para o teste que prova que a consulta de outra thread não entra no total desta. */
     static void registrar() {
         POR_THREAD.get().incrementAndGet();

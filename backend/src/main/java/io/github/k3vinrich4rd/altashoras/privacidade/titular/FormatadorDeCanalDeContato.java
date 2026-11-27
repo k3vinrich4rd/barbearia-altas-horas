@@ -19,6 +19,10 @@ final class FormatadorDeCanalDeContato {
             return bruto;
         }
         String digitos = bruto.replaceAll("\\D", "");
+        // 13 dígitos (celular) ou 12 (fixo) começando com 55: o prefixo do país, com ou sem +.
+        if ((digitos.length() == 13 || digitos.length() == 12) && digitos.startsWith("55")) {
+            digitos = digitos.substring(2);
+        }
         if (digitos.length() == 11) {
             return "(%s) %s-%s".formatted(digitos.substring(0, 2), digitos.substring(2, 7), digitos.substring(7));
         }
