@@ -114,6 +114,7 @@ O Copilot lê as mesmas regras pelo [`.github/copilot-instructions.md`](../.gith
 | O validador de JWT do Spring usa o relógio do sistema: o teste de token vencido dependeria do dia em que roda | desenho da Fatia 3 | validador com o `Clock` injetado (D55) |
 | O CodeQL acusou o CSRF desligado na PR da Fatia 3 | check de segurança vermelho | em vez de dispensar o alerta, CSRF ligado e exigido onde há cookie, com teste (D58) |
 | O CORS não respondia: o bean se chamava `cors` e o Spring Security procura `corsConfigurationSource` | teste A35 | bean renomeado |
+| O cancelamento pela barbearia pede o `version` da reserva, mas a prévia de conflitos da folga não traz versão | ao desenhar o "Cancelar um a um" (Fatia 15) | a tela lê a grade do dia da reserva na hora e usa a versão de lá; o contrato não mudou |
 | A spec pedia comparar a versão da credencial no refresh, mas o refresh é opaco e não carrega versão | ao implementar | troca de senha revoga os refresh; spec e decisão D56 atualizadas |
 | Uma data de teste quase foi tratada como segunda-feira (era terça) | conferência por código | passo obrigatório na skill `/especificar-fatia` |
 

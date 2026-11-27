@@ -1321,6 +1321,24 @@ Quando o **pagamento confirma** uma reserva (de cliente com cadastro ou de visit
 
 Roteiro do painel com dado real: com o banco do `docker compose`, crie 6 contas em Osasco/Centro com a caixinha e uma reserva cada (ver o fluxo ponta a ponta), entre como Dono e abra "Alcance".
 
+### 7.8 Férias e folgas no painel (Fatia 15, C13) ✅
+
+Página própria **Painel → Férias e folgas** (`/painel/folgas`), só para o ADMIN (contrato 1.12.1, ADR 0015, E1 a E15 e E24). Em Cadastros → Barbeiros → "Jornada e folgas" fica só o atalho "Ver férias e folgas de …".
+
+| # | O que fazer | O que deve acontecer | Onde está provado |
+|---|---|---|---|
+| FF-1 | abrir a página sem folgas | "Nenhuma folga de hoje em diante." e o botão **Marcar férias ou folga**; remover pede confirmação | `painel-folgas.test.tsx` |
+| FF-2 | entrar como BARBEIRO | o item não aparece no menu e a URL mostra acesso negado | `painel-acesso.test.tsx` (A44) |
+| FF-3 e FF-10 | escolher as datas | **antes de salvar**, o painel chama `GET …/folgas/conflitos` e mostra quem está marcado (horário, serviço, nome, origem, status) | `painel-folgas.test.tsx` e `e2e/painel-folgas.spec.ts` |
+| FF-4 | tocar em **Salvar e manter os horários** | vai `manterReservas: true`; "Folga lançada. N clientes continuam marcados nesse período." com a lista e "Ver na agenda"; nenhuma reserva muda | `painel-folgas.test.tsx` e `e2e/painel-folgas.spec.ts` |
+| FF-5 | **Cancelar um a um** → "Cancelar pela barbearia" com motivo | só aquela reserva é cancelada (com a versão lida na grade do dia) e a prévia passa a mostrar uma a menos | `painel-folgas.test.tsx` |
+| FF-6 | "Dia inteiro" de 25/11 a 27/11, tipo Férias | vai `inicio` 25/11 00:00 e `fim` 28/11 00:00 (BRT), `tipo: FERIAS`; a tela diz "até sexta, 27/11 (o dia inteiro)" | `painel-folgas.test.tsx` |
+| FF-7 | **Editar**, mudar o fim e salvar | `PUT` com `inicio`, `fim`, `motivo` e `tipo`; "Folga alterada." e a lista com o fim novo | `painel-folgas.test.tsx` |
+| FF-8 | colar 201 caracteres no motivo | o campo para em 200 (contador "200/200") e lembra "Não escreva dado de cliente aqui." | `painel-folgas.test.tsx` |
+| FF-9 | axe em 360×800 | 0 violações na lista e na prévia com clientes | `e2e/painel-folgas.spec.ts` |
+| FF-11 | alguém marca entre a prévia e o salvar | `422 FOLGA_COM_RESERVAS`: "Há clientes marcados nesse período. Confira a lista abaixo: você pode manter essas reservas ou cancelar uma por uma antes de salvar a folga.", a lista do `conflitos[]` e as 3 saídas; nada gravado | `painel-folgas.test.tsx` e `mensagens-voz.test.ts` |
+| FF-12 | uma folga do tipo FERIAS e o público em /agendar | só "Fechado", nunca "Férias" nem "Folga" | `agendar-expediente.test.tsx` (AF-10, no PR das telas públicas) |
+
 ## 8. Jornada completa
 
 > ⏳ Roda quando as Fatias 2 a 7 estiverem na `develop`.
