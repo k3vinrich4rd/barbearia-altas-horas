@@ -1,12 +1,15 @@
 package io.github.k3vinrich4rd.altashoras.admin.cadastro;
 
 import java.net.URI;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.github.k3vinrich4rd.altashoras.admin.Ator;
@@ -83,11 +87,26 @@ class BarbeirosAdminController {
     }
 
     @PostMapping("/admin/barbeiros/{id}/folgas")
-    ResponseEntity<FolgaAdmin> criarFolga(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+    ResponseEntity<FolgaSalva> criarFolga(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
             @PathVariable UUID id, @Valid @RequestBody FolgaRequest pedido) {
-        FolgaAdmin criada = folgas.criar(Ator.de(token, request), id, pedido);
+        FolgaSalva criada = folgas.criar(Ator.de(token, request), id, pedido);
         return ResponseEntity.created(URI.create("/admin/barbeiros/" + id + "/folgas/" + criada.id()))
                 .cacheControl(SEM_CACHE).body(criada);
+    }
+
+    /** A prévia antes de salvar (ADR 0015, E24). Rota literal: no Spring ela ganha da {@code /folgas/{folgaId}}. */
+    @GetMapping("/admin/barbeiros/{id}/folgas/conflitos")
+    ResponseEntity<List<ConflitoDeFolga>> conflitosDaFolga(@PathVariable UUID id,
+            @RequestParam @DateTimeFormat(iso = ISO.DATE_TIME) OffsetDateTime inicio,
+            @RequestParam @DateTimeFormat(iso = ISO.DATE_TIME) OffsetDateTime fim) {
+        return ResponseEntity.ok().cacheControl(SEM_CACHE).body(folgas.conflitos(id, inicio, fim));
+    }
+
+    @PutMapping("/admin/barbeiros/{id}/folgas/{folgaId}")
+    ResponseEntity<FolgaSalva> alterarFolga(@AuthenticationPrincipal Jwt token, HttpServletRequest request,
+            @PathVariable UUID id, @PathVariable UUID folgaId, @Valid @RequestBody FolgaRequest pedido) {
+        return ResponseEntity.ok().cacheControl(SEM_CACHE)
+                .body(folgas.alterar(Ator.de(token, request), id, folgaId, pedido));
     }
 
     @DeleteMapping("/admin/barbeiros/{id}/folgas/{folgaId}")
