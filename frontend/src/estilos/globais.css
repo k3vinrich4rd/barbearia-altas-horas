@@ -1464,6 +1464,20 @@ caption {
     max-width: 100%;
   }
 
+  /* RF-7: no zoom 200% a min-content de 16 rem da grade (nome do serviço) ainda media scrollWidth 545. */
+  .opcoes {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .opcao,
+  .opcao span {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   /* Rótulos ficam no HTML para o leitor de tela e somem da tela no celular. */
   .resumo-fixo dt {
     position: absolute;
