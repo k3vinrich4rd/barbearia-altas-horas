@@ -5,13 +5,15 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { ErroApi } from "@/api/erro";
-import { formatarDataEHora, formatarPreco } from "@/api/formato";
+import { formatarDataCurta, formatarDataEHora, formatarDiaDaSemana, formatarHora, formatarPreco } from "@/api/formato";
 import { useConsulta, useEnvio } from "@/api/hooks";
 import { mensagemDoErro } from "@/api/mensagens";
 import { Aviso, AvisoDeErro } from "@/componentes/Aviso";
 import { Botao, LinkBotao } from "@/componentes/Botao";
 import { Campo } from "@/componentes/Campo";
 import { ConsentimentoDeRegiao } from "@/componentes/ConsentimentoDeRegiao";
+import { IndicadorDePassos } from "@/componentes/IndicadorDePassos";
+import { linkDoWhatsapp, preposicaoDoDia } from "@/componentes/ContatoWhatsapp";
 import { buscarServicos } from "@/componentes/ListaDeServicos";
 import { useSessao } from "@/componentes/Sessao";
 import { TEXTOS } from "@/conteudo/textos";
@@ -28,6 +30,7 @@ export function ReservaDados() {
   const inicio = busca.get("inicio") ?? "";
 
   const [semConta, setSemConta] = useState(false);
+  const [pediuWhatsapp, setPediuWhatsapp] = useState(false);
   const [valores, setValores] = useState({ nome: "", email: "", whatsapp: "", cep: "" });
   const [regiao, setRegiao] = useState(false);
   const politica = useConsulta(() => chamar(api().GET("/politica-privacidade")), [], semConta);
@@ -51,6 +54,7 @@ export function ReservaDados() {
   if (!servicoId || !barbeiroId || !inicio) {
     return (
       <>
+        <IndicadorDePassos passoAtual={1} />
         <h1>Seus dados</h1>
         <p>Escolha o serviço e o horário primeiro.</p>
         <LinkBotao href="/agendar">Escolher horário</LinkBotao>
@@ -62,6 +66,20 @@ export function ReservaDados() {
   const barbeiro = barbeiros.dados?.find((b) => b.id === barbeiroId);
   const voltarParaEscolha = (extra: Record<string, string> = {}) =>
     `/agendar?${new URLSearchParams({ servicoId, barbeiroId, data: inicio.slice(0, 10), ...extra }).toString()}`;
+  const primeiroNome = barbeiro?.nomeExibicao.split(" ")[0];
+  const mensagemWhatsapp =
+    barbeiro && servico && primeiroNome
+      ? TEXTOS.pedidoWhatsappMensagem(
+          primeiroNome,
+          servico.nome,
+          preposicaoDoDia(formatarDiaDaSemana(inicio)),
+          formatarDiaDaSemana(inicio),
+          formatarDataCurta(inicio),
+          formatarHora(inicio),
+        )
+      : undefined;
+  const hrefWhatsapp =
+    barbeiro?.whatsapp && mensagemWhatsapp ? linkDoWhatsapp(barbeiro.whatsapp, mensagemWhatsapp) : undefined;
 
   async function reservar() {
     const corpoCliente = { servicoId, barbeiroId, inicio };
@@ -122,6 +140,7 @@ export function ReservaDados() {
 
   return (
     <>
+      <IndicadorDePassos passoAtual={1} />
       <h1>Seus dados</h1>
 
       <div className="resumo-fixo-espaco" aria-hidden="true" />
@@ -146,9 +165,9 @@ export function ReservaDados() {
       </aside>
 
       {!sessao.autenticado && !semConta && (
-        <section aria-labelledby="como-reservar">
+        <section aria-labelledby="como-reservar" className="reserva-caminhos">
           <h2 id="como-reservar">Como você quer reservar?</h2>
-          <div className="acoes">
+          <div className="acoes reserva-caminhos-acoes">
             <LinkBotao href={`/entrar?voltar=${encodeURIComponent(`${caminho}?${busca.toString()}`)}`}>
               Entrar
             </LinkBotao>
@@ -156,6 +175,29 @@ export function ReservaDados() {
               Continuar sem conta
             </Botao>
           </div>
+          {hrefWhatsapp && primeiroNome && (
+            <div className="reserva-whatsapp">
+              <p className="reserva-whatsapp-ou">ou</p>
+              <h3 className="reserva-whatsapp-rotulo">{TEXTOS.pedidoWhatsappRotulo}</h3>
+              <p>{TEXTOS.pedidoWhatsappAviso(primeiroNome)}</p>
+              <a
+                href={hrefWhatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="botao botao-principal"
+                aria-label={`${TEXTOS.pedidoWhatsappBotao} (abre o WhatsApp)`}
+                onClick={() => setPediuWhatsapp(true)}
+              >
+                {TEXTOS.pedidoWhatsappBotao}
+              </a>
+              {pediuWhatsapp && (
+                <p role="status">
+                  {TEXTOS.pedidoWhatsappNota(primeiroNome)}{" "}
+                  <Link href={voltarParaEscolha({ inicio })}>{TEXTOS.pedidoWhatsappOutroHorario}</Link>
+                </p>
+              )}
+            </div>
+          )}
         </section>
       )}
 
@@ -180,9 +222,34 @@ export function ReservaDados() {
       {envio.esperando && <Aviso tipo="aviso">Tente de novo em {envio.restante} s.</Aviso>}
 
       {sessao.autenticado ? (
-        <form onSubmit={aoEnviar} aria-label="Confirmar reserva">
-          {botao}
-        </form>
+        <>
+          <form onSubmit={aoEnviar} aria-label="Confirmar reserva">
+            {botao}
+          </form>
+          {hrefWhatsapp && primeiroNome && (
+            <div className="reserva-whatsapp">
+              <p className="reserva-whatsapp-ou">ou</p>
+              <h3 className="reserva-whatsapp-rotulo">{TEXTOS.pedidoWhatsappRotulo}</h3>
+              <p>{TEXTOS.pedidoWhatsappAviso(primeiroNome)}</p>
+              <a
+                href={hrefWhatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="botao botao-principal"
+                aria-label={`${TEXTOS.pedidoWhatsappBotao} (abre o WhatsApp)`}
+                onClick={() => setPediuWhatsapp(true)}
+              >
+                {TEXTOS.pedidoWhatsappBotao}
+              </a>
+              {pediuWhatsapp && (
+                <p role="status">
+                  {TEXTOS.pedidoWhatsappNota(primeiroNome)}{" "}
+                  <Link href={voltarParaEscolha({ inicio })}>{TEXTOS.pedidoWhatsappOutroHorario}</Link>
+                </p>
+              )}
+            </div>
+          )}
+        </>
       ) : (
         semConta && (
           <form onSubmit={aoEnviar} noValidate aria-label="Dados do visitante">

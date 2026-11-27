@@ -16,6 +16,7 @@ import { Campo } from "@/componentes/Campo";
 import { CopiarTexto } from "@/componentes/CopiarTexto";
 import { Cronometro, descreverTempo } from "@/componentes/Cronometro";
 import { EstadoDaConsulta } from "@/componentes/EstadoDaConsulta";
+import { IndicadorDePassos } from "@/componentes/IndicadorDePassos";
 import { QrPix } from "@/componentes/QrPix";
 import { useSessao } from "@/componentes/Sessao";
 import { TEXTOS } from "@/conteudo/textos";
@@ -202,7 +203,7 @@ export function Pagamento({ reservaId }: { reservaId: string }) {
 
   return (
     <>
-      <p className="sobretitulo">Pagamento</p>
+      <IndicadorDePassos passoAtual={2} />
       <h1>Pague para garantir seu horário</h1>
       <p className="destaque">
         O horário já está separado para você. Ele só fica confirmado depois que o pagamento for aprovado.

@@ -73,13 +73,27 @@ describe("resumo fixo de /agendar (Fatia 12C)", () => {
     expect(within(grupo).getAllByRole("radio")).toHaveLength(3);
   });
 
-  test("A19: antes da reserva, o resumo e a faixa da home falam em prazo curto, sem número de minutos", async () => {
+  test("A19: antes da reserva, a página e a faixa da home falam em prazo curto, sem número de minutos", async () => {
     renderizar(<Agendar />);
     const resumo = await screen.findByRole("complementary");
-    expect(resumo).toHaveTextContent(/prazo curto/);
-    expect(resumo.textContent).not.toMatch(/\d+\s*(min|minutos)/i);
+    // a nota saiu da barra e ficou no fluxo da página, logo acima do WhatsApp
+    expect(screen.getByText(/prazo curto/)).toBeInTheDocument();
+    expect(resumo).not.toHaveTextContent(/prazo curto/);
+    expect(screen.getByText(/prazo curto/).textContent).not.toMatch(/\d+\s*(min|minutos)/i);
     const faixa = PASSOS_DA_FAIXA.map((p) => p.texto).join(" ");
     expect(faixa).toMatch(/prazo curto/);
     expect(faixa).not.toMatch(/\d+\s*(min|minutos)/i);
+  });
+
+  test("RF-6: o resumo declara Serviço, Quando e Total com os valores, para o leitor de tela", async () => {
+    const { user } = renderizar(<Agendar />);
+    const resumo = await screen.findByRole("complementary", { name: "Resumo" });
+    expect(within(resumo).getByText("Serviço")).toBeInTheDocument();
+    expect(within(resumo).getByText("Quando")).toBeInTheDocument();
+    expect(within(resumo).getByText("Total")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "10:00" }));
+    expect(resumo).toHaveTextContent(CINCO_SERVICOS[1].nome);
+    expect(resumo).toHaveTextContent(/às 10:00/);
+    expect(resumo).toHaveTextContent("R$ 55,00");
   });
 });

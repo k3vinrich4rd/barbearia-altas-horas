@@ -33,4 +33,26 @@ export const TEXTOS = {
     "Quando quiser: para hoje mesmo, desde que o horário ainda não tenha passado, ou para qualquer data futura. Pagou, o horário é seu.",
   /** Busca do próximo dia com horário sem achar nada (o 30 é o tamanho da busca, não regra). */
   buscaSemHorario: "Não achamos horário livre nos próximos 30 dias. Procure mais 30 dias ou escolha em Outro dia.",
+  /** Terceiro jeito de marcar: rótulo do grupo no PDF p.6. */
+  pedidoWhatsappRotulo: "Pelo WhatsApp",
+  /** Aviso antes do link. O nome é o primeiro nome do barbeiro, vindo da API. */
+  pedidoWhatsappAviso: (nome: string) =>
+    `O horário só fica seu quando o ${nome} confirmar. Até lá, outra pessoa pode marcar pelo site.`,
+  pedidoWhatsappBotao: "Pedir este horário pelo WhatsApp",
+  /** Proposta, para o Kevin revisar no PR. O nome vem da API. */
+  pedidoWhatsappNota: (nome: string) => `Mandou a mensagem? Agora é com o ${nome}: ele confirma na conversa.`,
+  pedidoWhatsappOutroHorario: "Escolher outro horário",
+  /**
+   * Mensagem pronta do WhatsApp (proposta, para o Kevin revisar no PR).
+   * Não leva link do painel, id de reserva nem dado pessoal.
+   */
+  pedidoWhatsappMensagem: (
+    primeiroNome: string,
+    servico: string,
+    preposicao: "na" | "no",
+    dia: string,
+    data: string,
+    hora: string,
+  ) =>
+    `Olá, ${primeiroNome}! Quero marcar ${servico} ${preposicao} ${dia}, ${data}, às ${hora}. Esse horário está livre?`,
 } as const;
