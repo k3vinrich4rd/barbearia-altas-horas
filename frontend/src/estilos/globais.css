@@ -911,6 +911,9 @@ dd {
   gap: var(--space-2);
   overflow-x: auto;
   padding-bottom: var(--space-2);
+  /* Sem min-width:0 a tira (7 chips) estica a página; o overflow-x fica inútil (RF-7). */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .dia-chip {
@@ -1347,10 +1350,23 @@ caption {
   }
 
   .resumo-fixo {
-    padding: var(--space-2) var(--space-4);
-    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
-    gap: var(--space-1);
+    /* padding space-1 + botão 44px + dl de 2 linhas ≈ 117 px, para no A+ 150% ficar ≤ 176 (RF-2). */
+    padding: var(--space-1) var(--space-4);
+    padding-bottom: calc(var(--space-1) + env(safe-area-inset-bottom));
+    gap: 0;
     max-height: var(--resumo-fixo-altura-ampliada);
+  }
+
+  .resumo-fixo .botao {
+    min-height: var(--alvo-toque);
+  }
+
+  .cartao-barbeiro-texto {
+    min-width: 0;
+  }
+
+  .campo input[type="date"] {
+    max-width: 100%;
   }
 
   /* Rótulos ficam no HTML para o leitor de tela e somem da tela no celular. */

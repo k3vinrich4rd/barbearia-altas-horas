@@ -350,6 +350,7 @@ export function Agendar() {
             min={hoje}
             value={data}
             onChange={(e) => escolherDia(e.target.value)}
+            onInput={(e) => escolherDia((e.target as HTMLInputElement).value)}
             aria-describedby={data !== "" && !dataValida ? "data-erro" : undefined}
             aria-invalid={data !== "" && !dataValida ? true : undefined}
           />
