@@ -19,7 +19,7 @@ function textoDoVtt(vtt: string): string {
 
 describe("legenda da Trajetória", () => {
   test("VZ-4: o texto das legendas, juntado, é igual ao HISTORIA da tela", () => {
-    const vtt = readFileSync(resolve(__dirname, "../../public/assets/audio/historia.vtt"), "utf8");
+    const vtt = readFileSync(resolve(__dirname, "../../../docs/assets/audio/historia.vtt"), "utf8");
     expect(textoDoVtt(vtt)).toBe(HISTORIA.join(" "));
   });
 });

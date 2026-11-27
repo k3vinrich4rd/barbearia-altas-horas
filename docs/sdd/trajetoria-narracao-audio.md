@@ -6,7 +6,7 @@
 
 ## Decisões de implementação
 
-- Os arquivos versionados são `frontend/public/assets/audio/historia.{opus,mp3,vtt}`, copiados de `audio-final/`. O script `ferramentas/gerar-narracao.py` roda à mão (o modelo não entra no repo nem no CI). Ele não tem caminho absoluto, segredo nem nome de agente; o `~/modelos/...` do comentário de uso é só exemplo.
+- Os arquivos versionados são `docs/assets/audio/historia.{opus,mp3,vtt}` (origem: `audio-final/`). O script `copiar:assets` leva tudo de `docs/assets/` para `frontend/public/assets/` no build, como as outras mídias. `public/assets` continua fora do Git. O script `ferramentas/gerar-narracao.py` roda à mão (o modelo não entra no repo nem no CI). Ele não tem caminho absoluto, segredo nem nome de agente; o `~/modelos/...` do comentário de uso é só exemplo.
 - O `<audio controls preload="none">` tem fonte Opus, reserva MP3 e `<track kind="captions" srclang="pt-BR" label="Português" default>`. O áudio só é pedido ao apertar "Ouvir".
 - O botão próprio alterna play/pausa (`aria-pressed`). Texto visível: "Ouvir a trajetória · 1 min 13 s" (duração real do arquivo, ~73 s; o rascunho da spec citava 1 min 6 s). Em reprodução vira "Pausar". Os controles nativos (posição e pausa) ficam disponíveis e funcionam pelo teclado.
 - A transcrição é o texto visível da seção (`HISTORIA`). O teste VZ-4 confere que o texto das legendas, juntado, é igual a `HISTORIA.join(" ")`.
