@@ -27,7 +27,8 @@ import io.github.k3vinrich4rd.altashoras.comum.erro.ExcecaoDeNegocio;
 /**
  * Caso de uso "quais horários estão livres neste dia?". Só orquestra: valida, busca os dados em 4 consultas
  * (configuração, serviço, barbeiros com jornada, bloqueios), nunca uma por barbeiro, e entrega para a
- * CalculadoraDeHorarios. É uma foto: quem garante que dois clientes não pegam o mesmo horário é a constraint
+ * CalculadoraDeHorarios. O expediente do dia (1.12.0) sai dos mesmos dados, sem consulta nova.
+ * É uma foto: quem garante que dois clientes não pegam o mesmo horário é a constraint
  * do banco, na reserva (E11).
  */
 @Service
@@ -89,10 +90,12 @@ public class ConsultaDisponibilidade {
                     .filter(j -> j.getDiaSemana() == diaDaSemana)
                     .map(j -> new Turno(j.getHoraInicio(), j.getHoraFim()))
                     .toList();
-            List<String> horarios = CalculadoraDeHorarios.calcular(data, fuso, turnos,
-                            bloqueiosDoDia.getOrDefault(barbeiro.getId(), List.of()), servico.getDuracaoMin(), regras, agora)
+            List<Bloqueio> doBarbeiro = bloqueiosDoDia.getOrDefault(barbeiro.getId(), List.of());
+            List<String> horarios = CalculadoraDeHorarios.calcular(data, fuso, turnos, doBarbeiro,
+                            servico.getDuracaoMin(), regras, agora)
                     .stream().map(FORMATO_DO_CONTRATO::format).toList();
-            return new HorariosDoBarbeiro(barbeiro.getId(), barbeiro.getNomeExibicao(), horarios);
+            ExpedienteDoDia expediente = ExpedienteDoDia.calcular(data, fuso, turnos, doBarbeiro, FORMATO_DO_CONTRATO);
+            return new HorariosDoBarbeiro(barbeiro.getId(), barbeiro.getNomeExibicao(), horarios, expediente);
         }).toList();
 
         return new DisponibilidadeResposta(data.toString(), config.getFuso(), servico.getId(), servico.getDuracaoMin(),
