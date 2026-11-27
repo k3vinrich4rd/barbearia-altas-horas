@@ -14,6 +14,9 @@ const SEM_BARRA = [/^\/painel(\/|$)/, /^\/reserva(\/|$)/];
 /** Seções da home que já têm o botão de agendar: enquanto uma delas aparece, a barra some. */
 export const SECOES_QUE_ESCONDEM_A_BARRA = ["inicio", "como-marcar"];
 
+/** Faixa da tela que conta para esconder a barra: o meio, sem 20% em cima e 20% embaixo. */
+export const MARGEM_DO_OBSERVADOR = "-20% 0px -20% 0px";
+
 export const mostraBarraDeAgendar = (caminho: string) =>
   !ehPaginaDeTarefa(caminho) && !SEM_BARRA.some((r) => r.test(caminho));
 
@@ -30,10 +33,15 @@ function useSecaoComAgendarNaTela(ativo: boolean) {
       return;
     }
     const visiveis = new Map<Element, boolean>();
-    const observador = new IntersectionObserver((entradas) => {
-      for (const e of entradas) visiveis.set(e.target, e.isIntersecting);
-      setNaTela([...visiveis.values()].some(Boolean));
-    });
+    // Só conta a faixa do meio da tela (20% de margem em cima e embaixo): uma sobra de "Como marcar" no alto da tela,
+    // com "Onde estamos" ocupando o resto, não esconde a barra (sem a galeria, o rodapé vem logo depois de "Como marcar").
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        for (const e of entradas) visiveis.set(e.target, e.isIntersecting);
+        setNaTela([...visiveis.values()].some(Boolean));
+      },
+      { rootMargin: MARGEM_DO_OBSERVADOR },
+    );
     alvos.forEach((a) => observador.observe(a));
     return () => observador.disconnect();
   }, [ativo]);
