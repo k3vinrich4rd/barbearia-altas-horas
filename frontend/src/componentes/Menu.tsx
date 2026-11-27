@@ -9,20 +9,23 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { desativarNoAparelho, tirarAparelhoNoLogout } from "@/api/push";
-import { GALERIA, IMAGENS } from "@/conteudo/historia";
+import { IMAGENS } from "@/conteudo/historia";
 import { useSessao } from "./Sessao";
+import { ehPaginaDeTarefa } from "./tipoDePagina";
 
-/** Itens do menu (Fatia 12, A2): as seções da home na ordem em que o cliente decide e "Onde estamos", que aponta para o rodapé
- * (em todas as páginas). "Como funciona" virou faixa do herói; "Serviços" abre a página /servicos (decisão do Kevin); a home tem o link "Ver todos". */
-export const SECOES_DA_HOME: { href: string; texto: string }[] = [
-  { href: "/servicos", texto: "Serviços" }, // página com a lista completa e os preços (decisão do Kevin, 23/11, opção B)
-  { href: "/#barbeiro", texto: "Barbeiro" },
-  // Sem foto aprovada, a seção da galeria não aparece; o link sai junto para não apontar para o nada.
-  ...(GALERIA.length > 0 ? [{ href: "/#galeria", texto: "Galeria" }] : []),
-  { href: "/#trajetoria", texto: "Trajetória" },
-  { href: "/#duvidas", texto: "Dúvidas" },
-  { href: "#onde-estamos", texto: "Onde estamos" },
+/** Itens do menu (Fatia 16, F2, A13): as 4 seções da home, numeradas na ordem da página. Cada assunto tem um lugar só:
+ * saem "Barbeiro", "Galeria" e "Dúvidas" (viram parte de Quem somos, O que fazemos e Como marcar). "Quem somos" aponta
+ * para a Trajetória até o F4 juntar barbeiro e Trajetória na seção `quem-somos`; "Como marcar" chega com o F3 (#151). */
+export const SECOES_DA_HOME: { href: string; numero: string; texto: string }[] = [
+  { href: "/#trajetoria", numero: "01", texto: "Quem somos" },
+  { href: "/#servicos", numero: "02", texto: "O que fazemos" },
+  { href: "/#como-marcar", numero: "03", texto: "Como marcar" },
+  { href: "/#onde-estamos", numero: "04", texto: "Onde estamos" },
 ];
+
+/** O "Agendar horário" do topo não aparece nas telas de tarefa (A15). Na home ele só existe no menu do celular: no
+ * computador, o herói já tem o botão (A3). */
+export const mostraAgendarNoTopo = (caminho: string) => !ehPaginaDeTarefa(caminho);
 
 export function Menu() {
   const sessao = useSessao();
@@ -114,18 +117,11 @@ export function Menu() {
                   </li>
                 </>
               ) : (
-                <>
-                  <li>
-                    <Link href="/entrar" aria-current={atual("/entrar")}>
-                      Entrar
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/cadastro" aria-current={atual("/cadastro")}>
-                      Criar conta
-                    </Link>
-                  </li>
-                </>
+                <li>
+                  <Link href="/entrar" aria-current={atual("/entrar")}>
+                    Entrar ou criar conta
+                  </Link>
+                </li>
               )}
             </ul>
           </nav>
@@ -133,21 +129,26 @@ export function Menu() {
             <ul>
               {SECOES_DA_HOME.map((s) => (
                 <li key={s.href}>
-                  <Link
-                    href={s.href}
-                    onClick={fechar}
-                    aria-current={s.href.startsWith("/") && !s.href.includes("#") ? atual(s.href) : undefined}
-                  >
+                  <Link href={s.href} onClick={fechar}>
+                    <span aria-hidden="true" className="menu-numero">
+                      {s.numero}
+                    </span>{" "}
                     {s.texto}
                   </Link>
                 </li>
               ))}
             </ul>
           </nav>
+          {mostraAgendarNoTopo(caminho) && (
+            <Link
+              href="/agendar"
+              onClick={fechar}
+              className={`botao botao-principal botao-agendar-topo${caminho === "/" ? " so-no-menu" : ""}`}
+            >
+              Agendar horário
+            </Link>
+          )}
         </div>
-        <Link href="/agendar" className="botao botao-principal botao-agendar-topo" aria-current={atual("/agendar")}>
-          Agendar horário
-        </Link>
       </div>
     </header>
   );
