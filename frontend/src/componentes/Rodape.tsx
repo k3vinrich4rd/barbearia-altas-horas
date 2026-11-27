@@ -3,9 +3,11 @@
 // O WhatsApp é o número PÚBLICO do barbeiro, vindo de GET /barbeiros (Fatia 6D); sem número, a linha some.
 // O mapa é só um link (sem mapa embutido, sem script de terceiros).
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, chamar } from "@/api/cliente";
 import { linkDoWhatsapp } from "./ContatoWhatsapp";
+import { ehPaginaDeTarefa } from "./tipoDePagina";
 
 export const ENDERECO_NO_MAPA =
   "https://www.google.com/maps/search/?api=1&query=" +
@@ -20,9 +22,10 @@ export function formatarWhatsapp(numero: string): string {
   return d;
 }
 
-function useWhatsappPublico() {
+function useWhatsappPublico(ativo: boolean) {
   const [numero, setNumero] = useState<string | undefined>();
   useEffect(() => {
+    if (!ativo) return;
     let vivo = true;
     chamar(api().GET("/barbeiros")).then(
       (lista) => vivo && setNumero(lista.find((b) => Boolean(b.whatsapp))?.whatsapp ?? undefined),
@@ -31,12 +34,32 @@ function useWhatsappPublico() {
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [ativo]);
   return numero;
 }
 
 export function Rodape() {
-  const numero = useWhatsappPublico();
+  // Fatia 16, F2 (A15): nas telas de tarefa o rodapé tem uma linha só; o WhatsApp fica no próprio agendamento.
+  const enxuto = ehPaginaDeTarefa(usePathname());
+  const numero = useWhatsappPublico(!enxuto);
+  if (enxuto) {
+    return (
+      <footer className="rodape rodape-enxuto">
+        <ul className="rodape-lista rodape-links">
+          <li>
+            <Link href="/#onde-estamos" className="link-solto">
+              Onde estamos
+            </Link>
+          </li>
+          <li>
+            <Link href="/privacidade" className="link-solto">
+              Política de privacidade
+            </Link>
+          </li>
+        </ul>
+      </footer>
+    );
+  }
   const link = numero ? linkDoWhatsapp(numero) : undefined;
   return (
     <footer className="rodape">

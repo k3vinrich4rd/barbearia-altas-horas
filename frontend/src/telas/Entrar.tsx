@@ -1,5 +1,5 @@
 "use client";
-// Entrar (A36). Uma única mensagem para credencial errada (não diz se foi e-mail ou senha).
+// Entrar (A36; A16 da Fatia 16). Uma única mensagem para credencial errada (não diz se foi e-mail ou senha).
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -77,10 +77,11 @@ export function Entrar() {
           Entrar
         </Botao>
       </form>
+      {/* A16 (Fatia 16, F2): "Criar conta" fica só nas abas; aqui, o atalho para quem só quer marcar */}
       <p>
-        Ainda não tem conta?{" "}
-        <Link href="/cadastro" className="link-solto">
-          Criar conta
+        Só quer marcar?{" "}
+        <Link href="/agendar" className="link-solto">
+          Agende sem cadastro
         </Link>
       </p>
     </>

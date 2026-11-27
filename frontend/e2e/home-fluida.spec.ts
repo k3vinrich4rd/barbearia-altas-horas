@@ -13,17 +13,20 @@ test("A4: o link antigo /#historia leva à Trajetória", async ({ page }) => {
   await expect(trajetoria.getByRole("heading", { level: 2 })).toBeInViewport();
 });
 
-test("A5: no celular a barra Agendar horário está visível e clicável até o rodapé e leva a /agendar; em tela larga ela não existe", async ({
+test("A5 e A2 (Fatia 16, F2): no celular a barra começa escondida e inert com o herói na tela, aparece ao rolar, leva a /agendar e não cobre o rodapé; em tela larga ela não existe", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  const barra = page.locator(".barra-agendar").getByRole("link", { name: "Agendar horário" });
-  await expect(barra).toBeVisible();
+  const aside = page.locator(".barra-agendar");
+  const barra = aside.getByRole("link", { name: "Agendar horário" });
+  await expect(aside).toHaveAttribute("data-escondida", "true");
+  await expect(aside).toHaveAttribute("inert", "");
   // a página cresce quando os serviços e o barbeiro chegam: rola até o fim só depois, e confere a posição já estável
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(page.locator("#onde-estamos")).toBeInViewport();
+  await expect(aside).toHaveAttribute("data-escondida", "false");
   await expect(barra).toBeVisible();
   // a barra não cobre o último conteúdo do rodapé: o link "Voltar ao topo" fica acima dela
   const voltar = page.getByRole("link", { name: "Voltar ao topo" });
@@ -35,6 +38,11 @@ test("A5: no celular a barra Agendar horário está visível e clicável até o 
     })
     .toBe(true);
   expect((await barra.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // de volta ao herói, ela some de novo
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(aside).toHaveAttribute("data-escondida", "true");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(aside).toHaveAttribute("data-escondida", "false");
   await barra.click();
   await expect(page).toHaveURL(/\/agendar$/);
   // nas telas de agendar a barra não aparece
@@ -44,6 +52,26 @@ test("A5: no celular a barra Agendar horário está visível e clicável até o 
     await page.setViewportSize({ width: largura, height: 800 });
     await page.goto("/");
     await expect(page.locator(".barra-agendar")).toBeHidden();
+  }
+});
+
+test("A15 (Fatia 16, F2): em /agendar, /entrar e /cadastro o topo não tem Agendar horário e o rodapé tem uma linha", async ({
+  page,
+}) => {
+  for (const tamanho of [
+    { width: 360, height: 800 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(tamanho);
+    for (const caminho of ["/agendar", "/entrar", "/cadastro"]) {
+      await page.goto(caminho);
+      await expect(page.getByRole("banner").getByRole("link", { name: "Agendar horário" }), caminho).toHaveCount(0);
+      const rodape = page.getByRole("contentinfo");
+      await expect(rodape.getByRole("link"), caminho).toHaveText(["Onde estamos", "Política de privacidade"]);
+    }
+    await page.goto("/agendar");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator('a[href^="https://wa.me/"]')).toHaveCount(1);
   }
 });
 

@@ -160,6 +160,7 @@ const ROTAS_ALVO = [
 const TABELA_AT1: { rota: string; nome: string | RegExp }[] = [
   { rota: "/", nome: "Ver serviços e preços" },
   { rota: "/entrar", nome: "Criar conta" },
+  { rota: "/entrar", nome: "Agende sem cadastro" },
   { rota: "/cadastro", nome: "Entrar" },
   { rota: "/cadastro", nome: "Saiba mais na política de privacidade" },
   { rota: "/cadastro", nome: "Política de privacidade" },

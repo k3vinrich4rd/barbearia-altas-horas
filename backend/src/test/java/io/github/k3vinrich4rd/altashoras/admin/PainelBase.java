@@ -81,6 +81,8 @@ public abstract class PainelBase {
         // Falha injetada que sobrou (a criação ou o teste quebrou no meio) não pode vazar para o próximo teste.
         jdbc.execute("DROP FUNCTION IF EXISTS falha_do_teste() CASCADE");
         relogio.reiniciar();
+        // O ThreadLocal do contador de SQL não pode ficar para o próximo teste desta mesma thread.
+        ContadorDeSql.limpar();
     }
 
     // ---- relógio ----------------------------------------------------------------------------------------------------

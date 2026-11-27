@@ -40,6 +40,15 @@
   white-space: normal;
 }
 
+/* Fatia 16, F2: o menu numera as 4 seções na ordem da home; o número é visual (o nome do link é a seção) */
+.menu-numero {
+  font-family: var(--tipo-rotulo-familia);
+  font-size: var(--tipo-legenda-tamanho);
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-suave);
+  margin-inline-end: var(--space-2);
+}
+
 /* Painel de acessibilidade: no celular, um botão que abre as opções */
 .painel-a11y-titulo {
   display: none;
@@ -156,6 +165,11 @@
     grid-area: cta;
   }
 
+  /* Na home, o computador já tem o "Agendar horário" do herói (A3): o do topo fica só no menu do celular */
+  .botao-agendar-topo.so-no-menu {
+    display: none;
+  }
+
   .botao-menu {
     display: none;
   }
@@ -201,6 +215,20 @@
   border-top: var(--traco-1) solid var(--borda);
 }
 
+/* Fatia 16, F2 (A2): na home a barra some enquanto o herói ou "Como marcar" estão na tela. Escondida, ela desce e
+ * apaga (transform e opacity, tokens --mov-*) e fica `inert` (fora do Tab e do leitor de tela). "Sem animação" zera a transição. */
+.barra-agendar {
+  transition:
+    transform var(--mov-medio) var(--mov-curva),
+    opacity var(--mov-medio) var(--mov-curva);
+}
+
+.barra-agendar[data-escondida="true"] {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .barra-agendar .botao {
   display: flex;
   width: 100%;
@@ -212,7 +240,8 @@
   padding-bottom: calc(var(--space-16) + var(--space-4) + env(safe-area-inset-bottom));
 }
 
-@media (min-width: 48rem) {
+/* A barra vale enquanto o menu está recolhido (abaixo de 60rem), para sempre haver um "Agendar horário" à mão */
+@media (min-width: 60rem) {
   .barra-agendar {
     display: none;
   }
@@ -220,6 +249,11 @@
   .rodape {
     padding-bottom: var(--space-8);
   }
+}
+
+/* Rodapé das telas de tarefa (A15): uma linha só */
+.rodape-enxuto {
+  padding-bottom: var(--space-8);
 }
 
 /* Indicador de 3 passos do agendamento pago. Sem cor para estado: ✓, negrito e sublinhado. */

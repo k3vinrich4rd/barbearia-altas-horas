@@ -12,7 +12,8 @@ test("A23: no celular, da home ao formulário de dados são no máximo 4 toques 
   await page.waitForLoadState("networkidle");
   let toques = 0;
 
-  await page.locator(".barra-agendar").getByRole("link", { name: "Agendar horário" }).click();
+  // Fatia 16, F2: no topo da home a barra fica escondida (o herói já tem o botão)
+  await page.getByRole("main").getByRole("link", { name: "Agendar horário" }).first().click();
   toques++;
   await expect(page).toHaveURL(/\/agendar$/);
 
@@ -40,7 +41,7 @@ test("A22: da home ao pagamento, as formas de reservar e o prazo vindo do expira
   // WhatsApp com reserva manual (6D), as contas e o visitante
   await expect(page.getByText("Prefere combinar pelo WhatsApp?")).toBeVisible();
   await page.getByRole("button", { name: "Menu", exact: true }).click(); // no celular o menu fica recolhido
-  await expect(page.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/cadastro");
+  await expect(page.getByRole("link", { name: "Entrar ou criar conta" })).toHaveAttribute("href", "/entrar");
   await page.getByRole("button", { name: "Fechar menu" }).click();
 
   await page.getByRole("radio").first().check();

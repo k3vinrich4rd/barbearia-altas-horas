@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -21,25 +21,41 @@ beforeEach(() => {
 });
 
 describe("menu do site", () => {
-  test("A2: tem as âncoras da home (Serviços, Barbeiro, Trajetória, Dúvidas, Onde estamos; sem Galeria no cenário A), sem A história nem Como funciona, os links da conta e um único Agendar horário", () => {
+  test("A13 (Fatia 16, F2): as 4 seções numeradas na ordem da home, a conta agrupada e um único Agendar horário no fim", () => {
     renderizar(<Menu />, ANONIMO);
     const principal = screen.getByRole("navigation", { name: "Principal" });
     const links = within(principal).getAllByRole("link");
-    expect(links.map((l) => l.textContent)).toEqual([
-      "Serviços",
-      "Barbeiro",
-      "Trajetória",
-      "Dúvidas",
-      "Onde estamos",
-    ]);
+    // o número é visual (aria-hidden): o nome acessível é só a seção
+    expect(links.map((l) => l.textContent)).toEqual(["01 Quem somos", "02 O que fazemos", "03 Como marcar", "04 Onde estamos"]);
+    expect(within(principal).getByRole("link", { name: "Quem somos" })).toHaveAttribute("href", "/#quem-somos");
+    expect(within(principal).getByRole("link", { name: "Como marcar" })).toHaveAttribute("href", "/#como-marcar");
     expect(links.map((l) => l.getAttribute("href"))).toEqual(SECOES_DA_HOME.map((s) => s.href));
-    expect(links.find((l) => l.textContent === "Trajetória")).toHaveAttribute("href", "/#trajetoria");
-    expect(within(principal).queryByRole("link", { name: "A história" })).toBeNull();
-    expect(within(principal).queryByRole("link", { name: "Como funciona" })).toBeNull();
+    for (const fora of ["Serviços", "Barbeiro", "Galeria", "Trajetória", "Dúvidas", "Como funciona", "A história"]) {
+      expect(within(principal).queryByRole("link", { name: fora }), fora).toBeNull();
+    }
     const conta = screen.getByRole("navigation", { name: "Conta" });
-    expect(within(conta).getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/entrar");
-    expect(within(conta).getByRole("link", { name: "Consultar reserva" })).toHaveAttribute("href", "/reserva");
-    expect(screen.getAllByRole("link", { name: "Agendar horário" })).toHaveLength(1);
+    expect(within(conta).getAllByRole("link").map((l) => l.textContent)).toEqual(["Consultar reserva", "Entrar ou criar conta"]);
+    expect(within(conta).getByRole("link", { name: "Entrar ou criar conta" })).toHaveAttribute("href", "/entrar");
+    const agendar = screen.getAllByRole("link", { name: "Agendar horário" });
+    expect(agendar).toHaveLength(1);
+    // dentro do painel do menu, depois das seções (no celular, o último item)
+    expect(document.getElementById("menu-do-site")!.lastElementChild).toBe(agendar[0]);
+  });
+
+  test("A3 e A15 (Fatia 16, F2): na home o Agendar do topo fica só no menu do celular; nas telas de tarefa ele não existe", () => {
+    definirCaminho("/");
+    const home = renderizar(<Menu />, ANONIMO);
+    expect(screen.getByRole("link", { name: "Agendar horário" })).toHaveClass("so-no-menu");
+    home.unmount();
+    for (const caminho of ["/agendar", "/agendar/dados", "/agendar/pagamento/r1", "/entrar", "/cadastro", "/pagamento-simulado/c1"]) {
+      definirCaminho(caminho);
+      const r = renderizar(<Menu />, ANONIMO);
+      expect(screen.queryByRole("link", { name: "Agendar horário" }), caminho).toBeNull();
+      r.unmount();
+    }
+    definirCaminho("/privacidade");
+    renderizar(<Menu />, ANONIMO);
+    expect(screen.getByRole("link", { name: "Agendar horário" })).not.toHaveClass("so-no-menu");
   });
 
   test("o botão Menu é um Disclosure: aria-expanded alterna, Esc fecha e devolve o foco ao botão", async () => {
@@ -69,30 +85,83 @@ describe("menu do site", () => {
 });
 
 describe("barra fixa Agendar horário (Fatia 12, E8)", () => {
-  test("A6: não há barra fixa em /agendar, /agendar/dados, /entrar, /cadastro e /painel; na home e nas outras telas ela leva a /agendar", () => {
+  test("A6 e A15: não há barra fixa nas telas de tarefa, no painel e em /reserva; nas outras ela leva a /agendar", () => {
     for (const caminho of [
       "/agendar",
       "/agendar/dados",
       "/agendar/pagamento/r1",
       "/entrar",
       "/cadastro",
+      "/pagamento-simulado/c1",
       "/painel",
       "/painel/agenda",
+      "/reserva",
     ]) {
       definirCaminho(caminho);
       const { container, unmount } = render(<BarraAgendar />);
       expect(container.querySelector(".barra-agendar"), caminho).toBeNull();
       unmount();
     }
-    for (const caminho of ["/", "/servicos", "/reserva"]) {
+    for (const caminho of ["/servicos", "/privacidade", "/meus-agendamentos"]) {
       definirCaminho(caminho);
       const { container, unmount } = render(<BarraAgendar />);
       expect(container.querySelector(".barra-agendar"), caminho).not.toBeNull();
+      expect(container.querySelector(".barra-agendar"), caminho).toHaveAttribute("data-escondida", "false");
       expect(screen.getByRole("link", { name: "Agendar horário" }), caminho).toHaveAttribute("href", "/agendar");
       // axe "region" no celular: a barra fixa precisa ser um marco (landmark) próprio.
       expect(screen.getByRole("complementary", { name: "Agendar horário" }), caminho).toBeInTheDocument();
       unmount();
     }
+  });
+
+  test("A2 (Fatia 16, F2): na home a barra fica escondida e inert enquanto o herói ou Como marcar estão na tela", async () => {
+    type Chamada = (e: { target: Element; isIntersecting: boolean }[]) => void;
+    let avisar: Chamada = () => undefined;
+    const observados: Element[] = [];
+    class ObservadorFalso {
+      constructor(cb: Chamada) {
+        avisar = cb;
+      }
+      observe(e: Element) {
+        observados.push(e);
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", ObservadorFalso);
+    try {
+      definirCaminho("/");
+      const { container } = render(
+        <>
+          <section id="inicio" />
+          <section id="como-marcar" />
+          <BarraAgendar />
+        </>,
+      );
+      const barra = container.querySelector(".barra-agendar")!;
+      expect(barra).toHaveAttribute("data-escondida", "true");
+      expect(barra).toHaveAttribute("inert");
+      expect(observados.map((e) => e.id)).toEqual(["inicio", "como-marcar"]);
+      const [inicio, comoMarcar] = observados;
+      act(() => avisar([{ target: inicio, isIntersecting: false }, { target: comoMarcar, isIntersecting: false }]));
+      expect(barra).toHaveAttribute("data-escondida", "false");
+      expect(barra).not.toHaveAttribute("inert");
+      act(() => avisar([{ target: comoMarcar, isIntersecting: true }]));
+      expect(barra).toHaveAttribute("data-escondida", "true");
+      expect(barra).toHaveAttribute("inert");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("A15: nas telas de tarefa o rodapé tem uma linha (Onde estamos e Política de privacidade), sem WhatsApp", () => {
+    definirCaminho("/agendar");
+    const { container } = renderizar(<Rodape />, ANONIMO);
+    const links = within(container.querySelector("footer")!).getAllByRole("link");
+    expect(links.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
+      ["Onde estamos", "/#onde-estamos"],
+      ["Política de privacidade", "/privacidade"],
+    ]);
+    expect(container.querySelector('a[href^="https://wa.me/"]')).toBeNull();
   });
 });
 

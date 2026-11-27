@@ -90,7 +90,7 @@ describe("login e logout", () => {
     await m.user.click(screen.getByRole("button", { name: "Sair" }));
     await waitFor(() => expect(roteador.push).toHaveBeenCalledWith("/"));
     expect(saiu).toBe(1);
-    expect(await screen.findByRole("link", { name: "Entrar" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Entrar ou criar conta" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sair" })).toBeNull();
   });
 });
