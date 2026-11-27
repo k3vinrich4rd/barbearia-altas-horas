@@ -10,13 +10,18 @@ import org.junit.jupiter.params.provider.CsvSource;
 class FormatadorDeCanalDeContatoTest {
 
     @ParameterizedTest(name = "\"{0}\" vira \"{1}\"")
-    @DisplayName("celular de 11 dígitos e fixo de 10 saem no padrão brasileiro; e-mail e o resto ficam iguais")
+    @DisplayName("celular de 11 dígitos e fixo de 10 saem no padrão brasileiro, também com prefixo 55; e-mail e o resto ficam iguais")
     @CsvSource(delimiter = ';', value = {
             "11900000001;(11) 90000-0001",
             "11 90000-0001;(11) 90000-0001",
             "(11) 90000-0001;(11) 90000-0001",
+            "+5511900000001;(11) 90000-0001",
+            "5511900000001;(11) 90000-0001",
+            "+55 11 90000-0001;(11) 90000-0001",
             "1133334444;(11) 3333-4444",
             "(11) 3333-4444;(11) 3333-4444",
+            "+551133334444;(11) 3333-4444",
+            "551133334444;(11) 3333-4444",
             "contato@exemplo.test;contato@exemplo.test",
             "jaime@escola.test;jaime@escola.test",
             "119000000;119000000"
