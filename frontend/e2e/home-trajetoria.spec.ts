@@ -3,6 +3,10 @@ import { expect, test } from "@playwright/test";
 // A home conta a história da barbearia (1994, 1997, 2017, hoje) com interações que precisam funcionar no navegador
 // de verdade e só com o teclado: linha do tempo, dúvidas em <details>, galeria (visualizador) e o painel de acessibilidade.
 test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no navegador de verdade", async ({ page }) => {
+  const pedidosAudio: string[] = [];
+  page.on("request", (r) => {
+    if (/\/assets\/audio\/historia\.(opus|mp3|vtt)(\?|$)/.test(r.url())) pedidosAudio.push(r.url());
+  });
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Seu horário com o Eduardo, garantido.");
   const trajetoria = page.locator("#trajetoria");
@@ -50,6 +54,19 @@ test("home: linha do tempo e dúvidas pelo teclado, galeria e tema claro no nave
   await page.keyboard.press("Escape");
   await expect(visualizador).toBeHidden();
   await expect(galeria.getByRole("button", { name: /^Ampliar foto:/ }).nth(1)).toBeFocused();
+
+  // VZ-1, VZ-2 e VZ-7: o áudio só baixa ao apertar Ouvir; play, pausa e posição pelo teclado
+  expect(pedidosAudio, pedidosAudio.join(" ")).toEqual([]);
+  const audio = page.locator("#trajetoria audio");
+  await expect(audio).toHaveAttribute("preload", "none");
+  const ouvir = page.getByRole("button", { name: /Ouvir a trajetória/ });
+  await ouvir.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Pausar" })).toHaveAttribute("aria-pressed", "true");
+  expect(pedidosAudio.some((u) => u.includes("/assets/audio/historia."))).toBe(true);
+  await audio.focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: /Ouvir a trajetória/ })).toHaveAttribute("aria-pressed", "false");
 
   // painel de acessibilidade: tema claro e sem animação mudam o <html> e marcam o botão
   const painel = page.getByRole("region", { name: "Recursos de acessibilidade" });
