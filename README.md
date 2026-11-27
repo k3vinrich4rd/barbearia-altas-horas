@@ -175,7 +175,7 @@ timeline
     2017 : Prêmio Barbeiros do Brasil
          : Prêmio Master Barber · Êxito Profissional
     Hoje : barbeiro na cadeira e professor na Altas Horas Barbearia Academy
-         : a agenda sai do caderno e vai para a internet
+         : a agenda sai do caderno e vem para a internet
 ```
 
 <div align="center">
