@@ -1,11 +1,11 @@
-# 0015. Férias e folgas no painel, expediente público na disponibilidade e agenda sem limite de data
+# 0015. Férias e folgas no painel, expediente público, mais tempo para pagar (2 min até 10 vezes) e agenda sem limite de data
 
-- Status: **proposto** (revisão de arquitetura, 26/11/2026), aguarda o ok do Kevin
-- Data: 2026-11-26
+- Status: **proposto** (revisão de arquitetura, 26/11/2026; ampliado em 27/11/2026), aguarda o ok do Kevin
+- Data: 2026-11-27
 - Decisores: revisão de arquitetura (dona), Kevin Richard (produto)
 - Ponto de partida: `develop` em `e91e85d` (contrato 1.11.0, migrações até `V14`)
 - Relacionados: ADR 0003 (constraint e expiração), ADR 0005 (erros RFC 9457), ADR 0013 (Dono/Admin e isolamento), D197 e D199 (agenda sem antecedência e sem horizonte), H27 (só o dono mexe em jornada e folgas)
-- Spec: [Fatia 15](../sdd/fatia-15-ferias-folgas-e-horizonte.md) · Decisão: D202
+- Spec: [Fatia 15](../sdd/fatia-15-ferias-folgas-e-horizonte.md) · Decisões: D202 a D205 (a D205 revoga a D190 e altera a D188)
 
 ## Contexto
 
@@ -14,6 +14,7 @@ O Kevin pediu duas coisas para a Barbearia Altas Horas:
 1. **O cliente marca em qualquer data futura.** A agenda não pode ter limite de dias à frente.
 2. **Férias e folgas no painel.** O dono (Carlos Eduardo Candido, papel `ADMIN`, "Dono/Admin" pelo ADR 0013) cadastra períodos com início, fim, motivo opcional e tipo (férias ou folga), edita e remove. Nesses períodos os horários somem para o cliente. Quando já existem agendamentos no período, o sistema avisa e lista os conflitos, **sem cancelar nada sozinho**.
 3. **"Fechado" em vez de "indisponível".** A tela do cliente precisa saber se o dia está fechado (fora do expediente, folga ou férias) ou só sem horário livre, e mostrar o expediente e o almoço.
+4. **Mais tempo para pagar (27/11/2026).** O tempo extra passa a ser **2 minutos por pedido, até 10 vezes**, com aviso antes de o prazo acabar (WCAG 2.2.1, opção "Extend": aviso antes do fim, ação simples e pelo menos 10 vezes). Hoje é 1 minuto, uma vez só (D188, D190).
 
 O que já existe (conferido no código e no contrato em `e91e85d`):
 
@@ -21,6 +22,7 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 - **Sobras do horizonte, todas sem efeito:** a coluna `configuracao_agenda.horizonte_dias` continua no banco, sem uso, com `DEFAULT 30` e o CHECK de 1 a 365 (`V1__agenda.sql:104,113`, `V14__prorrogacao_e_agenda_sem_limites.sql:7,20`), de propósito, pela D199 (expandir e contrair); o código `FORA_DO_HORIZONTE` está `deprecated` (`openapi.yaml:1646-1653`, `contrato-api.md:443`); o campo `horizonteDias` está `deprecated`, `writeOnly` e é ignorado no `PUT /admin/configuracao` (`openapi.yaml:2211`, `ConfiguracaoRequest.java:23`); o texto genérico `FORA_DO_HORIZONTE` continua no front (`mensagens.ts:43`). No front, `DIAS_DA_BUSCA = 30` (`Agendar.tsx:28`) é só o tamanho da busca "Ver o próximo dia com horário", não uma regra: o seletor "Outro dia" tem só `min` (`Agendar.tsx:306-307`).
 - **Folgas: já existem** (Fatia 5): `GET` e `POST /admin/barbeiros/{id}/folgas` e `DELETE /admin/barbeiros/{id}/folgas/{folgaId}`, só `ADMIN`. O `POST` recusa com `422 FOLGA_COM_RESERVAS` quando há reserva ativa no período (`CadastrosDoPainel.java:263-272`), trava a linha do barbeiro com `FOR UPDATE` antes de conferir (`CadastrosDoPainel.java:252`) e grava a auditoria na mesma transação (`CadastroDeFolgas.java:40-52`). A tabela `folga` tem `inicio`, `fim`, `motivo`, `criado_por` e `criado_em` (`V1__agenda.sql:171-182`); não tem tipo. A disponibilidade já desconta as folgas.
 - **Disponibilidade hoje:** `GET /disponibilidade` devolve, por barbeiro, só `horarios` (`openapi.yaml`, schema `Disponibilidade`). Um dia sem horário pode ser fechado ou lotado, e a tela não sabe qual. A jornada é uma lista de `IntervaloJornada` (`diaSemana`, `horaInicio`, `horaFim`); o almoço é o vão entre dois intervalos do mesmo dia (H1: terça a sábado, 07h00 às 20h00, almoço das 12h00 às 13h00), o mesmo critério do `ALMOCO` da grade do painel (`VisaoDaAgenda.java:173`).
+- **Prorrogação hoje (14A):** `POST /agendamentos/{id}/prorrogacao` e `/agendamentos/guest/{id}/prorrogacao` somam 60 s uma vez, na janela `[expiraEm − 60 s, expiraEm)` (D188, D189); o tempo vem de `app.agenda.prorrogacao-pagamento: PT60S` (`application.yml:50`, D190); a trilha é `reserva.prorrogada_em` (D192); a cobrança acompanha pelo evento `PrazoDaReservaProrrogado` (D191). Na criação, o gateway recebe a validade igual ao `expiraEm` da reserva naquele momento (`CriarCobranca.java:173-174`); o Asaas só usa a data (`dueDate`, `AsaasGateway.java:94`).
 - **Lacuna encontrada:** o pagamento tardio de uma reserva já `EXPIRADO` volta a `CONFIRMADO` se a constraint de reservas deixar (`Reservas.java:148-171`, `StatusReserva.java:26`); só o `23P01` vira `HORARIO_OCUPADO` e a pendência `PAGA_APOS_EXPIRACAO` (`ProcessarPagamento.java:78-106`). A constraint só olha outras reservas, não enxerga folgas, e esse caminho não trava a linha do barbeiro. Então uma folga criada depois da expiração pode ganhar, sem ninguém ver, uma reserva confirmada dentro dela. Isso já pode acontecer hoje e fica mais provável com férias longas.
 
 ## Decisão
@@ -73,18 +75,47 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 - Tudo é derivado do que já existe: `inicio` é o início do primeiro intervalo da jornada naquele dia da semana, `fim` é o fim do último, e `almoco` é o vão entre os dois primeiros intervalos (com um intervalo só, `null`).
 - `aberto: false` quando:
   - a jornada não tem intervalo nesse dia da semana: `motivoFechado: FORA_DO_EXPEDIENTE` (domingo e segunda, hoje);
-  - folgas ou férias cobrem o expediente **inteiro** do dia: `FOLGA` ou `FERIAS`; se as duas cobrem, vale `FERIAS`.
+  - folgas ou férias cobrem o expediente **inteiro** do dia: `motivoFechado: FECHADO`, sem dizer qual dos dois.
 - Folga que cobre só **parte** do dia não aparece: o dia continua `aberto` e só os horários somem. Assim o público não fica sabendo de uma consulta de duas horas no meio da tarde.
 - Fechado: `inicio`, `fim` e `almoco` vão `null`, para não sugerir um horário que não vale.
 - Datas com segundos e offset, no fuso da barbearia, como os `horarios` que já existem. Os nomes seguem o contrato: `expediente` já é o nome usado no calendário do painel (`ResumoDoMes`) e `almoco` já é o nome da situação `ALMOCO` da grade.
-- **O que é público e o que não é.** O **texto** do `motivo` nunca sai (pode ser pessoal, R30). O **tipo** (`FOLGA` ou `FERIAS`) sai, só no dia consultado e só quando fecha o dia inteiro, porque:
-  - é um rótulo que o próprio dono escolhe, não um dado sensível, e uma barbearia costuma avisar na porta que está de férias;
-  - ajuda o cliente: "Férias" diz que vale tentar outra data mais à frente, e "Folga" diz que é só aquele dia;
-  - a resposta não traz o período (de quando até quando): quem quiser saber precisa consultar dia a dia, o que já dava para deduzir pelos horários vazios.
-  - Alternativa considerada: um único `FECHADO`. Esconderia o tipo, mas a tela não conseguiria orientar o cliente. Fica como pergunta para o Kevin (abaixo). Se ele preferir, a troca é feita **antes** da implementação, sem custo de contrato.
+- **O que é público e o que não é (decidido em 27/11/2026, confirmado por UX).** O público vê só **"Fechado"** e o almoço. O **tipo** (`FOLGA` ou `FERIAS`) e o **texto** do `motivo` ficam só no `/admin` (`GET /admin/barbeiros/{id}/folgas`). Motivos:
+  - minimização (LGPD art. 6º, III): o cliente só precisa saber que o dia está fechado para escolher outro;
+  - "férias" de um barbeiro, principalmente de um terceiro, diz que a pessoa está fora por um período, e isso não é da conta do público;
+  - o tipo não muda nada na agenda pública: os dois bloqueiam igual.
+  - Alternativa descartada: mostrar `FOLGA` ou `FERIAS` ao público. Ajudaria a orientar o cliente, mas revela mais do que precisa.
 - Campos opcionais no schema (quem lê a 1.11.0 não quebra), mas a API sempre os envia desde a 1.12.0.
 
-### 8. Contrato `1.11.0 → 1.12.0`, só acréscimos
+### 8. Mais tempo para pagar: 2 minutos por pedido, até 10 vezes (revoga a D190, altera a D188)
+
+- **Quanto e quantas vezes.** Cada pedido soma **120 s** ao prazo que está correndo (`expiraEm + 120 s`), até **10 pedidos** por reserva. Os dois valores são propriedades da aplicação: `app.agenda.prorrogacao-pagamento: PT2M` (já existe, era `PT60S`) e `app.agenda.prorrogacao-maximo: 10` (nova). Não ganham campo no painel. O prazo inicial de 3 minutos (`expiracaoPagamentoMin`) não muda.
+- **Janela igual.** O pedido só vale no último minuto, `[expiraEm − 60 s, expiraEm)`, com a reserva `AGUARDANDO_PAGAMENTO`. O aviso aparece aos 60 s, e a pessoa tem mais de 20 s para agir, como a WCAG pede. Depois de somar, o prazo volta a ter mais de 60 s, então a janela fecha até o próximo último minuto. Por isso dois pedidos seguidos nunca somam duas vezes.
+- **Repetição segura.** O cabeçalho `X-Idempotency-Key` (UUID) é **opcional**. Usamos o mesmo nome do cabeçalho da cobrança, para seguir o contrato, em vez de `Idempotency-Key`. Repetir o **último** pedido com a mesma chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova, ou nenhuma, é um pedido novo. Sem a chave, uma repetição logo depois de somar cai fora da janela (`422 PRORROGACAO_FORA_DA_JANELA`) e também não soma.
+  - O cabeçalho não pode ser obrigatório, porque isso quebraria o front de hoje.
+  - **Compatibilidade:** na 1.11.0, a repetição sem chave devolvia `200` ("já prorrogada"). Agora ela devolve `422 PRORROGACAO_FORA_DA_JANELA`. Nos dois casos nada é somado. O front da mesma entrega manda a chave, e o front antigo só mostrava o botão uma vez (`usada`).
+- **O 11º pedido** é `422 PRORROGACAO_ESGOTADA`, um código novo, e o prazo não muda.
+- **Ordem das checagens.** A ordem de hoje continua, com o código novo logo depois do `RESERVA_EXPIRADA`:
+  1. `404`;
+  2. `422 TRANSICAO_INVALIDA`;
+  3. `200`, quando é a repetição com a mesma chave;
+  4. `422 RESERVA_EXPIRADA`;
+  5. `422 PRORROGACAO_ESGOTADA`;
+  6. `422 PRORROGACAO_FORA_DA_JANELA`;
+  7. grava (`201`).
+- **Resposta.** O objeto `prorrogacao` ganha `usadas` (inteiro), `maximo` (10) e `restantes` (`maximo − usadas`), e `segundos` passa a 120. O `usada` (booleano) fica `deprecated` e vale `true` quando `usadas > 0`. Com os pedidos esgotados, o objeto continua presente, com `restantes: 0`.
+- **Banco.** A próxima migração livre acrescenta:
+  - `reserva.prorrogacoes smallint NOT NULL DEFAULT 0` com CHECK `>= 0`; o máximo fica na propriedade, não no CHECK;
+  - `reserva.prorrogacao_chave uuid NULL`, a chave do último pedido.
+  - A coluna `prorrogada_em` continua com o horário do **último** pedido (D192).
+  - Preenchimento: `prorrogacoes = 1` onde `prorrogada_em` não é nulo.
+  - A migração só acrescenta, então a versão anterior continua funcionando.
+- **Concorrência.** O pedido trava a linha da reserva (`FOR UPDATE`), como hoje. Dois pedidos ao mesmo tempo somam uma vez só: o segundo acorda já fora da janela.
+- **Pix e cobrança.** O copia e cola gerado **não muda** (D191 continua). Na criação da cobrança, a validade enviada ao gateway passa a ser o **prazo máximo possível**: o início do prazo da reserva + `expiracaoPagamentoMin` + `prorrogacao-maximo` × `prorrogacao-pagamento`. Com os valores de hoje, são 3 min + 10 × 2 min = **23 min**. Essa conta é **derivada das propriedades**, sem número fixo no código.
+  - Quem segura o horário continua sendo o `expiraEm` da **reserva**, e o `cobranca.expira_em` continua acompanhando a reserva pelo evento (D191).
+  - O pagamento que chega depois de a reserva expirar cai no fluxo que já existe: reconfirma se o horário estiver livre, ou vira `PAGA_APOS_EXPIRACAO` (R14 e a seção 4 deste ADR).
+- **Trilha (D192):** cada pedido publica `PrazoDaReservaProrrogado` e escreve no log técnico só o id e o número do pedido (R30).
+
+### 9. Contrato `1.11.0 → 1.12.0`, só acréscimos
 
 - `FolgaRequest`: `tipo` (opcional, padrão `FOLGA`) e `manterReservas` (opcional, `writeOnly`, padrão `false`).
 - `Folga` (resposta): `tipo` (sempre presente) e `atualizadaEm` (nulo até a primeira edição).
@@ -92,8 +123,9 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 - Schema novo `ConflitoDeFolga` (item da prévia, da extensão do `422` e de `reservasMantidas`).
 - `Problema`: extensão opcional `conflitos[]`, presente só no `FOLGA_COM_RESERVAS`.
 - Rotas novas: `PUT /admin/barbeiros/{id}/folgas/{folgaId}` e `GET /admin/barbeiros/{id}/folgas/conflitos`.
-- `Disponibilidade.barbeiros[].expediente` (schema novo `ExpedienteDoDia`), opcional.
-- Nenhum código de erro novo e nenhum campo obrigatório novo na entrada. O front de hoje continua funcionando sem mudança.
+- `Disponibilidade.barbeiros[].expediente` (schema novo `ExpedienteDoDia`), opcional; `motivoFechado` só `FORA_DO_EXPEDIENTE` ou `FECHADO`.
+- Prorrogação: `prorrogacao.usadas`, `maximo` e `restantes`; `usada` vira `deprecated`; cabeçalho opcional `X-Idempotency-Key` nas duas rotas; código novo `422 PRORROGACAO_ESGOTADA` (já entra no enum `CodigoErro` do Java e no catálogo de mensagens do front, que o CI exige iguais ao contrato).
+- Um código de erro novo (`PRORROGACAO_ESGOTADA`) e nenhum campo obrigatório novo na entrada. O front de hoje continua funcionando sem mudança (a única diferença está na compatibilidade da seção 8).
 
 ## Consequências
 
@@ -103,7 +135,8 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 - **Risco:** com `manterReservas`, o dono pode esquecer reservas dentro das férias. Para isso, a resposta lista as mantidas, e o calendário do mês mostra reservas e folga no mesmo dia (`ResumoDoMes`).
 - **Risco:** o nome do cliente vai no corpo do `422` e da prévia, só para o `ADMIN` (o mesmo dado que ele já vê no `AgendamentoAdmin`). O tratador de erros não pode logar a extensão `conflitos` (R30), e a resposta vai com `Cache-Control: no-store`.
 - **Bom:** a tela do cliente mostra "Fechado" (e o porquê) em vez de "sem horário", e mostra o expediente e o almoço do dia.
-- **Risco:** o tipo `FERIAS` é público no dia consultado (seção 7). O motivo nunca é.
+- **Bom:** quem paga pelo celular ganha até 20 minutos a mais, sempre com aviso (WCAG 2.2.1).
+- **Risco:** o horário pode ficar preso até 23 minutos sem pagamento. É aceito porque segurar o horário depende de a pessoa pedir no último minuto, a cada vez.
 - **Não muda:** o cliente continua sem cancelar nem remarcar (R18); avisar o cliente afetado continua sendo pelo WhatsApp, à mão, pelo dono.
 
 ## Alternativas descartadas
@@ -118,4 +151,4 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 1. Com `manterReservas`, a reserva ainda `AGUARDANDO_PAGAMENTO` dentro das férias deve poder ser paga e confirmada (proposta deste ADR) ou deve deixar de aceitar pagamento?
 2. O barbeiro terceiro (`BARBEIRO`) continua sem cadastrar as próprias folgas (H27), ou ele pode pedir folga pelo painel para o dono aprovar? A proposta é manter a H27.
 3. O cliente que já tem horário dentro das férias deve ser avisado automaticamente no futuro? Hoje a proposta é o dono avisar pelo WhatsApp.
-4. Na agenda pública, pode aparecer "Férias" e "Folga" (proposta) ou prefere só "Fechado", sem dizer o motivo?
+4. Mostrar "Restam N pedidos." abaixo do botão de mais tempo? É decisão de tela; o contrato já traz o `restantes`.

@@ -59,8 +59,9 @@ export interface paths {
          *     inexistente (ou barbeiro inativo): 404. Resposta com Cache-Control no-store.
          *     Desde a 1.12.0 (ADR 0015) cada barbeiro traz também o `expediente` do dia, para a tela mostrar "fechado" em vez de
          *     "sem horário": `aberto: false` com `motivoFechado` `FORA_DO_EXPEDIENTE` (a jornada não tem intervalo neste dia da
-         *     semana), `FOLGA` ou `FERIAS` (uma folga ou férias cobre o expediente inteiro do dia). Folga que cobre só parte do dia
-         *     não aparece: o dia continua `aberto` e só os horários somem. O `motivo` da folga nunca é exposto.
+         *     semana) ou `FECHADO` (folga ou férias cobrem o expediente inteiro do dia). O tipo (`FOLGA` ou `FERIAS`) e o `motivo`
+         *     da folga **nunca** saem aqui: só no `/admin`. Folga que cobre só parte do dia não aparece: o dia continua `aberto` e
+         *     só os horários somem.
          */
         get: operations["consultarDisponibilidade"];
         put?: never;
@@ -505,15 +506,21 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Acrescenta 1 minuto ao prazo do Pix, uma vez por reserva (1.11.0, D188)
-         * @description Do dono da reserva (`sub` do token). **Sem corpo** (qualquer campo é `400 CAMPO_DESCONHECIDO`) e **sem**
-         *     `Idempotency-Key`: a prorrogação é um recurso único da reserva, então repetir devolve o que já existe.
-         *     Só vale no **último minuto** do prazo, `[expiraEm - 60 s, expiraEm)`, e só com a reserva `AGUARDANDO_PAGAMENTO`.
-         *     Soma 60 s (fixos, `prorrogacao.segundos`) ao prazo que está correndo. Primeira chamada: `201`; repetição com o
-         *     prazo ainda vivo: `200` com o mesmo corpo, **sem** somar. Ordem das checagens: `404` (não é dono, não existe, é
-         *     reserva manual) → `422 TRANSICAO_INVALIDA` (status final) → `200` (já prorrogada, no prazo) → `422 RESERVA_EXPIRADA`
-         *     (prazo vencido, sem carência e sem reabertura) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava.
-         *     O Pix já gerado **não muda**. Resposta com Cache-Control no-store.
+         * Acrescenta 2 minutos ao prazo do Pix, até 10 vezes por reserva (1.12.0, ADR 0015; antes 1 minuto uma vez, D188)
+         * @description Do dono da reserva (`sub` do token). **Sem corpo** (qualquer campo é `400 CAMPO_DESCONHECIDO`).
+         *     **1.12.0 (ADR 0015, revoga a D190 e altera a D188):** cada pedido soma `prorrogacao.segundos` (120 s, propriedade
+         *     `app.agenda.prorrogacao-pagamento`) ao prazo que está correndo, até `prorrogacao.maximo` (10, propriedade
+         *     `app.agenda.prorrogacao-maximo`) pedidos por reserva (WCAG 2.2.1, "Extend": pelo menos 10). A janela continua o
+         *     **último minuto** do prazo, `[expiraEm - 60 s, expiraEm)`, e só com a reserva `AGUARDANDO_PAGAMENTO`; depois de
+         *     somar, o prazo volta a ter mais de 60 s, então a janela fecha até o próximo último minuto.
+         *     `X-Idempotency-Key` (UUID, **opcional**, o mesmo cabeçalho da cobrança): repetir o **último** pedido com a mesma chave devolve `200` com o mesmo corpo,
+         *     **sem** somar nem contar. Sem a chave, uma repetição logo depois de somar cai fora da janela (`422
+         *     PRORROGACAO_FORA_DA_JANELA`) e também não soma. Ordem das checagens: `404` (não é dono, não existe, é reserva
+         *     manual) → `422 TRANSICAO_INVALIDA` (status final) → `200` (mesma `X-Idempotency-Key` do último pedido, prazo vivo) →
+         *     `422 RESERVA_EXPIRADA` (prazo vencido, sem carência e sem reabertura) → `422 PRORROGACAO_ESGOTADA` (já usou os
+         *     `maximo` pedidos; o 11º) → `422 PRORROGACAO_FORA_DA_JANELA` (antes do último minuto) → grava (`201`).
+         *     O Pix já gerado **não muda** (o mesmo copia e cola); a cobrança nasce no gateway com validade do prazo máximo possível
+         *     (ADR 0015) e `cobranca.expira_em` acompanha o `expiraEm` da reserva (D191). Resposta com Cache-Control no-store.
          */
         post: operations["prorrogarPagamento"];
         delete?: never;
@@ -532,8 +539,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * O visitante acrescenta 1 minuto ao prazo do Pix (1.11.0, D188)
-         * @description As mesmas regras de `POST /agendamentos/{id}/prorrogacao`, com o `X-Guest-Token` da reserva no lugar do bearer.
+         * O visitante acrescenta 2 minutos ao prazo do Pix, até 10 vezes (1.12.0, ADR 0015)
+         * @description As mesmas regras de `POST /agendamentos/{id}/prorrogacao` (120 s por pedido, até 10, `X-Idempotency-Key` opcional,
+         *     `422 PRORROGACAO_ESGOTADA` no 11º), com o `X-Guest-Token` da reserva no lugar do bearer.
          *     Token errado, ausente ou de outra reserva: o mesmo `404` de "não existe" (R23). Rota pública só para `POST`.
          */
         post: operations["prorrogarPagamentoDoGuest"];
@@ -1309,7 +1317,7 @@ export interface components {
          *     antigo e o texto genérico dele não quebrarem. `ANTECEDENCIA_INSUFICIENTE` continua, agora só para "o horário já passou".
          * @enum {string}
          */
-        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "PRORROGACAO_FORA_DA_JANELA" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
+        CodigoErro: "VALIDACAO_INVALIDA" | "JSON_MALFORMADO" | "CAMPO_DESCONHECIDO" | "CEP_INVALIDO" | "CPF_INVALIDO" | "IDEMPOTENCY_KEY_AUSENTE" | "NAO_AUTENTICADO" | "CREDENCIAIS_INVALIDAS" | "REFRESH_INVALIDO" | "REFRESH_REUTILIZADO" | "WEBHOOK_NAO_AUTENTICADO" | "ACESSO_NEGADO" | "RECURSO_NAO_ENCONTRADO" | "TROCA_DE_SENHA_OBRIGATORIA" | "CEP_NAO_ENCONTRADO" | "FUNCIONALIDADE_DESLIGADA" | "METODO_NAO_PERMITIDO" | "MIDIA_NAO_SUPORTADA" | "EMAIL_JA_CADASTRADO" | "HORARIO_INDISPONIVEL" | "CONFLITO_DE_VERSAO" | "CONFLITO_CONCORRENTE" | "NOME_JA_EXISTE" | "FORA_DO_EXPEDIENTE" | "ANTECEDENCIA_INSUFICIENTE" | "FORA_DO_HORIZONTE" | "ACEITE_POLITICA_OBRIGATORIO" | "TRANSICAO_INVALIDA" | "MOTIVO_OBRIGATORIO" | "PRORROGACAO_FORA_DA_JANELA" | "PRORROGACAO_ESGOTADA" | "RESERVA_EXPIRADA" | "COBRANCA_EM_ANDAMENTO" | "SERVICO_INATIVO" | "IDEMPOTENCIA_CONFLITO" | "JORNADA_SOBREPOSTA" | "FOLGA_COM_RESERVAS" | "USUARIO_JA_VINCULADO" | "LIMITE_EXCEDIDO" | "GATEWAY_INDISPONIVEL" | "CEP_INDISPONIVEL" | "BANCO_INDISPONIVEL" | "EXCLUSAO_BLOQUEADA_POR_RESERVA" | "CONVITE_INVALIDO" | "ERRO_INTERNO";
         /** @enum {string} */
         StatusReserva: "AGUARDANDO_PAGAMENTO" | "CONFIRMADO" | "CONCLUIDO" | "NAO_COMPARECEU" | "CANCELADO" | "EXPIRADO";
         /** @enum {string} */
@@ -1517,13 +1525,16 @@ export interface components {
          * @description 1.12.0 (ADR 0015). O expediente do barbeiro no dia consultado, tirado da jornada semanal e das folgas. Sempre enviado
          *     desde a 1.12.0 (opcional no schema só para não quebrar quem lê a 1.11.0). Datas com segundos e offset, no fuso da
          *     barbearia, como `horarios`. Fechado (`aberto: false`): `inicio`, `fim` e `almoco` são `null`. Folga que cobre só
-         *     parte do dia não fecha o dia. O texto do `motivo` da folga nunca aparece aqui.
+         *     parte do dia não fecha o dia. Nem o tipo nem o texto do `motivo` da folga aparecem aqui.
          */
         ExpedienteDoDia: {
             /** @description false: fora do expediente, ou folga ou férias cobrindo o expediente inteiro do dia */
             aberto: boolean;
-            /** @description `null` quando aberto. Com folga e férias no mesmo dia, vale `FERIAS` */
-            motivoFechado: ("FORA_DO_EXPEDIENTE" | "FOLGA" | "FERIAS") | null;
+            /**
+             * @description `null` quando aberto. `FORA_DO_EXPEDIENTE`: a jornada não tem intervalo neste dia da semana. `FECHADO`: folga ou
+             *     férias cobrem o expediente inteiro; o tipo não é público (só no `/admin`). A tela mostra "Fechado" nos dois.
+             */
+            motivoFechado: ("FORA_DO_EXPEDIENTE" | "FECHADO") | null;
             /**
              * Format: date-time
              * @description início do primeiro intervalo da jornada no dia
@@ -1702,15 +1713,34 @@ export interface components {
             /** @description só nas respostas do visitante (1.9.0): a reserva guarda a região com a prova do aceite; vira false depois de `DELETE /agendamentos/guest/{id}/regiao` */
             regiaoAutorizada?: boolean;
             /**
-             * @description Acrescentar tempo para pagar (1.11.0, D188). Nulo quando não se aplica: reserva manual ou reserva que não
-             *     está AGUARDANDO_PAGAMENTO dentro do prazo.
+             * @description Acrescentar tempo para pagar (1.11.0, D188; 1.12.0, ADR 0015: 120 s por pedido, até 10). Nulo quando não se
+             *     aplica: reserva manual ou reserva que não está AGUARDANDO_PAGAMENTO dentro do prazo. Com os pedidos esgotados o
+             *     objeto continua presente, com `restantes: 0`.
              */
             prorrogacao?: null | {
-                /** @description true depois da única prorrogação permitida */
+                /**
+                 * @deprecated
+                 * @description deprecated na 1.12.0: `true` quando `usadas > 0`. Use `usadas` e `restantes`
+                 */
                 usada: boolean;
                 /**
-                 * @description quanto tempo a prorrogação acrescenta (fixo em 60 na aplicação, D190)
-                 * @example 60
+                 * @description 1.12.0: quantos pedidos de mais tempo esta reserva já usou
+                 * @example 0
+                 */
+                usadas?: number;
+                /**
+                 * @description 1.12.0: quantos pedidos a reserva pode fazer (propriedade `app.agenda.prorrogacao-maximo`, 10)
+                 * @example 10
+                 */
+                maximo?: number;
+                /**
+                 * @description 1.12.0: `maximo - usadas`; com 0 o botão some
+                 * @example 10
+                 */
+                restantes?: number;
+                /**
+                 * @description quanto cada pedido acrescenta (120 desde a 1.12.0, propriedade `app.agenda.prorrogacao-pagamento`; era 60, D190 revogada)
+                 * @example 120
                  */
                 segundos: number;
                 /**
@@ -2421,6 +2451,11 @@ export interface components {
     };
     parameters: {
         Id: string;
+        /**
+         * @description 1.12.0 (ADR 0015). Opcional, mesmo nome do cabeçalho da cobrança. Repetir o último pedido de mais tempo com a mesma
+         *     chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova (ou nenhuma) é um pedido novo.
+         */
+        IdempotencyKeyProrrogacao: string;
         Pagina: number;
         Tamanho: number;
     };
@@ -3045,7 +3080,13 @@ export interface operations {
     prorrogarPagamento: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description 1.12.0 (ADR 0015). Opcional, mesmo nome do cabeçalho da cobrança. Repetir o último pedido de mais tempo com a mesma
+                 *     chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova (ou nenhuma) é um pedido novo.
+                 */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKeyProrrogacao"];
+            };
             path: {
                 id: components["parameters"]["Id"];
             };
@@ -3053,7 +3094,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado */
+            /** @description Repetição do último pedido com a mesma `X-Idempotency-Key`; o mesmo corpo, nada somado nem contado */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3062,7 +3103,7 @@ export interface operations {
                     "application/json": components["schemas"]["Agendamento"];
                 };
             };
-            /** @description Prorrogada; `expiraEm` ganhou 60 s e `prorrogacao.usada` é `true` */
+            /** @description Prorrogada; `expiraEm` ganhou `prorrogacao.segundos` (120 s) e `prorrogacao.usadas` subiu 1 */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -3081,7 +3122,13 @@ export interface operations {
     prorrogarPagamentoDoGuest: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /**
+                 * @description 1.12.0 (ADR 0015). Opcional, mesmo nome do cabeçalho da cobrança. Repetir o último pedido de mais tempo com a mesma
+                 *     chave devolve `200` com o mesmo corpo, sem somar nem contar. Uma chave nova (ou nenhuma) é um pedido novo.
+                 */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKeyProrrogacao"];
+            };
             path: {
                 id: components["parameters"]["Id"];
             };
@@ -3089,7 +3136,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Já estava prorrogada e dentro do prazo; o mesmo `expiraEm`, nada somado */
+            /** @description Repetição do último pedido com a mesma `X-Idempotency-Key`; o mesmo corpo, nada somado nem contado */
             200: {
                 headers: {
                     [name: string]: unknown;
