@@ -104,9 +104,13 @@ Foco escondido: de 34 em 60 para 0. Altura da barra: de 243 px para até 128 px.
 
 **Por quê:** com padding `--space-2`, espaço entre os blocos e botão de 48 px a barra media 133 px (acima de 128 px) e estourava o teto de 176 px no A+. No zoom de 200% o `scrollWidth` ia a 422 px: o handle do Instagram no rodapé (um único `inline-flex` sem quebra) e a coluna mínima de 16 rem das grades não cabiam na largura útil de ~160 px.
 
-**Decisão:** depois de escolher o serviço e o horário, a seção da tira de dias (`passo-dia`) também recorta com `overflow-x: clip`, `min-width: 0` e `max-width: 100%`, além do recorte em `html`. O E2E do RF-7 mede o `scrollWidth` nesse passo, não só na abertura de `/agendar`.
+**Decisão:** depois de escolher o serviço e o horário, a seção da tira recorta com `overflow-x: clip`; a tira usa `contain: inline-size`; cada chip tem largura `var(--space-16)` (e no mínimo o `--alvo-toque` de 44 px); as notas "livre", "Fechado" e "sem horário" podem quebrar (`overflow-wrap: anywhere`). O E2E do RF-7 mede o `scrollWidth` nesse passo, com as notas visíveis, não só na abertura de `/agendar`.
 
-**Por quê:** com zoom de 200% em 320 px, depois dessa escolha o `scrollWidth` ia a 638 px: a tira de 7 chips (e o resumo preenchido, `position: fixed`) vazava do recorte só de `body` e `main`.
+**Por quê:** com zoom de 200% em 320 px, depois dessa escolha o `scrollWidth` ia a 638 px. As notas "livre"/"Fechado" (e "sem horário") alargavam os chips; o recorte em `html`/`body`/`main` não impedia essa min-content de entrar no `scrollWidth` do documento.
+
+**Decisão:** o botão "Continuar" da barra compacta e o desenho da spec ficam em 44 px (`var(--alvo-toque)`), não em 48 px (`--space-12`). 44 px é o alvo AAA do desenho (WCAG 2.5.5 Target Size Enhanced; o 2.5.8 AA pede 24 px). Subir de volta para 48 px estourava o teto da barra no A+ (RF-2).
+
+**Por quê:** a implementação já usava 44 px; a spec (e o desenho do "Continuar") ainda diziam 48 px.
 
 **Decisão:** as decisões desta melhoria ficam nesta spec, não em `docs/planejamento/decisoes.md`.
 

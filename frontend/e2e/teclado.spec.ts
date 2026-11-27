@@ -253,6 +253,7 @@ test.describe("resumo fixo não cobre o foco", () => {
 
     await page.getByRole("radio").first().click();
     await page.locator("#data").fill(horario.dia);
+    await expect(page.locator(".dias-tira .dia-chip-nota").filter({ hasText: /livre|Fechado|sem horário/ }).first()).toBeVisible();
     await page.getByRole("button", { name: horario.hora, exact: true }).first().click();
     await expect(page.locator(".resumo-fixo")).toContainText(horario.hora);
 

@@ -955,7 +955,7 @@ dd {
 }
 
 /* Agendar (Fatia 12C): tira de 7 dias, chips de horário e resumo fixo com Continuar */
-/* A seção da tira também recorta: no zoom 200%, depois do serviço e do horário, a tira (scrollWidth 638) não pode alargar o documento. */
+/* A seção recorta; a tira tem largura própria (contain), para os 7 chips rolarem dentro dela. */
 section[aria-labelledby="passo-dia"] {
   min-width: 0;
   max-width: 100%;
@@ -971,13 +971,19 @@ section[aria-labelledby="passo-dia"] {
   min-width: 0;
   width: 100%;
   max-width: 100%;
+  /* Com zoom de 200%, o recorte do ancestral não basta: a min-content da tira (notas "livre"/"Fechado")
+   * ainda entra no scrollWidth do documento (638). A largura da tira não depende dos chips. */
+  contain: inline-size;
 }
 
 .dia-chip {
   flex: none;
   display: grid;
   justify-items: center;
-  min-width: var(--space-16);
+  /* Largura travada: "livre", "Fechado" e "sem horário" não alargam o chip (RF-7). 64 px ≥ alvo de 44 px. */
+  width: var(--space-16);
+  max-width: var(--space-16);
+  min-width: var(--alvo-toque);
   min-height: var(--space-12);
   padding: var(--space-2) var(--space-3);
   border: var(--traco-1) solid var(--borda-forte);
@@ -1002,6 +1008,9 @@ section[aria-labelledby="passo-dia"] {
 
 .dia-chip-nota {
   font-size: var(--tipo-legenda-tamanho);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 /* C8 (Fatia 15): dia "Fechado" (sem expediente, ou folga ou férias no dia todo). Diferente de "sem horário" pela palavra e
