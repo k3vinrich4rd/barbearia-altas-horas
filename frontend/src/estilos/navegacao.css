@@ -35,6 +35,9 @@
 
 .botao-agendar-topo {
   flex-basis: 100%;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 
 /* Painel de acessibilidade: no celular, um botão que abre as opções */
@@ -72,6 +75,7 @@
   letter-spacing: var(--tipo-rotulo-espacamento);
   text-transform: uppercase;
   color: var(--texto-suave);
+  overflow-wrap: anywhere;
 }
 
 .rodape address {
@@ -91,10 +95,31 @@
   flex-direction: column;
 }
 
+.rodape,
+.rodape-colunas,
+.cabecalho,
+.cabecalho-interno {
+  min-width: 0;
+}
+
+.rodape-colunas > *,
+.rodape li,
+.rodape p,
+.rodape address {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .rodape a {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   min-height: var(--space-12);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .rodape-credito {
@@ -195,4 +220,28 @@
   .rodape {
     padding-bottom: var(--space-8);
   }
+}
+
+/* Indicador de 3 passos do agendamento pago. Sem cor para estado: ✓, negrito e sublinhado. */
+.indicador-de-passos {
+  margin: 0 0 var(--space-4);
+}
+
+.indicador-de-passos ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--tipo-legenda-familia);
+  font-size: var(--tipo-legenda-tamanho);
+  line-height: var(--tipo-legenda-altura);
+}
+
+.indicador-passo-atual {
+  font-weight: var(--tipo-rotulo-peso);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco-2);
+  text-underline-offset: var(--traco-3);
 }

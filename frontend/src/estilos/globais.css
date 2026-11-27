@@ -21,6 +21,11 @@
   --medida-icone-m: 1.6em;
   --medida-icone-g: 2.2em;
   --medida-menu-painel: 12rem;
+  /* 128px: teto da barra compacta no celular, sem A+. 176px: teto com A+ (zoom até 150%). */
+  --resumo-fixo-altura: calc(var(--space-16) * 2);
+  --resumo-fixo-altura-ampliada: calc((var(--space-16) * 2) + var(--space-12));
+  /* 44px: alvo de toque do desenho (space-12 48px menos space-1). */
+  --alvo-toque: calc(var(--space-12) - var(--space-1));
 }
 
 body {
@@ -30,10 +35,13 @@ body {
   font-family: var(--tipo-corpo-familia);
   font-size: var(--tipo-corpo-tamanho);
   line-height: var(--tipo-corpo-altura);
+  overflow-x: clip;
 }
 
 main {
   max-width: var(--medida-pagina);
+  min-width: 0;
+  overflow-x: clip;
   margin-inline: auto;
   padding: var(--space-8) var(--space-4) var(--space-16);
 }
@@ -78,6 +86,20 @@ a:hover {
 :focus-visible {
   outline: var(--traco-3) solid var(--foco);
   outline-offset: var(--traco-3);
+}
+
+/* Links e botões soltos: alvo de toque de 44px (PDF p.22). Vale também no desktop. */
+.link-solto {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
+}
+
+.sumario-politica li,
+.rodape-links li {
+  display: flex;
+  align-items: center;
+  min-height: var(--alvo-toque);
 }
 
 small,
@@ -255,6 +277,9 @@ hr {
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-family: var(--tipo-titulo-agenda-familia);
   font-weight: var(--tipo-titulo-agenda-peso);
   text-decoration: none;
@@ -343,8 +368,12 @@ hr {
 .link-whatsapp {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
   min-height: var(--space-12);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: var(--tipo-rotulo-peso);
 }
 
@@ -402,6 +431,8 @@ input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   min-height: var(--space-12);
+  min-width: 0;
+  max-width: 100%;
   padding: var(--space-2) var(--space-4);
   border: var(--traco-1) solid var(--borda-forte);
   border-radius: var(--radius-sm);
@@ -541,13 +572,14 @@ input[aria-invalid="true"] {
 }
 
 .opcoes {
-  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--medida-coluna-minima)), 1fr));
 }
 
 .opcao {
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
+  min-width: 0;
   padding: var(--space-3) var(--space-4);
   border: var(--traco-1) solid var(--borda-forte);
   border-radius: var(--radius-md);
@@ -840,6 +872,10 @@ dd {
   gap: var(--space-2);
   overflow-x: auto;
   padding-bottom: var(--space-2);
+  /* Sem min-width:0 a tira (7 chips) estica a página; o overflow-x fica inútil (RF-7). */
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .dia-chip {
@@ -921,7 +957,7 @@ dd {
 }
 
 .resumo-fixo-espaco {
-  height: calc(var(--space-16) * 4);
+  height: calc(var(--resumo-fixo-altura-ampliada) + var(--space-4));
 }
 
 .resumo-fixo {
@@ -929,6 +965,9 @@ dd {
   inset-inline: 0;
   bottom: 0;
   z-index: 5;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
   margin-top: var(--space-6);
   padding: var(--space-3) var(--space-4);
   padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
@@ -993,7 +1032,7 @@ dd {
   padding: 0;
   display: grid;
   gap: var(--space-6);
-  grid-template-columns: repeat(auto-fit, minmax(var(--medida-coluna-minima), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--medida-coluna-minima)), 1fr));
 }
 
 .cartao-detalhe {
@@ -1262,6 +1301,95 @@ caption {
   text-align: start;
   font-weight: var(--tipo-rotulo-peso);
   padding-bottom: var(--space-2);
+}
+
+/* Celular: barra compacta e scroll-padding para o foco não ficar atrás dela (WCAG 2.4.11).
+ * O padding usa a altura ampliada (teto com A+) para cobrir o zoom sem JavaScript. */
+@media (max-width: 47.999rem) {
+  html:has(.resumo-fixo) {
+    scroll-padding-bottom: calc(var(--resumo-fixo-altura-ampliada) + var(--space-4));
+  }
+
+  html:has(.resumo-fixo) :is(a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])) {
+    scroll-margin-bottom: calc(var(--resumo-fixo-altura-ampliada) + var(--space-4));
+  }
+
+  .resumo-fixo {
+    /* padding space-1 + botão 44px + dl de 2 linhas ≈ 117 px, para no A+ 150% ficar ≤ 176 (RF-2). */
+    padding: var(--space-1) var(--space-4);
+    padding-bottom: calc(var(--space-1) + env(safe-area-inset-bottom));
+    gap: 0;
+    max-height: var(--resumo-fixo-altura-ampliada);
+  }
+
+  .resumo-fixo .botao {
+    min-height: var(--alvo-toque);
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .resumo-fixo dl,
+  .resumo-fixo dd {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .cartao-barbeiro-texto {
+    min-width: 0;
+  }
+
+  .campo input[type="date"] {
+    max-width: 100%;
+  }
+
+  /* Rótulos ficam no HTML para o leitor de tela e somem da tela no celular. */
+  .resumo-fixo dt {
+    position: absolute;
+    width: var(--traco-1);
+    height: var(--traco-1);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .resumo-fixo dl {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "servico total"
+      "quando quando";
+    gap: 0 var(--space-2);
+    font-size: var(--tipo-legenda-tamanho);
+    line-height: var(--tipo-legenda-altura);
+  }
+
+  .resumo-fixo dd:nth-of-type(1) {
+    grid-area: servico;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .resumo-fixo dd:nth-of-type(1)::after {
+    content: " · ";
+    font-weight: var(--tipo-corpo-peso);
+  }
+
+  .resumo-fixo dd:nth-of-type(2) {
+    grid-area: quando;
+    font-weight: var(--tipo-corpo-peso);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .resumo-fixo dd:nth-of-type(3) {
+    grid-area: total;
+  }
 }
 
 /* Telas largas: duas colunas onde o desenho pede */
