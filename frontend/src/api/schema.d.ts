@@ -1461,6 +1461,11 @@ export interface components {
              */
             manterReservas?: boolean;
         };
+        /**
+         * @description 1.12.1: `tipo`, `atualizadaEm` (e `reservasMantidas` no `FolgaSalva`) são **opcionais na resposta** até o código da
+         *     Fatia 15 existir: a API de hoje ainda não os envia. Sem `tipo`, leia `FOLGA`; sem `reservasMantidas`, leia lista vazia.
+         *     Passam a obrigatórios (versão maior) só depois de a implementação estar em produção (D206).
+         */
         Folga: {
             /** Format: uuid */
             id: string;
@@ -1469,7 +1474,8 @@ export interface components {
             /** Format: date-time */
             fim: string;
             motivo?: string;
-            tipo: components["schemas"]["TipoFolga"];
+            /** @description 1.12.0; opcional na resposta desde a 1.12.1: ausente = `FOLGA` (a API de hoje ainda não envia) */
+            tipo?: components["schemas"]["TipoFolga"];
             /**
              * Format: date-time
              * @description 1.12.0: nulo até a primeira edição
@@ -1478,8 +1484,8 @@ export interface components {
         };
         /** @description Resposta do `POST` e do `PUT` de folga (1.12.0) */
         FolgaSalva: components["schemas"]["Folga"] & {
-            /** @description reservas ativas que ficaram dentro do período por `manterReservas: true`; vazio quando não houve conflito */
-            reservasMantidas: components["schemas"]["ConflitoDeFolga"][];
+            /** @description reservas ativas que ficaram dentro do período por `manterReservas: true`; vazio quando não houve conflito. Opcional desde a 1.12.1: ausente = lista vazia */
+            reservasMantidas?: components["schemas"]["ConflitoDeFolga"][];
         };
         /**
          * @description 1.12.0 (ADR 0015). Reserva ativa (CONFIRMADO, ou AGUARDANDO_PAGAMENTO com prazo aberto) que se sobrepõe a um período

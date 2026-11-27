@@ -118,7 +118,7 @@ O que já existe (conferido no código e no contrato em `e91e85d`):
 ### 9. Contrato `1.11.0 → 1.12.0`, só acréscimos
 
 - `FolgaRequest`: `tipo` (opcional, padrão `FOLGA`) e `manterReservas` (opcional, `writeOnly`, padrão `false`).
-- `Folga` (resposta): `tipo` (sempre presente) e `atualizadaEm` (nulo até a primeira edição).
+- `Folga` (resposta): `tipo` e `atualizadaEm` (nulo até a primeira edição). *Ajuste da 1.12.1 (D206): `tipo` e `reservasMantidas` são opcionais na resposta até o código da Fatia 15 estar em produção; ausentes = `FOLGA` e lista vazia.*
 - Schema novo `FolgaSalva` (resposta do `POST` e do `PUT`): `Folga` mais `reservasMantidas[]` (vazio quando não houve conflito).
 - Schema novo `ConflitoDeFolga` (item da prévia, da extensão do `422` e de `reservasMantidas`).
 - `Problema`: extensão opcional `conflitos[]`, presente só no `FOLGA_COM_RESERVAS`.

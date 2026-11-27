@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: Barbearia Altas Horas API
-  version: 1.12.0
+  version: 1.12.1
   summary: Agendamento online da Barbearia Altas Horas (beta de portfólio)
   description: |
     API da agenda online da Barbearia Altas Horas (Jardim Bonança, Osasco, desde 1997).
@@ -1916,24 +1916,29 @@ components:
             cancelado sozinho) e voltam em `reservasMantidas`. Nunca é guardado.
     Folga:
       type: object
-      required: [id, inicio, fim, tipo]
+      description: |
+        1.12.1: `tipo`, `atualizadaEm` (e `reservasMantidas` no `FolgaSalva`) são **opcionais na resposta** até o código da
+        Fatia 15 existir: a API de hoje ainda não os envia. Sem `tipo`, leia `FOLGA`; sem `reservasMantidas`, leia lista vazia.
+        Passam a obrigatórios (versão maior) só depois de a implementação estar em produção (D206).
+      required: [id, inicio, fim]
       properties:
         id: { type: string, format: uuid }
         inicio: { type: string, format: date-time }
         fim: { type: string, format: date-time }
         motivo: { type: string, maxLength: 200 }
-        tipo: { $ref: '#/components/schemas/TipoFolga' }
+        tipo:
+          $ref: '#/components/schemas/TipoFolga'
+          description: '1.12.0; opcional na resposta desde a 1.12.1: ausente = `FOLGA` (a API de hoje ainda não envia)'
         atualizadaEm: { type: [string, 'null'], format: date-time, description: '1.12.0: nulo até a primeira edição' }
     FolgaSalva:
       description: Resposta do `POST` e do `PUT` de folga (1.12.0)
       allOf:
         - $ref: '#/components/schemas/Folga'
         - type: object
-          required: [reservasMantidas]
           properties:
             reservasMantidas:
               type: array
-              description: 'reservas ativas que ficaram dentro do período por `manterReservas: true`; vazio quando não houve conflito'
+              description: 'reservas ativas que ficaram dentro do período por `manterReservas: true`; vazio quando não houve conflito. Opcional desde a 1.12.1: ausente = lista vazia'
               items: { $ref: '#/components/schemas/ConflitoDeFolga' }
     ConflitoDeFolga:
       type: object
