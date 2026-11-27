@@ -337,7 +337,7 @@ Respostas: `200` sem corpo (primeira vez **e** repetição, R12); `401 WEBHOOK_N
 
 `PUT /me/consentimentos/regiao` `{ "aceito": false, "versaoTexto": "1.2" }` → `200` (finalidade `REGIAO_ALCANCE`, no molde do de marketing). **Revogar apaga** a localidade do perfil e a região de todas as reservas da conta, na mesma transação, e a pessoa passa a "sem região" no alcance. `PUT /me` `{ "cep": "06010-000", "autorizaRegiao": true, "versaoTextoRegiao": "1.2" }` autoriza e grava a região (o CEP é consultado e descartado); sem `autorizaRegiao = true`, ou sem CEP, é a mesma revogação.
 
-`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.2", "textoConsentimento": "...", "textoConsentimentoRegiao": "...", "politica": "...", "atualizadaEm": "2026-11-23T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.2 (Fatia 11: consentimento de região, "clientes" no lugar de "atendimentos", faixas, retenção da região, o CEP que não é guardado) é um **rascunho técnico, não é parecer jurídico**; o texto da caixinha e da política passam pela revisão do Cautelar antes do merge.
+`GET /politica-privacidade` (pública) → `200` `{ "versao": "1.2", "textoConsentimento": "...", "textoConsentimentoRegiao": "...", "politica": "...", "atualizadaEm": "2026-11-23T00:00:00-03:00" }`. A `versao` é a mesma que o `PUT` exige; texto novo é versão nova, e a anterior continua guardada. A política da 1.2 (Fatia 11: consentimento de região, "clientes" no lugar de "atendimentos", faixas, retenção da região, o CEP que não é guardado) é um **rascunho técnico, não é parecer jurídico**; o texto da caixinha e da política passam pela revisão jurídica antes do merge.
 
 ### 4.11 Reserva manual (1.6, Fatia 6D)
 

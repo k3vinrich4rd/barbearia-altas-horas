@@ -1,26 +1,26 @@
 # ADR 0014 · Alcance: subir de nível, k = 5 e consentimento para a região do CEP
 
-- Status: **aceito** (Alicerce, 20/11/2026) e **implementado na Fatia 11** (24/11/2026)
+- Status: **aceito** (revisão de arquitetura, 20/11/2026) e **implementado na Fatia 11** (24/11/2026)
 - Cobre: F6 (CEP mínimo), F7 e F8 (alcance em níveis) do redesign de 20/11
 - Relacionados: ADR 0009 (LGPD), D128 (backup 30 dias), R30 (nada pessoal em log)
 
 ## Contexto
 
-O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 clientes some ou vira "Outros bairros". O Kevin teme que isso deixe a função inútil. O Cautelar lembra que **o k é prática de anonimização, não exigência da lei**, e pede uma única base legal para a região derivada do CEP.
+O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 clientes some ou vira "Outros bairros". O Kevin teme que isso deixe a função inútil. A revisão jurídica lembra que **o k é prática de anonimização, não exigência da lei**, e pede uma única base legal para a região derivada do CEP.
 
 ## Decisão
 
 ### 1. Base legal: consentimento (LGPD art. 7º, I)
 
 - A F6 **não** usa legítimo interesse, então não precisa do registro do art. 10.
-- Na tela, o "CEP (opcional)" vem com uma **caixinha desmarcada**: "Autorizo usar só meu bairro e minha cidade, somados aos de outros clientes, para mostrar no site de onde vêm os clientes da barbearia. Não guardamos o CEP. Posso retirar esta autorização quando quiser." (texto revisado pelo Cautelar). A caixinha não é obrigatória e o registro guarda a data e a versão do texto (art. 8º §2º). Ao lado do campo aparece o canal `APP_PRIVACIDADE_CONTATO`, que precisa estar preenchido em produção. A confirmação da reserva do visitante traz um link para retirar a autorização, que usa o `tokenGuest` da reserva, passa pelo BFF e apaga a região na hora (art. 8º §5º). O CEP só é enviado com a caixinha marcada.
+- Na tela, o "CEP (opcional)" vem com uma **caixinha desmarcada**: "Autorizo usar só meu bairro e minha cidade, somados aos de outros clientes, para mostrar no site de onde vêm os clientes da barbearia. Não guardamos o CEP. Posso retirar esta autorização quando quiser." (texto revisado na revisão jurídica). A caixinha não é obrigatória e o registro guarda a data e a versão do texto (art. 8º §2º). Ao lado do campo aparece o canal `APP_PRIVACIDADE_CONTATO`, que precisa estar preenchido em produção. A confirmação da reserva do visitante traz um link para retirar a autorização, que usa o `tokenGuest` da reserva, passa pelo BFF e apaga a região na hora (art. 8º §5º). O CEP só é enviado com a caixinha marcada.
 - Para provar o consentimento (art. 8º, §2º):
   - na conta, o registro vai em `consentimento`, com a finalidade nova `REGIAO_ALCANCE` e a versão do texto;
   - no visitante, a reserva guarda `regiao_consentimento_versao` junto com a região.
 - Revogar pela tela de consentimentos (ou pelo `PUT /me` sem CEP) apaga a localidade do perfil **e** a região das reservas dessa conta, que sai do alcance. A região do visitante segue a retenção da reserva de visitante.
 - O CEP completo **não é guardado** por ninguém. As colunas `usuario.cep` e `reserva_guest.cep` são anuladas e removidas numa migração (a próxima V livre). Ficam só `regiao_bairro`, `regiao_cidade`, `regiao_uf`, `regiao_municipio_ibge` e, derivada deste último, a região imediata do IBGE (tabela estática versionada).
 - Contrato: versão **minor**, sem quebra. O `cep` continua aceito na entrada. `PerfilResposta.endereco.cep` fica `deprecated` e sempre `null`, e o `cep` da exportação passa a aceitar `null`. Os dois saem na próxima major.
-- Política de privacidade 1.2. O texto da caixinha e da política passam pelo Cautelar antes do merge.
+- Política de privacidade 1.2. O texto da caixinha e da política passam pela revisão jurídica antes do merge.
 
 ### 2. k = 5, configurável
 
@@ -36,7 +36,7 @@ O alcance mostra de onde vêm os clientes. Hoje um bairro com menos de 5 cliente
 - **Supressão complementar** (contra descobrir por subtração): quando o total do nível de cima aparece e só um lugar ficou escondido, o "Outros" mostra "menos de k", sem número. Se mesmo assim desse para calcular, o total do nível de cima também não aparece.
 - Valores abaixo de k nunca aparecem como número, percentual, `0`, `null` ou "NaN".
 
-### 4. Vitrine pública: porcentagem em faixas, sem total (pedido do Kevin, regras do Cautelar)
+### 4. Vitrine pública: porcentagem em faixas, sem total (pedido do Kevin, regras da revisão jurídica)
 
 - Na home, o bloco "de onde vêm os clientes" mostra os municípios. Ao clicar num município, aparecem os bairros com **porcentagem**, não com número.
 - Porcentagem só para bairro com **pelo menos k (5) clientes**. Os outros entram em "Outros bairros", **sem porcentagem**.
